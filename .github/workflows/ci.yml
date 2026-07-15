@@ -1,0 +1,137 @@
+name: CI
+
+# CI de verificação apenas — NENHUMA etapa de release/publicação nesta fase
+# (E3.3 Fase A). Publicação no npm é decisão explícita e separada (Fase B).
+# NUNCA colocar token de produção/npm neste workflow.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # Todos os pacotes declaram >=20.19. O leg do major 20 pina '20.19'
+        # (setup-node resolve o patch mais novo de 20.19.x) — um Node 20 antigo
+        # (< 20.19, sem fetch/WebStream estáveis) NÃO valida a compatibilidade
+        # declarada. 22 e 24 usam o patch corrente do major.
+        node-version: ["20.19", "22", "24"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Nenhum fetch/cliente HTTP fora do SDK
+        run: |
+          if grep -rnE '\bfetch\(|node:https?|axios|undici' packages/cli/src packages/mcp/src; then
+            echo "::error::CLI/MCP devem consumir @botozap/sdk — cliente HTTP duplicado detectado"
+            exit 1
+          fi
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm build
+      - name: Artefatos importam (ESM e CJS)
+        run: |
+          node -e "import('./packages/sdk/dist/index.js').then(m => { if (!m.BotoZap) throw new Error('ESM sem BotoZap') }).catch(e => { console.error(e); process.exit(1) })"
+          node -e "const m = require('./packages/sdk/dist/index.cjs'); if (!m.BotoZap) throw new Error('CJS sem BotoZap')"
+      - name: Smoke da CLI (dist construído)
+        run: |
+          node packages/cli/dist/index.js --version
+          node packages/cli/dist/index.js --help > /dev/null
+      - name: Smoke do MCP (lista tools)
+        # `node scripts/smoke.ts` depende de type-stripping nativo (Node >=22.18);
+        # no leg 20.19 o fluxo MCP fica coberto pelo teste hermético do `pnpm test`
+        # e pelo boot do bin no passo de projeto limpo abaixo.
+        if: matrix.node-version != '20.19'
+        run: pnpm --filter @botozap/mcp smoke
+      - name: pnpm pack --dry-run por pacote
+        run: pnpm run pack:check
+      - name: Tarballs reais em projeto limpo (ESM/CJS/types/bins)
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/bz-tarballs"; CONSUMER="$RUNNER_TEMP/bz-consumer"
+          mkdir -p "$OUT" "$CONSUMER"
+          (cd packages/sdk && pnpm pack --out "$OUT/sdk.tgz")
+          (cd packages/cli && pnpm pack --out "$OUT/cli.tgz")
+          (cd packages/mcp && pnpm pack --out "$OUT/mcp.tgz")
+          for t in sdk cli mcp; do
+            if tar -tzf "$OUT/$t.tgz" | grep -E '/(src|tests?|scripts)/|/\.env|node_modules/'; then
+              echo "::error::tarball $t contém arquivos que não deviam ser publicados"
+              exit 1
+            fi
+          done
+          cd "$CONSUMER"
+          printf '{ "name": "consumer", "private": true }\n' > package.json
+          # @botozap/sdk ainda não existe no registry: o override aponta a
+          # dependência 0.1.0 (reescrita do workspace:*) para o tarball local.
+          printf 'overrides:\n  "@botozap/sdk": "file:%s/sdk.tgz"\n' "$OUT" > pnpm-workspace.yaml
+          pnpm add "$OUT/sdk.tgz" "$OUT/cli.tgz" "$OUT/mcp.tgz"
+          pnpm add -D typescript@5.6
+          node -e "import('@botozap/sdk').then(m => { if (typeof m.BotoZap !== 'function') process.exit(1) })"
+          node -e "if (typeof require('@botozap/sdk').BotoZap !== 'function') process.exit(1)"
+          # (sem heredoc: dentro do bloco `run:` do YAML toda linha fica
+          # indentada e o delimitador de um heredoc nunca chega à coluna 0)
+          {
+            echo 'import { BotoZap, type SendResult } from "@botozap/sdk";'
+            echo 'const boto = new BotoZap({ apiKey: "bz_sandbox_ci" });'
+            echo 'export async function smoke(): Promise<SendResult> {'
+            echo '  return boto.messages.send({ to: "+5500000000001", text: "Olá 😀" });'
+            echo '}'
+          } > index.ts
+          printf '{ "compilerOptions": { "strict": true, "module": "nodenext", "moduleResolution": "nodenext", "target": "es2022", "noEmit": true } }\n' > tsconfig.json
+          pnpm exec tsc -p tsconfig.json
+          ./node_modules/.bin/botozap --version
+          ./node_modules/.bin/botozap --help > /dev/null
+          # bin do MCP: inicia (linha de boot no stderr) e encerra no EOF do stdin.
+          BOTOZAP_API_KEY=bz_sandbox_ci timeout 15 ./node_modules/.bin/botozap-mcp < /dev/null 2> mcp-stderr.txt || true
+          grep -q "servidor MCP iniciado" mcp-stderr.txt
+
+  # A matriz contratual REAL (SDK dist → handlers reais, Postgres local) vive no
+  # repositório privado do core (botozap/tests/api-contract/sdk-*). O workflow
+  # sdk-contracts.yml do core faz checkout dos dois repos lado a lado e sobe o
+  # Supabase local. Este repo público não recebe acesso ao core.
+
+  sandbox-smoke-real:
+    name: Smoke MCP → sandbox real
+    if: github.event_name == 'workflow_dispatch'
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    env:
+      BOTOZAP_API_KEY: ${{ secrets.BOTOZAP_SANDBOX_API_KEY }}
+      BOTOZAP_API_URL: ${{ vars.BOTOZAP_SANDBOX_API_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @botozap/mcp build
+      - name: Exigir exclusivamente credencial sandbox
+        shell: bash
+        run: |
+          if [[ -z "$BOTOZAP_API_KEY" ]]; then
+            echo "::error::Configure o secret BOTOZAP_SANDBOX_API_KEY"
+            exit 1
+          fi
+          if [[ "$BOTOZAP_API_KEY" != bz_sandbox_* ]]; then
+            echo "::error::O smoke real recusa chaves que não sejam sandbox"
+            exit 1
+          fi
+          if [[ -z "$BOTOZAP_API_URL" ]]; then
+            echo "::error::Configure a variable BOTOZAP_SANDBOX_API_URL"
+            exit 1
+          fi
+      - name: Enviar mensagem pelo MCP ao sandbox real
+        run: pnpm --filter @botozap/mcp smoke:sandbox

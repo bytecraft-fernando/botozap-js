@@ -1,0 +1,9 @@
+packages:
+  - packages/*
+  - examples/*
+
+# pnpm 11 moveu as settings do campo "pnpm" do package.json pra cá.
+# Aprova o build script do esbuild (usado pelo tsup) — sem isso o pnpm
+# aborta o install com ERR_PNPM_IGNORED_BUILDS (strictDepBuilds).
+allowBuilds:
+  esbuild: true

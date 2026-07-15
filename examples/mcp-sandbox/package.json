@@ -1,0 +1,6 @@
+{
+  "name": "example-mcp-sandbox",
+  "private": true,
+  "type": "module",
+  "description": "Configuração mínima do @botozap/mcp com chave sandbox — nenhuma credencial real."
+}

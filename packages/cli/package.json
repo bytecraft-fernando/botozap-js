@@ -1,0 +1,48 @@
+{
+  "name": "@botozap/cli",
+  "version": "0.1.0",
+  "description": "CLI dev-first para a API pública do BotoZap (WhatsApp Cloud API multi-tenant).",
+  "license": "MIT",
+  "type": "module",
+  "homepage": "https://botozap.com.br",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bytecraft-fernando/botozap-js.git",
+    "directory": "packages/cli"
+  },
+  "bugs": {
+    "url": "https://github.com/bytecraft-fernando/botozap-js/issues"
+  },
+  "bin": {
+    "botozap": "dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=20.19"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsc -p tsconfig.json --watch",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "prepublishOnly": "pnpm run build",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@botozap/sdk": "workspace:*",
+    "commander": "^12.1.0",
+    "picocolors": "^1.1.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.0",
+    "typescript": "^5.6.0",
+    "vitest": "^3.0.0"
+  }
+}

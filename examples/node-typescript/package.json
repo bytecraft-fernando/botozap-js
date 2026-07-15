@@ -1,0 +1,17 @@
+{
+  "name": "example-node-typescript",
+  "private": true,
+  "type": "module",
+  "description": "Exemplo em TypeScript: envio sandbox tipado, leitura paginada e erro estruturado com @botozap/sdk.",
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "start": "tsc -p tsconfig.json && node dist/index.js"
+  },
+  "dependencies": {
+    "@botozap/sdk": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.0",
+    "typescript": "^5.6.0"
+  }
+}

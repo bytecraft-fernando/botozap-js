@@ -1,0 +1,50 @@
+{
+  "name": "@botozap/mcp",
+  "version": "0.1.0",
+  "description": "Servidor MCP (Model Context Protocol) para a API pública do BotoZap — expõe as operações da plataforma WhatsApp Cloud API como ferramentas MCP para Claude Code, Cursor e Codex.",
+  "license": "MIT",
+  "type": "module",
+  "homepage": "https://botozap.com.br",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bytecraft-fernando/botozap-js.git",
+    "directory": "packages/mcp"
+  },
+  "bugs": {
+    "url": "https://github.com/bytecraft-fernando/botozap-js/issues"
+  },
+  "bin": {
+    "botozap-mcp": "dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=20.19"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsc -p tsconfig.json --watch",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "start": "node dist/index.js",
+    "smoke": "node scripts/smoke.ts",
+    "smoke:sandbox": "node scripts/smoke-sandbox.ts",
+    "prepublishOnly": "pnpm run build"
+  },
+  "dependencies": {
+    "@botozap/sdk": "workspace:*",
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.0",
+    "typescript": "^5.6.0",
+    "vitest": "^3.0.0"
+  }
+}

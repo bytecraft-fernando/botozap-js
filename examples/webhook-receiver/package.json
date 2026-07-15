@@ -1,0 +1,9 @@
+{
+  "name": "example-webhook-receiver",
+  "private": true,
+  "type": "module",
+  "description": "Receptor de webhooks do BotoZap: bytes crus, HMAC-SHA256 constant-time, idempotência transacional e ACK 2xx só após o commit.",
+  "scripts": {
+    "start": "node index.mjs"
+  }
+}

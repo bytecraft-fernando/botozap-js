@@ -1,0 +1,29 @@
+{
+  "name": "botozap-js",
+  "private": true,
+  "description": "Monorepo das ferramentas públicas do BotoZap: SDK Node, CLI e servidor MCP sobre a API REST /api/v1.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bytecraft-fernando/botozap-js.git"
+  },
+  "homepage": "https://botozap.com.br",
+  "bugs": {
+    "url": "https://github.com/bytecraft-fernando/botozap-js/issues"
+  },
+  "engines": {
+    "node": ">=20.19",
+    "pnpm": ">=9"
+  },
+  "packageManager": "pnpm@11.7.0",
+  "scripts": {
+    "build": "pnpm --filter './packages/*' run build",
+    "typecheck": "pnpm --filter './packages/*' run typecheck",
+    "test": "pnpm --filter './packages/*' run test",
+    "pack:check": "pnpm --filter './packages/*' exec pnpm pack --dry-run",
+    "changeset": "changeset"
+  },
+  "devDependencies": {
+    "@changesets/cli": "^2.29.0"
+  }
+}

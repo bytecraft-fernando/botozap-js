@@ -1,0 +1,12 @@
+{
+  "name": "example-node-javascript",
+  "private": true,
+  "type": "module",
+  "description": "Exemplo mínimo em JavaScript: envio sandbox com @botozap/sdk.",
+  "scripts": {
+    "start": "node index.mjs"
+  },
+  "dependencies": {
+    "@botozap/sdk": "workspace:*"
+  }
+}
