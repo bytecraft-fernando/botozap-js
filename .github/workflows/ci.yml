@@ -130,7 +130,10 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm --filter @botozap/mcp build
+      # O MCP resolve @botozap/sdk pelos artefatos em dist; num checkout limpo,
+      # o SDK precisa ser construído antes. O script raiz respeita a topologia
+      # do workspace e evita depender de dist residual da máquina local.
+      - run: pnpm build
       - name: Exigir exclusivamente credencial sandbox
         shell: bash
         run: |
