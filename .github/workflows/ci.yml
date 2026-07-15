@@ -23,6 +23,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
+        with:
+          # `packageManager` pina pnpm 11, que exige Node >=22.13 (usa
+          # `node:sqlite`) e portanto NÃO roda no leg 20.19. `standalone`
+          # instala o @pnpm/exe, que embute o próprio Node: o pnpm roda no
+          # runtime dele, enquanto tsc/vitest/node continuam executando no Node
+          # da matriz — que é justamente o que queremos exercitar. (O v4 não
+          # liga isso sozinho; o auto-enable abaixo de 22.13 só existe no v6, e
+          # aqui nem serviria: o action roda ANTES do setup-node trocar o Node.)
+          standalone: true
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
@@ -34,9 +43,13 @@ jobs:
             echo "::error::CLI/MCP devem consumir @botozap/sdk — cliente HTTP duplicado detectado"
             exit 1
           fi
+      # `build` vem ANTES de `typecheck`/`test`: CLI e MCP resolvem os tipos de
+      # @botozap/sdk pelo `dist/index.d.ts` (campo `types`), que num checkout
+      # limpo só existe depois do build do SDK. O `pnpm --filter` respeita a
+      # topologia do workspace, então o SDK é construído primeiro.
+      - run: pnpm build
       - run: pnpm typecheck
       - run: pnpm test
-      - run: pnpm build
       - name: Artefatos importam (ESM e CJS)
         run: |
           node -e "import('./packages/sdk/dist/index.js').then(m => { if (!m.BotoZap) throw new Error('ESM sem BotoZap') }).catch(e => { console.error(e); process.exit(1) })"
