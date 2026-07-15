@@ -10,10 +10,10 @@ plataforma é fechado; o que vive aqui é a camada que ajuda quem integra.
 > **sem promessa de estabilidade de API** até a `1.0`; se algo faltar ou
 > quebrar nos pacotes, o fallback é sempre a API REST direto.
 
-**Node suportado:** `>=20.19`, com CI configurado nos majors 20.19, 22 e 24
+**Node suportado:** `>=20.19`, validado em CI nos majors 20.19, 22 e 24
 (typecheck, testes, build, imports ESM/CJS, smokes de CLI/MCP e instalação dos
-tarballs reais num projeto limpo). A primeira evidência remota será produzida
-depois da criação e do push deste repositório; localmente, a matriz está verde.
+tarballs reais num projeto limpo). A matriz contratual completa também está
+verde contra os handlers reais no repositório privado do core.
 
 **Bugs:** [issues deste repositório](https://github.com/bytecraft-fernando/botozap-js/issues)
 — nunca inclua sua chave de API no relato.
