@@ -4,16 +4,13 @@ Configuração mínima do servidor MCP do BotoZap (`@botozap/mcp`) usando uma
 **chave sandbox** (`bz_sandbox_…`) — nenhuma credencial real, nenhum custo,
 nenhum número de WhatsApp de verdade.
 
-> **Em preparação.** O pacote ainda não está publicado no npm; enquanto isso,
-> rode a partir do monorepo (build local). A primeira chamada sandbox guiada
-> ponta-a-ponta faz parte da E3.3.
+O pacote está publicado no npm. Fixamos `0.1.0` abaixo para que a configuração
+seja reproduzível.
 
-## 1. Build local
+## 1. Verifique o pacote
 
 ```bash
-# na raiz do monorepo
-pnpm install
-pnpm build   # gera packages/mcp/dist (e o SDK de que ele depende)
+pnpm dlx @botozap/mcp@0.1.0
 ```
 
 ## 2. Configuração no cliente MCP
@@ -27,8 +24,8 @@ Claude Code (`.mcp.json` do seu projeto):
 {
   "mcpServers": {
     "botozap": {
-      "command": "node",
-      "args": ["<caminho-do-monorepo>/packages/mcp/dist/index.js"],
+      "command": "pnpm",
+      "args": ["dlx", "@botozap/mcp@0.1.0"],
       "env": {
         "BOTOZAP_API_KEY": "bz_sandbox_SUA_CHAVE_AQUI"
       }

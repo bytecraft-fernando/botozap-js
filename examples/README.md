@@ -1,6 +1,6 @@
 # Exemplos
 
-Todos os exemplos consomem **apenas pacotes públicos** do monorepo (via
+Todos os exemplos consomem **apenas pacotes públicos** (no checkout, via
 workspace) — nada do core privado. Nenhum exemplo contém credencial real:
 API keys entram sempre por variável de ambiente (`BOTOZAP_API_KEY`,
 `BOTOZAP_WEBHOOK_SECRET`).

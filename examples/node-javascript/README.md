@@ -3,8 +3,7 @@
 Envio de mensagem no **sandbox determinístico** do BotoZap com `@botozap/sdk`:
 sem credenciais Meta, sem número real, sem custo.
 
-> Os pacotes ainda não estão publicados no npm — este exemplo roda dentro do
-> monorepo (workspace pnpm).
+O SDK está publicado no npm; este checkout usa o mesmo pacote pelo workspace.
 
 ## Rodar
 

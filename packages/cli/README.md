@@ -9,7 +9,7 @@ rede passa por ele.
 
 > Requer **Node ≥ 20.19**. Projeto usa **pnpm** (nunca npm/npx/yarn/bun).
 
-> **Status: preview `0.x`, ainda não publicado no npm.** Sem promessa de
+> **Status: preview `0.x`.** Sem promessa de
 > estabilidade de comandos/flags até a `1.0`. A [API REST](https://botozap.com.br/docs)
 > é a interface oficial e estável — se algo faltar na CLI, chame
 > `https://botozap.com.br/api/v1` direto (`curl` + `Authorization: Bearer`).
@@ -20,24 +20,17 @@ rede passa por ele.
 
 ## Instalação
 
-Ainda **não publicado no npm** (em preparação). Por ora, use dentro do monorepo
-`botozap-js`:
+Instalação global com pnpm:
 
 ```bash
-# na raiz do monorepo
-pnpm install
-pnpm --filter @botozap/cli build
+pnpm add --global @botozap/cli
+botozap --version
 ```
 
-Isso gera `packages/cli/dist/` com o binário `botozap` (campo `bin`). Para usar a partir
-do checkout:
+Para experimentar sem instalar globalmente:
 
 ```bash
-# na pasta do pacote
-cd packages/cli
-pnpm link --global    # disponibiliza o comando `botozap`
-# ou rode direto:
-node dist/index.js --help
+pnpm dlx @botozap/cli --help
 ```
 
 ## Autenticação

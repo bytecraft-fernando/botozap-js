@@ -13,38 +13,29 @@ Cada ferramenta MCP mapeia para uma operação do SDK oficial **`@botozap/sdk`**
 erro). É uma ponte fina: valida os argumentos (zod), delega ao SDK e devolve o
 JSON da API.
 
-> **Status: em preparação — ainda NÃO publicado no npm.** Use a partir do
-> monorepo (build local), como abaixo.
+> **Status: preview público `0.x`.** Sem promessa de estabilidade de tools e
+> argumentos até a `1.0`; fixe a versão para integrações reproduzíveis.
 
 ## Requisitos
 
-- **Node.js ≥ 20** (ESM).
+- **Node.js ≥ 20.19** (ESM).
 - Uma chave de API do BotoZap (gere em **/chaves** no painel).
 - **pnpm** (este monorepo usa pnpm exclusivamente).
 
-## Build
+## Instalação
 
-Este pacote vive no monorepo `botozap-js` e depende de `@botozap/sdk`
-(`workspace:*`). Instale as dependências na **raiz** do monorepo e então compile:
+O pacote pode ser executado diretamente do npm:
 
 ```bash
-# na raiz do monorepo botozap-js
+pnpm dlx @botozap/mcp@0.1.0
+```
+
+Para desenvolver o monorepo localmente:
+
+```bash
 pnpm install
-pnpm --filter @botozap/mcp build
-```
-
-> Não use `--ignore-workspace`: o pacote precisa resolver `@botozap/sdk` pelo
-> workspace.
-
-Smoke test (monta o servidor e lista as ferramentas, **sem** chamar a API real):
-
-```bash
+pnpm build
 pnpm --filter @botozap/mcp smoke
-```
-
-Testes (vitest, sem rede):
-
-```bash
 pnpm --filter @botozap/mcp test
 ```
 
@@ -59,12 +50,12 @@ Sem `BOTOZAP_API_KEY` o servidor falha imediatamente com uma mensagem clara.
 
 ## Usar com Claude Code
 
-Via CLI (caminho **absoluto** para o `dist/index.js` compilado):
+Via CLI:
 
 ```bash
 claude mcp add botozap \
   --env BOTOZAP_API_KEY=bz_live_suachaveaqui \
-  -- node /caminho/absoluto/para/botozap-js/packages/mcp/dist/index.js
+  -- pnpm dlx @botozap/mcp@0.1.0
 ```
 
 Ou no JSON do MCP (`.mcp.json` do projeto ou config do usuário):
@@ -73,8 +64,8 @@ Ou no JSON do MCP (`.mcp.json` do projeto ou config do usuário):
 {
   "mcpServers": {
     "botozap": {
-      "command": "node",
-      "args": ["/caminho/absoluto/para/botozap-js/packages/mcp/dist/index.js"],
+      "command": "pnpm",
+      "args": ["dlx", "@botozap/mcp@0.1.0"],
       "env": {
         "BOTOZAP_API_KEY": "bz_live_suachaveaqui"
       }
@@ -91,8 +82,8 @@ Edite `~/.cursor/mcp.json` (global) ou `.cursor/mcp.json` (no projeto):
 {
   "mcpServers": {
     "botozap": {
-      "command": "node",
-      "args": ["/caminho/absoluto/para/botozap-js/packages/mcp/dist/index.js"],
+      "command": "pnpm",
+      "args": ["dlx", "@botozap/mcp@0.1.0"],
       "env": {
         "BOTOZAP_API_KEY": "bz_live_suachaveaqui"
       }

@@ -4,9 +4,9 @@ Monorepo das ferramentas públicas do [BotoZap](https://botozap.com.br) — a
 plataforma dev-first multi-tenant sobre a WhatsApp Cloud API oficial. O core da
 plataforma é fechado; o que vive aqui é a camada que ajuda quem integra.
 
-> **Status: em preparação.** Os pacotes ainda **não** estão publicados no npm.
-> Enquanto isso, a [API REST](https://botozap.com.br/docs) é a interface
-> oficial e estável — tudo aqui é um envelope fino sobre ela. Tudo é `0.x`,
+> **Status: preview público `0.x`.** Os pacotes estão publicados no npm.
+> A [API REST](https://botozap.com.br/docs) continua sendo a interface oficial
+> e estável — tudo aqui é um envelope fino sobre ela. Tudo é `0.x`,
 > **sem promessa de estabilidade de API** até a `1.0`; se algo faltar ou
 > quebrar nos pacotes, o fallback é sempre a API REST direto.
 

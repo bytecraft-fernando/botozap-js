@@ -3,8 +3,8 @@
 Envio sandbox **tipado**, leitura **paginada por cursor** e erro estruturado
 (`BotoZapError`) com `@botozap/sdk`.
 
-> Os pacotes ainda não estão publicados no npm — este exemplo roda dentro do
-> monorepo (workspace pnpm). A chave sandbox (`bz_sandbox_`) só tem acesso às
+O SDK está publicado no npm; este checkout usa o mesmo pacote pelo workspace.
+A chave sandbox (`bz_sandbox_`) só tem acesso às
 > rotas de mensagens (allow-list do sandbox) — exatamente o que este exemplo usa.
 
 ## Rodar

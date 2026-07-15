@@ -4,8 +4,6 @@ SDK oficial da [BotoZap](https://botozap.com.br) para Node.js. Envie mensagens e
 
 O core da plataforma é fechado. Este cliente é a camada pública sobre a API HTTP: um envelope fino, tipado, sem dependências de runtime.
 
-> **Ainda não publicado no npm — em preparação.** O pacote está em migração para o monorepo `botozap-js`; o comando de instalação abaixo passará a funcionar quando a primeira versão for publicada.
-
 ## Status: preview `0.x`
 
 - Versão `0.x`, **sem promessa de estabilidade de API**: métodos e tipos podem
