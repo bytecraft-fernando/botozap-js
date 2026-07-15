@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { createRequire } from "node:module";
 import { Command } from "commander";
 import pc from "picocolors";
 import { resolveFormat, type OutputFormat } from "./output.js";
@@ -19,7 +20,9 @@ import { registerConfig } from "./commands/config.js";
 import { registerStatus } from "./commands/status.js";
 import { registerLogin } from "./commands/login.js";
 
-const VERSION = "0.1.0";
+const { version: VERSION } = createRequire(import.meta.url)("../package.json") as {
+  version: string;
+};
 
 const program = new Command();
 

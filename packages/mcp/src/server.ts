@@ -3,6 +3,7 @@
  * e registra todos os grupos de ferramentas. Extraído de `index.ts` para que o
  * smoke test possa montar o servidor sem abrir o transporte stdio.
  */
+import { createRequire } from "node:module";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { createClient, DEFAULT_API_URL } from "./client.js";
 import { createRegister } from "./register.js";
@@ -16,6 +17,10 @@ import { registerTemplateTools } from "./tools/templates.js";
 import { registerWebhookTools } from "./tools/webhooks.js";
 import { registerMiscTools } from "./tools/misc.js";
 
+const { version: VERSION } = createRequire(import.meta.url)("../package.json") as {
+  version: string;
+};
+
 export interface BuildServerOptions {
   apiKey: string;
   baseUrl?: string;
@@ -27,7 +32,7 @@ export interface BuildServerOptions {
 export function buildServer(options: BuildServerOptions): McpServer {
   const server = new McpServer({
     name: "botozap-mcp",
-    version: "0.1.0",
+    version: VERSION,
   });
 
   const client = createClient({
