@@ -177,6 +177,29 @@ export interface MediaUploadResult {
 }
 
 /**
+ * Retorno de GET /v1/media/:id — metadados de uma mídia RECEBIDA (inbound) já
+ * espelhada, mais a `download_url` (URL assinada, efêmera) para baixar o binário.
+ * O `id` é o `media_id` da Cloud API (não um uuid interno).
+ *
+ * `mime_type`/`file_size`/`sha256` podem vir `null` (a Meta nem sempre informa
+ * todos). Se a mídia AINDA está sendo espelhada, a rota responde 202 e o SDK
+ * lança `BotoZapError` com `code: "media_not_ready"` (ver `media.get`) — nesse
+ * caso este objeto nunca é devolvido.
+ */
+export interface MediaAsset {
+  /** media_id da Cloud API. */
+  id: string;
+  mime_type: string | null;
+  /** Tamanho em bytes. */
+  file_size: number | null;
+  sha256: string | null;
+  /** URL assinada para baixar o binário. Válida até `expires_at`. */
+  download_url: string;
+  /** ISO 8601 — quando a `download_url` deixa de valer. */
+  expires_at: string;
+}
+
+/**
  * Link de setup de um cliente (Embedded Signup). Shape do contrato
  * (ver `/v1/customers/:id/setup_links`): a `url` embute o token opaco; o token
  * cru nunca é exposto separadamente.

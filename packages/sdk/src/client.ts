@@ -125,13 +125,26 @@ export class BotoZap {
     const raw = await res.text();
     const data = raw ? safeJson(raw) : undefined;
 
-    if (!res.ok) {
-      const envelope = data as
-        | { error?: { code?: string; message?: string } }
-        | undefined;
-      // Expõe os headers da RESPOSTA no erro — num 429 o chamador precisa de
-      // `Retry-After`/`X-RateLimit-*` para saber quando reenviar. Só headers da
-      // resposta; nada do request (que carrega a apiKey) toca este objeto.
+    const envelope = data as
+      | { error?: { code?: string; message?: string } }
+      | undefined;
+    // Um corpo `{ error: {...} }` é um ERRO ainda que o status seja 2xx. A rota
+    // `GET /v1/media/:id` usa exatamente isso: quando a mídia ainda está sendo
+    // espelhada, responde 202 + `{error:{code:"media_not_ready"}}` + `Retry-After`
+    // (o dev deve retentar). Sem tratar o envelope aqui, o 202 passaria como
+    // "sucesso" e o desempacote de item viraria um `malformed_response` genérico
+    // — o dev não conseguiria distinguir o "retente em instantes".
+    const hasErrorEnvelope =
+      typeof envelope === "object" &&
+      envelope !== null &&
+      typeof envelope.error === "object" &&
+      envelope.error !== null;
+
+    if (!res.ok || hasErrorEnvelope) {
+      // Expõe os headers da RESPOSTA no erro — num 429 (ou no 202 media_not_ready)
+      // o chamador precisa de `Retry-After`/`X-RateLimit-*` para saber quando
+      // reenviar. Só headers da resposta; nada do request (que carrega a apiKey)
+      // toca este objeto.
       const headers: Record<string, string> = {};
       res.headers.forEach((value, key) => {
         headers[key] = value;

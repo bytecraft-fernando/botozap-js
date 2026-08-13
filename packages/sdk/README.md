@@ -92,6 +92,36 @@ const customer = await boto.customers.get("uuid-do-cliente");
 const { data: templates } = await boto.templates.list();
 ```
 
+## Mídia
+
+Suba um arquivo (a BotoZap baixa da URL, com guard SSRF, e envia à Cloud API) e
+use o `media_id` numa mensagem:
+
+```ts
+const up = await boto.media.upload({
+  source: "https://exemplo.com/foto.png",
+  phone_number_id,
+});
+// up.target.media_id → usável no envio
+```
+
+Para uma mídia **recebida**, busque metadados e a URL de download pelo `media_id`
+da Cloud API. A mídia é espelhada de forma assíncrona: se ainda não terminou, o
+método lança `BotoZapError` com `code: "media_not_ready"` (202) e você retenta,
+respeitando o `Retry-After`:
+
+```ts
+try {
+  const media = await boto.media.get(mediaId);
+  // media.download_url é uma URL assinada e efêmera — baixe direto (GET).
+} catch (err) {
+  if (err instanceof BotoZapError && err.code === "media_not_ready") {
+    const wait = Number(err.headers?.["retry-after"] ?? 5);
+    // aguarde `wait` segundos e tente de novo
+  }
+}
+```
+
 ## Retornos e paginação
 
 O SDK **desempacota o envelope `{ data }`** da API pra você:
@@ -176,7 +206,7 @@ O SDK cobre os recursos da API `/v1`:
 - `webhooks` — CRUD e teste
 - `phoneNumbers` — listar, buscar, remover, saúde (a rota de update não expõe campos editáveis, então o SDK não tem `phoneNumbers.update`)
 - `flows` — criar, versionar, publicar, data endpoint (as operações por flow exigem `phone_number_id`, que amarra o flow à sua WABA)
-- `media` — subir arquivo e obter um media_id
+- `media` — subir arquivo (obter um media_id) e **buscar metadados + URL de download** de uma mídia recebida
 - `users`, `apiLogs`, `webhookDeliveries` — leitura
 
 ```ts

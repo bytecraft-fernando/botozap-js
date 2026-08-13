@@ -580,4 +580,60 @@ describe("SDK contract — correções E3.2", () => {
 
     expect(result).toBeNull();
   });
+
+  it("media.get: GET /media/:id; DESEMPACOTA {data} com metadados + download_url", async () => {
+    responder = () => ({
+      status: 200,
+      json: {
+        data: {
+          id: "wamid_media_1",
+          mime_type: "image/jpeg",
+          file_size: 20480,
+          sha256: "abc123",
+          download_url: "https://cdn.exemplo/assinada?sig=xyz",
+          expires_at: "2026-08-11T12:00:00.000Z",
+        },
+      },
+    });
+
+    const media = await boto.media.get("wamid media/1");
+
+    // REQUEST: id vai encodado no path (o media_id da Meta pode ter chars especiais).
+    const req = lastRequest();
+    expect(req.method).toBe("GET");
+    expect(req.path).toBe("/media/wamid%20media%2F1");
+
+    // RESPONSE: item singular vem em {data} e é desempacotado.
+    expect(media).toEqual({
+      id: "wamid_media_1",
+      mime_type: "image/jpeg",
+      file_size: 20480,
+      sha256: "abc123",
+      download_url: "https://cdn.exemplo/assinada?sig=xyz",
+      expires_at: "2026-08-11T12:00:00.000Z",
+    });
+  });
+
+  it("media.get: 202 media_not_ready lança BotoZapError distinguível + Retry-After", async () => {
+    // A rota responde 202 (2xx!) com envelope de ERRO quando a mídia ainda
+    // espelha. O SDK não pode tratar isso como sucesso: precisa lançar para o dev
+    // distinguir o "retente" e ler o Retry-After.
+    responder = () => ({
+      status: 202,
+      headers: { "retry-after": "5" },
+      json: {
+        error: {
+          code: "media_not_ready",
+          message: "Mídia ainda sendo processada. Tente novamente em instantes.",
+        },
+      },
+    });
+
+    const err = await boto.media.get("wamid_media_1").catch((e) => e);
+
+    expect(err).toBeInstanceOf(BotoZapError);
+    expect((err as BotoZapError).code).toBe("media_not_ready");
+    expect((err as BotoZapError).status).toBe(202);
+    expect((err as BotoZapError).headers?.["retry-after"]).toBe("5");
+  });
 });

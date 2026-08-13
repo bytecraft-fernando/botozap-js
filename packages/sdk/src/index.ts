@@ -71,5 +71,6 @@ export type {
   ApiLog,
   WebhookDelivery,
   MediaUploadResult,
+  MediaAsset,
   SetupLink,
 } from "./types.js";
