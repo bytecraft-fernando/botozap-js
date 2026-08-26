@@ -40,6 +40,10 @@ class TestEventSignal implements EventSignalSource {
   publish(): void {
     for (const listener of this.listeners) listener();
   }
+
+  listenerCount(): number {
+    return this.listeners.size;
+  }
 }
 
 function event(cursor: number): BotoZapEvent {
@@ -58,19 +62,30 @@ function event(cursor: number): BotoZapEvent {
   };
 }
 
-async function startApi(events: BotoZapEvent[], requests: URL[]): Promise<string> {
-  const api = createServer((request, response) => {
+async function startApi(
+  events: BotoZapEvent[],
+  requests: URL[],
+  beforeEventsResponse?: (readNumber: number) => Promise<void>,
+  allowedApiKeys: ReadonlySet<string> = new Set([API_KEY]),
+  eventsByApiKey?: ReadonlyMap<string, BotoZapEvent[]>,
+): Promise<string> {
+  let eventReadCount = 0;
+  const api = createServer(async (request, response) => {
     const url = new URL(request.url ?? "/", "http://127.0.0.1");
     requests.push(url);
-    if (request.headers.authorization !== `Bearer ${API_KEY}`) {
+    const apiKey = request.headers.authorization?.replace(/^Bearer /, "");
+    if (!apiKey || !allowedApiKeys.has(apiKey)) {
       jsonResponse(response, 401, {
         error: { code: "unauthorized", message: "Chave inválida." },
       });
       return;
     }
     if (url.pathname === "/events") {
+      eventReadCount += 1;
+      const visibleEvents = [...(eventsByApiKey?.get(apiKey) ?? events)];
+      await beforeEventsResponse?.(eventReadCount);
       const after = Number(url.searchParams.get("after") ?? "0");
-      const data = events.filter((item) => Number(item.cursor) > after);
+      const data = visibleEvents.filter((item) => Number(item.cursor) > after);
       jsonResponse(response, 200, {
         data,
         paging: {
@@ -173,4 +188,332 @@ describe("transporte MCP Streamable HTTP", () => {
     expect(apiRequests.every((url) => !url.href.includes(API_KEY))).toBe(true);
     expect(EVENTS_URI).not.toContain(API_KEY);
   });
+
+  it("reconcilia pelo cursor sem sinal do bus e cancela o consumo no unsubscribe", async () => {
+    const events: BotoZapEvent[] = [];
+    const apiRequests: URL[] = [];
+    const baseUrl = await startApi(events, apiRequests);
+    const remote = await startStreamableHttpServer({
+      baseUrl,
+      eventSignal: new TestEventSignal(),
+      eventPollIntervalMs: 25,
+      host: "127.0.0.1",
+      port: 0,
+    });
+    openServers.push(remote);
+
+    const { client } = await connect(remote.url);
+    let notificationCount = 0;
+    let resolveNotification: ((uri: string) => void) | undefined;
+    const notification = new Promise<string>((resolve) => {
+      resolveNotification = resolve;
+    });
+    client.setNotificationHandler(ResourceUpdatedNotificationSchema, ({ params }) => {
+      notificationCount += 1;
+      resolveNotification?.(params.uri);
+    });
+    await client.subscribeResource({ uri: EVENTS_URI });
+    await waitUntil(() => eventReads(apiRequests) > 0, 500);
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
+    events.push(event(1));
+    await expect(withTimeout(notification, 500)).resolves.toBe(EVENTS_URI);
+
+    await client.unsubscribeResource({ uri: EVENTS_URI });
+    const readsAfterUnsubscribe = eventReads(apiRequests);
+    events.push(event(2));
+    await new Promise((resolve) => setTimeout(resolve, 100));
+
+    expect(notificationCount).toBe(1);
+    expect(eventReads(apiRequests)).toBe(readsAfterUnsubscribe);
+  });
+
+  it("não perde um sinal concorrente com a leitura em voo", async () => {
+    const events: BotoZapEvent[] = [];
+    const apiRequests: URL[] = [];
+    let releaseRead: (() => void) | undefined;
+    let markReadStarted: (() => void) | undefined;
+    const readStarted = new Promise<void>((resolve) => {
+      markReadStarted = resolve;
+    });
+    const holdRead = new Promise<void>((resolve) => {
+      releaseRead = resolve;
+    });
+    const baseUrl = await startApi(events, apiRequests, async (readNumber) => {
+      if (readNumber !== 2) return;
+      markReadStarted?.();
+      await holdRead;
+    });
+    const eventSignal = new TestEventSignal();
+    const remote = await startStreamableHttpServer({
+      baseUrl,
+      eventSignal,
+      eventPollIntervalMs: 1_000,
+      host: "127.0.0.1",
+      port: 0,
+    });
+    openServers.push(remote);
+
+    const { client } = await connect(remote.url);
+    let resolveNotification: ((uri: string) => void) | undefined;
+    const notification = new Promise<string>((resolve) => {
+      resolveNotification = resolve;
+    });
+    client.setNotificationHandler(ResourceUpdatedNotificationSchema, ({ params }) => {
+      resolveNotification?.(params.uri);
+    });
+    await client.subscribeResource({ uri: EVENTS_URI });
+    await readStarted;
+
+    events.push(event(1));
+    eventSignal.publish();
+    releaseRead?.();
+
+    await expect(withTimeout(notification, 300)).resolves.toBe(EVENTS_URI);
+  });
+
+  it("limita sessões e libera todo o consumo depois do cancelamento", async () => {
+    const eventSignal = new TestEventSignal();
+    const baseUrl = await startApi([], []);
+    const remote = await startStreamableHttpServer({
+      baseUrl,
+      eventSignal,
+      maxSessions: 1,
+      host: "127.0.0.1",
+      port: 0,
+    });
+    openServers.push(remote);
+
+    const first = await connect(remote.url);
+    expect(eventSignal.listenerCount()).toBe(1);
+    await expect(connect(remote.url)).rejects.toThrow();
+
+    await first.transport.terminateSession();
+    await first.client.close();
+    openClients.splice(openClients.indexOf(first.client), 1);
+    await waitUntil(() => eventSignal.listenerCount() === 0, 500);
+
+    await expect(connect(remote.url)).resolves.toBeDefined();
+    expect(eventSignal.listenerCount()).toBe(1);
+  });
+
+  it("reserva o limite antes de inicializações concorrentes", async () => {
+    const baseUrl = await startApi([], []);
+    const remote = await startStreamableHttpServer({
+      baseUrl,
+      eventSignal: new TestEventSignal(),
+      maxSessions: 1,
+      host: "127.0.0.1",
+      port: 0,
+    });
+    openServers.push(remote);
+
+    const attempts = await Promise.allSettled(
+      Array.from({ length: 10 }, () => connect(remote.url)),
+    );
+
+    expect(attempts.filter((attempt) => attempt.status === "fulfilled")).toHaveLength(1);
+    expect(attempts.filter((attempt) => attempt.status === "rejected")).toHaveLength(9);
+  });
+
+  it("limita resources assinados e devolve a vaga no unsubscribe", async () => {
+    const baseUrl = await startApi([], []);
+    const remote = await startStreamableHttpServer({
+      baseUrl,
+      eventSignal: new TestEventSignal(),
+      maxEventSubscriptions: 1,
+      host: "127.0.0.1",
+      port: 0,
+    });
+    openServers.push(remote);
+
+    const { client } = await connect(remote.url);
+    const nextCursorUri = "botozap://events?after=1&limit=100";
+    await client.subscribeResource({ uri: EVENTS_URI });
+    await expect(client.subscribeResource({ uri: nextCursorUri })).rejects.toThrow(
+      "Limite de assinaturas",
+    );
+
+    await client.unsubscribeResource({ uri: EVENTS_URI });
+    await expect(client.subscribeResource({ uri: nextCursorUri })).resolves.toEqual({});
+  });
+
+  it("impede uma única chave de consumir todas as sessões", async () => {
+    const otherApiKey = "bz_live_http_transport_other";
+    const baseUrl = await startApi(
+      [],
+      [],
+      undefined,
+      new Set([API_KEY, otherApiKey]),
+    );
+    const remote = await startStreamableHttpServer({
+      baseUrl,
+      eventSignal: new TestEventSignal(),
+      maxSessions: 2,
+      maxSessionsPerApiKey: 1,
+      host: "127.0.0.1",
+      port: 0,
+    });
+    openServers.push(remote);
+
+    await connect(remote.url);
+    await expect(connect(remote.url)).rejects.toThrow();
+    await expect(connect(remote.url, otherApiKey)).resolves.toBeDefined();
+  });
+
+  it("expira sessão abandonada sem DELETE e recupera sua capacidade", async () => {
+    const eventSignal = new TestEventSignal();
+    const baseUrl = await startApi([], []);
+    const remote = await startStreamableHttpServer({
+      baseUrl,
+      eventSignal,
+      maxSessions: 1,
+      sessionIdleTimeoutMs: 40,
+      sessionSweepIntervalMs: 10,
+      host: "127.0.0.1",
+      port: 0,
+    });
+    openServers.push(remote);
+
+    const abandoned = await connect(remote.url);
+    expect(eventSignal.listenerCount()).toBe(1);
+    await abandoned.client.close();
+    openClients.splice(openClients.indexOf(abandoned.client), 1);
+
+    await waitUntil(() => eventSignal.listenerCount() === 0, 500);
+    await expect(connect(remote.url)).resolves.toBeDefined();
+  });
+
+  it("isola resources e notifications entre credenciais live e Sandbox", async () => {
+    const sandboxApiKey = "bz_sandbox_http_transport";
+    const liveEvents: BotoZapEvent[] = [];
+    const sandboxEvents: BotoZapEvent[] = [];
+    const baseUrl = await startApi(
+      [],
+      [],
+      undefined,
+      new Set([API_KEY, sandboxApiKey]),
+      new Map([
+        [API_KEY, liveEvents],
+        [sandboxApiKey, sandboxEvents],
+      ]),
+    );
+    const eventSignal = new TestEventSignal();
+    const remote = await startStreamableHttpServer({
+      baseUrl,
+      eventSignal,
+      eventPollIntervalMs: 1_000,
+      host: "127.0.0.1",
+      port: 0,
+    });
+    openServers.push(remote);
+
+    const live = await connect(remote.url);
+    const sandbox = await connect(remote.url, sandboxApiKey);
+    const liveNotifications: string[] = [];
+    const sandboxNotifications: string[] = [];
+    live.client.setNotificationHandler(ResourceUpdatedNotificationSchema, ({ params }) => {
+      liveNotifications.push(params.uri);
+    });
+    sandbox.client.setNotificationHandler(ResourceUpdatedNotificationSchema, ({ params }) => {
+      sandboxNotifications.push(params.uri);
+    });
+    await Promise.all([
+      live.client.subscribeResource({ uri: EVENTS_URI }),
+      sandbox.client.subscribeResource({ uri: EVENTS_URI }),
+    ]);
+
+    liveEvents.push(event(1));
+    eventSignal.publish();
+    await waitUntil(() => liveNotifications.length === 1, 500);
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(sandboxNotifications).toEqual([]);
+
+    const liveRead = await live.client.readResource({ uri: EVENTS_URI });
+    const sandboxRead = await sandbox.client.readResource({ uri: EVENTS_URI });
+    expect(resourceEvents(liveRead).map((item) => item.message_id)).toEqual([
+      "wamid.http.1",
+    ]);
+    expect(resourceEvents(sandboxRead)).toEqual([]);
+
+    sandboxEvents.push({
+      ...event(1),
+      id: "sandbox-event-1",
+      message_id: "wamid.sandbox.1",
+    });
+    eventSignal.publish();
+    await waitUntil(() => sandboxNotifications.length === 1, 500);
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(liveNotifications).toHaveLength(1);
+    expect(resourceEvents(await sandbox.client.readResource({ uri: EVENTS_URI }))).toEqual([
+      expect.objectContaining({ id: "sandbox-event-1", message_id: "wamid.sandbox.1" }),
+    ]);
+  });
+
+  it("mantém o fan-out limitado sob carga concorrente de sessões", async () => {
+    const events: BotoZapEvent[] = [];
+    const eventSignal = new TestEventSignal();
+    const baseUrl = await startApi(events, []);
+    const remote = await startStreamableHttpServer({
+      baseUrl,
+      eventSignal,
+      eventPollIntervalMs: 1_000,
+      maxSessions: 25,
+      maxSessionsPerApiKey: 25,
+      host: "127.0.0.1",
+      port: 0,
+    });
+    openServers.push(remote);
+
+    const clients = await Promise.all(
+      Array.from({ length: 25 }, () => connect(remote.url)),
+    );
+    let notifications = 0;
+    for (const { client } of clients) {
+      client.setNotificationHandler(ResourceUpdatedNotificationSchema, () => {
+        notifications += 1;
+      });
+    }
+    await Promise.all(
+      clients.map(({ client }) => client.subscribeResource({ uri: EVENTS_URI })),
+    );
+    expect(eventSignal.listenerCount()).toBe(25);
+    await expect(connect(remote.url)).rejects.toThrow();
+
+    events.push(event(1));
+    eventSignal.publish();
+    await waitUntil(() => notifications === 25, 1_000);
+    expect(resourceEvents(await clients[0]!.client.readResource({ uri: EVENTS_URI }))).toEqual([
+      expect.objectContaining({ id: "event-1" }),
+    ]);
+  });
 });
+
+function resourceEvents(
+  result: Awaited<ReturnType<Client["readResource"]>>,
+): BotoZapEvent[] {
+  const content = result.contents[0];
+  if (!content || !("text" in content)) throw new Error("resource sem texto");
+  return (JSON.parse(content.text) as { data: BotoZapEvent[] }).data;
+}
+
+function eventReads(requests: URL[]): number {
+  return requests.filter((url) => url.pathname === "/events").length;
+}
+
+async function waitUntil(predicate: () => boolean, timeoutMs: number): Promise<void> {
+  const deadline = performance.now() + timeoutMs;
+  while (!predicate()) {
+    if (performance.now() >= deadline) throw new Error("condição não atingida");
+    await new Promise((resolve) => setTimeout(resolve, 5));
+  }
+}
+
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error("notification não recebida")), timeoutMs),
+    ),
+  ]);
+}

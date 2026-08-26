@@ -17,7 +17,10 @@ export type { EventSignalSource } from "./resources/events.js";
 const MAX_BODY_BYTES = 1_048_576;
 
 type Session = {
+  activeRequests: number;
   apiKeyFingerprint: Buffer;
+  closing?: Promise<void>;
+  lastActivityAt: number;
   server: McpServer;
   transport: StreamableHTTPServerTransport;
 };
@@ -25,9 +28,21 @@ type Session = {
 export interface StreamableHttpServerOptions {
   baseUrl: string;
   eventSignal: EventSignalSource;
+  /** Reconciliação periódica que cobre sinais perdidos/indisponibilidade do bus. */
+  eventPollIntervalMs?: number;
   fetch?: typeof fetch;
   host?: string;
+  /** Teto de resources de Eventos por sessão. */
+  maxEventSubscriptions?: number;
+  /** Teto de sessões stateful mantidas por processo. */
+  maxSessions?: number;
+  /** Teto de sessões simultâneas ligadas à mesma chave. */
+  maxSessionsPerApiKey?: number;
   port?: number;
+  /** Tempo sem request ativo antes de recolher uma sessão abandonada. */
+  sessionIdleTimeoutMs?: number;
+  /** Frequência da varredura de sessões abandonadas. */
+  sessionSweepIntervalMs?: number;
 }
 
 export interface RunningStreamableHttpServer {
@@ -44,6 +59,19 @@ export async function startStreamableHttpServer(
   options: StreamableHttpServerOptions,
 ): Promise<RunningStreamableHttpServer> {
   const sessions = new Map<string, Session>();
+  const idleTimeoutMs = Math.max(1, options.sessionIdleTimeoutMs ?? 5 * 60_000);
+  const sweep = setInterval(() => {
+    const now = Date.now();
+    for (const [sessionId, session] of sessions) {
+      if (
+        session.activeRequests === 0 &&
+        now - session.lastActivityAt >= idleTimeoutMs
+      ) {
+        void closeSession(sessions, sessionId, session);
+      }
+    }
+  }, Math.max(1, options.sessionSweepIntervalMs ?? 30_000));
+  sweep.unref?.();
   const http = createServer((request, response) => {
     void handleRequest(request, response, sessions, options).catch(() => {
       if (!response.headersSent) {
@@ -65,10 +93,12 @@ export async function startStreamableHttpServer(
   return {
     url: new URL(`http://${displayHost(host)}:${address.port}/mcp`),
     async close() {
+      clearInterval(sweep);
       await Promise.allSettled(
-        [...sessions.values()].map(({ server }) => server.close()),
+        [...sessions].map(([sessionId, session]) =>
+          closeSession(sessions, sessionId, session),
+        ),
       );
-      sessions.clear();
       await closeHttp(http);
     },
   };
@@ -101,7 +131,14 @@ async function handleRequest(
       return;
     }
     const body = request.method === "POST" ? await readJsonBody(request) : undefined;
-    await session.transport.handleRequest(request, response, body);
+    session.activeRequests += 1;
+    session.lastActivityAt = Date.now();
+    try {
+      await session.transport.handleRequest(request, response, body);
+    } finally {
+      session.activeRequests -= 1;
+      session.lastActivityAt = Date.now();
+    }
     return;
   }
 
@@ -121,6 +158,17 @@ async function handleRequest(
     jsonRpcError(response, 401, -32001, "Credencial inválida ou sem events:read.");
     return;
   }
+  if (sessions.size >= (options.maxSessions ?? 1_000)) {
+    jsonRpcError(response, 429, -32000, "Limite de sessões MCP atingido.");
+    return;
+  }
+  const sessionsForApiKey = [...sessions.values()].filter((candidate) =>
+    sameFingerprint(candidate.apiKeyFingerprint, apiKey),
+  ).length;
+  if (sessionsForApiKey >= (options.maxSessionsPerApiKey ?? 5)) {
+    jsonRpcError(response, 429, -32000, "Limite de sessões MCP atingido.");
+    return;
+  }
 
   let session: Session | undefined;
   const transport = new StreamableHTTPServerTransport({
@@ -128,23 +176,39 @@ async function handleRequest(
     onsessioninitialized: (newSessionId) => {
       if (session) sessions.set(newSessionId, session);
     },
-    onsessionclosed: (closedSessionId) => {
-      sessions.delete(closedSessionId);
+    onsessionclosed: async (closedSessionId) => {
+      const closed = sessions.get(closedSessionId);
+      if (closed) await closeSession(sessions, closedSessionId, closed);
     },
   });
   const server = buildServer({
     apiKey,
     baseUrl: options.baseUrl,
     fetch: options.fetch,
+    eventPollIntervalMs: options.eventPollIntervalMs ?? 15_000,
     eventSignal: options.eventSignal,
+    maxEventSubscriptions: options.maxEventSubscriptions,
   });
   session = {
+    activeRequests: 0,
     apiKeyFingerprint: fingerprint(apiKey),
+    lastActivityAt: Date.now(),
     server,
     transport,
   };
   await server.connect(transport);
   await transport.handleRequest(request, response, body);
+}
+
+function closeSession(
+  sessions: Map<string, Session>,
+  sessionId: string,
+  session: Session,
+): Promise<void> {
+  if (session.closing) return session.closing;
+  if (sessions.get(sessionId) === session) sessions.delete(sessionId);
+  session.closing = session.server.close().catch(() => {});
+  return session.closing;
 }
 
 async function authenticatesForEvents(

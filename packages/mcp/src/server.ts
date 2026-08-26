@@ -32,6 +32,8 @@ export interface BuildServerOptions {
   fetch?: typeof fetch;
   /** Intervalo do tail enquanto há assinatura ativa. Padrão: 1,5 s. */
   eventPollIntervalMs?: number;
+  /** Máximo de URIs de Eventos assinadas por sessão. */
+  maxEventSubscriptions?: number;
   /** Sinal compartilhado usado pelo transporte remoto; o payload vem da API. */
   eventSignal?: EventSignalSource;
 }
@@ -63,6 +65,7 @@ export function buildServer(options: BuildServerOptions): McpServer {
   registerWebhookTools(register);
   registerMiscTools(register);
   const closeEventResources = registerEventResources(server, client, {
+    maxSubscriptions: options.maxEventSubscriptions,
     pollIntervalMs: options.eventPollIntervalMs ?? 1_500,
     eventSignal: options.eventSignal,
   });

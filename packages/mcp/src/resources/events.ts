@@ -35,6 +35,7 @@ class EventSubscriptions {
   private readonly subscriptions = new Map<string, Subscription>();
   private timer: ReturnType<typeof setTimeout> | undefined;
   private polling = false;
+  private signalPending = false;
   private closed = false;
   private readonly unsubscribeEventSignal: (() => void) | undefined;
 
@@ -42,14 +43,24 @@ class EventSubscriptions {
     private readonly server: McpServer,
     private readonly client: Client,
     private readonly pollIntervalMs: number,
+    private readonly maxSubscriptions: number,
     eventSignal?: EventSignalSource,
   ) {
-    this.unsubscribeEventSignal = eventSignal?.subscribe(() => this.schedule(0));
+    this.unsubscribeEventSignal = eventSignal?.subscribe(() => {
+      this.signalPending = true;
+      this.schedule(0);
+    });
   }
 
   subscribe(uri: string): void {
     const { after } = parseEventsUri(uri);
     if (!this.subscriptions.has(uri)) {
+      if (this.subscriptions.size >= this.maxSubscriptions) {
+        throw new McpError(
+          ErrorCode.InvalidRequest,
+          `Limite de assinaturas de Eventos atingido (${this.maxSubscriptions}).`,
+        );
+      }
       this.subscriptions.set(uri, { cursor: after });
     }
     this.schedule(0);
@@ -61,6 +72,7 @@ class EventSubscriptions {
     if (this.subscriptions.size === 0 && this.timer) {
       clearTimeout(this.timer);
       this.timer = undefined;
+      this.signalPending = false;
     }
   }
 
@@ -73,8 +85,14 @@ class EventSubscriptions {
   }
 
   private schedule(delayMs: number): void {
-    if (this.closed || this.polling || this.timer || this.subscriptions.size === 0) {
+    if (this.closed || this.subscriptions.size === 0) {
       return;
+    }
+    if (this.polling) return;
+    if (this.timer) {
+      if (delayMs > 0) return;
+      clearTimeout(this.timer);
+      this.timer = undefined;
     }
     this.timer = setTimeout(() => {
       this.timer = undefined;
@@ -86,6 +104,7 @@ class EventSubscriptions {
   private async poll(): Promise<void> {
     if (this.closed || this.polling || this.subscriptions.size === 0) return;
     this.polling = true;
+    this.signalPending = false;
     try {
       for (const [uri, subscription] of [...this.subscriptions]) {
         try {
@@ -107,12 +126,13 @@ class EventSubscriptions {
       }
     } finally {
       this.polling = false;
-      if (!this.unsubscribeEventSignal) this.schedule(this.pollIntervalMs);
+      this.schedule(this.signalPending ? 0 : this.pollIntervalMs);
     }
   }
 }
 
 export interface RegisterEventResourcesOptions {
+  maxSubscriptions?: number;
   pollIntervalMs: number;
   eventSignal?: EventSignalSource;
 }
@@ -126,6 +146,7 @@ export function registerEventResources(
     server,
     client,
     Math.max(1, options.pollIntervalMs),
+    Math.max(1, options.maxSubscriptions ?? 8),
     options.eventSignal,
   );
 

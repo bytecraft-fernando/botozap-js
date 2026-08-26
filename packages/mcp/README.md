@@ -84,6 +84,19 @@ sinal vazio. Ao recebê-lo, cada sessão consulta `/events` com sua própria cha
 e só envia `notifications/resources/updated` se houver Evento no cursor
 autorizado. O payload autoritativo permanece no stream durável.
 
+Se o bus cair — inclusive durante o boot — o servidor continua disponível em
+modo degradado, reconecta com backoff de 250 ms a 10 s e mantém um heartbeat de
+reconciliação pelo cursor a cada 15 s. Um sinal que chega enquanto outra leitura
+está em voo fica pendente para um novo probe imediato; não depende do próximo
+heartbeat.
+
+O processo mantém no máximo 1.000 sessões, 5 sessões por chave e 8 resources de
+Eventos por sessão. `resources/unsubscribe` interrompe o consumo daquele
+resource; `DELETE /mcp` encerra a sessão e libera listeners/timers. Uma sessão
+que perde o transporte sem enviar `DELETE` é recolhida após 5 minutos sem
+request ativo (varredura a cada 30 s). Esses limites são conservadores para o
+preview `0.x` e podem mudar antes da `1.0`.
+
 ## Usar com Claude Code
 
 Via CLI:
@@ -159,15 +172,17 @@ precisa incluir o escopo `events:read`.
 A notification é deliberadamente só um sinal e não carrega mensagem, Contato
 ou credencial. Ao recebê-la, releia o mesmo resource, processe `data` e persista
 `paging.cursor`. Depois de uma desconexão, leia ou assine uma nova URI com esse
-cursor em `after` para recuperar o intervalo autoritativo. Notifications são
-hints e podem se repetir; deduplique por `event.id` ou pela identidade estável
-do Evento.
+cursor em `after`: primeiro drene todas as páginas de catch-up (`paging.next`),
+depois mantenha a assinatura aberta para retomar o live tail. Notifications são
+hints at-least-once e podem se repetir; deduplique por `event.id` antes de
+produzir qualquer resposta. O mesmo Evento conserva `id`, `cursor` e identidade
+de mensagem em retries e replay.
 
 No stdio, o tail usa intervalo padrão de 1,5 segundo e para no `unsubscribe` ou
 no fim da sessão. No remoto, o PostgreSQL acorda o processo MCP mesmo quando o
 Evento foi persistido por outra instância; a consulta escopada continua sendo a
-fonte do payload. Receber a notification não significa que todo host inicia
-automaticamente uma nova execução do agente.
+fonte do payload e o heartbeat cobre sinais perdidos. Receber a notification não
+significa que todo host inicia automaticamente uma nova execução do agente.
 
 Em caso de erro da API, a ferramenta devolve um resultado de erro (`isError`) com
 a mensagem PT-BR do envelope `{ error: { code, message } }` no formato
