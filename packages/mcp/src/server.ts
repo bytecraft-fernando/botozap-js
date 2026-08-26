@@ -40,7 +40,7 @@ export function buildServer(options: BuildServerOptions): McpServer {
     baseUrl: options.baseUrl,
     fetch: options.fetch,
   });
-  const register = createRegister(server, client);
+  const register = createRegister(server, client, options.apiKey);
 
   registerMessageTools(register);
   registerConversationTools(register);

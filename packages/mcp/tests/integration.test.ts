@@ -11,6 +11,11 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { buildServer } from "../src/server.js";
+import {
+  MESSAGE_ID,
+  cursorPagingFixture,
+  messageFixture,
+} from "./contract-fixtures.js";
 
 const API_KEY = "bz_live_integração_secreta_123";
 const BASE_URL = "https://api.test/v1";
@@ -45,7 +50,7 @@ const fetchStub = (async (input: unknown, init?: RequestInit) => {
   if (method === "POST" && path === "/messages") {
     // POST /messages responde DIRETO (sem envelope { data }).
     return jsonResponse(200, {
-      id: "msg_1",
+      id: MESSAGE_ID,
       wamid: "wamid.ABC",
       to: body?.to ?? "",
       status: "accepted",
@@ -54,13 +59,13 @@ const fetchStub = (async (input: unknown, init?: RequestInit) => {
 
   if (method === "GET" && path === "/messages") {
     return jsonResponse(200, {
-      data: [{ id: "m1" }, { id: "m2" }],
-      paging: { cursors: { before: null, after: null }, next: null, previous: null },
+      data: [messageFixture],
+      paging: cursorPagingFixture,
     });
   }
 
   if (method === "GET" && /^\/messages\/[^/]+$/.test(path)) {
-    return jsonResponse(200, { data: { id: "m1", text: { body: "oi" } } });
+    return jsonResponse(200, { data: messageFixture });
   }
 
   if (method === "GET" && path === "/customers") {
@@ -122,7 +127,7 @@ describe("servidor MCP — integração ponta a ponta (fetch stub)", () => {
 
     const payload = JSON.parse(textOf(result));
     // Resposta direta: sem chave `data`.
-    expect(payload).toMatchObject({ id: "msg_1", wamid: "wamid.ABC", status: "accepted" });
+    expect(payload).toMatchObject({ id: MESSAGE_ID, wamid: "wamid.ABC", status: "accepted" });
     expect(payload.data).toBeUndefined();
   });
 
@@ -168,12 +173,12 @@ describe("servidor MCP — integração ponta a ponta (fetch stub)", () => {
     const client = await connect();
     const result = (await client.callTool({
       name: "get_message",
-      arguments: { id: "m1" },
+      arguments: { id: MESSAGE_ID },
     })) as { content: Array<{ type: string; text?: string }>; isError?: boolean };
 
     expect(result.isError).toBeFalsy();
     const payload = JSON.parse(textOf(result));
-    expect(payload.data).toMatchObject({ id: "m1" });
+    expect(payload.data).toMatchObject({ id: MESSAGE_ID });
   });
 
   it("erro da API vira isError com 'Erro [code]:' e NÃO vaza a apiKey", async () => {

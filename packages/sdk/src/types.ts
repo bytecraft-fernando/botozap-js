@@ -10,6 +10,8 @@ export interface SendResult {
   id: string | null;
   wamid: string;
   to: string;
+  /** Destinatário efetivamente usado após normalização de telefone/BSUID. */
+  sent_to?: string;
   status: MessageStatus;
   /** Presente apenas quando a chave é do ambiente sandbox. */
   sandbox?: boolean;

@@ -2,6 +2,10 @@
 import { z } from "zod";
 import type { CreateTemplateParams, ListTemplatesParams } from "@botozap/sdk";
 import type { Register } from "../register.js";
+import {
+  listTemplatesResultSchema,
+  templateResultSchema,
+} from "../schemas.js";
 
 export function registerTemplateTools(register: Register): void {
   register(
@@ -15,6 +19,7 @@ export function registerTemplateTools(register: Register): void {
       page: z.number().int().positive().optional().describe("Página (1-based)."),
       per_page: z.number().int().positive().optional().describe("Itens por página (máx. 100)."),
     },
+    listTemplatesResultSchema,
     (client, args) => client.templates.list(args as ListTemplatesParams),
   );
 
@@ -22,6 +27,7 @@ export function registerTemplateTools(register: Register): void {
     "get_template",
     "Busca um template pelo id (uuid interno). Retorna { data }.",
     { id: z.string().describe("ID do template (uuid interno).") },
+    templateResultSchema,
     async (client, args) => ({ data: await client.templates.get(String(args.id)) }),
   );
 
@@ -38,6 +44,7 @@ export function registerTemplateTools(register: Register): void {
       waba_connection_id: z.string().optional(),
       phone_number_id: z.string().optional().describe("Resolve a conexão do número (Meta)."),
     },
+    templateResultSchema,
     async (client, args) => ({
       data: await client.templates.create(args as unknown as CreateTemplateParams),
     }),

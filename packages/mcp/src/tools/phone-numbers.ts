@@ -2,6 +2,11 @@
 import { z } from "zod";
 import type { ListPhoneNumbersParams } from "@botozap/sdk";
 import type { Register } from "../register.js";
+import {
+  getPhoneNumberResultSchema,
+  listPhoneNumbersResultSchema,
+  phoneNumberHealthResultSchema,
+} from "../schemas.js";
 
 export function registerPhoneNumberTools(register: Register): void {
   register(
@@ -12,6 +17,7 @@ export function registerPhoneNumberTools(register: Register): void {
       page: z.number().int().positive().optional().describe("Página (1-based)."),
       per_page: z.number().int().positive().optional().describe("Itens por página (máx. 100)."),
     },
+    listPhoneNumbersResultSchema,
     (client, args) => client.phoneNumbers.list(args as ListPhoneNumbersParams),
   );
 
@@ -19,6 +25,7 @@ export function registerPhoneNumberTools(register: Register): void {
     "get_phone_number",
     "Busca um número pelo id (uuid interno). Retorna { data }.",
     { id: z.string().describe("ID do número (uuid interno).") },
+    getPhoneNumberResultSchema,
     async (client, args) => ({ data: await client.phoneNumbers.get(String(args.id)) }),
   );
 
@@ -26,6 +33,7 @@ export function registerPhoneNumberTools(register: Register): void {
     "phone_number_health",
     "Retorna a saúde/qualidade de um número (quality rating, status de verificação, limites). Retorna { data }.",
     { id: z.string().describe("ID do número (uuid interno).") },
+    phoneNumberHealthResultSchema,
     async (client, args) => ({ data: await client.phoneNumbers.health(String(args.id)) }),
   );
 }

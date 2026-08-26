@@ -2,6 +2,11 @@
 import { z } from "zod";
 import type { ListMessagesParams } from "@botozap/sdk";
 import type { Register } from "../register.js";
+import {
+  getMessageResultSchema,
+  listMessagesResultSchema,
+  sendMessageResultSchema,
+} from "../schemas.js";
 
 /**
  * Shape (raw) de `send_message`. Fica como *raw shape* de propósito: é ele que
@@ -107,6 +112,7 @@ export function registerMessageTools(register: Register): void {
     "send_message",
     "Envia uma mensagem de WhatsApp (texto ou template) via API do BotoZap. `to` é o número E.164 ou wa_id do destinatário. Para texto: type='text' e text={ body }. Para template: type='template' e template={ name, language, components? }. `from` (phone_number_id) é obrigatório se a conta tem mais de um número. Retorna { id, wamid, to, status }.",
     sendMessageShape,
+    sendMessageResultSchema,
     (client, args) => {
       // O SDK do MCP já validou `args` contra o shape base; aqui aplicamos a
       // regra cruzada type ↔ payload (que o shape base não expressa) com mensagem
@@ -139,6 +145,7 @@ export function registerMessageTools(register: Register): void {
       after: z.string().optional().describe("Cursor: itens após este created_at."),
       before: z.string().optional().describe("Cursor: itens antes deste created_at."),
     },
+    listMessagesResultSchema,
     (client, args) => client.messages.list(args as ListMessagesParams),
   );
 
@@ -146,6 +153,7 @@ export function registerMessageTools(register: Register): void {
     "get_message",
     "Busca uma mensagem específica pelo id (uuid interno). Retorna { data }.",
     { id: z.string().describe("ID da mensagem (uuid interno).") },
+    getMessageResultSchema,
     async (client, args) => ({ data: await client.messages.get(String(args.id)) }),
   );
 }

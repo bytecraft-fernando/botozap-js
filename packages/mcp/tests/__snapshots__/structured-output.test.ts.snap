@@ -1,0 +1,1519 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`MCP — output schemas e structured content > anuncia schemas não vazios para as nove tools centrais e distingue os IDs de Número 1`] = `
+{
+  "create_template": {
+    "inputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": false,
+      "properties": {
+        "category": {
+          "description": "Categoria (MARKETING|UTILITY|AUTHENTICATION).",
+          "type": "string",
+        },
+        "components": {
+          "description": "Componentes do template (header/body/footer/buttons).",
+          "items": {
+            "additionalProperties": {},
+            "type": "object",
+          },
+          "type": "array",
+        },
+        "language": {
+          "description": "Código de idioma (ex.: pt_BR).",
+          "type": "string",
+        },
+        "name": {
+          "description": "Nome do template (snake_case).",
+          "type": "string",
+        },
+        "phone_number_id": {
+          "description": "Resolve a conexão do número (Meta).",
+          "type": "string",
+        },
+        "waba_connection_id": {
+          "type": "string",
+        },
+      },
+      "required": [
+        "name",
+        "language",
+        "category",
+        "components",
+      ],
+      "type": "object",
+    },
+    "outputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": true,
+      "properties": {
+        "data": {
+          "additionalProperties": true,
+          "properties": {
+            "category": {
+              "type": [
+                "string",
+                "null",
+              ],
+            },
+            "components": {
+              "anyOf": [
+                {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                    },
+                    {
+                      "type": "number",
+                    },
+                    {
+                      "type": "boolean",
+                    },
+                    {
+                      "type": "null",
+                    },
+                    {
+                      "items": {
+                        "$ref": "#/properties/data/properties/components/anyOf/0",
+                      },
+                      "type": "array",
+                    },
+                    {
+                      "additionalProperties": {
+                        "$ref": "#/properties/data/properties/components/anyOf/0",
+                      },
+                      "type": "object",
+                    },
+                  ],
+                },
+                {
+                  "type": "null",
+                },
+              ],
+            },
+            "created_at": {
+              "type": "string",
+            },
+            "id": {
+              "description": "UUID interno do Template no BotoZap.",
+              "format": "uuid",
+              "type": "string",
+            },
+            "language": {
+              "type": "string",
+            },
+            "last_synced_at": {
+              "type": [
+                "string",
+                "null",
+              ],
+            },
+            "meta_template_id": {
+              "type": [
+                "string",
+                "null",
+              ],
+            },
+            "name": {
+              "type": "string",
+            },
+            "status": {
+              "type": "string",
+            },
+            "waba_connection_id": {
+              "description": "UUID interno do recurso no BotoZap.",
+              "format": "uuid",
+              "type": "string",
+            },
+          },
+          "required": [
+            "id",
+            "name",
+            "language",
+            "category",
+            "status",
+            "meta_template_id",
+            "components",
+            "waba_connection_id",
+            "created_at",
+            "last_synced_at",
+          ],
+          "type": "object",
+        },
+        "error": {
+          "additionalProperties": false,
+          "description": "Erro estruturado sem credenciais, tokens ou headers de request.",
+          "properties": {
+            "code": {
+              "description": "Código estável do erro da API BotoZap.",
+              "type": "string",
+            },
+            "message": {
+              "description": "Mensagem segura e acionável do erro.",
+              "type": "string",
+            },
+            "status": {
+              "description": "Status HTTP; 0 quando não houve resposta HTTP.",
+              "minimum": 0,
+              "type": "integer",
+            },
+          },
+          "required": [
+            "code",
+            "message",
+            "status",
+          ],
+          "type": "object",
+        },
+      },
+      "type": "object",
+    },
+  },
+  "get_message": {
+    "inputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "description": "ID da mensagem (uuid interno).",
+          "type": "string",
+        },
+      },
+      "required": [
+        "id",
+      ],
+      "type": "object",
+    },
+    "outputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": true,
+      "properties": {
+        "data": {
+          "additionalProperties": true,
+          "properties": {
+            "contact_id": {
+              "anyOf": [
+                {
+                  "$ref": "#/properties/data/properties/conversation_id/anyOf/0",
+                },
+                {
+                  "type": "null",
+                },
+              ],
+              "description": "UUID interno do recurso no BotoZap.",
+            },
+            "content": {
+              "anyOf": [
+                {
+                  "type": "string",
+                },
+                {
+                  "type": "number",
+                },
+                {
+                  "type": "boolean",
+                },
+                {
+                  "type": "null",
+                },
+                {
+                  "items": {
+                    "$ref": "#/properties/data/properties/content",
+                  },
+                  "type": "array",
+                },
+                {
+                  "additionalProperties": {
+                    "$ref": "#/properties/data/properties/content",
+                  },
+                  "type": "object",
+                },
+              ],
+            },
+            "context": {
+              "anyOf": [
+                {
+                  "$ref": "#/properties/data/properties/content",
+                },
+                {
+                  "type": "null",
+                },
+              ],
+            },
+            "conversation_id": {
+              "anyOf": [
+                {
+                  "description": "UUID interno do recurso no BotoZap.",
+                  "format": "uuid",
+                  "type": "string",
+                },
+                {
+                  "type": "null",
+                },
+              ],
+              "description": "UUID interno do recurso no BotoZap.",
+            },
+            "created_at": {
+              "type": "string",
+            },
+            "direction": {
+              "enum": [
+                "inbound",
+                "outbound",
+              ],
+              "type": "string",
+            },
+            "error": {
+              "anyOf": [
+                {
+                  "$ref": "#/properties/data/properties/content",
+                },
+                {
+                  "type": "null",
+                },
+              ],
+            },
+            "event_at": {
+              "type": [
+                "string",
+                "null",
+              ],
+            },
+            "has_media": {
+              "type": "boolean",
+            },
+            "id": {
+              "description": "UUID interno da Mensagem no BotoZap.",
+              "format": "uuid",
+              "type": "string",
+            },
+            "phone_number_id": {
+              "description": "UUID interno do Número no BotoZap; use nas tools get_phone_number e phone_number_health.",
+              "format": "uuid",
+              "type": "string",
+            },
+            "revoked_at": {
+              "type": [
+                "string",
+                "null",
+              ],
+            },
+            "source": {
+              "type": "string",
+            },
+            "status": {
+              "type": "string",
+            },
+            "type": {
+              "description": "Tipo da Mensagem: text, image, template etc.",
+              "type": "string",
+            },
+            "wa_timestamp": {
+              "type": [
+                "string",
+                "null",
+              ],
+            },
+            "wamid": {
+              "description": "ID da Mensagem na Meta, quando disponível.",
+              "type": [
+                "string",
+                "null",
+              ],
+            },
+          },
+          "required": [
+            "id",
+            "wamid",
+            "conversation_id",
+            "phone_number_id",
+            "contact_id",
+            "direction",
+            "type",
+            "status",
+            "source",
+            "content",
+            "context",
+            "error",
+            "has_media",
+            "revoked_at",
+            "event_at",
+            "wa_timestamp",
+            "created_at",
+          ],
+          "type": "object",
+        },
+        "error": {
+          "additionalProperties": false,
+          "description": "Erro estruturado sem credenciais, tokens ou headers de request.",
+          "properties": {
+            "code": {
+              "description": "Código estável do erro da API BotoZap.",
+              "type": "string",
+            },
+            "message": {
+              "description": "Mensagem segura e acionável do erro.",
+              "type": "string",
+            },
+            "status": {
+              "description": "Status HTTP; 0 quando não houve resposta HTTP.",
+              "minimum": 0,
+              "type": "integer",
+            },
+          },
+          "required": [
+            "code",
+            "message",
+            "status",
+          ],
+          "type": "object",
+        },
+      },
+      "type": "object",
+    },
+  },
+  "get_phone_number": {
+    "inputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "description": "ID do número (uuid interno).",
+          "type": "string",
+        },
+      },
+      "required": [
+        "id",
+      ],
+      "type": "object",
+    },
+    "outputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": true,
+      "properties": {
+        "data": {
+          "additionalProperties": true,
+          "properties": {
+            "connection_status": {
+              "type": [
+                "string",
+                "null",
+              ],
+            },
+            "created_at": {
+              "type": "string",
+            },
+            "customer_id": {
+              "anyOf": [
+                {
+                  "$ref": "#/properties/data/properties/waba_connection_id",
+                },
+                {
+                  "type": "null",
+                },
+              ],
+              "description": "UUID interno do recurso no BotoZap.",
+            },
+            "display_phone_number": {
+              "type": [
+                "string",
+                "null",
+              ],
+            },
+            "id": {
+              "description": "UUID interno do Número no BotoZap; use nas tools get_phone_number e phone_number_health.",
+              "format": "uuid",
+              "type": "string",
+            },
+            "phone_number_id": {
+              "description": "ID Meta do Número (phone_number_id); use em send_message.from.",
+              "type": "string",
+            },
+            "quality_rating": {
+              "type": "string",
+            },
+            "token_status": {
+              "type": [
+                "string",
+                "null",
+              ],
+            },
+            "type": {
+              "type": [
+                "string",
+                "null",
+              ],
+            },
+            "verified_name": {
+              "type": [
+                "string",
+                "null",
+              ],
+            },
+            "waba_connection_id": {
+              "description": "UUID interno do recurso no BotoZap.",
+              "format": "uuid",
+              "type": "string",
+            },
+            "waba_id": {
+              "type": [
+                "string",
+                "null",
+              ],
+            },
+          },
+          "required": [
+            "id",
+            "phone_number_id",
+            "display_phone_number",
+            "verified_name",
+            "quality_rating",
+            "type",
+            "waba_connection_id",
+            "customer_id",
+            "waba_id",
+            "connection_status",
+            "token_status",
+            "created_at",
+          ],
+          "type": "object",
+        },
+        "error": {
+          "additionalProperties": false,
+          "description": "Erro estruturado sem credenciais, tokens ou headers de request.",
+          "properties": {
+            "code": {
+              "description": "Código estável do erro da API BotoZap.",
+              "type": "string",
+            },
+            "message": {
+              "description": "Mensagem segura e acionável do erro.",
+              "type": "string",
+            },
+            "status": {
+              "description": "Status HTTP; 0 quando não houve resposta HTTP.",
+              "minimum": 0,
+              "type": "integer",
+            },
+          },
+          "required": [
+            "code",
+            "message",
+            "status",
+          ],
+          "type": "object",
+        },
+      },
+      "type": "object",
+    },
+  },
+  "get_template": {
+    "inputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "description": "ID do template (uuid interno).",
+          "type": "string",
+        },
+      },
+      "required": [
+        "id",
+      ],
+      "type": "object",
+    },
+    "outputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": true,
+      "properties": {
+        "data": {
+          "additionalProperties": true,
+          "properties": {
+            "category": {
+              "type": [
+                "string",
+                "null",
+              ],
+            },
+            "components": {
+              "anyOf": [
+                {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                    },
+                    {
+                      "type": "number",
+                    },
+                    {
+                      "type": "boolean",
+                    },
+                    {
+                      "type": "null",
+                    },
+                    {
+                      "items": {
+                        "$ref": "#/properties/data/properties/components/anyOf/0",
+                      },
+                      "type": "array",
+                    },
+                    {
+                      "additionalProperties": {
+                        "$ref": "#/properties/data/properties/components/anyOf/0",
+                      },
+                      "type": "object",
+                    },
+                  ],
+                },
+                {
+                  "type": "null",
+                },
+              ],
+            },
+            "created_at": {
+              "type": "string",
+            },
+            "id": {
+              "description": "UUID interno do Template no BotoZap.",
+              "format": "uuid",
+              "type": "string",
+            },
+            "language": {
+              "type": "string",
+            },
+            "last_synced_at": {
+              "type": [
+                "string",
+                "null",
+              ],
+            },
+            "meta_template_id": {
+              "type": [
+                "string",
+                "null",
+              ],
+            },
+            "name": {
+              "type": "string",
+            },
+            "status": {
+              "type": "string",
+            },
+            "waba_connection_id": {
+              "description": "UUID interno do recurso no BotoZap.",
+              "format": "uuid",
+              "type": "string",
+            },
+          },
+          "required": [
+            "id",
+            "name",
+            "language",
+            "category",
+            "status",
+            "meta_template_id",
+            "components",
+            "waba_connection_id",
+            "created_at",
+            "last_synced_at",
+          ],
+          "type": "object",
+        },
+        "error": {
+          "additionalProperties": false,
+          "description": "Erro estruturado sem credenciais, tokens ou headers de request.",
+          "properties": {
+            "code": {
+              "description": "Código estável do erro da API BotoZap.",
+              "type": "string",
+            },
+            "message": {
+              "description": "Mensagem segura e acionável do erro.",
+              "type": "string",
+            },
+            "status": {
+              "description": "Status HTTP; 0 quando não houve resposta HTTP.",
+              "minimum": 0,
+              "type": "integer",
+            },
+          },
+          "required": [
+            "code",
+            "message",
+            "status",
+          ],
+          "type": "object",
+        },
+      },
+      "type": "object",
+    },
+  },
+  "list_messages": {
+    "inputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": false,
+      "properties": {
+        "after": {
+          "description": "Cursor: itens após este created_at.",
+          "type": "string",
+        },
+        "before": {
+          "description": "Cursor: itens antes deste created_at.",
+          "type": "string",
+        },
+        "conversation_id": {
+          "description": "Filtra pela conversa (uuid interno).",
+          "type": "string",
+        },
+        "direction": {
+          "enum": [
+            "inbound",
+            "outbound",
+          ],
+          "type": "string",
+        },
+        "has_media": {
+          "description": "true para apenas mensagens com mídia.",
+          "type": "boolean",
+        },
+        "limit": {
+          "description": "Tamanho da página.",
+          "exclusiveMinimum": 0,
+          "type": "integer",
+        },
+        "message_type": {
+          "description": "Tipo da mensagem (kind: text, image, ...).",
+          "type": "string",
+        },
+        "phone_number_id": {
+          "description": "Filtra pelo phone_number_id (Meta).",
+          "type": "string",
+        },
+        "status": {
+          "description": "Status da mensagem (enum message_status).",
+          "type": "string",
+        },
+      },
+      "type": "object",
+    },
+    "outputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": true,
+      "properties": {
+        "data": {
+          "items": {
+            "additionalProperties": true,
+            "properties": {
+              "contact_id": {
+                "anyOf": [
+                  {
+                    "$ref": "#/properties/data/items/properties/conversation_id/anyOf/0",
+                  },
+                  {
+                    "type": "null",
+                  },
+                ],
+                "description": "UUID interno do recurso no BotoZap.",
+              },
+              "content": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                  },
+                  {
+                    "type": "number",
+                  },
+                  {
+                    "type": "boolean",
+                  },
+                  {
+                    "type": "null",
+                  },
+                  {
+                    "items": {
+                      "$ref": "#/properties/data/items/properties/content",
+                    },
+                    "type": "array",
+                  },
+                  {
+                    "additionalProperties": {
+                      "$ref": "#/properties/data/items/properties/content",
+                    },
+                    "type": "object",
+                  },
+                ],
+              },
+              "context": {
+                "anyOf": [
+                  {
+                    "$ref": "#/properties/data/items/properties/content",
+                  },
+                  {
+                    "type": "null",
+                  },
+                ],
+              },
+              "conversation_id": {
+                "anyOf": [
+                  {
+                    "description": "UUID interno do recurso no BotoZap.",
+                    "format": "uuid",
+                    "type": "string",
+                  },
+                  {
+                    "type": "null",
+                  },
+                ],
+                "description": "UUID interno do recurso no BotoZap.",
+              },
+              "created_at": {
+                "type": "string",
+              },
+              "direction": {
+                "enum": [
+                  "inbound",
+                  "outbound",
+                ],
+                "type": "string",
+              },
+              "error": {
+                "anyOf": [
+                  {
+                    "$ref": "#/properties/data/items/properties/content",
+                  },
+                  {
+                    "type": "null",
+                  },
+                ],
+              },
+              "event_at": {
+                "type": [
+                  "string",
+                  "null",
+                ],
+              },
+              "has_media": {
+                "type": "boolean",
+              },
+              "id": {
+                "description": "UUID interno da Mensagem no BotoZap.",
+                "format": "uuid",
+                "type": "string",
+              },
+              "phone_number_id": {
+                "description": "UUID interno do Número no BotoZap; use nas tools get_phone_number e phone_number_health.",
+                "format": "uuid",
+                "type": "string",
+              },
+              "revoked_at": {
+                "type": [
+                  "string",
+                  "null",
+                ],
+              },
+              "source": {
+                "type": "string",
+              },
+              "status": {
+                "type": "string",
+              },
+              "type": {
+                "description": "Tipo da Mensagem: text, image, template etc.",
+                "type": "string",
+              },
+              "wa_timestamp": {
+                "type": [
+                  "string",
+                  "null",
+                ],
+              },
+              "wamid": {
+                "description": "ID da Mensagem na Meta, quando disponível.",
+                "type": [
+                  "string",
+                  "null",
+                ],
+              },
+            },
+            "required": [
+              "id",
+              "wamid",
+              "conversation_id",
+              "phone_number_id",
+              "contact_id",
+              "direction",
+              "type",
+              "status",
+              "source",
+              "content",
+              "context",
+              "error",
+              "has_media",
+              "revoked_at",
+              "event_at",
+              "wa_timestamp",
+              "created_at",
+            ],
+            "type": "object",
+          },
+          "type": "array",
+        },
+        "error": {
+          "additionalProperties": false,
+          "description": "Erro estruturado sem credenciais, tokens ou headers de request.",
+          "properties": {
+            "code": {
+              "description": "Código estável do erro da API BotoZap.",
+              "type": "string",
+            },
+            "message": {
+              "description": "Mensagem segura e acionável do erro.",
+              "type": "string",
+            },
+            "status": {
+              "description": "Status HTTP; 0 quando não houve resposta HTTP.",
+              "minimum": 0,
+              "type": "integer",
+            },
+          },
+          "required": [
+            "code",
+            "message",
+            "status",
+          ],
+          "type": "object",
+        },
+        "paging": {
+          "additionalProperties": false,
+          "properties": {
+            "cursors": {
+              "additionalProperties": false,
+              "properties": {
+                "after": {
+                  "type": [
+                    "string",
+                    "null",
+                  ],
+                },
+                "before": {
+                  "type": [
+                    "string",
+                    "null",
+                  ],
+                },
+              },
+              "required": [
+                "before",
+                "after",
+              ],
+              "type": "object",
+            },
+            "next": {
+              "type": [
+                "string",
+                "null",
+              ],
+            },
+            "previous": {
+              "type": [
+                "string",
+                "null",
+              ],
+            },
+          },
+          "required": [
+            "cursors",
+            "next",
+            "previous",
+          ],
+          "type": "object",
+        },
+      },
+      "type": "object",
+    },
+  },
+  "list_phone_numbers": {
+    "inputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": false,
+      "properties": {
+        "customer_id": {
+          "description": "Filtra pelos números de um cliente.",
+          "type": "string",
+        },
+        "page": {
+          "description": "Página (1-based).",
+          "exclusiveMinimum": 0,
+          "type": "integer",
+        },
+        "per_page": {
+          "description": "Itens por página (máx. 100).",
+          "exclusiveMinimum": 0,
+          "type": "integer",
+        },
+      },
+      "type": "object",
+    },
+    "outputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": true,
+      "properties": {
+        "data": {
+          "items": {
+            "additionalProperties": true,
+            "properties": {
+              "connection_status": {
+                "type": [
+                  "string",
+                  "null",
+                ],
+              },
+              "created_at": {
+                "type": "string",
+              },
+              "customer_id": {
+                "anyOf": [
+                  {
+                    "$ref": "#/properties/data/items/properties/waba_connection_id",
+                  },
+                  {
+                    "type": "null",
+                  },
+                ],
+                "description": "UUID interno do recurso no BotoZap.",
+              },
+              "display_phone_number": {
+                "type": [
+                  "string",
+                  "null",
+                ],
+              },
+              "id": {
+                "description": "UUID interno do Número no BotoZap; use nas tools get_phone_number e phone_number_health.",
+                "format": "uuid",
+                "type": "string",
+              },
+              "phone_number_id": {
+                "description": "ID Meta do Número (phone_number_id); use em send_message.from.",
+                "type": "string",
+              },
+              "quality_rating": {
+                "type": "string",
+              },
+              "token_status": {
+                "type": [
+                  "string",
+                  "null",
+                ],
+              },
+              "type": {
+                "type": [
+                  "string",
+                  "null",
+                ],
+              },
+              "verified_name": {
+                "type": [
+                  "string",
+                  "null",
+                ],
+              },
+              "waba_connection_id": {
+                "description": "UUID interno do recurso no BotoZap.",
+                "format": "uuid",
+                "type": "string",
+              },
+              "waba_id": {
+                "type": [
+                  "string",
+                  "null",
+                ],
+              },
+            },
+            "required": [
+              "id",
+              "phone_number_id",
+              "display_phone_number",
+              "verified_name",
+              "quality_rating",
+              "type",
+              "waba_connection_id",
+              "customer_id",
+              "waba_id",
+              "connection_status",
+              "token_status",
+              "created_at",
+            ],
+            "type": "object",
+          },
+          "type": "array",
+        },
+        "error": {
+          "additionalProperties": false,
+          "description": "Erro estruturado sem credenciais, tokens ou headers de request.",
+          "properties": {
+            "code": {
+              "description": "Código estável do erro da API BotoZap.",
+              "type": "string",
+            },
+            "message": {
+              "description": "Mensagem segura e acionável do erro.",
+              "type": "string",
+            },
+            "status": {
+              "description": "Status HTTP; 0 quando não houve resposta HTTP.",
+              "minimum": 0,
+              "type": "integer",
+            },
+          },
+          "required": [
+            "code",
+            "message",
+            "status",
+          ],
+          "type": "object",
+        },
+        "meta": {
+          "additionalProperties": false,
+          "properties": {
+            "page": {
+              "exclusiveMinimum": 0,
+              "type": "integer",
+            },
+            "per_page": {
+              "exclusiveMinimum": 0,
+              "type": "integer",
+            },
+            "total_count": {
+              "minimum": 0,
+              "type": "integer",
+            },
+            "total_pages": {
+              "minimum": 0,
+              "type": "integer",
+            },
+          },
+          "required": [
+            "page",
+            "per_page",
+            "total_pages",
+            "total_count",
+          ],
+          "type": "object",
+        },
+      },
+      "type": "object",
+    },
+  },
+  "list_templates": {
+    "inputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": false,
+      "properties": {
+        "category": {
+          "description": "Filtra por categoria (case-insensitive).",
+          "type": "string",
+        },
+        "page": {
+          "description": "Página (1-based).",
+          "exclusiveMinimum": 0,
+          "type": "integer",
+        },
+        "per_page": {
+          "description": "Itens por página (máx. 100).",
+          "exclusiveMinimum": 0,
+          "type": "integer",
+        },
+        "phone_number_id": {
+          "description": "Resolve a conexão do número (Meta).",
+          "type": "string",
+        },
+        "status": {
+          "description": "Filtra por status (ex.: APPROVED, PENDING).",
+          "type": "string",
+        },
+        "waba_connection_id": {
+          "type": "string",
+        },
+      },
+      "type": "object",
+    },
+    "outputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": true,
+      "properties": {
+        "data": {
+          "items": {
+            "additionalProperties": true,
+            "properties": {
+              "category": {
+                "type": [
+                  "string",
+                  "null",
+                ],
+              },
+              "components": {
+                "anyOf": [
+                  {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                      },
+                      {
+                        "type": "number",
+                      },
+                      {
+                        "type": "boolean",
+                      },
+                      {
+                        "type": "null",
+                      },
+                      {
+                        "items": {
+                          "$ref": "#/properties/data/items/properties/components/anyOf/0",
+                        },
+                        "type": "array",
+                      },
+                      {
+                        "additionalProperties": {
+                          "$ref": "#/properties/data/items/properties/components/anyOf/0",
+                        },
+                        "type": "object",
+                      },
+                    ],
+                  },
+                  {
+                    "type": "null",
+                  },
+                ],
+              },
+              "created_at": {
+                "type": "string",
+              },
+              "id": {
+                "description": "UUID interno do Template no BotoZap.",
+                "format": "uuid",
+                "type": "string",
+              },
+              "language": {
+                "type": "string",
+              },
+              "last_synced_at": {
+                "type": [
+                  "string",
+                  "null",
+                ],
+              },
+              "meta_template_id": {
+                "type": [
+                  "string",
+                  "null",
+                ],
+              },
+              "name": {
+                "type": "string",
+              },
+              "status": {
+                "type": "string",
+              },
+              "waba_connection_id": {
+                "description": "UUID interno do recurso no BotoZap.",
+                "format": "uuid",
+                "type": "string",
+              },
+            },
+            "required": [
+              "id",
+              "name",
+              "language",
+              "category",
+              "status",
+              "meta_template_id",
+              "components",
+              "waba_connection_id",
+              "created_at",
+              "last_synced_at",
+            ],
+            "type": "object",
+          },
+          "type": "array",
+        },
+        "error": {
+          "additionalProperties": false,
+          "description": "Erro estruturado sem credenciais, tokens ou headers de request.",
+          "properties": {
+            "code": {
+              "description": "Código estável do erro da API BotoZap.",
+              "type": "string",
+            },
+            "message": {
+              "description": "Mensagem segura e acionável do erro.",
+              "type": "string",
+            },
+            "status": {
+              "description": "Status HTTP; 0 quando não houve resposta HTTP.",
+              "minimum": 0,
+              "type": "integer",
+            },
+          },
+          "required": [
+            "code",
+            "message",
+            "status",
+          ],
+          "type": "object",
+        },
+        "meta": {
+          "additionalProperties": false,
+          "properties": {
+            "page": {
+              "exclusiveMinimum": 0,
+              "type": "integer",
+            },
+            "per_page": {
+              "exclusiveMinimum": 0,
+              "type": "integer",
+            },
+            "total_count": {
+              "minimum": 0,
+              "type": "integer",
+            },
+            "total_pages": {
+              "minimum": 0,
+              "type": "integer",
+            },
+          },
+          "required": [
+            "page",
+            "per_page",
+            "total_pages",
+            "total_count",
+          ],
+          "type": "object",
+        },
+      },
+      "type": "object",
+    },
+  },
+  "phone_number_health": {
+    "inputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "description": "ID do número (uuid interno).",
+          "type": "string",
+        },
+      },
+      "required": [
+        "id",
+      ],
+      "type": "object",
+    },
+    "outputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": true,
+      "properties": {
+        "data": {
+          "additionalProperties": true,
+          "properties": {
+            "checks": {
+              "additionalProperties": {
+                "type": "string",
+              },
+              "type": "object",
+            },
+            "error": {
+              "type": "string",
+            },
+            "status": {
+              "type": "string",
+            },
+            "timestamp": {
+              "type": "string",
+            },
+          },
+          "required": [
+            "status",
+            "timestamp",
+          ],
+          "type": "object",
+        },
+        "error": {
+          "additionalProperties": false,
+          "description": "Erro estruturado sem credenciais, tokens ou headers de request.",
+          "properties": {
+            "code": {
+              "description": "Código estável do erro da API BotoZap.",
+              "type": "string",
+            },
+            "message": {
+              "description": "Mensagem segura e acionável do erro.",
+              "type": "string",
+            },
+            "status": {
+              "description": "Status HTTP; 0 quando não houve resposta HTTP.",
+              "minimum": 0,
+              "type": "integer",
+            },
+          },
+          "required": [
+            "code",
+            "message",
+            "status",
+          ],
+          "type": "object",
+        },
+      },
+      "type": "object",
+    },
+  },
+  "send_message": {
+    "inputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": false,
+      "properties": {
+        "from": {
+          "description": "phone_number_id de origem (obrigatório se a conta tem >1 número).",
+          "type": "string",
+        },
+        "template": {
+          "additionalProperties": false,
+          "description": "Objeto do template quando type='template'. Exige name e language.code.",
+          "properties": {
+            "components": {
+              "description": "Componentes com parâmetros (header/body/button) no formato da Cloud API.",
+              "items": {
+                "additionalProperties": {},
+                "type": "object",
+              },
+              "type": "array",
+            },
+            "language": {
+              "additionalProperties": false,
+              "description": "Idioma no formato da Cloud API: { code, policy? }.",
+              "properties": {
+                "code": {
+                  "description": "Código de idioma, ex.: pt_BR.",
+                  "type": "string",
+                },
+                "policy": {
+                  "description": "Política de idioma da Cloud API (ex.: deterministic).",
+                  "type": "string",
+                },
+              },
+              "required": [
+                "code",
+              ],
+              "type": "object",
+            },
+            "name": {
+              "description": "Nome do template APROVADO na Meta.",
+              "type": "string",
+            },
+          },
+          "required": [
+            "name",
+            "language",
+          ],
+          "type": "object",
+        },
+        "text": {
+          "additionalProperties": false,
+          "description": "Conteúdo de texto quando type='text'.",
+          "properties": {
+            "body": {
+              "type": "string",
+            },
+          },
+          "required": [
+            "body",
+          ],
+          "type": "object",
+        },
+        "to": {
+          "description": "Destinatário: telefone E.164 (ex.: 5511999999999) ou wa_id.",
+          "type": "string",
+        },
+        "type": {
+          "description": "Tipo da mensagem.",
+          "enum": [
+            "text",
+            "template",
+          ],
+          "type": "string",
+        },
+      },
+      "required": [
+        "to",
+        "type",
+      ],
+      "type": "object",
+    },
+    "outputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": true,
+      "properties": {
+        "error": {
+          "additionalProperties": false,
+          "description": "Erro estruturado sem credenciais, tokens ou headers de request.",
+          "properties": {
+            "code": {
+              "description": "Código estável do erro da API BotoZap.",
+              "type": "string",
+            },
+            "message": {
+              "description": "Mensagem segura e acionável do erro.",
+              "type": "string",
+            },
+            "status": {
+              "description": "Status HTTP; 0 quando não houve resposta HTTP.",
+              "minimum": 0,
+              "type": "integer",
+            },
+          },
+          "required": [
+            "code",
+            "message",
+            "status",
+          ],
+          "type": "object",
+        },
+        "id": {
+          "anyOf": [
+            {
+              "description": "UUID interno do recurso no BotoZap.",
+              "format": "uuid",
+              "type": "string",
+            },
+            {
+              "type": "null",
+            },
+          ],
+          "description": "UUID interno da Mensagem; null se a persistência best-effort falhou.",
+        },
+        "sandbox": {
+          "type": "boolean",
+        },
+        "sent_to": {
+          "description": "Destinatário efetivamente usado após normalização de identidade.",
+          "type": "string",
+        },
+        "status": {
+          "description": "Status inicial do envio.",
+          "type": "string",
+        },
+        "to": {
+          "description": "Destinatário solicitado pelo cliente.",
+          "type": "string",
+        },
+        "wamid": {
+          "description": "ID da Mensagem atribuído pelo WhatsApp/Meta.",
+          "type": "string",
+        },
+      },
+      "type": "object",
+    },
+  },
+}
+`;

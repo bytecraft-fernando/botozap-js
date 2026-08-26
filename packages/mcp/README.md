@@ -10,8 +10,14 @@ mensagens, gerenciar contatos/clientes/números, criar templates e webhooks etc.
 
 Cada ferramenta MCP mapeia para uma operação do SDK oficial **`@botozap/sdk`**
 (que autentica com a sua chave `bz_...`, monta a requisição e trata o envelope de
-erro). É uma ponte fina: valida os argumentos (zod), delega ao SDK e devolve o
-JSON da API.
+erro). É uma ponte fina: valida os argumentos e resultados (zod), delega ao SDK
+e devolve o JSON da API.
+
+As tools centrais de **Mensagens**, **Números** e **Templates** anunciam
+`outputSchema` e devolvem o mesmo resultado em `structuredContent`, além do
+`content[].text` em JSON mantido para clientes antigos. Erros dessas tools
+preservam `isError` e também expõem `{ error: { code, message, status } }` em
+`structuredContent`, sem credenciais.
 
 > **Status: preview público `0.x`.** Sem promessa de estabilidade de tools e
 > argumentos até a `1.0`; fixe a versão para integrações reproduzíveis.
@@ -112,7 +118,8 @@ descrições em PT-BR.
 
 Em caso de erro da API, a ferramenta devolve um resultado de erro (`isError`) com
 a mensagem PT-BR do envelope `{ error: { code, message } }` no formato
-`Erro [code]: message`.
+`Erro [code]: message`. Nas tools com saída estruturada, `code`, `message` e o
+status HTTP também ficam disponíveis de forma programática.
 
 ## Chaves de sandbox
 
