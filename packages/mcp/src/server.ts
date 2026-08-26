@@ -16,7 +16,10 @@ import { registerPhoneNumberTools } from "./tools/phone-numbers.js";
 import { registerTemplateTools } from "./tools/templates.js";
 import { registerWebhookTools } from "./tools/webhooks.js";
 import { registerMiscTools } from "./tools/misc.js";
-import { registerEventResources } from "./resources/events.js";
+import {
+  registerEventResources,
+  type EventSignalSource,
+} from "./resources/events.js";
 
 const { version: VERSION } = createRequire(import.meta.url)("../package.json") as {
   version: string;
@@ -29,6 +32,8 @@ export interface BuildServerOptions {
   fetch?: typeof fetch;
   /** Intervalo do tail enquanto há assinatura ativa. Padrão: 1,5 s. */
   eventPollIntervalMs?: number;
+  /** Sinal compartilhado usado pelo transporte remoto; o payload vem da API. */
+  eventSignal?: EventSignalSource;
 }
 
 /** Monta um `McpServer` com todas as ferramentas registradas. */
@@ -59,6 +64,7 @@ export function buildServer(options: BuildServerOptions): McpServer {
   registerMiscTools(register);
   const closeEventResources = registerEventResources(server, client, {
     pollIntervalMs: options.eventPollIntervalMs ?? 1_500,
+    eventSignal: options.eventSignal,
   });
   const previousOnClose = server.server.onclose;
   server.server.onclose = () => {

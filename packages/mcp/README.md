@@ -50,12 +50,39 @@ pnpm --filter @botozap/mcp test
 
 ## Configuração (variáveis de ambiente)
 
-| Variável            | Obrigatória | Default                              | Descrição                                  |
-| ------------------- | ----------- | ------------------------------------ | ------------------------------------------ |
-| `BOTOZAP_API_KEY`   | **Sim**     | —                                    | Sua chave `bz_...` (header `Authorization: Bearer`). |
-| `BOTOZAP_API_URL`   | Não         | `https://botozap.com.br/api/v1`      | Base da API (útil para staging/local).      |
+| Variável | Quando | Default | Descrição |
+| --- | --- | --- | --- |
+| `BOTOZAP_API_KEY` | Obrigatória em stdio | — | Chave `bz_...` usada pelo processo stdio. |
+| `BOTOZAP_API_URL` | Opcional | `https://botozap.com.br/api/v1` | Base da API (útil para staging/local). |
+| `BOTOZAP_MCP_TRANSPORT` | Remoto | `stdio` | Use `streamable-http` para iniciar o endpoint remoto. |
+| `BOTOZAP_MCP_HOST` | Remoto | `127.0.0.1` | Interface TCP do endpoint remoto. |
+| `BOTOZAP_MCP_PORT` | Remoto | `3001` | Porta do endpoint remoto (`0` escolhe uma porta livre). |
+| `BOTOZAP_EVENT_BUS_DATABASE_URL` | Obrigatória no remoto | — | Conexão PostgreSQL de sessão que suporta `LISTEN/NOTIFY`. |
 
-Sem `BOTOZAP_API_KEY` o servidor falha imediatamente com uma mensagem clara.
+Sem a configuração obrigatória do transporte escolhido, o servidor falha
+imediatamente com uma mensagem clara e sem imprimir o valor recebido.
+
+### Streamable HTTP (operador da plataforma)
+
+O mesmo binário pode manter sessões remotas stateful em `/mcp`. Nesse modo cada
+cliente envia sua própria chave BotoZap no header `Authorization: Bearer`; a
+sessão fica vinculada a essa credencial e a Conta/ambiente continuam derivados
+pela API. A chave nunca entra na URL do endpoint, URI do resource ou
+notification.
+
+```bash
+BOTOZAP_MCP_TRANSPORT=streamable-http \
+BOTOZAP_MCP_HOST=0.0.0.0 \
+BOTOZAP_MCP_PORT=3001 \
+BOTOZAP_EVENT_BUS_DATABASE_URL=postgresql://... \
+pnpm dlx @botozap/mcp@0.1.0
+```
+
+Use uma conexão PostgreSQL persistente/direta ou pooler em modo de sessão;
+pooler em modo de transação não preserva `LISTEN`. O bus carrega somente um
+sinal vazio. Ao recebê-lo, cada sessão consulta `/events` com sua própria chave
+e só envia `notifications/resources/updated` se houver Evento no cursor
+autorizado. O payload autoritativo permanece no stream durável.
 
 ## Usar com Claude Code
 
@@ -103,8 +130,8 @@ Edite `~/.cursor/mcp.json` (global) ou `.cursor/mcp.json` (no projeto):
 
 ## Ferramentas disponíveis
 
-Transporte: **stdio**. Nomes em inglês (snake_case, melhor para tool-calling);
-descrições em PT-BR.
+Transportes: **stdio** (padrão, local) e **Streamable HTTP** (remoto stateful).
+Nomes em inglês (snake_case, melhor para tool-calling); descrições em PT-BR.
 
 **Mensagens** — `send_message`, `list_messages`, `get_message`
 **Conversas** — `list_conversations`, `get_conversation`, `update_conversation`
@@ -121,7 +148,7 @@ descrições em PT-BR.
 
 ## Resource de Eventos
 
-O servidor stdio anuncia `resources.subscribe` e o template
+Os dois transportes anunciam `resources.subscribe` e o template
 `botozap://events{?after,limit}`. Um cliente persistente pode assinar, por
 exemplo, `botozap://events?after=42&limit=100` e receber
 `notifications/resources/updated` quando existir um Evento posterior ao cursor
@@ -136,9 +163,10 @@ cursor em `after` para recuperar o intervalo autoritativo. Notifications são
 hints e podem se repetir; deduplique por `event.id` ou pela identidade estável
 do Evento.
 
-O tail usa intervalo padrão de 1,5 segundo e para no `unsubscribe` ou no fim da
-sessão. Isso elimina polling no cliente MCP sem transformar o processo stdio em
-um daemon permanente. Receber a notification não significa que todo host inicia
+No stdio, o tail usa intervalo padrão de 1,5 segundo e para no `unsubscribe` ou
+no fim da sessão. No remoto, o PostgreSQL acorda o processo MCP mesmo quando o
+Evento foi persistido por outra instância; a consulta escopada continua sendo a
+fonte do payload. Receber a notification não significa que todo host inicia
 automaticamente uma nova execução do agente.
 
 Em caso de erro da API, a ferramenta devolve um resultado de erro (`isError`) com

@@ -22,6 +22,10 @@ type Subscription = {
   cursor: string;
 };
 
+export interface EventSignalSource {
+  subscribe(listener: () => void): () => void;
+}
+
 /**
  * Tail de baixa latência ativo somente enquanto o cliente stdio mantém uma
  * assinatura. A notification é apenas um sinal; o payload continua vindo do
@@ -32,12 +36,16 @@ class EventSubscriptions {
   private timer: ReturnType<typeof setTimeout> | undefined;
   private polling = false;
   private closed = false;
+  private readonly unsubscribeEventSignal: (() => void) | undefined;
 
   constructor(
     private readonly server: McpServer,
     private readonly client: Client,
     private readonly pollIntervalMs: number,
-  ) {}
+    eventSignal?: EventSignalSource,
+  ) {
+    this.unsubscribeEventSignal = eventSignal?.subscribe(() => this.schedule(0));
+  }
 
   subscribe(uri: string): void {
     const { after } = parseEventsUri(uri);
@@ -59,6 +67,7 @@ class EventSubscriptions {
   close(): void {
     this.closed = true;
     this.subscriptions.clear();
+    this.unsubscribeEventSignal?.();
     if (this.timer) clearTimeout(this.timer);
     this.timer = undefined;
   }
@@ -98,13 +107,14 @@ class EventSubscriptions {
       }
     } finally {
       this.polling = false;
-      this.schedule(this.pollIntervalMs);
+      if (!this.unsubscribeEventSignal) this.schedule(this.pollIntervalMs);
     }
   }
 }
 
 export interface RegisterEventResourcesOptions {
   pollIntervalMs: number;
+  eventSignal?: EventSignalSource;
 }
 
 export function registerEventResources(
@@ -116,6 +126,7 @@ export function registerEventResources(
     server,
     client,
     Math.max(1, options.pollIntervalMs),
+    options.eventSignal,
   );
 
   server.registerResource(
