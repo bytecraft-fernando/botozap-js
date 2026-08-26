@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { waitUntil } from "./helpers/async.js";
 
 type Listener = (...args: unknown[]) => void;
 
@@ -71,9 +72,9 @@ describe("event bus PostgreSQL", () => {
     expect(notifications).toBe(1);
 
     first?.emit("error", new Error("socket caiu"));
-    await waitUntil(() => pgMock.clients.length === 2, 200);
+    await waitUntil(() => pgMock.clients.length === 2, 200, 2);
     const second = pgMock.clients[1];
-    await waitUntil(() => (second?.query.mock.calls.length ?? 0) > 0, 200);
+    await waitUntil(() => (second?.query.mock.calls.length ?? 0) > 0, 200, 2);
     expect(second?.query).toHaveBeenCalledWith("LISTEN botozap_account_events");
 
     first?.emit("notification", { channel: "botozap_account_events" });
@@ -94,19 +95,11 @@ describe("event bus PostgreSQL", () => {
       maxReconnectDelayMs: 5,
     });
 
-    await waitUntil(() => pgMock.clients.length === 2, 200);
+    await waitUntil(() => pgMock.clients.length === 2, 200, 2);
     const recovered = pgMock.clients[1];
-    await waitUntil(() => (recovered?.query.mock.calls.length ?? 0) > 0, 200);
+    await waitUntil(() => (recovered?.query.mock.calls.length ?? 0) > 0, 200, 2);
     expect(recovered?.query).toHaveBeenCalledWith("LISTEN botozap_account_events");
 
     await signal.close();
   });
 });
-
-async function waitUntil(predicate: () => boolean, timeoutMs: number): Promise<void> {
-  const deadline = performance.now() + timeoutMs;
-  while (!predicate()) {
-    if (performance.now() >= deadline) throw new Error("condição não atingida");
-    await new Promise((resolve) => setTimeout(resolve, 2));
-  }
-}

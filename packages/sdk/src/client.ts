@@ -24,6 +24,8 @@ export interface BotoZapOptions {
 export interface RequestOptions {
   query?: Record<string, string | number | undefined>;
   body?: unknown;
+  /** Cancela o I/O HTTP sem alterar o envelope de erro do SDK. */
+  signal?: AbortSignal;
 }
 
 const DEFAULT_BASE_URL = "https://botozap.com.br/api/v1";
@@ -110,6 +112,7 @@ export class BotoZap {
           Accept: "application/json",
         },
         body: opts.body === undefined ? undefined : JSON.stringify(opts.body),
+        signal: opts.signal,
       });
     } catch (cause) {
       // `fetch` REJEITA (DNS, conexão recusada, offline, abort) com um TypeError

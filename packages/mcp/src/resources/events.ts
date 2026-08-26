@@ -33,6 +33,7 @@ export interface EventSignalSource {
  */
 class EventSubscriptions {
   private readonly subscriptions = new Map<string, Subscription>();
+  private pollAbortController: AbortController | undefined;
   private timer: ReturnType<typeof setTimeout> | undefined;
   private polling = false;
   private signalPending = false;
@@ -68,7 +69,10 @@ class EventSubscriptions {
 
   unsubscribe(uri: string): void {
     parseEventsUri(uri);
-    this.subscriptions.delete(uri);
+    if (this.subscriptions.delete(uri) && this.polling) {
+      this.pollAbortController?.abort();
+      if (this.subscriptions.size > 0) this.signalPending = true;
+    }
     if (this.subscriptions.size === 0 && this.timer) {
       clearTimeout(this.timer);
       this.timer = undefined;
@@ -80,6 +84,7 @@ class EventSubscriptions {
     this.closed = true;
     this.subscriptions.clear();
     this.unsubscribeEventSignal?.();
+    this.pollAbortController?.abort();
     if (this.timer) clearTimeout(this.timer);
     this.timer = undefined;
   }
@@ -105,12 +110,15 @@ class EventSubscriptions {
     if (this.closed || this.polling || this.subscriptions.size === 0) return;
     this.polling = true;
     this.signalPending = false;
+    const abortController = new AbortController();
+    this.pollAbortController = abortController;
     try {
       for (const [uri, subscription] of [...this.subscriptions]) {
         try {
           const page = await this.client.events.list({
             after: subscription.cursor,
             limit: DEFAULT_LIMIT,
+            signal: abortController.signal,
           });
 
           // A assinatura pode ter sido cancelada enquanto o fetch estava no ar.
@@ -119,12 +127,16 @@ class EventSubscriptions {
 
           await this.server.server.sendResourceUpdated({ uri });
           subscription.cursor = page.paging.cursor;
+          if (page.paging.has_more) this.signalPending = true;
         } catch {
           // Falhas transitórias não encerram a sessão MCP. A leitura explícita
           // continua expondo o erro estruturado do SDK ao cliente.
         }
       }
     } finally {
+      if (this.pollAbortController === abortController) {
+        this.pollAbortController = undefined;
+      }
       this.polling = false;
       this.schedule(this.signalPending ? 0 : this.pollIntervalMs);
     }

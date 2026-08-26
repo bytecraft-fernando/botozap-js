@@ -171,9 +171,10 @@ precisa incluir o escopo `events:read`.
 
 A notification é deliberadamente só um sinal e não carrega mensagem, Contato
 ou credencial. Ao recebê-la, releia o mesmo resource, processe `data` e persista
-`paging.cursor`. Depois de uma desconexão, leia ou assine uma nova URI com esse
-cursor em `after`: primeiro drene todas as páginas de catch-up (`paging.next`),
-depois mantenha a assinatura aberta para retomar o live tail. Notifications são
+`paging.cursor`. Depois de uma desconexão, leia a partir do último cursor salvo e
+drene todas as páginas de catch-up (`paging.next`). Só então assine uma nova URI
+com o cursor final em `after`; o probe inicial da assinatura fecha a corrida com
+um Evento persistido entre a última leitura e o subscribe. Notifications são
 hints at-least-once e podem se repetir; deduplique por `event.id` antes de
 produzir qualquer resposta. O mesmo Evento conserva `id`, `cursor` e identidade
 de mensagem em retries e replay.

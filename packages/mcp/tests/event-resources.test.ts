@@ -8,6 +8,7 @@ import {
 } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { ResourceUpdatedNotificationSchema } from "@modelcontextprotocol/sdk/types.js";
 import type { BotoZapEvent } from "@botozap/sdk";
+import { waitUntil, withTimeout } from "./helpers/async.js";
 
 const API_KEY = "bz_live_event_resource_test";
 const EVENTS_URI = "botozap://events?after=0&limit=100";
@@ -110,14 +111,6 @@ function textContent(result: Awaited<ReturnType<Client["readResource"]>>): strin
   return content.text;
 }
 
-async function waitUntil(predicate: () => boolean, timeoutMs: number): Promise<void> {
-  const deadline = performance.now() + timeoutMs;
-  while (!predicate()) {
-    if (performance.now() >= deadline) throw new Error("condição não atingida");
-    await new Promise((resolve) => setTimeout(resolve, 10));
-  }
-}
-
 describe("resource MCP de Eventos por stdio", () => {
   it(
     "notifica em até cinco segundos, relê pelo cursor e recupera após reconexão",
@@ -160,12 +153,7 @@ describe("resource MCP de Eventos por stdio", () => {
       events.push(event(1, "payload autoritativo"));
 
       await expect(
-        Promise.race([
-          notification,
-          new Promise<string>((_, reject) =>
-            setTimeout(() => reject(new Error("notification não recebida")), 5_000),
-          ),
-        ]),
+        withTimeout(notification, 5_000, "notification não recebida"),
       ).resolves.toBe(EVENTS_URI);
       expect(performance.now() - persistedAt).toBeLessThan(5_000);
 

@@ -254,6 +254,14 @@ for (const event of page.data) {
 ultimoCursor = page.paging.cursor;
 ```
 
+Passe um `AbortSignal` quando a leitura fizer parte de um tail cancelável:
+
+```ts
+const controller = new AbortController();
+const page = await boto.events.list({ after: ultimoCursor, signal: controller.signal });
+controller.abort(); // interrompe o I/O se a assinatura deixou de existir
+```
+
 ```ts
 // Transmissão: template_name + template_language são obrigatórios.
 await boto.broadcasts.create({

@@ -25,6 +25,11 @@ type Session = {
   transport: StreamableHTTPServerTransport;
 };
 
+type SessionReservations = {
+  byApiKey: Map<string, number>;
+  total: number;
+};
+
 export interface StreamableHttpServerOptions {
   baseUrl: string;
   eventSignal: EventSignalSource;
@@ -59,6 +64,7 @@ export async function startStreamableHttpServer(
   options: StreamableHttpServerOptions,
 ): Promise<RunningStreamableHttpServer> {
   const sessions = new Map<string, Session>();
+  const reservations: SessionReservations = { byApiKey: new Map(), total: 0 };
   const idleTimeoutMs = Math.max(1, options.sessionIdleTimeoutMs ?? 5 * 60_000);
   const sweep = setInterval(() => {
     const now = Date.now();
@@ -73,7 +79,7 @@ export async function startStreamableHttpServer(
   }, Math.max(1, options.sessionSweepIntervalMs ?? 30_000));
   sweep.unref?.();
   const http = createServer((request, response) => {
-    void handleRequest(request, response, sessions, options).catch(() => {
+    void handleRequest(request, response, sessions, reservations, options).catch(() => {
       if (!response.headersSent) {
         jsonRpcError(response, 500, -32603, "Erro interno do servidor MCP.");
       } else if (!response.writableEnded) {
@@ -108,6 +114,7 @@ async function handleRequest(
   request: IncomingMessage,
   response: ServerResponse,
   sessions: Map<string, Session>,
+  reservations: SessionReservations,
   options: StreamableHttpServerOptions,
 ): Promise<void> {
   const url = new URL(request.url ?? "/", "http://mcp.invalid");
@@ -158,23 +165,44 @@ async function handleRequest(
     jsonRpcError(response, 401, -32001, "Credencial inválida ou sem events:read.");
     return;
   }
-  if (sessions.size >= (options.maxSessions ?? 1_000)) {
+  if (sessions.size + reservations.total >= (options.maxSessions ?? 1_000)) {
     jsonRpcError(response, 429, -32000, "Limite de sessões MCP atingido.");
     return;
   }
+  const apiKeyFingerprint = fingerprint(apiKey);
+  const apiKeyReservationKey = apiKeyFingerprint.toString("base64url");
   const sessionsForApiKey = [...sessions.values()].filter((candidate) =>
     sameFingerprint(candidate.apiKeyFingerprint, apiKey),
   ).length;
-  if (sessionsForApiKey >= (options.maxSessionsPerApiKey ?? 5)) {
+  const reservedForApiKey = reservations.byApiKey.get(apiKeyReservationKey) ?? 0;
+  if (
+    sessionsForApiKey + reservedForApiKey >=
+    (options.maxSessionsPerApiKey ?? 5)
+  ) {
     jsonRpcError(response, 429, -32000, "Limite de sessões MCP atingido.");
     return;
   }
 
+  reservations.total += 1;
+  reservations.byApiKey.set(apiKeyReservationKey, reservedForApiKey + 1);
+  let reservationReleased = false;
+  const releaseReservation = () => {
+    if (reservationReleased) return;
+    reservationReleased = true;
+    reservations.total -= 1;
+    const remaining = (reservations.byApiKey.get(apiKeyReservationKey) ?? 1) - 1;
+    if (remaining === 0) reservations.byApiKey.delete(apiKeyReservationKey);
+    else reservations.byApiKey.set(apiKeyReservationKey, remaining);
+  };
+
   let session: Session | undefined;
+  let initializedSessionId: string | undefined;
   const transport = new StreamableHTTPServerTransport({
     sessionIdGenerator: randomUUID,
     onsessioninitialized: (newSessionId) => {
+      initializedSessionId = newSessionId;
       if (session) sessions.set(newSessionId, session);
+      releaseReservation();
     },
     onsessionclosed: async (closedSessionId) => {
       const closed = sessions.get(closedSessionId);
@@ -191,13 +219,30 @@ async function handleRequest(
   });
   session = {
     activeRequests: 0,
-    apiKeyFingerprint: fingerprint(apiKey),
+    apiKeyFingerprint,
     lastActivityAt: Date.now(),
     server,
     transport,
   };
-  await server.connect(transport);
-  await transport.handleRequest(request, response, body);
+  try {
+    await server.connect(transport);
+    session.activeRequests += 1;
+    try {
+      await transport.handleRequest(request, response, body);
+    } finally {
+      session.activeRequests -= 1;
+      session.lastActivityAt = Date.now();
+    }
+  } catch (error) {
+    if (initializedSessionId) {
+      await closeSession(sessions, initializedSessionId, session);
+    } else {
+      await server.close().catch(() => {});
+    }
+    throw error;
+  } finally {
+    releaseReservation();
+  }
 }
 
 function closeSession(

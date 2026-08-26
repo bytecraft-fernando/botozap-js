@@ -1,4 +1,9 @@
-import { createServer, type Server, type ServerResponse } from "node:http";
+import {
+  createServer,
+  type IncomingMessage,
+  type Server,
+  type ServerResponse,
+} from "node:http";
 import { afterEach, describe, expect, it } from "vitest";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
@@ -8,6 +13,7 @@ import {
   startStreamableHttpServer,
   type EventSignalSource,
 } from "../src/http.js";
+import { waitUntil, withTimeout } from "./helpers/async.js";
 
 const API_KEY = "bz_live_http_transport_secret";
 const EVENTS_URI = "botozap://events?after=0&limit=100";
@@ -65,7 +71,10 @@ function event(cursor: number): BotoZapEvent {
 async function startApi(
   events: BotoZapEvent[],
   requests: URL[],
-  beforeEventsResponse?: (readNumber: number) => Promise<void>,
+  beforeEventsResponse?: (
+    readNumber: number,
+    request: IncomingMessage,
+  ) => Promise<void>,
   allowedApiKeys: ReadonlySet<string> = new Set([API_KEY]),
   eventsByApiKey?: ReadonlyMap<string, BotoZapEvent[]>,
 ): Promise<string> {
@@ -83,15 +92,19 @@ async function startApi(
     if (url.pathname === "/events") {
       eventReadCount += 1;
       const visibleEvents = [...(eventsByApiKey?.get(apiKey) ?? events)];
-      await beforeEventsResponse?.(eventReadCount);
+      await beforeEventsResponse?.(eventReadCount, request);
       const after = Number(url.searchParams.get("after") ?? "0");
-      const data = visibleEvents.filter((item) => Number(item.cursor) > after);
+      const limit = Number(url.searchParams.get("limit") ?? "100");
+      const remaining = visibleEvents.filter((item) => Number(item.cursor) > after);
+      const data = remaining.slice(0, limit);
+      const cursor = data.at(-1)?.cursor ?? String(after);
+      const hasMore = remaining.some((item) => Number(item.cursor) > Number(cursor));
       jsonResponse(response, 200, {
         data,
         paging: {
-          cursor: data.at(-1)?.cursor ?? String(after),
-          next: null,
-          has_more: false,
+          cursor,
+          next: hasMore ? cursor : null,
+          has_more: hasMore,
         },
       });
       return;
@@ -169,14 +182,9 @@ describe("transporte MCP Streamable HTTP", () => {
     events.push(event(1));
     eventSignal.publish();
 
-    await expect(
-      Promise.race([
-        notification,
-        new Promise<string>((_, reject) =>
-          setTimeout(() => reject(new Error("notification não recebida")), 1_000),
-        ),
-      ]),
-    ).resolves.toBe(EVENTS_URI);
+    await expect(withTimeout(notification, 1_000, "notification não recebida")).resolves.toBe(
+      EVENTS_URI,
+    );
 
     const read = await client.readResource({ uri: EVENTS_URI });
     const content = read.contents[0];
@@ -272,6 +280,83 @@ describe("transporte MCP Streamable HTTP", () => {
     await expect(withTimeout(notification, 300)).resolves.toBe(EVENTS_URI);
   });
 
+  it("drena todas as páginas de catch-up antes de esperar o heartbeat", async () => {
+    const events = Array.from({ length: 101 }, (_, index) => event(index + 1));
+    const eventSignal = new TestEventSignal();
+    const baseUrl = await startApi(events, []);
+    const remote = await startStreamableHttpServer({
+      baseUrl,
+      eventSignal,
+      eventPollIntervalMs: 1_000,
+      host: "127.0.0.1",
+      port: 0,
+    });
+    openServers.push(remote);
+
+    const { client } = await connect(remote.url);
+    let notifications = 0;
+    client.setNotificationHandler(ResourceUpdatedNotificationSchema, () => {
+      notifications += 1;
+    });
+    await client.subscribeResource({ uri: EVENTS_URI });
+
+    await waitUntil(() => notifications >= 2, 300);
+    expect(notifications).toBe(2);
+    expect(resourceEvents(await client.readResource({ uri: EVENTS_URI }))).toHaveLength(100);
+    expect(
+      resourceEvents(
+        await client.readResource({ uri: "botozap://events?after=100&limit=100" }),
+      ).map((item) => item.cursor),
+    ).toEqual(["101"]);
+
+    events.push(event(102));
+    eventSignal.publish();
+    await waitUntil(() => notifications === 3, 300);
+    expect(
+      resourceEvents(
+        await client.readResource({ uri: "botozap://events?after=101&limit=100" }),
+      ).map((item) => item.cursor),
+    ).toEqual(["102"]);
+  });
+
+  it("aborta a leitura em voo quando a assinatura é cancelada", async () => {
+    let releaseRead: (() => void) | undefined;
+    let markReadStarted: (() => void) | undefined;
+    let markReadAborted: (() => void) | undefined;
+    const readStarted = new Promise<void>((resolve) => {
+      markReadStarted = resolve;
+    });
+    const readAborted = new Promise<void>((resolve) => {
+      markReadAborted = resolve;
+    });
+    const holdRead = new Promise<void>((resolve) => {
+      releaseRead = resolve;
+    });
+    const baseUrl = await startApi([], [], async (readNumber, request) => {
+      if (readNumber !== 2) return;
+      request.once("aborted", () => markReadAborted?.());
+      markReadStarted?.();
+      await holdRead;
+    });
+    const remote = await startStreamableHttpServer({
+      baseUrl,
+      eventSignal: new TestEventSignal(),
+      host: "127.0.0.1",
+      port: 0,
+    });
+    openServers.push(remote);
+
+    const { client } = await connect(remote.url);
+    await client.subscribeResource({ uri: EVENTS_URI });
+    await readStarted;
+    try {
+      await client.unsubscribeResource({ uri: EVENTS_URI });
+      await expect(withTimeout(readAborted, 300)).resolves.toBeUndefined();
+    } finally {
+      releaseRead?.();
+    }
+  });
+
   it("limita sessões e libera todo o consumo depois do cancelamento", async () => {
     const eventSignal = new TestEventSignal();
     const baseUrl = await startApi([], []);
@@ -298,7 +383,15 @@ describe("transporte MCP Streamable HTTP", () => {
   });
 
   it("reserva o limite antes de inicializações concorrentes", async () => {
-    const baseUrl = await startApi([], []);
+    let releaseAuthentication: (() => void) | undefined;
+    const authenticationBarrier = new Promise<void>((resolve) => {
+      releaseAuthentication = resolve;
+    });
+    const baseUrl = await startApi([], [], async (readNumber) => {
+      if (readNumber > 10) return;
+      if (readNumber === 10) releaseAuthentication?.();
+      await authenticationBarrier;
+    });
     const remote = await startStreamableHttpServer({
       baseUrl,
       eventSignal: new TestEventSignal(),
@@ -499,21 +592,4 @@ function resourceEvents(
 
 function eventReads(requests: URL[]): number {
   return requests.filter((url) => url.pathname === "/events").length;
-}
-
-async function waitUntil(predicate: () => boolean, timeoutMs: number): Promise<void> {
-  const deadline = performance.now() + timeoutMs;
-  while (!predicate()) {
-    if (performance.now() >= deadline) throw new Error("condição não atingida");
-    await new Promise((resolve) => setTimeout(resolve, 5));
-  }
-}
-
-function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
-  return Promise.race([
-    promise,
-    new Promise<T>((_, reject) =>
-      setTimeout(() => reject(new Error("notification não recebida")), timeoutMs),
-    ),
-  ]);
 }

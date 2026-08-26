@@ -7,6 +7,8 @@ export interface ListEventsParams {
   after?: string;
   /** Quantidade máxima de Eventos na página (1..100). */
   limit?: number;
+  /** Cancela uma leitura/tail que deixou de ser necessário. */
+  signal?: AbortSignal;
 }
 
 /** Stream durável de Eventos da Conta e ambiente derivados da chave. */
@@ -16,6 +18,7 @@ export class Events {
   list(params: ListEventsParams = {}): Promise<EventList> {
     return this.client.requestCursorList<EventList>("GET", "/events", {
       query: { after: params.after, limit: params.limit },
+      signal: params.signal,
     });
   }
 }
