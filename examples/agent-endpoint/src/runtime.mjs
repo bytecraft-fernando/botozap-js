@@ -1,13 +1,29 @@
+import { once } from "node:events";
 import { BotoZap } from "@botozap/sdk";
 import { createAgent } from "./agent.mjs";
+import { createEndpointServer } from "./endpoint.mjs";
 import { createBotoZapMessenger } from "./messenger.mjs";
 import { PostgresJobStore } from "./store.mjs";
 import { createAgentWorker } from "./worker.mjs";
 
-export async function createEndpointRuntime(config) {
+export async function startEndpointRuntime(config) {
   const store = new PostgresJobStore({ connectionString: config.databaseUrl });
   await store.migrate();
-  return { store };
+  const server = createEndpointServer({
+    secret: config.webhookSecret,
+    store,
+  });
+  server.listen(config.port, "0.0.0.0");
+  await once(server, "listening");
+
+  return {
+    async stop() {
+      await new Promise((resolve, reject) =>
+        server.close((error) => (error ? reject(error) : resolve())),
+      );
+      await store.close();
+    },
+  };
 }
 
 export async function createWorkerRuntime(config) {

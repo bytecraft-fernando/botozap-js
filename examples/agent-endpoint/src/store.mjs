@@ -43,7 +43,20 @@ export class PostgresJobStore {
     const sql = template
       .replaceAll("__AGENT_JOBS_TABLE__", this.#tableName)
       .replaceAll("__AGENT_JOBS_INDEX__", `${this.#tableName}_state_idx`);
-    await this.#pool.query(sql);
+    const client = await this.#pool.connect();
+    try {
+      await client.query("begin");
+      await client.query("select pg_advisory_xact_lock(hashtext($1))", [
+        `agent-endpoint:migrate:${this.#tableName}`,
+      ]);
+      await client.query(sql);
+      await client.query("commit");
+    } catch (error) {
+      await client.query("rollback");
+      throw error;
+    } finally {
+      client.release();
+    }
   }
 
   async enqueue({ idempotencyKey, eventType, payload }) {
@@ -220,6 +233,40 @@ export class PostgresJobStore {
        ) pending`,
     );
     return result.rows[0]?.wake_at ?? null;
+  }
+
+  async replayFailed(id) {
+    const client = await this.#pool.connect();
+    try {
+      await client.query("begin");
+      const result = await client.query(
+        `update ${this.#tableName}
+         set state = 'queued',
+             attempts = 0,
+             available_at = now(),
+             processing_started_at = null,
+             response_plan = null,
+             outbound_wamid = null,
+             error_code = null,
+             updated_at = now()
+         where id = $1 and state = 'failed'
+         returning id`,
+        [id],
+      );
+      if (result.rowCount === 1) {
+        await client.query("select pg_notify($1, $2)", [
+          this.#channelName,
+          String(id),
+        ]);
+      }
+      await client.query("commit");
+      return result.rowCount === 1;
+    } catch (error) {
+      await client.query("rollback");
+      throw error;
+    } finally {
+      client.release();
+    }
   }
 
   async close() {

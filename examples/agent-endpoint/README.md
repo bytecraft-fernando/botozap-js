@@ -124,8 +124,9 @@ order by id desc
 limit 20;
 ```
 
-Estados `completed` e `ignored` são terminais. `failed` prova uma recusa antes
-do envio; `ambiguous`/`sending` exigem inspeção humana e **não são retentados**.
+Estados `completed` e `ignored` são terminais. Depois de três falhas do runtime
+de agente, `failed` funciona como a DLQ local. `ambiguous`/`sending` exigem
+inspeção humana e **não são retentados**.
 O worker grava `sending` antes de chamar a API e nunca recupera esse estado
 automaticamente. Essa escolha preserva a garantia “no máximo uma resposta”:
 uma queda nesse ponto pode perder a resposta, mas não manda uma duplicata.
@@ -137,6 +138,17 @@ Replay** no painel (owner/admin). O BotoZap reenviará o mesmo corpo com a mesma
 `X-Idempotency-Key`. O índice único responde `200 duplicate`, sem novo job e sem
 novo outbound. O histórico fica em `webhook_deliveries` e o replay é auditado
 pela plataforma.
+
+Se a Entrega foi aceita, mas o runtime do agente esgotou as três tentativas,
+reprocesse somente o job local em `failed`:
+
+```bash
+pnpm --filter example-agent-endpoint replay -- 123
+```
+
+O comando faz uma transição atômica `failed → queued`, zera as tentativas e
+acorda o worker por `NOTIFY`. Ele recusa qualquer outro estado, especialmente
+`sending` e `ambiguous`.
 
 Não reenvie automaticamente jobs locais em `sending` ou `ambiguous`: a API da
 Meta não oferece idempotência de envio e uma resposta anterior pode ter saído.

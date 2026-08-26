@@ -204,4 +204,86 @@ describe("fila durável PostgreSQL", { skip: !connectionString }, () => {
       await worker.stop();
     }
   });
+
+  it("move falha terminal para a DLQ e permite replay seguro sem duplicar outbound", async () => {
+    const dlqStore = new PostgresJobStore({
+      pool,
+      tableName,
+      channelName,
+      generationRetryMs: 10,
+    });
+    let agentRuns = 0;
+    let notifyThirdAttempt;
+    const thirdAttempt = new Promise((resolve) => {
+      notifyThirdAttempt = resolve;
+    });
+    let notifyOutbound;
+    const outbound = new Promise((resolve) => {
+      notifyOutbound = resolve;
+    });
+    let outboundCount = 0;
+    const worker = createAgentWorker({
+      store: dlqStore,
+      agent: async () => {
+        agentRuns += 1;
+        if (agentRuns <= 3) {
+          if (agentRuns === 3) notifyThirdAttempt();
+          throw Object.assign(new Error("indisponível"), { code: "agent_busy" });
+        }
+        return "Resposta após replay.";
+      },
+      messenger: {
+        async sendResponse() {
+          outboundCount += 1;
+          notifyOutbound();
+          return { mode: "text", wamid: "wamid.outbound-dlq" };
+        },
+      },
+    });
+    await worker.start();
+
+    const idempotencyKey = "wamid.agent-dlq-1";
+    try {
+      await dlqStore.enqueue({
+        idempotencyKey,
+        eventType: "whatsapp.message.received",
+        payload: {
+          event: "whatsapp.message.received",
+          phone_number_id: "123456789",
+          message: {
+            id: idempotencyKey,
+            type: "text",
+            timestamp: String(Math.floor(Date.now() / 1000)),
+            text: { body: "Preciso de ajuda" },
+          },
+          contact: { phone: "5511988887777" },
+        },
+      });
+
+      await thirdAttempt;
+      await worker.drain();
+      const failed = await dlqStore.findByIdempotencyKey(idempotencyKey);
+      assert.equal(failed.state, "failed");
+      assert.equal(failed.attempts, 3);
+      assert.equal(outboundCount, 0);
+
+      const replayed = await dlqStore.replayFailed(failed.id);
+      assert.equal(replayed, true);
+      await Promise.race([
+        outbound,
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error("replay não acordou")), 1_000),
+        ),
+      ]);
+      await worker.drain();
+
+      const completed = await dlqStore.findByIdempotencyKey(idempotencyKey);
+      assert.equal(completed.state, "completed");
+      assert.equal(completed.attempts, 1);
+      assert.equal(outboundCount, 1);
+      assert.equal(await dlqStore.replayFailed(completed.id), false);
+    } finally {
+      await worker.stop();
+    }
+  });
 });
