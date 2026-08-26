@@ -11,3 +11,4 @@ API keys entram sempre por variável de ambiente (`BOTOZAP_API_KEY`,
 | [`node-typescript`](./node-typescript) | envio sandbox tipado, leitura paginada por cursor, erro estruturado |
 | [`webhook-receiver`](./webhook-receiver) | bytes crus + HMAC constant-time + idempotência transacional + ACK 2xx pós-commit |
 | [`mcp-sandbox`](./mcp-sandbox) | configuração mínima do `@botozap/mcp` com chave sandbox |
+| [`agent-endpoint`](./agent-endpoint) | Endpoint durável + worker de agente por `LISTEN/NOTIFY` + resposta sem polling |

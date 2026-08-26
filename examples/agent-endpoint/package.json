@@ -1,0 +1,16 @@
+{
+  "name": "example-agent-endpoint",
+  "private": true,
+  "type": "module",
+  "description": "Endpoint durável de referência que aciona um worker de agente e responde pelo BotoZap sem polling.",
+  "scripts": {
+    "start": "node src/index.mjs",
+    "start:endpoint": "node src/endpoint-process.mjs",
+    "start:worker": "node src/worker-process.mjs",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "@botozap/sdk": "workspace:*",
+    "pg": "^8.16.3"
+  }
+}

@@ -33,8 +33,9 @@ vivem num lugar só.
 ## Exemplos
 
 Em [`examples/`](./examples): envio sandbox em JavaScript e TypeScript,
-receptor de webhook (HMAC + idempotência transacional) e configuração do MCP
-com chave sandbox.
+receptor de webhook (HMAC + idempotência transacional), configuração do MCP
+com chave sandbox e o [`agent-endpoint`](./examples/agent-endpoint), com fila
+PostgreSQL e worker orientado a Eventos que responde sem polling.
 
 ## Desenvolvimento
 

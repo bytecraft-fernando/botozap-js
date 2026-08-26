@@ -13,6 +13,19 @@ on:
 jobs:
   verify:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: agent_example
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     strategy:
       matrix:
         # Todos os pacotes declaram >=20.19. O leg do major 20 pina '20.19'
@@ -50,6 +63,10 @@ jobs:
       - run: pnpm build
       - run: pnpm typecheck
       - run: pnpm test
+      - name: Exemplo de Endpoint durável
+        env:
+          TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/agent_example
+        run: pnpm --filter example-agent-endpoint test
       - name: Artefatos importam (ESM e CJS)
         run: |
           node -e "import('./packages/sdk/dist/index.js').then(m => { if (!m.BotoZap) throw new Error('ESM sem BotoZap') }).catch(e => { console.error(e); process.exit(1) })"
