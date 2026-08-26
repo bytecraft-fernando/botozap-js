@@ -1374,7 +1374,7 @@ exports[`MCP — output schemas e structured content > anuncia schemas não vazi
       "additionalProperties": false,
       "properties": {
         "from": {
-          "description": "phone_number_id de origem (obrigatório se a conta tem >1 número).",
+          "description": "ID Meta ou UUID interno do Número de origem (obrigatório se a conta tem >1 número).",
           "type": "string",
         },
         "template": {
