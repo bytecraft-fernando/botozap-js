@@ -477,6 +477,51 @@ describe("transporte MCP Streamable HTTP", () => {
     await expect(connect(remote.url)).resolves.toBeDefined();
   });
 
+  it("não deixa initialize em voo escapar do shutdown", async () => {
+    let releaseAuthentication: (() => void) | undefined;
+    let markAuthenticationStarted: (() => void) | undefined;
+    const authenticationStarted = new Promise<void>((resolve) => {
+      markAuthenticationStarted = resolve;
+    });
+    const authenticationBarrier = new Promise<void>((resolve) => {
+      releaseAuthentication = resolve;
+    });
+    const baseUrl = await startApi([], [], async (readNumber) => {
+      if (readNumber !== 1) return;
+      markAuthenticationStarted?.();
+      await authenticationBarrier;
+    });
+    const eventSignal = new TestEventSignal();
+    const remote = await startStreamableHttpServer({
+      baseUrl,
+      eventSignal,
+      host: "127.0.0.1",
+      port: 0,
+    });
+    openServers.push(remote);
+
+    const connecting = connect(remote.url);
+    await authenticationStarted;
+    const closing = remote.close();
+    releaseAuthentication?.();
+    const [connectionResult] = await Promise.all([
+      connecting.then(
+        (value) => ({ status: "fulfilled" as const, value }),
+        (reason: unknown) => ({ status: "rejected" as const, reason }),
+      ),
+      closing,
+    ]);
+    openServers.splice(openServers.indexOf(remote), 1);
+    const listenersAfterClose = eventSignal.listenerCount();
+    if (connectionResult.status === "fulfilled") {
+      await connectionResult.value.client.close();
+      openClients.splice(openClients.indexOf(connectionResult.value.client), 1);
+    }
+
+    expect(connectionResult.status).toBe("rejected");
+    expect(listenersAfterClose).toBe(0);
+  });
+
   it("isola resources e notifications entre credenciais live e Sandbox", async () => {
     const sandboxApiKey = "bz_sandbox_http_transport";
     const liveEvents: BotoZapEvent[] = [];

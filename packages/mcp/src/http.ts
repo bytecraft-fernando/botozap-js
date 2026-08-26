@@ -30,6 +30,10 @@ type SessionReservations = {
   total: number;
 };
 
+type ServerLifecycle = {
+  closing: boolean;
+};
+
 export interface StreamableHttpServerOptions {
   baseUrl: string;
   eventSignal: EventSignalSource;
@@ -65,6 +69,7 @@ export async function startStreamableHttpServer(
 ): Promise<RunningStreamableHttpServer> {
   const sessions = new Map<string, Session>();
   const reservations: SessionReservations = { byApiKey: new Map(), total: 0 };
+  const lifecycle: ServerLifecycle = { closing: false };
   const idleTimeoutMs = Math.max(1, options.sessionIdleTimeoutMs ?? 5 * 60_000);
   const sweep = setInterval(() => {
     const now = Date.now();
@@ -79,7 +84,14 @@ export async function startStreamableHttpServer(
   }, Math.max(1, options.sessionSweepIntervalMs ?? 30_000));
   sweep.unref?.();
   const http = createServer((request, response) => {
-    void handleRequest(request, response, sessions, reservations, options).catch(() => {
+    void handleRequest(
+      request,
+      response,
+      sessions,
+      reservations,
+      lifecycle,
+      options,
+    ).catch(() => {
       if (!response.headersSent) {
         jsonRpcError(response, 500, -32603, "Erro interno do servidor MCP.");
       } else if (!response.writableEnded) {
@@ -89,23 +101,36 @@ export async function startStreamableHttpServer(
   });
 
   const host = options.host ?? "127.0.0.1";
-  await listen(http, options.port ?? 0, host);
+  try {
+    await listen(http, options.port ?? 0, host);
+  } catch (error) {
+    clearInterval(sweep);
+    throw error;
+  }
   const address = http.address();
   if (!address || typeof address === "string") {
+    clearInterval(sweep);
     await closeHttp(http);
     throw new Error("Servidor MCP remoto iniciou sem endereço TCP.");
   }
 
+  let closePromise: Promise<void> | undefined;
+
   return {
     url: new URL(`http://${displayHost(host)}:${address.port}/mcp`),
-    async close() {
+    close() {
+      if (closePromise) return closePromise;
+      lifecycle.closing = true;
       clearInterval(sweep);
-      await Promise.allSettled(
-        [...sessions].map(([sessionId, session]) =>
-          closeSession(sessions, sessionId, session),
-        ),
-      );
-      await closeHttp(http);
+      const httpClosing = closeHttp(http);
+      closePromise = (async () => {
+        await closeAllSessions(sessions);
+        await httpClosing;
+        // Um initialize já autenticado pode ter registrado a sessão enquanto
+        // o servidor HTTP drenava o request. A segunda passagem fecha essa janela.
+        await closeAllSessions(sessions);
+      })();
+      return closePromise;
     },
   };
 }
@@ -115,11 +140,16 @@ async function handleRequest(
   response: ServerResponse,
   sessions: Map<string, Session>,
   reservations: SessionReservations,
+  lifecycle: ServerLifecycle,
   options: StreamableHttpServerOptions,
 ): Promise<void> {
   const url = new URL(request.url ?? "/", "http://mcp.invalid");
   if (url.pathname !== "/mcp") {
     jsonRpcError(response, 404, -32001, "Endpoint MCP não encontrado.");
+    return;
+  }
+  if (lifecycle.closing) {
+    jsonRpcError(response, 503, -32000, "Servidor MCP em encerramento.");
     return;
   }
 
@@ -138,14 +168,7 @@ async function handleRequest(
       return;
     }
     const body = request.method === "POST" ? await readJsonBody(request) : undefined;
-    session.activeRequests += 1;
-    session.lastActivityAt = Date.now();
-    try {
-      await session.transport.handleRequest(request, response, body);
-    } finally {
-      session.activeRequests -= 1;
-      session.lastActivityAt = Date.now();
-    }
+    await handleSessionRequest(session, request, response, body);
     return;
   }
 
@@ -163,6 +186,10 @@ async function handleRequest(
   if (!(await authenticatesForEvents(apiKey, options))) {
     response.setHeader("WWW-Authenticate", "Bearer");
     jsonRpcError(response, 401, -32001, "Credencial inválida ou sem events:read.");
+    return;
+  }
+  if (lifecycle.closing) {
+    jsonRpcError(response, 503, -32000, "Servidor MCP em encerramento.");
     return;
   }
   if (sessions.size + reservations.total >= (options.maxSessions ?? 1_000)) {
@@ -226,13 +253,12 @@ async function handleRequest(
   };
   try {
     await server.connect(transport);
-    session.activeRequests += 1;
-    try {
-      await transport.handleRequest(request, response, body);
-    } finally {
-      session.activeRequests -= 1;
-      session.lastActivityAt = Date.now();
+    if (lifecycle.closing) {
+      await server.close().catch(() => {});
+      jsonRpcError(response, 503, -32000, "Servidor MCP em encerramento.");
+      return;
     }
+    await handleSessionRequest(session, request, response, body);
   } catch (error) {
     if (initializedSessionId) {
       await closeSession(sessions, initializedSessionId, session);
@@ -243,6 +269,30 @@ async function handleRequest(
   } finally {
     releaseReservation();
   }
+}
+
+async function handleSessionRequest(
+  session: Session,
+  request: IncomingMessage,
+  response: ServerResponse,
+  body: unknown,
+): Promise<void> {
+  session.activeRequests += 1;
+  session.lastActivityAt = Date.now();
+  try {
+    await session.transport.handleRequest(request, response, body);
+  } finally {
+    session.activeRequests -= 1;
+    session.lastActivityAt = Date.now();
+  }
+}
+
+async function closeAllSessions(sessions: Map<string, Session>): Promise<void> {
+  await Promise.allSettled(
+    [...sessions].map(([sessionId, session]) =>
+      closeSession(sessions, sessionId, session),
+    ),
+  );
 }
 
 function closeSession(
