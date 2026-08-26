@@ -39,7 +39,7 @@ Cursor e Codex usam o mesmo shape (`command`/`args`/`env`).
 ## 3. O que uma chave sandbox pode fazer
 
 O sandbox tem allow-list no servidor: só as operações de **mensagens**
-funcionam (`send_message`, `list_messages`, `get_message`). Qualquer outra
+funcionam (`send_message`, `send_media_message`, `list_messages`, `get_message`). Qualquer outra
 tool responde `403 sandbox_forbidden` — comportamento esperado, imposto pela
 API, não pelo MCP.
 

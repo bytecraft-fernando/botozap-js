@@ -136,7 +136,7 @@ Nomes em inglês (snake_case, melhor para tool-calling); descrições em PT-BR.
 **Mensagens** — `send_message`, `list_messages`, `get_message`
 **Conversas** — `reply_to_conversation`, `list_conversations`, `get_conversation`, `update_conversation`
 **Contatos** — `list_contacts`, `get_contact`, `create_contact`, `update_contact`, `delete_contact`
-**Mídia** — `ingest_media`
+**Mídia** — `send_media_message`, `ingest_media`
 **Clientes** — `list_customers`, `get_customer`, `create_customer`, `update_customer`, `delete_customer`
 **Links de setup** — `list_setup_links`, `create_setup_link`, `update_setup_link`
 **Números** — `list_phone_numbers`, `get_phone_number`, `phone_number_health`
@@ -177,7 +177,7 @@ disponíveis de forma programática em todas as tools.
 ## Chaves de sandbox
 
 Uma chave de **sandbox** (prefixo `bz_sandbox_`) habilita as ferramentas de
-mensagem (`send_message`, `list_messages` e `get_message`) e o resource de
+mensagem (`send_message`, `send_media_message`, `list_messages` e `get_message`) e o resource de
 Eventos do próprio Sandbox. Qualquer outra ferramenta responde
 `403 sandbox_forbidden` (vindo da API) — útil para testar a integração sem tocar
 dados reais.

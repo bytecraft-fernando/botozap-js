@@ -451,6 +451,15 @@ const customerCalls = [
 
 const utilityCalls = [
   [
+    "send_media_message",
+    {
+      to: "5511999999999",
+      type: "image",
+      link: "https://cdn.example.test/foto.png",
+      caption: "Foto do pedido",
+    },
+  ],
+  [
     "ingest_media",
     {
       phone_number_id: "1279498075235551",
@@ -487,6 +496,7 @@ const completeCatalog = [
   "create_contact",
   "update_contact",
   "delete_contact",
+  "send_media_message",
   "ingest_media",
   "list_customers",
   "get_customer",

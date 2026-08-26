@@ -75,6 +75,14 @@ await boto.messages.sendTemplate({
   template: { name: "boas_vindas", language: { code: "pt_BR" } },
 });
 
+// Mídia por link (image, video, audio ou document)
+await boto.messages.sendMedia({
+  to: "+5531988887777",
+  type: "image",
+  link: "https://cdn.exemplo.com/pedido.jpg",
+  caption: "Seu pedido ficou pronto",
+});
+
 // De um número específico (obrigatório se a conta tem mais de um)
 await boto.messages.send({
   to: "+5531988887777",
@@ -100,8 +108,24 @@ const { data: templates } = await boto.templates.list();
 
 ## Mídia
 
-Suba um arquivo (a BotoZap baixa da URL, com guard SSRF, e envia à Cloud API) e
-use o `media_id` numa mensagem:
+Para enviar por link, use `messages.sendMedia`. O SDK só envia o contrato ao
+endpoint canônico; não baixa o arquivo no processo do cliente:
+
+```ts
+await boto.messages.sendMedia({
+  to: "+5531988887777",
+  type: "document",
+  link: "https://cdn.exemplo.com/fatura.pdf",
+  caption: "Fatura de agosto",
+  filename: "fatura-agosto.pdf",
+});
+```
+
+`caption` é aceito em `image`, `video` e `document`; `audio` aceita apenas o
+link; `filename` é exclusivo de `document`.
+
+Para fazer ingest de um arquivo, a BotoZap baixa da URL com guard SSRF e envia
+à Cloud API:
 
 ```ts
 const up = await boto.media.upload({
@@ -203,7 +227,7 @@ new BotoZap({
 
 O SDK cobre os recursos da API `/v1`:
 
-- `messages` — enviar texto e template, **listar** e buscar por id
+- `messages` — enviar texto, template e mídia por link, **listar** e buscar por id
 - `customers` — listar, buscar, criar, **atualizar**, **remover**, e **links de setup** (listar/criar/atualizar)
 - `templates` — listar, buscar, **criar**
 - `broadcasts` — criar, destinatários, agendar, enviar, cancelar

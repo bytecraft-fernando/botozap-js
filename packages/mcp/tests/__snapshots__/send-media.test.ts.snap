@@ -1,0 +1,118 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`MCP — send_media_message > anuncia o contrato de mídia e seus limites sem degradar o schema 1`] = `
+{
+  "inputSchema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "additionalProperties": false,
+    "properties": {
+      "caption": {
+        "description": "Legenda para image, video ou document; audio não aceita.",
+        "maxLength": 1024,
+        "minLength": 1,
+        "type": "string",
+      },
+      "filename": {
+        "description": "Nome do arquivo; aceito somente quando type='document'.",
+        "maxLength": 240,
+        "type": "string",
+      },
+      "from": {
+        "description": "ID Meta ou UUID interno do Número de origem (obrigatório se a conta tem >1 número).",
+        "type": "string",
+      },
+      "link": {
+        "description": "URL https pública do arquivo; o BotoZap delega o download à Meta.",
+        "format": "uri",
+        "maxLength": 2048,
+        "pattern": "^https:\\/\\/",
+        "type": "string",
+      },
+      "to": {
+        "description": "Destinatário: telefone E.164 (ex.: 5511999999999) ou wa_id.",
+        "type": "string",
+      },
+      "type": {
+        "description": "Tipo da mídia a enviar.",
+        "enum": [
+          "image",
+          "video",
+          "audio",
+          "document",
+        ],
+        "type": "string",
+      },
+    },
+    "required": [
+      "to",
+      "type",
+      "link",
+    ],
+    "type": "object",
+  },
+  "outputSchema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "additionalProperties": true,
+    "properties": {
+      "error": {
+        "additionalProperties": false,
+        "description": "Erro estruturado sem credenciais, tokens ou headers de request.",
+        "properties": {
+          "code": {
+            "description": "Código estável do erro da API BotoZap.",
+            "type": "string",
+          },
+          "message": {
+            "description": "Mensagem segura e acionável do erro.",
+            "type": "string",
+          },
+          "status": {
+            "description": "Status HTTP; 0 quando não houve resposta HTTP.",
+            "minimum": 0,
+            "type": "integer",
+          },
+        },
+        "required": [
+          "code",
+          "message",
+          "status",
+        ],
+        "type": "object",
+      },
+      "id": {
+        "anyOf": [
+          {
+            "description": "UUID interno do recurso no BotoZap.",
+            "format": "uuid",
+            "type": "string",
+          },
+          {
+            "type": "null",
+          },
+        ],
+        "description": "UUID interno da Mensagem; null se a persistência best-effort falhou.",
+      },
+      "sandbox": {
+        "type": "boolean",
+      },
+      "sent_to": {
+        "description": "Destinatário efetivamente usado após normalização de identidade.",
+        "type": "string",
+      },
+      "status": {
+        "description": "Status inicial do envio.",
+        "type": "string",
+      },
+      "to": {
+        "description": "Destinatário solicitado pelo cliente.",
+        "type": "string",
+      },
+      "wamid": {
+        "description": "ID da Mensagem atribuído pelo WhatsApp/Meta.",
+        "type": "string",
+      },
+    },
+    "type": "object",
+  },
+}
+`;

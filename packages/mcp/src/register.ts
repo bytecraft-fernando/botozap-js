@@ -68,11 +68,12 @@ const API_KEY_PATTERN = /\bbz_(?:live|sandbox)_[A-Za-z0-9._-]+\b/g;
 const BEARER_PATTERN = /\bBearer\s+\S+/gi;
 
 function safeMessage(value: unknown, apiKey?: string): string {
-  let message = String(value);
+  let message = String(value).replace(
+    BEARER_PATTERN,
+    "Bearer [credencial removida]",
+  );
   if (apiKey) message = message.split(apiKey).join("[credencial removida]");
-  return message
-    .replace(API_KEY_PATTERN, "[credencial removida]")
-    .replace(BEARER_PATTERN, "Bearer [credencial removida]");
+  return message.replace(API_KEY_PATTERN, "[credencial removida]");
 }
 
 function errorResult(err: unknown, apiKey?: string): {

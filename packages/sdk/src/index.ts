@@ -5,6 +5,11 @@ export { BotoZapError } from "./errors.js";
 export type {
   SendTextParams,
   SendTemplateParams,
+  SendImageParams,
+  SendVideoParams,
+  SendAudioParams,
+  SendDocumentParams,
+  SendMediaParams,
   ListMessagesParams,
 } from "./resources/messages.js";
 export type {

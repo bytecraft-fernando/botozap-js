@@ -39,6 +39,44 @@ export interface SendTemplateParams {
   from?: string;
 }
 
+export interface SendImageParams {
+  to: string;
+  type: "image";
+  link: string;
+  caption?: string;
+  from?: string;
+}
+
+export interface SendAudioParams {
+  to: string;
+  type: "audio";
+  link: string;
+  from?: string;
+}
+
+export interface SendVideoParams {
+  to: string;
+  type: "video";
+  link: string;
+  caption?: string;
+  from?: string;
+}
+
+export interface SendDocumentParams {
+  to: string;
+  type: "document";
+  link: string;
+  caption?: string;
+  filename?: string;
+  from?: string;
+}
+
+export type SendMediaParams =
+  | SendImageParams
+  | SendVideoParams
+  | SendAudioParams
+  | SendDocumentParams;
+
 /** Endpoints de mensagem (POST /v1/messages, GET /v1/messages/:id). */
 export class Messages {
   constructor(private readonly client: BotoZap) {}
@@ -64,6 +102,26 @@ export class Messages {
         type: "template",
         template: params.template,
         from: params.from,
+      },
+    });
+    return assertSendResult(result);
+  }
+
+  /** Envia mídia por URL pública. */
+  async sendMedia(params: SendMediaParams): Promise<SendResult> {
+    const media: Record<string, unknown> = { link: params.link };
+    if ("caption" in params && params.caption !== undefined) {
+      media.caption = params.caption;
+    }
+    if ("filename" in params && params.filename !== undefined) {
+      media.filename = params.filename;
+    }
+    const result = await this.client.requestObject<SendResult>("POST", "/messages", {
+      body: {
+        to: params.to,
+        from: params.from,
+        type: params.type,
+        [params.type]: media,
       },
     });
     return assertSendResult(result);
