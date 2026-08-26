@@ -28,13 +28,14 @@ export interface SendTextParams {
   to: string;
   /** Corpo do texto. */
   text: string;
-  /** phone_number_id de origem (obrigatório se a conta tem mais de um número). */
+  /** ID Meta ou UUID interno do Número de origem (obrigatório se houver mais de um). */
   from?: string;
 }
 
 export interface SendTemplateParams {
   to: string;
   template: TemplatePayload;
+  /** ID Meta ou UUID interno do Número de origem. */
   from?: string;
 }
 

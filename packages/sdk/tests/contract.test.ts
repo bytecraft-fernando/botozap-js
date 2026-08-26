@@ -163,6 +163,61 @@ describe("SDK contract — request montado + response entregue", () => {
     expect(result.wamid).toBe("wamid.HBgADEADBEEF");
   });
 
+  it("conversations.reply: resolve Contato e Número pela Conversa e delega ao POST /messages", async () => {
+    const conversationId = "10000000-0000-4000-8000-000000000001";
+    const internalPhoneId = "20000000-0000-4000-8000-000000000001";
+    const bsuid = "BR.1A2B3C4D5E6F";
+    responder = (req) => {
+      if (req.method === "GET" && req.path === `/conversations/${conversationId}`) {
+        return {
+          status: 200,
+          json: {
+            data: {
+              id: conversationId,
+              phone_number_id: internalPhoneId,
+              contact: { wa_id: bsuid },
+            },
+          },
+        };
+      }
+      return {
+        status: 201,
+        json: {
+          id: "30000000-0000-4000-8000-000000000001",
+          wamid: "wamid.reply.ABC",
+          to: bsuid,
+          sent_to: bsuid,
+          status: "sent",
+        },
+      };
+    };
+
+    const result = await boto.conversations.reply(conversationId, {
+      text: "Resposta do agente",
+    });
+
+    expect(captured).toHaveLength(2);
+    expect(captured[0]).toMatchObject({
+      method: "GET",
+      path: `/conversations/${conversationId}`,
+    });
+    expect(captured[1]).toMatchObject({
+      method: "POST",
+      path: "/messages",
+      body: {
+        to: bsuid,
+        type: "text",
+        text: { body: "Resposta do agente" },
+        from: internalPhoneId,
+      },
+    });
+    expect(result).toMatchObject({
+      wamid: "wamid.reply.ABC",
+      to: bsuid,
+      status: "sent",
+    });
+  });
+
   it("messages.get: GET /messages/:id; DESEMPACOTA o envelope {data}", async () => {
     responder = () => ({
       status: 200,

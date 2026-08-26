@@ -108,6 +108,14 @@ export interface Contact {
 
 export interface Conversation {
   id: string;
+  /** UUID interno do Número da própria Conversa. */
+  phone_number_id?: string;
+  contact?: {
+    /** Identidade canônica do Contato: telefone ou BSUID. */
+    wa_id?: string | null;
+    phone?: string | null;
+    [key: string]: unknown;
+  };
   [key: string]: unknown;
 }
 

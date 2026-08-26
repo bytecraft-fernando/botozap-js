@@ -79,7 +79,13 @@ await boto.messages.sendTemplate({
 await boto.messages.send({
   to: "+5531988887777",
   text: "Olá!",
-  from: "phone_number_id_aqui",
+  // Aceita o phone_number_id Meta ou o UUID interno retornado pelo SDK.
+  from: "uuid-ou-phone_number_id",
+});
+
+// Responder sem combinar manualmente Contato e Número
+await boto.conversations.reply("uuid-da-conversa", {
+  text: "Resposta do agente",
 });
 ```
 

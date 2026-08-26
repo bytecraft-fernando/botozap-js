@@ -5,9 +5,31 @@ import type { Register } from "../register.js";
 import {
   conversationResultSchema,
   listConversationsResultSchema,
+  sendMessageResultSchema,
 } from "../schemas.js";
 
 export function registerConversationTools(register: Register): void {
+  register(
+    "reply_to_conversation",
+    "Responde uma Conversa com texto. Informe somente o UUID da Conversa e o corpo; o BotoZap resolve Contato e Número, e a API revalida Conta, ambiente, janela de 24h, quota e billing. Exige scopes conversations:read e messages:send.",
+    {
+      conversation_id: z
+        .string()
+        .uuid()
+        .describe("UUID interno da Conversa no BotoZap."),
+      text: z
+        .object({
+          body: z.string().describe("Corpo da resposta de texto."),
+        })
+        .describe("Conteúdo da resposta."),
+    },
+    sendMessageResultSchema,
+    (client, args) =>
+      client.conversations.reply(String(args.conversation_id), {
+        text: (args.text as { body: string }).body,
+      }),
+  );
+
   register(
     "list_conversations",
     "Lista conversas da conta (paginação por cursor: { data, paging }). Filtros opcionais por número e por busca textual de contato.",

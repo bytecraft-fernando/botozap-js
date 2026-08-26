@@ -12,6 +12,7 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { buildServer } from "../src/server.js";
 import {
+  CONVERSATION_ID,
   CUSTOMER_ID,
   MESSAGE_ID,
   cursorPagingFixture,
@@ -55,6 +56,16 @@ const fetchStub = (async (input: unknown, init?: RequestInit) => {
       wamid: "wamid.ABC",
       to: body?.to ?? "",
       status: "accepted",
+    });
+  }
+
+  if (method === "GET" && path === `/conversations/${CONVERSATION_ID}`) {
+    return jsonResponse(200, {
+      data: {
+        id: CONVERSATION_ID,
+        phone_number_id: "20000000-0000-4000-8000-000000000001",
+        contact: { wa_id: "BR.1A2B3C4D5E6F" },
+      },
     });
   }
 
@@ -138,6 +149,49 @@ describe("servidor MCP — integração ponta a ponta (fetch stub)", () => {
     // Resposta direta: sem chave `data`.
     expect(payload).toMatchObject({ id: MESSAGE_ID, wamid: "wamid.ABC", status: "accepted" });
     expect(payload.data).toBeUndefined();
+  });
+
+  it("reply_to_conversation: recebe só Conversa + texto e resolve o envio pelo SDK", async () => {
+    const client = await connect();
+    const discovered = (await client.listTools()).tools.find(
+      (tool) => tool.name === "reply_to_conversation",
+    );
+    expect(Object.keys(discovered?.inputSchema.properties ?? {})).toEqual([
+      "conversation_id",
+      "text",
+    ]);
+    expect(discovered?.inputSchema.additionalProperties).toBe(false);
+
+    const result = (await client.callTool({
+      name: "reply_to_conversation",
+      arguments: {
+        conversation_id: CONVERSATION_ID,
+        text: { body: "Resposta do agente" },
+      },
+    })) as {
+      content: Array<{ type: string; text?: string }>;
+      structuredContent?: Record<string, unknown>;
+      isError?: boolean;
+    };
+
+    expect(result.isError).toBeFalsy();
+    expect(calls).toHaveLength(2);
+    expect(calls[0]).toMatchObject({ method: "GET" });
+    expect(calls[0].url.pathname).toBe(`/v1/conversations/${CONVERSATION_ID}`);
+    expect(calls[1]).toMatchObject({
+      method: "POST",
+      body: {
+        to: "BR.1A2B3C4D5E6F",
+        type: "text",
+        text: { body: "Resposta do agente" },
+        from: "20000000-0000-4000-8000-000000000001",
+      },
+    });
+    expect(result.structuredContent).toMatchObject({
+      id: MESSAGE_ID,
+      wamid: "wamid.ABC",
+      status: "accepted",
+    });
   });
 
   it("list_messages: cursor query certa e saída com envelope { data, paging }", async () => {

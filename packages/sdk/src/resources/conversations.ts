@@ -1,4 +1,5 @@
 import type { BotoZap } from "../client.js";
+import { BotoZapError } from "../errors.js";
 import type {
   Assignment,
   Conversation,
@@ -6,6 +7,7 @@ import type {
   CursorParams,
   OffsetList,
   OffsetParams,
+  SendResult,
 } from "../types.js";
 
 export interface ListConversationsParams extends CursorParams {
@@ -26,6 +28,11 @@ export interface CreateAssignmentParams {
   /** Membro a quem atribuir a conversa. */
   user_id: string;
   notes?: string;
+}
+
+export interface ReplyConversationParams {
+  /** Corpo da resposta livre dentro da janela de 24h. */
+  text: string;
 }
 
 /** Conversas (read + status) e atribuições a membros. */
@@ -56,6 +63,43 @@ export class Conversations {
       "GET",
       `/conversations/${enc(id)}`,
     );
+  }
+
+  /**
+   * Responde uma Conversa sem o chamador precisar combinar Contato e Número.
+   * A leitura e o envio usam a mesma chave; o POST /messages revalida Conta,
+   * ambiente, identidade, janela, quota e billing antes de chamar a Meta.
+   */
+  async reply(
+    id: string,
+    params: ReplyConversationParams,
+  ): Promise<SendResult> {
+    const conversation = await this.get(id);
+    const from = conversation.phone_number_id;
+    if (typeof from !== "string" || !from.trim()) {
+      throw new BotoZapError(
+        "malformed_response",
+        "Conversa sem UUID interno do Número de origem.",
+        0,
+      );
+    }
+
+    const contact = conversation.contact;
+    const to =
+      typeof contact?.wa_id === "string" && contact.wa_id.trim()
+        ? contact.wa_id
+        : typeof contact?.phone === "string" && contact.phone.trim()
+          ? contact.phone
+          : null;
+    if (!to) {
+      throw new BotoZapError(
+        "conversation_recipient_unavailable",
+        "Conversa sem destinatário utilizável no Contato.",
+        422,
+      );
+    }
+
+    return this.client.messages.send({ to, text: params.text, from });
   }
 
   update(id: string, params: Record<string, unknown>): Promise<Conversation> {

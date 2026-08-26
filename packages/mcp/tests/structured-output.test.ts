@@ -79,6 +79,7 @@ const conversation = {
     name: "Contato Teste",
     phone: "+55 11 99999-9999",
     username: "contato.teste",
+    wa_id: "5511999999999",
   },
   status: "active",
   window_expires_at: "2026-08-26T12:00:00.000Z",
@@ -422,6 +423,13 @@ const contactCalls = [
 ] as const;
 
 const conversationCalls = [
+  [
+    "reply_to_conversation",
+    {
+      conversation_id: CONVERSATION_ID,
+      text: { body: "Resposta do agente" },
+    },
+  ],
   ["list_conversations", { limit: 20 }],
   ["get_conversation", { id: CONVERSATION_ID }],
   ["update_conversation", { id: CONVERSATION_ID, status: "ended" }],
@@ -470,6 +478,7 @@ const completeCatalog = [
   "send_message",
   "list_messages",
   "get_message",
+  "reply_to_conversation",
   "list_conversations",
   "get_conversation",
   "update_conversation",

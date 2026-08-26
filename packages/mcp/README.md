@@ -134,7 +134,7 @@ Transportes: **stdio** (padrão, local) e **Streamable HTTP** (remoto stateful).
 Nomes em inglês (snake_case, melhor para tool-calling); descrições em PT-BR.
 
 **Mensagens** — `send_message`, `list_messages`, `get_message`
-**Conversas** — `list_conversations`, `get_conversation`, `update_conversation`
+**Conversas** — `reply_to_conversation`, `list_conversations`, `get_conversation`, `update_conversation`
 **Contatos** — `list_contacts`, `get_contact`, `create_contact`, `update_contact`, `delete_contact`
 **Mídia** — `ingest_media`
 **Clientes** — `list_customers`, `get_customer`, `create_customer`, `update_customer`, `delete_customer`

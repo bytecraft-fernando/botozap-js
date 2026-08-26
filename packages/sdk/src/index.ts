@@ -30,6 +30,7 @@ export type { ListContactsParams, CreateContactParams } from "./resources/contac
 export type {
   ListConversationsParams,
   CreateAssignmentParams,
+  ReplyConversationParams,
 } from "./resources/conversations.js";
 export type { CreateWebhookParams } from "./resources/webhooks.js";
 export type { ListPhoneNumbersParams } from "./resources/phone-numbers.js";

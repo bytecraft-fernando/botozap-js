@@ -60,7 +60,7 @@ const sendMessageShape = {
   from: z
     .string()
     .optional()
-    .describe("phone_number_id de origem (obrigatório se a conta tem >1 número)."),
+    .describe("ID Meta ou UUID interno do Número de origem (obrigatório se a conta tem >1 número)."),
 } as const;
 
 /**
@@ -110,7 +110,7 @@ export const sendMessageSchema = z
 export function registerMessageTools(register: Register): void {
   register(
     "send_message",
-    "Envia uma mensagem de WhatsApp (texto ou template) via API do BotoZap. `to` é o número E.164 ou wa_id do destinatário. Para texto: type='text' e text={ body }. Para template: type='template' e template={ name, language, components? }. `from` (phone_number_id) é obrigatório se a conta tem mais de um número. Retorna { id, wamid, to, status }.",
+    "Envia uma mensagem de WhatsApp (texto ou template) via API do BotoZap. `to` é o número E.164 ou wa_id do destinatário. Para texto: type='text' e text={ body }. Para template: type='template' e template={ name, language, components? }. `from` aceita ID Meta ou UUID interno do Número e é obrigatório se a conta tem mais de um. Retorna { id, wamid, to, status }.",
     sendMessageShape,
     sendMessageResultSchema,
     (client, args) => {

@@ -209,6 +209,11 @@ export const conversationSchema = z
         name: z.string(),
         phone: z.string().nullable(),
         username: z.string().nullable(),
+        wa_id: z
+          .string()
+          .nullable()
+          .optional()
+          .describe("Identidade canônica do Contato: telefone ou BSUID."),
       })
       .strict(),
     status: z.enum(["active", "ended"]),
