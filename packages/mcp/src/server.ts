@@ -16,6 +16,7 @@ import { registerPhoneNumberTools } from "./tools/phone-numbers.js";
 import { registerTemplateTools } from "./tools/templates.js";
 import { registerWebhookTools } from "./tools/webhooks.js";
 import { registerMiscTools } from "./tools/misc.js";
+import { registerEventResources } from "./resources/events.js";
 
 const { version: VERSION } = createRequire(import.meta.url)("../package.json") as {
   version: string;
@@ -26,14 +27,19 @@ export interface BuildServerOptions {
   baseUrl?: string;
   /** Injeta um fetch (testes de integração). Prod → global do SDK. */
   fetch?: typeof fetch;
+  /** Intervalo do tail enquanto há assinatura ativa. Padrão: 1,5 s. */
+  eventPollIntervalMs?: number;
 }
 
 /** Monta um `McpServer` com todas as ferramentas registradas. */
 export function buildServer(options: BuildServerOptions): McpServer {
-  const server = new McpServer({
-    name: "botozap-mcp",
-    version: VERSION,
-  });
+  const server = new McpServer(
+    {
+      name: "botozap-mcp",
+      version: VERSION,
+    },
+    { capabilities: { resources: { subscribe: true } } },
+  );
 
   const client = createClient({
     apiKey: options.apiKey,
@@ -51,6 +57,14 @@ export function buildServer(options: BuildServerOptions): McpServer {
   registerTemplateTools(register);
   registerWebhookTools(register);
   registerMiscTools(register);
+  const closeEventResources = registerEventResources(server, client, {
+    pollIntervalMs: options.eventPollIntervalMs ?? 1_500,
+  });
+  const previousOnClose = server.server.onclose;
+  server.server.onclose = () => {
+    closeEventResources();
+    previousOnClose?.();
+  };
 
   return server;
 }

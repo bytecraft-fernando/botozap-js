@@ -153,6 +153,33 @@ export interface WebhookDelivery {
   [key: string]: unknown;
 }
 
+/** Evento autoritativo do stream durável da Conta e ambiente autenticados. */
+export interface BotoZapEvent {
+  id: string;
+  /** Cursor monotônico e contíguo, serializado como string. */
+  cursor: string;
+  type: string;
+  /** WAMID da mensagem que originou o Evento. */
+  message_id: string;
+  /** UUID interno da Mensagem; pode ser null em status de Broadcast. */
+  message_resource_id: string | null;
+  occurred_at: string;
+  created_at: string;
+  data: Record<string, unknown>;
+}
+
+/** Paginação crescente do stream; `cursor` é seguro para o próximo `after`. */
+export interface EventPaging {
+  cursor: string;
+  next: string | null;
+  has_more: boolean;
+}
+
+export interface EventList {
+  data: BotoZapEvent[];
+  paging: EventPaging;
+}
+
 /**
  * Retorno de POST /v1/media. A rota responde `{ ingest_id, target, resource }`:
  * `target.kind` diz o pipeline usado (`meta_media` traz `media_id` usável em

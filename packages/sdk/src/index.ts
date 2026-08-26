@@ -41,6 +41,7 @@ export type {
   SetFlowDataEndpointParams,
 } from "./resources/flows.js";
 export type { UploadMediaParams } from "./resources/media.js";
+export type { ListEventsParams } from "./resources/events.js";
 export type {
   ListApiLogsParams,
   ListWebhookDeliveriesParams,
@@ -73,4 +74,7 @@ export type {
   MediaUploadResult,
   MediaAsset,
   SetupLink,
+  BotoZapEvent,
+  EventPaging,
+  EventList,
 } from "./types.js";

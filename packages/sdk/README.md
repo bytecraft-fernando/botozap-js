@@ -23,7 +23,7 @@ simulados percorrem o pipeline real (webhook assinado com retry). Números
 mágicos: `+5500000000001` (sent→delivered→read, janela de 24h sempre aberta),
 `+5500000000002` (falha `131026`), `+5500000000003` (delivered + resposta
 inbound que abre a janela real). A chave sandbox só acessa `POST /messages`,
-`GET /messages` e `GET /messages/:id` — as demais rotas respondem
+`GET /messages`, `GET /messages/:id` e `GET /events` — as demais rotas respondem
 `403 sandbox_forbidden`.
 
 ## Garantias de entrega (leia antes de ir a produção)
@@ -207,7 +207,22 @@ O SDK cobre os recursos da API `/v1`:
 - `phoneNumbers` — listar, buscar, remover, saúde (a rota de update não expõe campos editáveis, então o SDK não tem `phoneNumbers.update`)
 - `flows` — criar, versionar, publicar, data endpoint (as operações por flow exigem `phone_number_id`, que amarra o flow à sua WABA)
 - `media` — subir arquivo (obter um media_id) e **buscar metadados + URL de download** de uma mídia recebida
+- `events` — reler inbound e mudanças de status pelo cursor durável da Conta/ambiente
 - `users`, `apiLogs`, `webhookDeliveries` — leitura
+
+Inbound e mudanças de status compartilham um stream crescente. Guarde
+`paging.cursor` e use-o como `after` na leitura seguinte; após uma desconexão,
+isso recupera o intervalo persistido sem depender de memória do processo:
+
+```ts
+const page = await boto.events.list({ after: ultimoCursor, limit: 100 });
+
+for (const event of page.data) {
+  console.log(event.cursor, event.type, event.data);
+}
+
+ultimoCursor = page.paging.cursor;
+```
 
 ```ts
 // Transmissão: template_name + template_language são obrigatórios.

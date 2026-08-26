@@ -231,6 +231,44 @@ describe("SDK contract — request montado + response entregue", () => {
     expect(list.paging.cursors).toEqual({ before: null, after: "cur_after" });
   });
 
+  it("events.list: GET /events?limit&after; preserva o cursor durável autoritativo", async () => {
+    responder = () => ({
+      status: 200,
+      json: {
+        data: [
+          {
+            id: "evt_1",
+            cursor: "43",
+            type: "whatsapp.message.received",
+            message_id: "wamid.inbound.1",
+            message_resource_id: "msg_1",
+            occurred_at: "2026-08-26T12:00:00.000Z",
+            created_at: "2026-08-26T12:00:00.100Z",
+            data: { event: "whatsapp.message.received" },
+          },
+        ],
+        paging: { cursor: "43", next: null, has_more: false },
+      },
+    });
+
+    const page = await boto.events.list({ limit: 25, after: "42" });
+
+    const req = lastRequest();
+    expect(req.method).toBe("GET");
+    expect(req.path).toBe("/events");
+    expect(req.query).toEqual({ limit: "25", after: "42" });
+    expect(page.data[0]).toMatchObject({
+      cursor: "43",
+      type: "whatsapp.message.received",
+      message_id: "wamid.inbound.1",
+    });
+    expect(page.paging).toEqual({
+      cursor: "43",
+      next: null,
+      has_more: false,
+    });
+  });
+
   it("webhooks.delete: DELETE /webhooks/:id → 204 sem corpo → resolve void sem crashar", async () => {
     responder = () => ({ status: 204 }); // sem json nem raw = corpo vazio
 

@@ -4,9 +4,10 @@ Servidor **MCP (Model Context Protocol)** para a API pública do **BotoZap** —
 plataforma dev-first sobre a WhatsApp Cloud API oficial (multi-tenant, a "Kapso
 brasileira").
 
-Ele expõe as operações da plataforma (`/api/v1`) como **ferramentas MCP**, para
-que assistentes como **Claude Code**, **Cursor** e **Codex** consigam enviar
-mensagens, gerenciar contatos/clientes/números, criar templates e webhooks etc.
+Ele expõe as operações da plataforma (`/api/v1`) como **ferramentas MCP** e o
+stream durável de Eventos como **resource assinável**, para que assistentes como
+**Claude Code**, **Cursor** e **Codex** consigam operar o canal e receber um
+sinal de baixa latência quando o WhatsApp mudar.
 
 Cada ferramenta MCP mapeia para uma operação do SDK oficial **`@botozap/sdk`**
 (que autentica com a sua chave `bz_...`, monta a requisição e trata o envelope de
@@ -118,6 +119,28 @@ descrições em PT-BR.
 **Logs** — `list_api_logs`
 **Usuários** — `list_users`
 
+## Resource de Eventos
+
+O servidor stdio anuncia `resources.subscribe` e o template
+`botozap://events{?after,limit}`. Um cliente persistente pode assinar, por
+exemplo, `botozap://events?after=42&limit=100` e receber
+`notifications/resources/updated` quando existir um Evento posterior ao cursor
+42. O tail da API existe somente enquanto há assinatura ativa; clientes que usam
+apenas tools não iniciam consultas de Eventos. A chave usada pelo servidor
+precisa incluir o escopo `events:read`.
+
+A notification é deliberadamente só um sinal e não carrega mensagem, Contato
+ou credencial. Ao recebê-la, releia o mesmo resource, processe `data` e persista
+`paging.cursor`. Depois de uma desconexão, leia ou assine uma nova URI com esse
+cursor em `after` para recuperar o intervalo autoritativo. Notifications são
+hints e podem se repetir; deduplique por `event.id` ou pela identidade estável
+do Evento.
+
+O tail usa intervalo padrão de 1,5 segundo e para no `unsubscribe` ou no fim da
+sessão. Isso elimina polling no cliente MCP sem transformar o processo stdio em
+um daemon permanente. Receber a notification não significa que todo host inicia
+automaticamente uma nova execução do agente.
+
 Em caso de erro da API, a ferramenta devolve um resultado de erro (`isError`) com
 a mensagem PT-BR do envelope `{ error: { code, message } }` no formato
 `Erro [code]: message`. `code`, `message` e o status HTTP também ficam
@@ -125,10 +148,11 @@ disponíveis de forma programática em todas as tools.
 
 ## Chaves de sandbox
 
-Uma chave de **sandbox** (prefixo `bz_sandbox_`) só habilita as ferramentas de
-mensagem: `send_message`, `list_messages` e `get_message`. Qualquer outra
-ferramenta responde `403 sandbox_forbidden` (vindo da API) — útil para testar a
-integração de envio sem tocar dados reais.
+Uma chave de **sandbox** (prefixo `bz_sandbox_`) habilita as ferramentas de
+mensagem (`send_message`, `list_messages` e `get_message`) e o resource de
+Eventos do próprio Sandbox. Qualquer outra ferramenta responde
+`403 sandbox_forbidden` (vindo da API) — útil para testar a integração sem tocar
+dados reais.
 
 **Números mágicos** (destinatários simulados, sem custo, sem número real):
 

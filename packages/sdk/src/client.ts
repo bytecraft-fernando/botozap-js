@@ -9,6 +9,7 @@ import { Webhooks } from "./resources/webhooks.js";
 import { PhoneNumbers } from "./resources/phone-numbers.js";
 import { Flows } from "./resources/flows.js";
 import { Media } from "./resources/media.js";
+import { Events } from "./resources/events.js";
 import { Users, ApiLogs, WebhookDeliveries } from "./resources/read-only.js";
 
 export interface BotoZapOptions {
@@ -46,6 +47,7 @@ export class BotoZap {
   readonly phoneNumbers: PhoneNumbers;
   readonly flows: Flows;
   readonly media: Media;
+  readonly events: Events;
   readonly users: Users;
   readonly apiLogs: ApiLogs;
   readonly webhookDeliveries: WebhookDeliveries;
@@ -79,6 +81,7 @@ export class BotoZap {
     this.phoneNumbers = new PhoneNumbers(this);
     this.flows = new Flows(this);
     this.media = new Media(this);
+    this.events = new Events(this);
     this.users = new Users(this);
     this.apiLogs = new ApiLogs(this);
     this.webhookDeliveries = new WebhookDeliveries(this);

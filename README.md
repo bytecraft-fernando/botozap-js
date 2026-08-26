@@ -24,7 +24,7 @@ verde contra os handlers reais no repositório privado do core.
 | --- | --- |
 | [`@botozap/sdk`](./packages/sdk) | SDK Node.js — cliente tipado da API `/api/v1`, sem dependências de runtime |
 | [`@botozap/cli`](./packages/cli) | CLI `botozap` — a API no terminal e em scripts |
-| [`@botozap/mcp`](./packages/mcp) | Servidor MCP — as operações da API como ferramentas para agentes (Claude Code, Cursor, Codex) |
+| [`@botozap/mcp`](./packages/mcp) | Servidor MCP — tools de comando + resource assinável de Eventos para agentes |
 
 O SDK é a única implementação do cliente HTTP: CLI e MCP consomem
 `@botozap/sdk` (workspace) — autenticação, envelopes, paginação, erros e tipos
