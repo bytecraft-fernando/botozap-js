@@ -7,7 +7,14 @@ import type {
   UpdateSetupLinkParams,
 } from "@botozap/sdk";
 import type { OffsetParams } from "@botozap/sdk";
-import type { Register } from "../register.js";
+import { emptyOperationResult, type Register } from "../register.js";
+import {
+  customerResultSchema,
+  emptyOperationResultSchema,
+  listCustomersResultSchema,
+  listSetupLinksResultSchema,
+  setupLinkResultSchema,
+} from "../schemas.js";
 
 export function registerCustomerTools(register: Register): void {
   register(
@@ -18,6 +25,7 @@ export function registerCustomerTools(register: Register): void {
       page: z.number().int().positive().optional().describe("Página (1-based)."),
       per_page: z.number().int().positive().optional().describe("Itens por página (máx. 100)."),
     },
+    listCustomersResultSchema,
     (client, args) => client.customers.list(args as OffsetParams),
   );
 
@@ -25,6 +33,7 @@ export function registerCustomerTools(register: Register): void {
     "get_customer",
     "Busca um cliente pelo id (uuid interno). Retorna { data }.",
     { id: z.string().describe("ID do cliente (uuid interno).") },
+    customerResultSchema,
     async (client, args) => ({ data: await client.customers.get(String(args.id)) }),
   );
 
@@ -35,6 +44,7 @@ export function registerCustomerTools(register: Register): void {
       name: z.string().describe("Nome do cliente."),
       external_customer_id: z.string().optional().describe("Referência externa opcional."),
     },
+    customerResultSchema,
     async (client, args) => ({
       data: await client.customers.create(args as CreateCustomerParams),
     }),
@@ -48,6 +58,7 @@ export function registerCustomerTools(register: Register): void {
       name: z.string().optional(),
       external_customer_id: z.string().optional(),
     },
+    customerResultSchema,
     async (client, args) => {
       const { id, ...body } = args;
       return { data: await client.customers.update(String(id), body as UpdateCustomerParams) };
@@ -58,9 +69,10 @@ export function registerCustomerTools(register: Register): void {
     "delete_customer",
     "Exclui um cliente pelo id (uuid interno).",
     { id: z.string().describe("ID do cliente (uuid interno).") },
+    emptyOperationResultSchema,
     async (client, args) => {
       await client.customers.delete(String(args.id));
-      return null;
+      return emptyOperationResult();
     },
   );
 
@@ -74,6 +86,7 @@ export function registerCustomerTools(register: Register): void {
       page: z.number().int().positive().optional().describe("Página (1-based)."),
       per_page: z.number().int().positive().optional().describe("Itens por página (máx. 100)."),
     },
+    listSetupLinksResultSchema,
     (client, args) => {
       const { customer_id, ...query } = args;
       return client.customers.listSetupLinks(String(customer_id), query as OffsetParams);
@@ -94,6 +107,7 @@ export function registerCustomerTools(register: Register): void {
       success_redirect_url: z.string().optional(),
       failure_redirect_url: z.string().optional(),
     },
+    setupLinkResultSchema,
     async (client, args) => {
       const { customer_id, ...body } = args;
       return {
@@ -114,6 +128,7 @@ export function registerCustomerTools(register: Register): void {
       status: z.string().optional().describe("Novo status do link."),
       expires_at: z.string().optional().describe("Nova expiração (ISO 8601)."),
     },
+    setupLinkResultSchema,
     async (client, args) => {
       const { customer_id, link_id, ...body } = args;
       return {

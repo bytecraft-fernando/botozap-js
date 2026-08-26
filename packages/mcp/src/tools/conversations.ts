@@ -2,6 +2,10 @@
 import { z } from "zod";
 import type { ListConversationsParams } from "@botozap/sdk";
 import type { Register } from "../register.js";
+import {
+  conversationResultSchema,
+  listConversationsResultSchema,
+} from "../schemas.js";
 
 export function registerConversationTools(register: Register): void {
   register(
@@ -19,6 +23,7 @@ export function registerConversationTools(register: Register): void {
       after: z.string().optional(),
       before: z.string().optional(),
     },
+    listConversationsResultSchema,
     (client, args) => client.conversations.list(args as ListConversationsParams),
   );
 
@@ -26,6 +31,7 @@ export function registerConversationTools(register: Register): void {
     "get_conversation",
     "Busca uma conversa pelo id (uuid interno). Retorna { data }.",
     { id: z.string().describe("ID da conversa (uuid interno).") },
+    conversationResultSchema,
     async (client, args) => ({ data: await client.conversations.get(String(args.id)) }),
   );
 
@@ -36,6 +42,7 @@ export function registerConversationTools(register: Register): void {
       id: z.string().describe("ID da conversa (uuid interno)."),
       status: z.enum(["active", "ended"]).describe("Novo status da conversa."),
     },
+    conversationResultSchema,
     async (client, args) => ({
       data: await client.conversations.update(String(args.id), { status: args.status }),
     }),

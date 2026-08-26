@@ -12,6 +12,7 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { buildServer } from "../src/server.js";
 import {
+  CUSTOMER_ID,
   MESSAGE_ID,
   cursorPagingFixture,
   messageFixture,
@@ -70,7 +71,15 @@ const fetchStub = (async (input: unknown, init?: RequestInit) => {
 
   if (method === "GET" && path === "/customers") {
     return jsonResponse(200, {
-      data: [{ id: "c1", name: "Acme" }],
+      data: [
+        {
+          id: CUSTOMER_ID,
+          name: "Acme",
+          external_customer_id: null,
+          created_at: "2026-08-25T10:00:00.000Z",
+          updated_at: "2026-08-25T10:00:00.000Z",
+        },
+      ],
       meta: { page: 1, per_page: 20, total_pages: 1, total_count: 1 },
     });
   }

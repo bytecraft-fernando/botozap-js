@@ -5,7 +5,14 @@ import type {
   CursorParams,
   ListWebhookDeliveriesParams,
 } from "@botozap/sdk";
-import type { Register } from "../register.js";
+import { emptyOperationResult, type Register } from "../register.js";
+import {
+  emptyOperationResultSchema,
+  listWebhookDeliveriesResultSchema,
+  listWebhooksResultSchema,
+  webhookResultSchema,
+  webhookTestResultSchema,
+} from "../schemas.js";
 
 export function registerWebhookTools(register: Register): void {
   register(
@@ -16,6 +23,7 @@ export function registerWebhookTools(register: Register): void {
       after: z.string().optional(),
       before: z.string().optional(),
     },
+    listWebhooksResultSchema,
     (client, args) => client.webhooks.list(args as CursorParams),
   );
 
@@ -23,6 +31,7 @@ export function registerWebhookTools(register: Register): void {
     "get_webhook",
     "Busca um webhook pelo id (uuid interno). Retorna { data }.",
     { id: z.string().describe("ID do webhook (uuid interno).") },
+    webhookResultSchema,
     async (client, args) => ({ data: await client.webhooks.get(String(args.id)) }),
   );
 
@@ -34,6 +43,7 @@ export function registerWebhookTools(register: Register): void {
       events: z.array(z.string()).describe("Tipos de evento assinados."),
       active: z.boolean().optional().describe("Ativo (default true)."),
     },
+    webhookResultSchema,
     async (client, args) => ({
       data: await client.webhooks.create(args as CreateWebhookParams),
     }),
@@ -48,6 +58,7 @@ export function registerWebhookTools(register: Register): void {
       events: z.array(z.string()).optional(),
       active: z.boolean().optional(),
     },
+    webhookResultSchema,
     async (client, args) => {
       const { id, ...body } = args;
       return { data: await client.webhooks.update(String(id), body) };
@@ -58,9 +69,10 @@ export function registerWebhookTools(register: Register): void {
     "delete_webhook",
     "Exclui um webhook pelo id (uuid interno).",
     { id: z.string().describe("ID do webhook (uuid interno).") },
+    emptyOperationResultSchema,
     async (client, args) => {
       await client.webhooks.delete(String(args.id));
-      return null;
+      return emptyOperationResult();
     },
   );
 
@@ -68,6 +80,7 @@ export function registerWebhookTools(register: Register): void {
     "test_webhook",
     "Dispara um evento de teste assinado para o endpoint de webhook informado. Retorna { data }.",
     { id: z.string().describe("ID do webhook (uuid interno).") },
+    webhookTestResultSchema,
     async (client, args) => ({ data: await client.webhooks.test(String(args.id)) }),
   );
 
@@ -82,6 +95,7 @@ export function registerWebhookTools(register: Register): void {
       after: z.string().optional(),
       before: z.string().optional(),
     },
+    listWebhookDeliveriesResultSchema,
     (client, args) => client.webhookDeliveries.list(args as ListWebhookDeliveriesParams),
   );
 }

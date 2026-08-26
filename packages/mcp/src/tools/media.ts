@@ -2,6 +2,7 @@
 import { z } from "zod";
 import type { UploadMediaParams } from "@botozap/sdk";
 import type { Register } from "../register.js";
+import { mediaUploadResultSchema } from "../schemas.js";
 
 export function registerMediaTools(register: Register): void {
   register(
@@ -17,6 +18,7 @@ export function registerMediaTools(register: Register): void {
         .optional()
         .describe("Forma de entrega à Meta (default meta_media)."),
     },
+    mediaUploadResultSchema,
     async (client, args) => ({
       data: await client.media.upload(args as unknown as UploadMediaParams),
     }),

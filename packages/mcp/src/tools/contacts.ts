@@ -1,7 +1,12 @@
 /** Ferramentas de contatos (end users do WhatsApp): CRUD. */
 import { z } from "zod";
 import type { ListContactsParams, CreateContactParams } from "@botozap/sdk";
-import type { Register } from "../register.js";
+import { emptyOperationResult, type Register } from "../register.js";
+import {
+  contactResultSchema,
+  emptyOperationResultSchema,
+  listContactsResultSchema,
+} from "../schemas.js";
 
 export function registerContactTools(register: Register): void {
   register(
@@ -21,6 +26,7 @@ export function registerContactTools(register: Register): void {
       after: z.string().optional(),
       before: z.string().optional(),
     },
+    listContactsResultSchema,
     (client, args) => client.contacts.list(args as ListContactsParams),
   );
 
@@ -28,6 +34,7 @@ export function registerContactTools(register: Register): void {
     "get_contact",
     "Busca um contato pelo id (uuid interno). Retorna { data }.",
     { id: z.string().describe("ID do contato (uuid interno).") },
+    contactResultSchema,
     async (client, args) => ({ data: await client.contacts.get(String(args.id)) }),
   );
 
@@ -44,6 +51,7 @@ export function registerContactTools(register: Register): void {
       username: z.string().optional(),
       parent_user_id: z.string().optional(),
     },
+    contactResultSchema,
     async (client, args) => ({
       data: await client.contacts.create(args as CreateContactParams),
     }),
@@ -57,6 +65,7 @@ export function registerContactTools(register: Register): void {
       profile_name: z.string().optional(),
       username: z.string().optional(),
     },
+    contactResultSchema,
     async (client, args) => {
       const { id, ...body } = args;
       return { data: await client.contacts.update(String(id), body) };
@@ -67,11 +76,12 @@ export function registerContactTools(register: Register): void {
     "delete_contact",
     "Exclui um contato pelo id (uuid interno).",
     { id: z.string().describe("ID do contato (uuid interno).") },
+    emptyOperationResultSchema,
     async (client, args) => {
       // A rota responde 204 (sem corpo); preservamos o retorno `null` do MCP
       // legado (JSON.stringify(null) === "null").
       await client.contacts.delete(String(args.id));
-      return null;
+      return emptyOperationResult();
     },
   );
 }

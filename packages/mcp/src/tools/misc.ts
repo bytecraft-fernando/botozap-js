@@ -3,6 +3,7 @@ import { z } from "zod";
 import type { ListApiLogsParams } from "@botozap/sdk";
 import type { OffsetParams } from "@botozap/sdk";
 import type { Register } from "../register.js";
+import { listApiLogsResultSchema, listUsersResultSchema } from "../schemas.js";
 
 export function registerMiscTools(register: Register): void {
   register(
@@ -17,6 +18,7 @@ export function registerMiscTools(register: Register): void {
       after: z.string().optional(),
       before: z.string().optional(),
     },
+    listApiLogsResultSchema,
     (client, args) => client.apiLogs.list(args as ListApiLogsParams),
   );
 
@@ -27,6 +29,7 @@ export function registerMiscTools(register: Register): void {
       page: z.number().int().positive().optional().describe("Página (1-based)."),
       per_page: z.number().int().positive().optional().describe("Itens por página (máx. 100)."),
     },
+    listUsersResultSchema,
     (client, args) => client.users.list(args as OffsetParams),
   );
 }

@@ -24,6 +24,30 @@ export type ToolHandler<Args> = (
   args: Args,
 ) => Promise<unknown>;
 
+const STRUCTURED_RESULT = Symbol("structured-result");
+
+type StructuredToolResult = {
+  [STRUCTURED_RESULT]: true;
+  textFallback: unknown;
+  structuredContent: Record<string, unknown>;
+};
+
+/**
+ * Mantém o valor textual legado quando a API não tem corpo, mas permite que a
+ * tool publique um contrato estruturado explícito para clientes novos.
+ */
+function structuredToolResult(
+  textFallback: unknown,
+  structuredContent: Record<string, unknown>,
+): StructuredToolResult {
+  return { [STRUCTURED_RESULT]: true, textFallback, structuredContent };
+}
+
+/** Resultado compatível de uma operação que concluiu sem corpo HTTP. */
+export function emptyOperationResult(): StructuredToolResult {
+  return structuredToolResult(null, { success: true });
+}
+
 export interface Register {
   (
     name: string,
@@ -74,6 +98,10 @@ function isObject(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
+function isStructuredToolResult(value: unknown): value is StructuredToolResult {
+  return isObject(value) && Reflect.get(value, STRUCTURED_RESULT) === true;
+}
+
 /**
  * Fábrica que devolve um `register(...)` ligado a um server + client.
  * `inputSchema` é um *raw shape* zod (objeto de schemas), como o
@@ -104,8 +132,19 @@ export function createRegister(
       },
       async (args): Promise<CallToolResult> => {
         try {
-          const data = await handler(client, (args ?? {}) as Record<string, unknown>);
-          const content = [{ type: "text" as const, text: JSON.stringify(data, null, 2) }];
+          const handlerResult = await handler(
+            client,
+            (args ?? {}) as Record<string, unknown>,
+          );
+          const data = isStructuredToolResult(handlerResult)
+            ? handlerResult.structuredContent
+            : handlerResult;
+          const textFallback = isStructuredToolResult(handlerResult)
+            ? handlerResult.textFallback
+            : handlerResult;
+          const content = [
+            { type: "text" as const, text: JSON.stringify(textFallback, null, 2) },
+          ];
           if (!outputSchema) return { content };
 
           if (!isObject(data)) {

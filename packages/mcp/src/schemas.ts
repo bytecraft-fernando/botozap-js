@@ -1,14 +1,21 @@
 /** Schemas de saída compartilhados pelas tools MCP estruturadas. */
 import { z, type AnyZodObject } from "zod";
 import type {
-  CursorList,
+  ApiLog,
+  Contact,
+  Conversation,
   CursorPaging,
+  Customer,
   Message,
-  OffsetList,
+  MediaUploadResult,
   OffsetMeta,
   PhoneNumber,
   SendResult,
+  SetupLink,
   Template,
+  User,
+  Webhook,
+  WebhookDelivery,
 } from "@botozap/sdk";
 
 /** UUID interno persistido pelo BotoZap (não é um identificador da Meta). */
@@ -99,6 +106,22 @@ export const offsetMetaSchema = z
   })
   .strict() satisfies z.ZodType<OffsetMeta>;
 
+function itemResultSchemaFor<Item extends z.ZodTypeAny>(itemSchema: Item) {
+  return z.object({ data: itemSchema }).passthrough();
+}
+
+function cursorListResultSchemaFor<Item extends z.ZodTypeAny>(itemSchema: Item) {
+  return z
+    .object({ data: z.array(itemSchema), paging: cursorPagingSchema })
+    .passthrough();
+}
+
+function offsetListResultSchemaFor<Item extends z.ZodTypeAny>(itemSchema: Item) {
+  return z
+    .object({ data: z.array(itemSchema), meta: offsetMetaSchema })
+    .passthrough();
+}
+
 export const sendMessageResultSchema = z
   .object({
     id: internalUuidSchema
@@ -137,16 +160,204 @@ export const messageSchema = z
   })
   .passthrough() satisfies z.ZodType<Message>;
 
-export const listMessagesResultSchema = z
-  .object({
-    data: z.array(messageSchema),
-    paging: cursorPagingSchema,
-  })
-  .passthrough() satisfies z.ZodType<CursorList<Message>>;
+export const listMessagesResultSchema = cursorListResultSchemaFor(messageSchema);
 
-export const getMessageResultSchema = z
-  .object({ data: messageSchema })
+export const getMessageResultSchema = itemResultSchemaFor(messageSchema);
+
+export const contactSchema = z
+  .object({
+    id: internalUuidSchema.describe("UUID interno do Contato no BotoZap."),
+    wa_id: z.string().describe("Identidade canônica do Contato: telefone ou BSUID."),
+    profile_name: z.string().nullable(),
+    phone: z.string().nullable(),
+    user_id: z.string().nullable(),
+    username: z.string().nullable(),
+    parent_user_id: z.string().nullable(),
+    phone_number_id: internalPhoneNumberIdSchema,
+    last_seen_at: z.string().nullable(),
+    created_at: z.string(),
+    notes: z.string().nullable(),
+    metadata: jsonValueSchema.nullable(),
+    stage: z
+      .object({
+        id: internalUuidSchema,
+        key: z.string(),
+        label: z.string(),
+      })
+      .nullable(),
+  })
+  .passthrough() satisfies z.ZodType<Contact>;
+
+export const listContactsResultSchema = cursorListResultSchemaFor(contactSchema);
+
+export const contactResultSchema = itemResultSchemaFor(contactSchema);
+
+/** Resultado MCP explícito para APIs que concluíram com HTTP 204. */
+export const emptyOperationResultSchema = z
+  .object({ success: z.literal(true) })
+  .strict();
+
+export const conversationSchema = z
+  .object({
+    id: internalUuidSchema.describe("UUID interno da Conversa no BotoZap."),
+    phone_number_id: internalPhoneNumberIdSchema,
+    phone_number_meta_id: metaPhoneNumberIdSchema.nullable(),
+    display_phone_number: z.string().nullable(),
+    contact_id: internalUuidSchema,
+    contact: z
+      .object({
+        name: z.string(),
+        phone: z.string().nullable(),
+        username: z.string().nullable(),
+      })
+      .strict(),
+    status: z.enum(["active", "ended"]),
+    window_expires_at: z.string().nullable(),
+    last_message_at: z.string().nullable(),
+    last_read_at: z.string().nullable(),
+    created_at: z.string(),
+  })
+  .passthrough() satisfies z.ZodType<Conversation>;
+
+export const listConversationsResultSchema =
+  cursorListResultSchemaFor(conversationSchema);
+
+export const conversationResultSchema = itemResultSchemaFor(conversationSchema);
+
+export const customerSchema = z
+  .object({
+    id: internalUuidSchema.describe("UUID interno do Cliente no BotoZap."),
+    name: z.string(),
+    external_customer_id: z.string().nullable(),
+    created_at: z.string(),
+    updated_at: z.string(),
+  })
+  .passthrough() satisfies z.ZodType<Customer>;
+
+export const listCustomersResultSchema = offsetListResultSchemaFor(customerSchema);
+
+export const customerResultSchema = itemResultSchemaFor(customerSchema);
+
+export const setupLinkSchema = z
+  .object({
+    id: internalUuidSchema.describe("UUID interno do Setup Link no BotoZap."),
+    status: z.enum(["active", "expired", "revoked"]),
+    whatsapp_setup_status: z.enum([
+      "pending",
+      "in_progress",
+      "completed",
+      "failed",
+    ]),
+    url: z.string().describe("URL pública com token opaco embutido."),
+    allowed_connection_types: z.array(z.enum(["dedicated", "coexistence"])),
+    provision_phone_number: z.boolean(),
+    language: z.string().nullable(),
+    success_redirect_url: z.string().nullable(),
+    failure_redirect_url: z.string().nullable(),
+    theme_config: jsonValueSchema.nullable(),
+    expires_at: z.string().nullable(),
+    created_at: z.string(),
+    updated_at: z.string(),
+  })
+  .passthrough() satisfies z.ZodType<SetupLink>;
+
+export const listSetupLinksResultSchema = offsetListResultSchemaFor(setupLinkSchema);
+
+export const setupLinkResultSchema = itemResultSchemaFor(setupLinkSchema);
+
+export const mediaUploadSchema = z
+  .object({
+    ingest_id: internalUuidSchema,
+    target: z
+      .object({
+        kind: z.string(),
+        media_id: z.string().optional(),
+        handle: z.string().optional(),
+      })
+      .passthrough(),
+    resource: z
+      .object({
+        filename: z.string(),
+        mime_type: z.string(),
+        size_bytes: z.number().int().nonnegative(),
+        sha256: z.string(),
+        source_url: z.string(),
+      })
+      .passthrough(),
+  })
+  .passthrough() satisfies z.ZodType<MediaUploadResult>;
+
+export const mediaUploadResultSchema = itemResultSchemaFor(mediaUploadSchema);
+
+export const apiLogSchema = z
+  .object({
+    id: internalUuidSchema,
+    source: z.string(),
+    method: z.string(),
+    path: z.string(),
+    status_code: z.number().int().nullable(),
+    error_code: z.string().nullable(),
+    api_key_id: internalUuidSchema.nullable(),
+    duration_ms: z.number().int().nonnegative().nullable(),
+    created_at: z.string(),
+  })
+  .passthrough() satisfies z.ZodType<ApiLog>;
+
+export const listApiLogsResultSchema = cursorListResultSchemaFor(apiLogSchema);
+
+export const userSchema = z
+  .object({
+    id: internalUuidSchema,
+    user_id: internalUuidSchema,
+    email: z.string().nullable(),
+    name: z.string().nullable(),
+    role: z.enum(["owner", "admin", "member"]),
+  })
+  .passthrough() satisfies z.ZodType<User>;
+
+export const listUsersResultSchema = offsetListResultSchemaFor(userSchema);
+
+export const webhookSchema = z
+  .object({
+    id: internalUuidSchema.describe("UUID interno do Endpoint no BotoZap."),
+    url: z.string(),
+    events: z.array(z.string()),
+    active: z.boolean(),
+    secret: z
+      .string()
+      .optional()
+      .describe("Segredo HMAC; presente somente na resposta de criação."),
+    created_at: z.string(),
+    updated_at: z.string(),
+  })
+  .passthrough() satisfies z.ZodType<Webhook>;
+
+export const listWebhooksResultSchema = cursorListResultSchemaFor(webhookSchema);
+
+export const webhookResultSchema = itemResultSchemaFor(webhookSchema);
+
+export const webhookTestResultSchema = z
+  .object({
+    data: z.object({ success: z.boolean() }).strict(),
+  })
   .passthrough();
+
+export const webhookDeliverySchema = z
+  .object({
+    id: internalUuidSchema,
+    endpoint_id: internalUuidSchema,
+    event_type: z.string(),
+    status: z.enum(["pending", "success", "failed", "exhausted"]),
+    response_code: z.number().int().nullable(),
+    attempts: z.number().int().nonnegative(),
+    last_attempt_at: z.string().nullable(),
+    next_retry_at: z.string().nullable(),
+    created_at: z.string(),
+  })
+  .passthrough() satisfies z.ZodType<WebhookDelivery>;
+
+export const listWebhookDeliveriesResultSchema =
+  cursorListResultSchemaFor(webhookDeliverySchema);
 
 export const phoneNumberSchema = z
   .object({
@@ -165,16 +376,10 @@ export const phoneNumberSchema = z
   })
   .passthrough() satisfies z.ZodType<PhoneNumber>;
 
-export const listPhoneNumbersResultSchema = z
-  .object({
-    data: z.array(phoneNumberSchema),
-    meta: offsetMetaSchema,
-  })
-  .passthrough() satisfies z.ZodType<OffsetList<PhoneNumber>>;
+export const listPhoneNumbersResultSchema =
+  offsetListResultSchemaFor(phoneNumberSchema);
 
-export const getPhoneNumberResultSchema = z
-  .object({ data: phoneNumberSchema })
-  .passthrough();
+export const getPhoneNumberResultSchema = itemResultSchemaFor(phoneNumberSchema);
 
 export const phoneNumberHealthSchema = z
   .object({
@@ -185,9 +390,9 @@ export const phoneNumberHealthSchema = z
   })
   .passthrough() satisfies z.ZodType<Record<string, unknown>>;
 
-export const phoneNumberHealthResultSchema = z
-  .object({ data: phoneNumberHealthSchema })
-  .passthrough();
+export const phoneNumberHealthResultSchema = itemResultSchemaFor(
+  phoneNumberHealthSchema,
+);
 
 export const templateSchema = z
   .object({
@@ -204,13 +409,6 @@ export const templateSchema = z
   })
   .passthrough() satisfies z.ZodType<Template>;
 
-export const listTemplatesResultSchema = z
-  .object({
-    data: z.array(templateSchema),
-    meta: offsetMetaSchema,
-  })
-  .passthrough() satisfies z.ZodType<OffsetList<Template>>;
+export const listTemplatesResultSchema = offsetListResultSchemaFor(templateSchema);
 
-export const templateResultSchema = z
-  .object({ data: templateSchema })
-  .passthrough() satisfies z.ZodType<{ data: Template }>;
+export const templateResultSchema = itemResultSchemaFor(templateSchema);
