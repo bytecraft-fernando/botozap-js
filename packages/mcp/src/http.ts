@@ -5,6 +5,7 @@ import {
   type Server,
   type ServerResponse,
 } from "node:http";
+import { BlockList, isIP } from "node:net";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -77,6 +78,8 @@ export interface StreamableHttpServerOptions {
   rateLimitPerClientPerMinute?: number;
   /** Requisições MCP globais por processo em uma janela fixa de um minuto. */
   rateLimitGlobalPerMinute?: number;
+  /** CIDRs dos proxies autorizados a alcançar `/mcp` (ex.: ranges Cloudflare). */
+  trustedProxyCidrs?: readonly string[];
   port?: number;
   /** Tempo sem request ativo antes de recolher uma sessão abandonada. */
   sessionIdleTimeoutMs?: number;
@@ -162,6 +165,25 @@ class HttpRateLimiter {
   }
 }
 
+export function buildTrustedProxyList(
+  cidrs: readonly string[],
+): BlockList | undefined {
+  if (cidrs.length === 0) return undefined;
+  const list = new BlockList();
+  for (const cidr of sanitizeAllowlist(cidrs)) {
+    const separator = cidr.lastIndexOf("/");
+    const address = separator > 0 ? cidr.slice(0, separator) : "";
+    const prefix = separator > 0 ? Number(cidr.slice(separator + 1)) : Number.NaN;
+    const family = isIP(address);
+    const maxPrefix = family === 4 ? 32 : family === 6 ? 128 : -1;
+    if (!Number.isInteger(prefix) || prefix < 0 || prefix > maxPrefix) {
+      throw new Error(`CIDR de proxy inválido: ${cidr}`);
+    }
+    list.addSubnet(address, prefix, family === 4 ? "ipv4" : "ipv6");
+  }
+  return list;
+}
+
 /**
  * Inicia um endpoint MCP remoto stateful. Cada sessão é criada a partir da
  * chave Bearer do initialize e fica presa ao mesmo fingerprint nos requests
@@ -182,6 +204,7 @@ export async function startStreamableHttpServer(
     options.rateLimitPerClientPerMinute ?? DEFAULT_RATE_LIMIT_PER_CLIENT,
     options.rateLimitGlobalPerMinute ?? DEFAULT_RATE_LIMIT_GLOBAL,
   );
+  const trustedProxyList = buildTrustedProxyList(options.trustedProxyCidrs ?? []);
 
   const sessions = new Map<string, Session>();
   const reservations: SessionReservations = { byApiKey: new Map(), total: 0 };
@@ -209,6 +232,7 @@ export async function startStreamableHttpServer(
       options,
       headerGate,
       rateLimiter,
+      trustedProxyList,
     ).catch(() => {
       if (!response.headersSent) {
         jsonRpcError(response, 500, -32603, "Erro interno do servidor MCP.");
@@ -265,6 +289,7 @@ async function handleRequest(
   options: StreamableHttpServerOptions,
   headerGate: HeaderGate,
   rateLimiter: HttpRateLimiter,
+  trustedProxyList: BlockList | undefined,
 ): Promise<void> {
   const url = new URL(request.url ?? "/", "http://mcp.invalid");
   if (url.pathname === "/healthz" && request.method === "GET") {
@@ -275,7 +300,10 @@ async function handleRequest(
     jsonRpcError(response, 404, -32001, "Endpoint MCP não encontrado.");
     return;
   }
-  if (!rateLimiter.allow(rateLimitClientKey(request))) {
+  if (!acceptTrustedProxy(request, response, trustedProxyList)) {
+    return;
+  }
+  if (!rateLimiter.allow(rateLimitClientKey(request, trustedProxyList !== undefined))) {
     response.setHeader("Retry-After", "60");
     jsonRpcError(response, 429, -32000, "Limite de requisições MCP atingido.");
     return;
@@ -480,8 +508,32 @@ function acceptMcpHttpHeaders(
   return true;
 }
 
-function rateLimitClientKey(request: IncomingMessage): string {
+function rateLimitClientKey(request: IncomingMessage, trustProxy: boolean): string {
+  if (trustProxy) {
+    const cloudflareClient = singleHeader(request, "cf-connecting-ip");
+    if (cloudflareClient && isIP(cloudflareClient) !== 0) return cloudflareClient;
+  }
   return singleHeader(request, "fly-client-ip") ?? request.socket.remoteAddress ?? "unknown";
+}
+
+function acceptTrustedProxy(
+  request: IncomingMessage,
+  response: ServerResponse,
+  trustedProxyList: BlockList | undefined,
+): boolean {
+  if (!trustedProxyList) return true;
+  const proxyIp = singleHeader(request, "fly-client-ip");
+  const family = proxyIp ? isIP(proxyIp) : 0;
+  const accepted =
+    family === 4
+      ? trustedProxyList.check(proxyIp!, "ipv4")
+      : family === 6
+        ? trustedProxyList.check(proxyIp!, "ipv6")
+        : false;
+  if (!accepted) {
+    jsonRpcError(response, 403, -32000, "Proxy de origem não permitido.");
+  }
+  return accepted;
 }
 
 function currentBucket(bucket: RateBucket | undefined, now: number): RateBucket {

@@ -61,6 +61,7 @@ pnpm --filter @botozap/mcp test
 | `BOTOZAP_MCP_ALLOWED_ORIGINS` | Remoto | vazio | CSV saneado das `Origin` aceitas em `/mcp` (match exato). Sem `Origin` continua aceito; `Origin` presente só passa se estiver na lista. |
 | `BOTOZAP_MCP_RATE_LIMIT_PER_CLIENT` | Remoto | `120` | Requisições por minuto por cliente/IP antes da autenticação. |
 | `BOTOZAP_MCP_RATE_LIMIT_GLOBAL` | Remoto | `1200` | Teto global de requisições por minuto por processo. |
+| `BOTOZAP_MCP_TRUSTED_PROXY_CIDRS` | Remoto | vazio | CSV de CIDRs autorizados a alcançar `/mcp`; com Cloudflare, use somente as faixas oficiais e o rate limit passa a usar `CF-Connecting-IP`. |
 | `BOTOZAP_EVENT_BUS_DATABASE_URL` | Obrigatória no remoto | — | Conexão PostgreSQL de sessão que suporta `LISTEN/NOTIFY`. |
 
 Sem a configuração obrigatória do transporte escolhido, o servidor falha
@@ -88,6 +89,12 @@ Bind em `0.0.0.0` ou `::` sem `BOTOZAP_MCP_ALLOWED_HOSTS` recusa o boot (fail-cl
 Todo request a `/mcp` valida `Host` e `Origin` **antes** de Bearer e do parse do corpo, como exige o transporte Streamable HTTP (spec 2025-11-25): `Host` precisa estar na allowlist; `Origin` ausente é aceita (clientes server-to-server); `Origin` presente só passa por match exato. Desvio responde `403` JSON-RPC (`-32000`) sem autenticar.
 
 `GET /healthz` é público, mínimo e sem segredo: responde `200` com `{"ok": true}` para readiness (Fly). Não exige Bearer, não consulta sessão e não revela estado interno — o health check interno pode usar um `Host` que não está na allowlist de `/mcp`.
+
+Quando `BOTOZAP_MCP_TRUSTED_PROXY_CIDRS` está definida, `/mcp` exige que o
+`Fly-Client-IP` pertença a uma das redes configuradas; isso bloqueia acesso
+direto ao origin mesmo com `Host` forjado. Em deploy atrás da Cloudflare,
+mantenha a lista sincronizada com `https://www.cloudflare.com/ips/`; somente
+depois dessa validação o rate limiter confia em `CF-Connecting-IP`.
 
 Use uma conexão PostgreSQL persistente/direta ou pooler em modo de sessão;
 pooler em modo de transação não preserva `LISTEN`. O bus carrega somente um

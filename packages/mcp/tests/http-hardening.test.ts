@@ -6,6 +6,7 @@ import {
 import { afterEach, describe, expect, it } from "vitest";
 import {
   assertSecureHttpBind,
+  buildTrustedProxyList,
   parseCsvAllowlist,
   parsePositiveInteger,
   startStreamableHttpServer,
@@ -33,6 +34,7 @@ async function startRemote(options?: {
   host?: string;
   rateLimitGlobalPerMinute?: number;
   rateLimitPerClientPerMinute?: number;
+  trustedProxyCidrs?: readonly string[];
 }) {
   const remote = await startStreamableHttpServer({
     allowedHosts: options?.allowedHosts,
@@ -43,6 +45,7 @@ async function startRemote(options?: {
     port: 0,
     rateLimitGlobalPerMinute: options?.rateLimitGlobalPerMinute,
     rateLimitPerClientPerMinute: options?.rateLimitPerClientPerMinute,
+    trustedProxyCidrs: options?.trustedProxyCidrs,
   });
   openServers.push(remote);
   return remote;
@@ -67,6 +70,37 @@ describe("parsePositiveInteger", () => {
     expect(() => parsePositiveInteger("0", 120, "RATE")).toThrow(/RATE/);
     expect(() => parsePositiveInteger("1.5", 120, "RATE")).toThrow(/RATE/);
     expect(() => parsePositiveInteger("NaN", 120, "RATE")).toThrow(/RATE/);
+  });
+});
+
+describe("allowlist de proxy", () => {
+  it("compila CIDRs IPv4/IPv6 e recusa entrada inválida", () => {
+    const list = buildTrustedProxyList(["173.245.48.0/20", "2606:4700::/32"]);
+    expect(list?.check("173.245.48.10", "ipv4")).toBe(true);
+    expect(list?.check("203.0.113.10", "ipv4")).toBe(false);
+    expect(list?.check("2606:4700::1", "ipv6")).toBe(true);
+    expect(() => buildTrustedProxyList(["203.0.113.0/99"])).toThrow(/CIDR/);
+    expect(() => buildTrustedProxyList(["não-é-cidr"])).toThrow(/CIDR/);
+  });
+
+  it("bloqueia bypass direto e aceita somente Fly-Client-IP do proxy", async () => {
+    const remote = await startRemote({ trustedProxyCidrs: ["173.245.48.0/20"] });
+    const request = (flyClientIp?: string) =>
+      rawHttp(remote.url, {
+        method: "POST",
+        headers: {
+          host: remote.url.host,
+          ...(flyClientIp ? { "fly-client-ip": flyClientIp } : {}),
+          "cf-connecting-ip": "198.51.100.25",
+        },
+        body: GARBAGE_BODY,
+      });
+
+    expect((await request()).status).toBe(403);
+    expect((await request("203.0.113.10")).status).toBe(403);
+    const accepted = await request("173.245.48.10");
+    expect(accepted.status).toBe(401);
+    expect(accepted.body).not.toContain("173.245.48.10");
   });
 });
 

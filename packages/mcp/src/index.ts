@@ -51,6 +51,9 @@ async function startHttpFromEnv(): Promise<void> {
     1_200,
     "BOTOZAP_MCP_RATE_LIMIT_GLOBAL",
   );
+  const trustedProxyCidrs = parseCsvAllowlist(
+    process.env.BOTOZAP_MCP_TRUSTED_PROXY_CIDRS,
+  );
   assertSecureHttpBind(host, allowedHosts);
   const eventSignal = await connectPostgresEventSignal(connectionString);
   let remote;
@@ -64,6 +67,7 @@ async function startHttpFromEnv(): Promise<void> {
       allowedOrigins,
       rateLimitPerClientPerMinute,
       rateLimitGlobalPerMinute,
+      trustedProxyCidrs,
     });
   } catch (error) {
     await eventSignal.close();
