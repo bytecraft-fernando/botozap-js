@@ -17,7 +17,9 @@ kill_timeout = 30
   BOTOZAP_MCP_TRANSPORT = "streamable-http"
   BOTOZAP_MCP_HOST = "0.0.0.0"
   BOTOZAP_MCP_PORT = "3001"
-  BOTOZAP_MCP_ALLOWED_HOSTS = "mcp.botozap.com.br,bytecraft-botozap-mcp.fly.dev"
+  BOTOZAP_MCP_ALLOWED_HOSTS = "mcp.botozap.com.br"
+  BOTOZAP_MCP_RATE_LIMIT_PER_CLIENT = "120"
+  BOTOZAP_MCP_RATE_LIMIT_GLOBAL = "1200"
 
 [http_service]
   internal_port = 3001
@@ -25,6 +27,11 @@ kill_timeout = 30
   auto_stop_machines = "off"
   auto_start_machines = true
   min_machines_running = 1
+
+  [http_service.concurrency]
+    type = "connections"
+    soft_limit = 75
+    hard_limit = 100
 
   [[http_service.checks]]
     grace_period = "10s"

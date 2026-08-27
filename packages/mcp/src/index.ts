@@ -11,6 +11,7 @@ import { connectPostgresEventSignal } from "./event-bus.js";
 import {
   assertSecureHttpBind,
   parseCsvAllowlist,
+  parsePositiveInteger,
   startStreamableHttpServer,
 } from "./http.js";
 import { DEFAULT_API_URL } from "./client.js";
@@ -40,6 +41,16 @@ async function startHttpFromEnv(): Promise<void> {
   const host = process.env.BOTOZAP_MCP_HOST?.trim() || "127.0.0.1";
   const allowedHosts = parseCsvAllowlist(process.env.BOTOZAP_MCP_ALLOWED_HOSTS);
   const allowedOrigins = parseCsvAllowlist(process.env.BOTOZAP_MCP_ALLOWED_ORIGINS);
+  const rateLimitPerClientPerMinute = parsePositiveInteger(
+    process.env.BOTOZAP_MCP_RATE_LIMIT_PER_CLIENT,
+    120,
+    "BOTOZAP_MCP_RATE_LIMIT_PER_CLIENT",
+  );
+  const rateLimitGlobalPerMinute = parsePositiveInteger(
+    process.env.BOTOZAP_MCP_RATE_LIMIT_GLOBAL,
+    1_200,
+    "BOTOZAP_MCP_RATE_LIMIT_GLOBAL",
+  );
   assertSecureHttpBind(host, allowedHosts);
   const eventSignal = await connectPostgresEventSignal(connectionString);
   let remote;
@@ -51,6 +62,8 @@ async function startHttpFromEnv(): Promise<void> {
       port,
       allowedHosts,
       allowedOrigins,
+      rateLimitPerClientPerMinute,
+      rateLimitGlobalPerMinute,
     });
   } catch (error) {
     await eventSignal.close();

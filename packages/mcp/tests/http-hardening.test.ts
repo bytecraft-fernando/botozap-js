@@ -7,6 +7,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   assertSecureHttpBind,
   parseCsvAllowlist,
+  parsePositiveInteger,
   startStreamableHttpServer,
   type EventSignalSource,
 } from "../src/http.js";
@@ -30,6 +31,8 @@ async function startRemote(options?: {
   allowedHosts?: readonly string[];
   allowedOrigins?: readonly string[];
   host?: string;
+  rateLimitGlobalPerMinute?: number;
+  rateLimitPerClientPerMinute?: number;
 }) {
   const remote = await startStreamableHttpServer({
     allowedHosts: options?.allowedHosts,
@@ -38,6 +41,8 @@ async function startRemote(options?: {
     eventSignal: new TestEventSignal(),
     host: options?.host ?? "127.0.0.1",
     port: 0,
+    rateLimitGlobalPerMinute: options?.rateLimitGlobalPerMinute,
+    rateLimitPerClientPerMinute: options?.rateLimitPerClientPerMinute,
   });
   openServers.push(remote);
   return remote;
@@ -51,6 +56,17 @@ describe("parseCsvAllowlist", () => {
     expect(
       parseCsvAllowlist(" mcp.botozap.com.br , ,localhost, mcp.botozap.com.br "),
     ).toEqual(["mcp.botozap.com.br", "localhost"]);
+  });
+});
+
+describe("parsePositiveInteger", () => {
+  it("aplica default e recusa limites inválidos", () => {
+    expect(parsePositiveInteger(undefined, 120, "RATE")).toBe(120);
+    expect(parsePositiveInteger("", 120, "RATE")).toBe(120);
+    expect(parsePositiveInteger(" 42 ", 120, "RATE")).toBe(42);
+    expect(() => parsePositiveInteger("0", 120, "RATE")).toThrow(/RATE/);
+    expect(() => parsePositiveInteger("1.5", 120, "RATE")).toThrow(/RATE/);
+    expect(() => parsePositiveInteger("NaN", 120, "RATE")).toThrow(/RATE/);
   });
 });
 
@@ -149,7 +165,7 @@ describe("Host e Origin em /mcp", () => {
     expect(invalid.status).toBe(403);
     expect(jsonRpcCode(missing.json)).toBe(-32000);
     expect(jsonRpcCode(invalid.json)).toBe(-32000);
-    expect(String(jsonRpcMessage(invalid.json))).toMatch(/Invalid Host header/);
+    expect(String(jsonRpcMessage(invalid.json))).toBe("Host não permitido.");
     expect(missing.body).not.toContain(SECRET);
     expect(invalid.body).not.toContain(SECRET);
     expect(missing.headers["www-authenticate"]).toBeUndefined();
@@ -205,7 +221,7 @@ describe("Host e Origin em /mcp", () => {
     expect(missing.status).toBe(401);
     expect(valid.status).toBe(401);
     expect(invalid.status).toBe(403);
-    expect(String(jsonRpcMessage(invalid.json))).toMatch(/Invalid Origin header/);
+    expect(String(jsonRpcMessage(invalid.json))).toBe("Origin não permitida.");
     expect(invalid.body).not.toContain(SECRET);
     expect(invalid.headers["www-authenticate"]).toBeUndefined();
   });
@@ -251,6 +267,45 @@ describe("Host e Origin em /mcp", () => {
 
     expect(allowed.status).toBe(401);
     expect(loopback.status).toBe(403);
+  });
+});
+
+describe("rate limit HTTP antes da autenticação", () => {
+  it("limita por cliente e devolve Retry-After sem consultar Bearer", async () => {
+    const remote = await startRemote({
+      rateLimitPerClientPerMinute: 2,
+      rateLimitGlobalPerMinute: 100,
+    });
+    const request = () =>
+      rawHttp(remote.url, {
+        method: "POST",
+        headers: { host: remote.url.host, "fly-client-ip": "203.0.113.10" },
+        body: GARBAGE_BODY,
+      });
+
+    expect((await request()).status).toBe(401);
+    expect((await request()).status).toBe(401);
+    const limited = await request();
+    expect(limited.status).toBe(429);
+    expect(limited.headers["retry-after"]).toBe("60");
+    expect(jsonRpcMessage(limited.json)).toBe("Limite de requisições MCP atingido.");
+  });
+
+  it("aplica teto global mesmo com clientes distintos", async () => {
+    const remote = await startRemote({
+      rateLimitPerClientPerMinute: 100,
+      rateLimitGlobalPerMinute: 2,
+    });
+    const request = (ip: string) =>
+      rawHttp(remote.url, {
+        method: "POST",
+        headers: { host: remote.url.host, "fly-client-ip": ip },
+        body: GARBAGE_BODY,
+      });
+
+    expect((await request("203.0.113.1")).status).toBe(401);
+    expect((await request("203.0.113.2")).status).toBe(401);
+    expect((await request("203.0.113.3")).status).toBe(429);
   });
 });
 

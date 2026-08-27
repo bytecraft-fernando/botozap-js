@@ -15,12 +15,21 @@ import { buildServer } from "./server.js";
 export type { EventSignalSource } from "./resources/events.js";
 
 const MAX_BODY_BYTES = 1_048_576;
+const RATE_LIMIT_WINDOW_MS = 60_000;
+const DEFAULT_RATE_LIMIT_PER_CLIENT = 120;
+const DEFAULT_RATE_LIMIT_GLOBAL = 1_200;
+const MAX_TRACKED_RATE_LIMIT_CLIENTS = 10_000;
 const LOCALHOST_ALLOWED_HOSTS = ["127.0.0.1", "localhost", "[::1]", "::1"] as const;
 const LOOPBACK_BINDS = new Set(["127.0.0.1", "::1", "localhost"]);
 
 type HeaderGate = {
   allowedHosts: readonly string[];
   allowedOrigins: readonly string[];
+};
+
+type RateBucket = {
+  count: number;
+  startedAt: number;
 };
 
 type Session = {
@@ -64,6 +73,10 @@ export interface StreamableHttpServerOptions {
   maxSessions?: number;
   /** Teto de sessões simultâneas ligadas à mesma chave. */
   maxSessionsPerApiKey?: number;
+  /** Requisições MCP por cliente/IP em uma janela fixa de um minuto. */
+  rateLimitPerClientPerMinute?: number;
+  /** Requisições MCP globais por processo em uma janela fixa de um minuto. */
+  rateLimitGlobalPerMinute?: number;
   port?: number;
   /** Tempo sem request ativo antes de recolher uma sessão abandonada. */
   sessionIdleTimeoutMs?: number;
@@ -97,6 +110,58 @@ export function assertSecureHttpBind(
   );
 }
 
+export function parsePositiveInteger(
+  raw: string | undefined,
+  fallback: number,
+  name: string,
+): number {
+  if (raw === undefined || raw.trim() === "") return fallback;
+  const value = Number(raw);
+  if (!Number.isSafeInteger(value) || value < 1) {
+    throw new Error(`${name} deve ser um inteiro positivo.`);
+  }
+  return value;
+}
+
+class HttpRateLimiter {
+  private readonly clients = new Map<string, RateBucket>();
+  private global: RateBucket = { count: 0, startedAt: 0 };
+
+  constructor(
+    private readonly perClientLimit: number,
+    private readonly globalLimit: number,
+  ) {}
+
+  allow(client: string, now = Date.now()): boolean {
+    this.global = currentBucket(this.global, now);
+    this.compact(now);
+
+    const key =
+      this.clients.has(client) || this.clients.size < MAX_TRACKED_RATE_LIMIT_CLIENTS
+        ? client
+        : "__overflow__";
+    const bucket = currentBucket(this.clients.get(key), now);
+    this.clients.set(key, bucket);
+
+    if (
+      bucket.count >= this.perClientLimit ||
+      this.global.count >= this.globalLimit
+    ) {
+      return false;
+    }
+    bucket.count += 1;
+    this.global.count += 1;
+    return true;
+  }
+
+  private compact(now: number): void {
+    if (this.clients.size < MAX_TRACKED_RATE_LIMIT_CLIENTS) return;
+    for (const [key, bucket] of this.clients) {
+      if (now - bucket.startedAt >= RATE_LIMIT_WINDOW_MS) this.clients.delete(key);
+    }
+  }
+}
+
 /**
  * Inicia um endpoint MCP remoto stateful. Cada sessão é criada a partir da
  * chave Bearer do initialize e fica presa ao mesmo fingerprint nos requests
@@ -113,6 +178,10 @@ export async function startStreamableHttpServer(
     allowedHosts: allowedHosts.length > 0 ? allowedHosts : LOCALHOST_ALLOWED_HOSTS,
     allowedOrigins,
   };
+  const rateLimiter = new HttpRateLimiter(
+    options.rateLimitPerClientPerMinute ?? DEFAULT_RATE_LIMIT_PER_CLIENT,
+    options.rateLimitGlobalPerMinute ?? DEFAULT_RATE_LIMIT_GLOBAL,
+  );
 
   const sessions = new Map<string, Session>();
   const reservations: SessionReservations = { byApiKey: new Map(), total: 0 };
@@ -139,6 +208,7 @@ export async function startStreamableHttpServer(
       lifecycle,
       options,
       headerGate,
+      rateLimiter,
     ).catch(() => {
       if (!response.headersSent) {
         jsonRpcError(response, 500, -32603, "Erro interno do servidor MCP.");
@@ -147,6 +217,10 @@ export async function startStreamableHttpServer(
       }
     });
   });
+  http.requestTimeout = 30_000;
+  http.headersTimeout = 10_000;
+  http.keepAliveTimeout = 5_000;
+  http.maxHeadersCount = 64;
 
   try {
     await listen(http, options.port ?? 0, host);
@@ -190,6 +264,7 @@ async function handleRequest(
   lifecycle: ServerLifecycle,
   options: StreamableHttpServerOptions,
   headerGate: HeaderGate,
+  rateLimiter: HttpRateLimiter,
 ): Promise<void> {
   const url = new URL(request.url ?? "/", "http://mcp.invalid");
   if (url.pathname === "/healthz" && request.method === "GET") {
@@ -198,6 +273,11 @@ async function handleRequest(
   }
   if (url.pathname !== "/mcp") {
     jsonRpcError(response, 404, -32001, "Endpoint MCP não encontrado.");
+    return;
+  }
+  if (!rateLimiter.allow(rateLimitClientKey(request))) {
+    response.setHeader("Retry-After", "60");
+    jsonRpcError(response, 429, -32000, "Limite de requisições MCP atingido.");
     return;
   }
   if (!acceptMcpHttpHeaders(request, response, headerGate)) {
@@ -389,15 +469,26 @@ function acceptMcpHttpHeaders(
 ): boolean {
   const hostHeader = singleHeader(request, "host");
   if (!hostHeader || !hostHeaderAllowed(hostHeader, headerGate.allowedHosts)) {
-    jsonRpcError(response, 403, -32000, `Invalid Host header: ${hostHeader}`);
+    jsonRpcError(response, 403, -32000, "Host não permitido.");
     return false;
   }
   const originHeader = singleHeader(request, "origin");
   if (originHeader && !headerGate.allowedOrigins.includes(originHeader)) {
-    jsonRpcError(response, 403, -32000, `Invalid Origin header: ${originHeader}`);
+    jsonRpcError(response, 403, -32000, "Origin não permitida.");
     return false;
   }
   return true;
+}
+
+function rateLimitClientKey(request: IncomingMessage): string {
+  return singleHeader(request, "fly-client-ip") ?? request.socket.remoteAddress ?? "unknown";
+}
+
+function currentBucket(bucket: RateBucket | undefined, now: number): RateBucket {
+  if (!bucket || now - bucket.startedAt >= RATE_LIMIT_WINDOW_MS) {
+    return { count: 0, startedAt: now };
+  }
+  return bucket;
 }
 
 function hostHeaderAllowed(

@@ -19,7 +19,8 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 
-COPY --from=build /prod/mcp ./
+COPY --from=build --chown=node:node /prod/mcp ./
 
 EXPOSE 3001
+USER node
 CMD ["node", "dist/index.js"]

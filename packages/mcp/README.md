@@ -59,6 +59,8 @@ pnpm --filter @botozap/mcp test
 | `BOTOZAP_MCP_PORT` | Remoto | `3001` | Porta do endpoint remoto (`0` escolhe uma porta livre). |
 | `BOTOZAP_MCP_ALLOWED_HOSTS` | Remoto | loopback em localhost | CSV saneado (trim, vazio descartado) dos valores de `Host` aceitos em `/mcp`. Obrigatória fora de localhost. |
 | `BOTOZAP_MCP_ALLOWED_ORIGINS` | Remoto | vazio | CSV saneado das `Origin` aceitas em `/mcp` (match exato). Sem `Origin` continua aceito; `Origin` presente só passa se estiver na lista. |
+| `BOTOZAP_MCP_RATE_LIMIT_PER_CLIENT` | Remoto | `120` | Requisições por minuto por cliente/IP antes da autenticação. |
+| `BOTOZAP_MCP_RATE_LIMIT_GLOBAL` | Remoto | `1200` | Teto global de requisições por minuto por processo. |
 | `BOTOZAP_EVENT_BUS_DATABASE_URL` | Obrigatória no remoto | — | Conexão PostgreSQL de sessão que suporta `LISTEN/NOTIFY`. |
 
 Sem a configuração obrigatória do transporte escolhido, o servidor falha
