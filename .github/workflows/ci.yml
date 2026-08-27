@@ -51,8 +51,37 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - name: Nenhum fetch/cliente HTTP fora do SDK
+        shell: bash
         run: |
-          if grep -rnE '\bfetch\(|node:https?|axios|undici' packages/cli/src packages/mcp/src; then
+          set -euo pipefail
+
+          if grep -rnE '\bfetch\(|axios|undici' packages/cli/src packages/mcp/src; then
+            echo "::error::CLI/MCP devem consumir @botozap/sdk — cliente HTTP duplicado detectado"
+            exit 1
+          fi
+
+          # O MCP remoto serve Streamable HTTP com node:http. A allowlist exige
+          # exatamente esse import de servidor; qualquer outra referência a
+          # node:http/node:https ou símbolo cliente adicionado ao mesmo import
+          # continua derrubando o guard.
+          node_http_references="$(
+            grep -rnE 'node:https?' packages/cli/src packages/mcp/src || true
+          )"
+          node_http_reference_count="$(
+            printf '%s\n' "$node_http_references" | grep -c . || true
+          )"
+          node_http_reference_line="${node_http_references#packages/mcp/src/http.ts:}"
+          node_http_reference_text="${node_http_reference_line#*:}"
+          expected_server_import=$'import {\n  createServer,\n  type IncomingMessage,\n  type Server,\n  type ServerResponse,\n} from "node:http";'
+          actual_server_import="$(
+            sed -n '/^import {$/,/^} from "node:http";$/p' packages/mcp/src/http.ts
+          )"
+
+          if [[ "$node_http_reference_count" != 1 ]] ||
+             [[ "$node_http_references" != packages/mcp/src/http.ts:* ]] ||
+             [[ "$node_http_reference_text" != '} from "node:http";' ]] ||
+             [[ "$actual_server_import" != "$expected_server_import" ]]; then
+            printf '%s\n' "$node_http_references"
             echo "::error::CLI/MCP devem consumir @botozap/sdk — cliente HTTP duplicado detectado"
             exit 1
           fi
