@@ -1,0 +1,25 @@
+# syntax=docker/dockerfile:1
+
+FROM node:22-slim AS build
+WORKDIR /workspace
+
+RUN corepack enable && corepack prepare pnpm@11.7.0 --activate
+
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json ./
+COPY packages ./packages
+
+RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store \
+    pnpm install --filter @botozap/mcp... --frozen-lockfile
+RUN pnpm --filter @botozap/sdk build \
+    && pnpm --filter @botozap/mcp build
+RUN pnpm --filter @botozap/mcp --prod deploy --legacy /prod/mcp
+
+FROM node:22-slim AS runtime
+WORKDIR /app
+
+ENV NODE_ENV=production
+
+COPY --from=build /prod/mcp ./
+
+EXPOSE 3001
+CMD ["node", "dist/index.js"]

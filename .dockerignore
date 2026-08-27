@@ -1,0 +1,12 @@
+.git
+.github
+.changeset
+node_modules
+**/node_modules
+dist
+**/dist
+*.tgz
+*.log
+.env
+.env.*
+examples

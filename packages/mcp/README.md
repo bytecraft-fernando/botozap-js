@@ -57,6 +57,8 @@ pnpm --filter @botozap/mcp test
 | `BOTOZAP_MCP_TRANSPORT` | Remoto | `stdio` | Use `streamable-http` para iniciar o endpoint remoto. |
 | `BOTOZAP_MCP_HOST` | Remoto | `127.0.0.1` | Interface TCP do endpoint remoto. |
 | `BOTOZAP_MCP_PORT` | Remoto | `3001` | Porta do endpoint remoto (`0` escolhe uma porta livre). |
+| `BOTOZAP_MCP_ALLOWED_HOSTS` | Remoto | loopback em localhost | CSV saneado (trim, vazio descartado) dos valores de `Host` aceitos em `/mcp`. Obrigatória fora de localhost. |
+| `BOTOZAP_MCP_ALLOWED_ORIGINS` | Remoto | vazio | CSV saneado das `Origin` aceitas em `/mcp` (match exato). Sem `Origin` continua aceito; `Origin` presente só passa se estiver na lista. |
 | `BOTOZAP_EVENT_BUS_DATABASE_URL` | Obrigatória no remoto | — | Conexão PostgreSQL de sessão que suporta `LISTEN/NOTIFY`. |
 
 Sem a configuração obrigatória do transporte escolhido, o servidor falha
@@ -74,9 +76,16 @@ notification.
 BOTOZAP_MCP_TRANSPORT=streamable-http \
 BOTOZAP_MCP_HOST=0.0.0.0 \
 BOTOZAP_MCP_PORT=3001 \
+BOTOZAP_MCP_ALLOWED_HOSTS=mcp.botozap.com.br \
 BOTOZAP_EVENT_BUS_DATABASE_URL=postgresql://... \
 pnpm dlx @botozap/mcp@0.1.0
 ```
+
+Bind em `0.0.0.0` ou `::` sem `BOTOZAP_MCP_ALLOWED_HOSTS` recusa o boot (fail-closed). Em `127.0.0.1`/`::1`/`localhost` a allowlist padrão de loopback é aplicada e o desenvolvimento local segue igual.
+
+Todo request a `/mcp` valida `Host` e `Origin` **antes** de Bearer e do parse do corpo, como exige o transporte Streamable HTTP (spec 2025-11-25): `Host` precisa estar na allowlist; `Origin` ausente é aceita (clientes server-to-server); `Origin` presente só passa por match exato. Desvio responde `403` JSON-RPC (`-32000`) sem autenticar.
+
+`GET /healthz` é público, mínimo e sem segredo: responde `200` com `{"ok": true}` para readiness (Fly). Não exige Bearer, não consulta sessão e não revela estado interno — o health check interno pode usar um `Host` que não está na allowlist de `/mcp`.
 
 Use uma conexão PostgreSQL persistente/direta ou pooler em modo de sessão;
 pooler em modo de transação não preserva `LISTEN`. O bus carrega somente um
@@ -234,4 +243,5 @@ Há dois smokes, com propósitos distintos:
 A conta é sempre derivada da chave de API no servidor do BotoZap (multi-tenant,
 IDOR-safe). A chave é um segredo — não a comite nem a logue. O servidor MCP só
 escreve logs em **stderr** (stdout é reservado para o protocolo MCP); a chave
-nunca aparece em resultado de ferramenta nem em mensagem de erro.
+nunca aparece em resultado de ferramenta, mensagem de erro, `/healthz` ou
+resposta `403` de `Host`/`Origin`.

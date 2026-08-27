@@ -8,7 +8,11 @@
  */
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { connectPostgresEventSignal } from "./event-bus.js";
-import { startStreamableHttpServer } from "./http.js";
+import {
+  assertSecureHttpBind,
+  parseCsvAllowlist,
+  startStreamableHttpServer,
+} from "./http.js";
 import { DEFAULT_API_URL } from "./client.js";
 import { buildServer, configFromEnv } from "./server.js";
 
@@ -34,6 +38,9 @@ async function startHttpFromEnv(): Promise<void> {
   }
   const port = parsePort(process.env.BOTOZAP_MCP_PORT);
   const host = process.env.BOTOZAP_MCP_HOST?.trim() || "127.0.0.1";
+  const allowedHosts = parseCsvAllowlist(process.env.BOTOZAP_MCP_ALLOWED_HOSTS);
+  const allowedOrigins = parseCsvAllowlist(process.env.BOTOZAP_MCP_ALLOWED_ORIGINS);
+  assertSecureHttpBind(host, allowedHosts);
   const eventSignal = await connectPostgresEventSignal(connectionString);
   let remote;
   try {
@@ -42,6 +49,8 @@ async function startHttpFromEnv(): Promise<void> {
       eventSignal,
       host,
       port,
+      allowedHosts,
+      allowedOrigins,
     });
   } catch (error) {
     await eventSignal.close();

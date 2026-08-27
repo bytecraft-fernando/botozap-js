@@ -15,6 +15,13 @@ import { buildServer } from "./server.js";
 export type { EventSignalSource } from "./resources/events.js";
 
 const MAX_BODY_BYTES = 1_048_576;
+const LOCALHOST_ALLOWED_HOSTS = ["127.0.0.1", "localhost", "[::1]", "::1"] as const;
+const LOOPBACK_BINDS = new Set(["127.0.0.1", "::1", "localhost"]);
+
+type HeaderGate = {
+  allowedHosts: readonly string[];
+  allowedOrigins: readonly string[];
+};
 
 type Session = {
   activeRequests: number;
@@ -41,6 +48,16 @@ export interface StreamableHttpServerOptions {
   eventPollIntervalMs?: number;
   fetch?: typeof fetch;
   host?: string;
+  /**
+   * Hosts permitidos no header `Host` de `/mcp` (match exato do header ou do
+   * hostname). Obrigatório fora de localhost.
+   */
+  allowedHosts?: readonly string[];
+  /**
+   * Origins permitidas no header `Origin` de `/mcp` (match exato). Ausente
+   * continua aceito para clientes server-to-server.
+   */
+  allowedOrigins?: readonly string[];
   /** Teto de resources de Eventos por sessão. */
   maxEventSubscriptions?: number;
   /** Teto de sessões stateful mantidas por processo. */
@@ -59,6 +76,27 @@ export interface RunningStreamableHttpServer {
   close(): Promise<void>;
 }
 
+/** CSV de allowlist: trim, descarta vazio e deduplica na ordem. */
+export function parseCsvAllowlist(raw: string | undefined): string[] {
+  if (raw === undefined) return [];
+  return sanitizeAllowlist(raw.split(","));
+}
+
+/**
+ * Recusa bind público sem allowlist de Host. Localhost/dev segue sem env
+ * explícita, com a lista padrão de loopback.
+ */
+export function assertSecureHttpBind(
+  host: string,
+  allowedHosts: readonly string[],
+): void {
+  if (allowedHosts.length > 0) return;
+  if (LOOPBACK_BINDS.has(host)) return;
+  throw new Error(
+    "BOTOZAP_MCP_ALLOWED_HOSTS é obrigatória quando o bind não é localhost (127.0.0.1/::1).",
+  );
+}
+
 /**
  * Inicia um endpoint MCP remoto stateful. Cada sessão é criada a partir da
  * chave Bearer do initialize e fica presa ao mesmo fingerprint nos requests
@@ -67,6 +105,15 @@ export interface RunningStreamableHttpServer {
 export async function startStreamableHttpServer(
   options: StreamableHttpServerOptions,
 ): Promise<RunningStreamableHttpServer> {
+  const host = options.host ?? "127.0.0.1";
+  const allowedHosts = sanitizeAllowlist(options.allowedHosts ?? []);
+  const allowedOrigins = sanitizeAllowlist(options.allowedOrigins ?? []);
+  assertSecureHttpBind(host, allowedHosts);
+  const headerGate: HeaderGate = {
+    allowedHosts: allowedHosts.length > 0 ? allowedHosts : LOCALHOST_ALLOWED_HOSTS,
+    allowedOrigins,
+  };
+
   const sessions = new Map<string, Session>();
   const reservations: SessionReservations = { byApiKey: new Map(), total: 0 };
   const lifecycle: ServerLifecycle = { closing: false };
@@ -91,6 +138,7 @@ export async function startStreamableHttpServer(
       reservations,
       lifecycle,
       options,
+      headerGate,
     ).catch(() => {
       if (!response.headersSent) {
         jsonRpcError(response, 500, -32603, "Erro interno do servidor MCP.");
@@ -100,7 +148,6 @@ export async function startStreamableHttpServer(
     });
   });
 
-  const host = options.host ?? "127.0.0.1";
   try {
     await listen(http, options.port ?? 0, host);
   } catch (error) {
@@ -142,10 +189,18 @@ async function handleRequest(
   reservations: SessionReservations,
   lifecycle: ServerLifecycle,
   options: StreamableHttpServerOptions,
+  headerGate: HeaderGate,
 ): Promise<void> {
   const url = new URL(request.url ?? "/", "http://mcp.invalid");
+  if (url.pathname === "/healthz" && request.method === "GET") {
+    writeHealthz(response);
+    return;
+  }
   if (url.pathname !== "/mcp") {
     jsonRpcError(response, 404, -32001, "Endpoint MCP não encontrado.");
+    return;
+  }
+  if (!acceptMcpHttpHeaders(request, response, headerGate)) {
     return;
   }
   if (lifecycle.closing) {
@@ -320,6 +375,56 @@ async function authenticatesForEvents(
   } catch {
     return false;
   }
+}
+
+function writeHealthz(response: ServerResponse): void {
+  response.writeHead(200, { "Content-Type": "application/json; charset=utf-8" });
+  response.end(JSON.stringify({ ok: true }));
+}
+
+function acceptMcpHttpHeaders(
+  request: IncomingMessage,
+  response: ServerResponse,
+  headerGate: HeaderGate,
+): boolean {
+  const hostHeader = singleHeader(request, "host");
+  if (!hostHeader || !hostHeaderAllowed(hostHeader, headerGate.allowedHosts)) {
+    jsonRpcError(response, 403, -32000, `Invalid Host header: ${hostHeader}`);
+    return false;
+  }
+  const originHeader = singleHeader(request, "origin");
+  if (originHeader && !headerGate.allowedOrigins.includes(originHeader)) {
+    jsonRpcError(response, 403, -32000, `Invalid Origin header: ${originHeader}`);
+    return false;
+  }
+  return true;
+}
+
+function hostHeaderAllowed(
+  hostHeader: string,
+  allowedHosts: readonly string[],
+): boolean {
+  if (allowedHosts.includes(hostHeader)) return true;
+  try {
+    const hostname = new URL(`http://${hostHeader}`).hostname;
+    return (
+      allowedHosts.includes(hostname) || allowedHosts.includes(`[${hostname}]`)
+    );
+  } catch {
+    return false;
+  }
+}
+
+function sanitizeAllowlist(values: readonly string[]): string[] {
+  const result: string[] = [];
+  const seen = new Set<string>();
+  for (const raw of values) {
+    const value = raw.trim();
+    if (!value || seen.has(value)) continue;
+    seen.add(value);
+    result.push(value);
+  }
+  return result;
 }
 
 function bearerToken(request: IncomingMessage): string | null {

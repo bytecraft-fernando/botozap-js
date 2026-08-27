@@ -1,0 +1,41 @@
+app = "bytecraft-botozap-mcp"
+primary_region = "gru"
+
+kill_signal = "SIGTERM"
+kill_timeout = 30
+
+[build]
+  dockerfile = "Dockerfile.mcp"
+
+[deploy]
+  # As sessoes MCP sao stateful e ainda vivem na memoria de uma unica Machine.
+  strategy = "immediate"
+
+[env]
+  NODE_ENV = "production"
+  BOTOZAP_API_URL = "https://botozap.com.br/api/v1"
+  BOTOZAP_MCP_TRANSPORT = "streamable-http"
+  BOTOZAP_MCP_HOST = "0.0.0.0"
+  BOTOZAP_MCP_PORT = "3001"
+  BOTOZAP_MCP_ALLOWED_HOSTS = "mcp.botozap.com.br,bytecraft-botozap-mcp.fly.dev"
+
+[http_service]
+  internal_port = 3001
+  force_https = true
+  auto_stop_machines = "off"
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [[http_service.checks]]
+    grace_period = "10s"
+    interval = "15s"
+    method = "GET"
+    path = "/healthz"
+    timeout = "3s"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"
+
+[[restart]]
+  policy = "always"
