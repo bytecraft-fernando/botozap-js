@@ -65,6 +65,10 @@ const transport = new StdioClientTransport({
   stderr: "pipe",
 });
 const client = new Client({ name: "packed-tools-only", version: "0.0.0" });
+const watchdog = setTimeout(() => {
+  process.stderr.write("clean tarball tools-only: timeout após 30s\n");
+  process.exit(1);
+}, 30_000);
 
 try {
   await client.connect(transport);
@@ -106,4 +110,5 @@ try {
   await new Promise((resolve, reject) => {
     api.close((error) => (error ? reject(error) : resolve()));
   });
+  clearTimeout(watchdog);
 }
