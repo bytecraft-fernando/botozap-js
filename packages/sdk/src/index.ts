@@ -37,7 +37,11 @@ export type {
   CreateAssignmentParams,
   ReplyConversationParams,
 } from "./resources/conversations.js";
-export type { CreateWebhookParams } from "./resources/webhooks.js";
+export type {
+  CreateWebhookParams,
+  UpdateWebhookParams,
+  WebhookAuthorizationHeaders,
+} from "./resources/webhooks.js";
 export type { ListPhoneNumbersParams } from "./resources/phone-numbers.js";
 export type {
   CreateFlowParams,

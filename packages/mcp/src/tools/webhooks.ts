@@ -37,26 +37,59 @@ export function registerWebhookTools(register: Register): void {
 
   register(
     "create_webhook",
-    "Cria um endpoint de webhook. `url` precisa ser https. `events` é a lista de tipos de evento assinados (ao menos um). Retorna { data }.",
+    "Cria um endpoint de webhook. `url` precisa ser https. `events` é a lista de tipos de evento assinados (ao menos um). `headers.Authorization` é opcional (ex.: Bearer …) e nunca é devolvido. Retorna { data }.",
     {
       url: z.string().describe("URL https do endpoint."),
       events: z.array(z.string()).describe("Tipos de evento assinados."),
       active: z.boolean().optional().describe("Ativo (default true)."),
+      headers: z
+        .object({
+          Authorization: z
+            .string()
+            .min(1)
+            .max(1024)
+            .describe(
+              "Valor completo do header Authorization (ex.: Bearer <secret>). Persistido no Vault; nunca devolvido.",
+            ),
+        })
+        .strict()
+        .optional()
+        .describe("Somente Authorization é aceito."),
     },
     webhookResultSchema,
-    async (client, args) => ({
-      data: await client.webhooks.create(args as CreateWebhookParams),
-    }),
+    async (client, args) => {
+      const params: CreateWebhookParams = {
+        url: String(args.url),
+        events: args.events as string[],
+        active: typeof args.active === "boolean" ? args.active : undefined,
+        headers: args.headers as CreateWebhookParams["headers"],
+      };
+      return { data: await client.webhooks.create(params) };
+    },
   );
 
   register(
     "update_webhook",
-    "Atualiza um webhook (url, events, active). Retorna { data }.",
+    "Atualiza um webhook (url, events, active, headers.Authorization). Authorization null remove o header. O valor nunca é devolvido. Retorna { data }.",
     {
       id: z.string().describe("ID do webhook (uuid interno)."),
       url: z.string().optional(),
       events: z.array(z.string()).optional(),
       active: z.boolean().optional(),
+      headers: z
+        .object({
+          Authorization: z
+            .string()
+            .min(1)
+            .max(1024)
+            .nullable()
+            .describe(
+              "String para criar/substituir; null para remover. O valor nunca é devolvido.",
+            ),
+        })
+        .strict()
+        .optional()
+        .describe("Somente Authorization é aceito. Omitir não altera o header."),
     },
     webhookResultSchema,
     async (client, args) => {

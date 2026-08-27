@@ -129,6 +129,10 @@ export interface Webhook {
   url: string;
   events?: string[];
   active?: boolean;
+  /** True quando o endpoint tem Authorization no Vault. O valor nunca é devolvido. */
+  has_authorization?: boolean;
+  /** Segredo HMAC; presente somente na resposta de criação. */
+  secret?: string;
   [key: string]: unknown;
 }
 

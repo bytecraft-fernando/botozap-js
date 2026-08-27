@@ -328,6 +328,12 @@ export const webhookSchema = z
     url: z.string(),
     events: z.array(z.string()),
     active: z.boolean(),
+    has_authorization: z
+      .boolean()
+      .optional()
+      .describe(
+        "True quando o endpoint tem header Authorization configurado. O valor nunca é devolvido.",
+      ),
     secret: z
       .string()
       .optional()

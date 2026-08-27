@@ -1,11 +1,29 @@
 import type { BotoZap } from "../client.js";
 import type { CursorList, CursorParams, Webhook } from "../types.js";
 
+/** Header extra aceito no endpoint. Só `Authorization`; o valor nunca volta na resposta. */
+export interface WebhookAuthorizationHeaders {
+  Authorization: string;
+}
+
 export interface CreateWebhookParams {
   url: string;
   events?: string[];
   active?: boolean;
-  [key: string]: unknown;
+  secret?: string;
+  /** `{ Authorization: "Bearer …" }` — persistido no Vault; ausente na resposta. */
+  headers?: WebhookAuthorizationHeaders;
+}
+
+export interface UpdateWebhookParams {
+  url?: string;
+  events?: string[];
+  active?: boolean;
+  /**
+   * Omitido = não mexe. `{ Authorization: string }` cria/substitui.
+   * `{ Authorization: null }` remove o header.
+   */
+  headers?: { Authorization?: string | null };
 }
 
 /** Webhooks: endpoints assinados que recebem os eventos da conta. */
@@ -33,7 +51,7 @@ export class Webhooks {
     });
   }
 
-  update(id: string, params: Record<string, unknown>): Promise<Webhook> {
+  update(id: string, params: UpdateWebhookParams): Promise<Webhook> {
     return this.client.requestItem<Webhook>("PATCH", `/webhooks/${enc(id)}`, {
       body: params,
     });

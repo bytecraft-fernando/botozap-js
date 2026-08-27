@@ -658,4 +658,53 @@ describe("MCP — output schemas e structured content", () => {
     expect(completeCatalogCalls).toHaveLength(completeCatalog.length);
     await expectStructuredTools(client, completeCatalogCalls);
   });
+
+  it("create_webhook/update_webhook aceitam Authorization no input e não vazam no output", async () => {
+    const secret = "Bearer test-mcp-wh-auth";
+    const client = await connect();
+    const discovery = await client.listTools();
+    const createTool = discovery.tools.find((tool) => tool.name === "create_webhook");
+    const updateTool = discovery.tools.find((tool) => tool.name === "update_webhook");
+    expect(createTool?.inputSchema).toMatchObject({
+      properties: {
+        headers: {
+          properties: { Authorization: { type: "string" } },
+        },
+      },
+    });
+    expect(updateTool?.inputSchema).toMatchObject({
+      properties: {
+        headers: {
+          properties: { Authorization: {} },
+        },
+      },
+    });
+    const createOut = JSON.stringify(createTool?.outputSchema ?? {});
+    const updateOut = JSON.stringify(updateTool?.outputSchema ?? {});
+    expect(createOut).not.toMatch(/Authorization":\{"type":"string"/);
+    expect(updateOut).not.toMatch(/Authorization":\{"type":"string"/);
+
+    const created = await client.callTool({
+      name: "create_webhook",
+      arguments: {
+        url: webhook.url,
+        events: webhook.events,
+        headers: { Authorization: secret },
+      },
+    });
+    expect(created.isError).toBeFalsy();
+    expect(JSON.stringify(created.structuredContent)).not.toContain(secret);
+    expect(textOf(created)).not.toContain(secret);
+
+    const updated = await client.callTool({
+      name: "update_webhook",
+      arguments: {
+        id: WEBHOOK_ID,
+        headers: { Authorization: secret },
+      },
+    });
+    expect(updated.isError).toBeFalsy();
+    expect(JSON.stringify(updated.structuredContent)).not.toContain(secret);
+    expect(textOf(updated)).not.toContain(secret);
+  });
 });
