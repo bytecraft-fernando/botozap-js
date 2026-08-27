@@ -1,5 +1,14 @@
 # @botozap/mcp
 
+## 0.2.1
+
+### Patch Changes
+
+- Publica novamente o candidato agent-native validado em versões patch para
+  promovê-lo diretamente ao canal `latest` do npm.
+- Updated dependencies
+  - @botozap/sdk@0.3.1
+
 ## 0.2.0
 
 ### Minor Changes

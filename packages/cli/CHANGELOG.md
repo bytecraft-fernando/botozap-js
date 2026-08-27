@@ -1,5 +1,14 @@
 # @botozap/cli
 
+## 0.1.2
+
+### Patch Changes
+
+- Publica novamente o candidato agent-native validado em versões patch para
+  promovê-lo diretamente ao canal `latest` do npm.
+- Updated dependencies
+  - @botozap/sdk@0.3.1
+
 ## 0.1.1
 
 ### Patch Changes
