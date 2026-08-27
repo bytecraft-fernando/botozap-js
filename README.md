@@ -47,10 +47,16 @@ pnpm install
 pnpm typecheck
 pnpm test
 pnpm build
+pnpm gate:tarballs
 ```
 
+`gate:tarballs` empacota SDK, CLI e MCP, instala os três em um projeto temporário
+limpo e prova imports ESM/CJS, tipos, bins e um cliente MCP tools-only real. O
+diretório temporário é removido ao final e nenhuma credencial live é usada.
+
 Versionamento com [Changesets](./.changeset) — tudo `0.x`, sem promessa de
-estabilidade prematura.
+estabilidade prematura. A publicação continua sendo uma ação manual posterior
+aos gates; o CI nunca recebe token npm.
 
 ## Licença
 

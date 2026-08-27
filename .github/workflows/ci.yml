@@ -112,45 +112,8 @@ jobs:
         run: pnpm --filter @botozap/mcp smoke
       - name: pnpm pack --dry-run por pacote
         run: pnpm run pack:check
-      - name: Tarballs reais em projeto limpo (ESM/CJS/types/bins)
-        run: |
-          set -euo pipefail
-          OUT="$RUNNER_TEMP/bz-tarballs"; CONSUMER="$RUNNER_TEMP/bz-consumer"
-          mkdir -p "$OUT" "$CONSUMER"
-          (cd packages/sdk && pnpm pack --out "$OUT/sdk.tgz")
-          (cd packages/cli && pnpm pack --out "$OUT/cli.tgz")
-          (cd packages/mcp && pnpm pack --out "$OUT/mcp.tgz")
-          for t in sdk cli mcp; do
-            if tar -tzf "$OUT/$t.tgz" | grep -E '/(src|tests?|scripts)/|/\.env|node_modules/'; then
-              echo "::error::tarball $t contém arquivos que não deviam ser publicados"
-              exit 1
-            fi
-          done
-          cd "$CONSUMER"
-          printf '{ "name": "consumer", "private": true }\n' > package.json
-          # @botozap/sdk ainda não existe no registry: o override aponta a
-          # dependência 0.1.0 (reescrita do workspace:*) para o tarball local.
-          printf 'overrides:\n  "@botozap/sdk": "file:%s/sdk.tgz"\n' "$OUT" > pnpm-workspace.yaml
-          pnpm add "$OUT/sdk.tgz" "$OUT/cli.tgz" "$OUT/mcp.tgz"
-          pnpm add -D typescript@5.6
-          node -e "import('@botozap/sdk').then(m => { if (typeof m.BotoZap !== 'function') process.exit(1) })"
-          node -e "if (typeof require('@botozap/sdk').BotoZap !== 'function') process.exit(1)"
-          # (sem heredoc: dentro do bloco `run:` do YAML toda linha fica
-          # indentada e o delimitador de um heredoc nunca chega à coluna 0)
-          {
-            echo 'import { BotoZap, type SendResult } from "@botozap/sdk";'
-            echo 'const boto = new BotoZap({ apiKey: "bz_sandbox_ci" });'
-            echo 'export async function smoke(): Promise<SendResult> {'
-            echo '  return boto.messages.send({ to: "+5500000000001", text: "Olá 😀" });'
-            echo '}'
-          } > index.ts
-          printf '{ "compilerOptions": { "strict": true, "module": "nodenext", "moduleResolution": "nodenext", "target": "es2022", "noEmit": true } }\n' > tsconfig.json
-          pnpm exec tsc -p tsconfig.json
-          ./node_modules/.bin/botozap --version
-          ./node_modules/.bin/botozap --help > /dev/null
-          # bin do MCP: inicia (linha de boot no stderr) e encerra no EOF do stdin.
-          BOTOZAP_API_KEY=bz_sandbox_ci timeout 15 ./node_modules/.bin/botozap-mcp < /dev/null 2> mcp-stderr.txt || true
-          grep -q "servidor MCP iniciado" mcp-stderr.txt
+      - name: Tarballs reais em projeto limpo (ESM/CJS/types/bins/tools-only)
+        run: pnpm gate:tarballs
 
   # A matriz contratual REAL (SDK dist → handlers reais, Postgres local) vive no
   # repositório privado do core (botozap/tests/api-contract/sdk-*). O workflow

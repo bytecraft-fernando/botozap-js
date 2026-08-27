@@ -1,5 +1,30 @@
 # @botozap/sdk
 
+## 0.3.0
+
+### Minor Changes
+
+- 05733ec: Adiciona o stream durável `events.list` ao SDK e um resource MCP assinável por
+  cursor. O servidor stdio anuncia subscriptions, envia
+  `notifications/resources/updated` enquanto a assinatura está ativa e preserva
+  as tools e o fallback de replay após reconexão.
+- da01362: Adiciona `conversations.reply` ao SDK e a tool MCP
+  `reply_to_conversation`, que resolvem Contato e Número pela Conversa e
+  delegam ao endpoint canônico de mensagens, preservando janela, quota, billing
+  e isolamento multi-tenant no servidor.
+- 42c65ef: Adiciona envio tipado de image, video, audio e document pelo SDK e pela tool MCP `send_media_message`, com limites e campos específicos por tipo.
+
+### Patch Changes
+
+- de26959: Adiciona output schemas e structured content às tools centrais de Mensagens,
+  Números e Templates, preservando o fallback textual e expondo erros estruturados.
+  Sincroniza também o tipo `SendResult` do SDK com o campo aditivo `sent_to` da API.
+- e923a96: Torna o push remoto resiliente a queda ou indisponibilidade inicial do event
+  bus, sinais concorrentes, restart e clientes abandonados. Adiciona heartbeat de
+  reconciliação por cursor, limites de sessão/assinatura, cleanup por cancelamento
+  ou expiração e testes de carga e isolamento entre Conta e ambiente. Leituras de
+  Eventos do SDK agora aceitam `AbortSignal`, permitindo cancelar I/O em voo.
+
 ## 0.2.0 (2026-08-13)
 
 ### Novidades

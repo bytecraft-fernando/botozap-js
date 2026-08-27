@@ -1,6 +1,6 @@
 {
   "name": "@botozap/sdk",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "SDK oficial da BotoZap — envie mensagens e gerencie clientes na WhatsApp Cloud API oficial, multi-tenant.",
   "type": "module",
   "main": "./dist/index.cjs",
