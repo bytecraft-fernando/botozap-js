@@ -50,13 +50,13 @@ const address = api.address();
 assert(address && typeof address !== "string", "fixture HTTP sem porta");
 
 const consumerRoot = path.dirname(fileURLToPath(import.meta.url));
-const serverEntry = path.join(
+const serverCommand = path.join(
   consumerRoot,
-  "node_modules/@botozap/mcp/dist/index.js",
+  "node_modules/.bin/botozap-mcp",
 );
 const transport = new StdioClientTransport({
-  command: process.execPath,
-  args: [serverEntry],
+  command: serverCommand,
+  args: [],
   env: {
     ...getDefaultEnvironment(),
     BOTOZAP_API_KEY: API_KEY,
