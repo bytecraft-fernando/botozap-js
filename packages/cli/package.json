@@ -1,6 +1,6 @@
 {
   "name": "@botozap/cli",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "CLI dev-first para a API pública do BotoZap (WhatsApp Cloud API multi-tenant).",
   "license": "MIT",
   "type": "module",

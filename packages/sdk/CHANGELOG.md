@@ -1,5 +1,13 @@
 # @botozap/sdk
 
+## 0.3.2
+
+### Patch Changes
+
+- 05e1c9f: Adiciona `headers.Authorization` aos Endpoints de webhook. O valor é aceito
+  somente na escrita, nunca aparece nos resultados do SDK/MCP e é persistido no
+  Vault pelo core BotoZap.
+
 ## 0.3.1
 
 ### Patch Changes

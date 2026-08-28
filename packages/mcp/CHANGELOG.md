@@ -1,5 +1,17 @@
 # @botozap/mcp
 
+## 0.2.3
+
+### Patch Changes
+
+- 05e1c9f: Adiciona `headers.Authorization` aos Endpoints de webhook. O valor é aceito
+  somente na escrita, nunca aparece nos resultados do SDK/MCP e é persistido no
+  Vault pelo core BotoZap.
+- e5ba3e0: Recupera a capacidade de sessão ao substituir a conexão abandonada mais antiga
+  da mesma credencial quando o teto é atingido, sem preemptar requests ativos.
+- Updated dependencies [05e1c9f]
+  - @botozap/sdk@0.3.2
+
 ## 0.2.2
 
 ### Patch Changes
