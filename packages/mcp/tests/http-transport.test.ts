@@ -454,6 +454,30 @@ describe("transporte MCP Streamable HTTP", () => {
     await expect(connect(remote.url, otherApiKey)).resolves.toBeDefined();
   });
 
+  it("substitui sessão abandonada da mesma chave quando o teto é atingido", async () => {
+    const eventSignal = new TestEventSignal();
+    const baseUrl = await startApi([], []);
+    const remote = await startStreamableHttpServer({
+      baseUrl,
+      eventSignal,
+      maxSessions: 1,
+      maxSessionsPerApiKey: 1,
+      host: "127.0.0.1",
+      port: 0,
+    });
+    openServers.push(remote);
+
+    const abandoned = await connect(remote.url);
+    await abandoned.client.close();
+    openClients.splice(openClients.indexOf(abandoned.client), 1);
+
+    // O cliente encerrou o stream sem DELETE /mcp: a sessão stateful ainda
+    // ocupa a quota, mas já não tem request ativo e pode ser substituída.
+    expect(eventSignal.listenerCount()).toBe(1);
+    await expect(connect(remote.url)).resolves.toBeDefined();
+    await waitUntil(() => eventSignal.listenerCount() === 1, 500);
+  });
+
   it("expira sessão abandonada sem DELETE e recupera sua capacidade", async () => {
     const eventSignal = new TestEventSignal();
     const baseUrl = await startApi([], []);

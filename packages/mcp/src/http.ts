@@ -355,19 +355,39 @@ async function handleRequest(
     jsonRpcError(response, 503, -32000, "Servidor MCP em encerramento.");
     return;
   }
-  if (sessions.size + reservations.total >= (options.maxSessions ?? 1_000)) {
+  const apiKeyFingerprint = fingerprint(apiKey);
+  const apiKeyReservationKey = apiKeyFingerprint.toString("base64url");
+  const maxSessions = options.maxSessions ?? 1_000;
+  const maxSessionsPerApiKey = options.maxSessionsPerApiKey ?? 5;
+  let sessionsForApiKey = countSessionsForApiKey(sessions, apiKey);
+  let reservedForApiKey = reservations.byApiKey.get(apiKeyReservationKey) ?? 0;
+
+  // Alguns hosts encerram o stream HTTP sem enviar DELETE /mcp. A sessão fica
+  // stateful no processo até o sweep e pode consumir a quota da própria chave.
+  // No teto, substituímos somente a sessão MAIS ANTIGA da MESMA credencial que
+  // já não tenha request ativo. Streams/requests vivos nunca são preemptados e
+  // sessões de outro tenant nunca cedem capacidade.
+  while (
+    sessions.size + reservations.total >= maxSessions ||
+    sessionsForApiKey + reservedForApiKey >= maxSessionsPerApiKey
+  ) {
+    const reclaimed = await reclaimOldestIdleSession(sessions, apiKey);
+    if (!reclaimed) break;
+    if (lifecycle.closing) {
+      jsonRpcError(response, 503, -32000, "Servidor MCP em encerramento.");
+      return;
+    }
+    sessionsForApiKey = countSessionsForApiKey(sessions, apiKey);
+    reservedForApiKey = reservations.byApiKey.get(apiKeyReservationKey) ?? 0;
+  }
+
+  if (sessions.size + reservations.total >= maxSessions) {
     jsonRpcError(response, 429, -32000, "Limite de sessões MCP atingido.");
     return;
   }
-  const apiKeyFingerprint = fingerprint(apiKey);
-  const apiKeyReservationKey = apiKeyFingerprint.toString("base64url");
-  const sessionsForApiKey = [...sessions.values()].filter((candidate) =>
-    sameFingerprint(candidate.apiKeyFingerprint, apiKey),
-  ).length;
-  const reservedForApiKey = reservations.byApiKey.get(apiKeyReservationKey) ?? 0;
   if (
     sessionsForApiKey + reservedForApiKey >=
-    (options.maxSessionsPerApiKey ?? 5)
+    maxSessionsPerApiKey
   ) {
     jsonRpcError(response, 429, -32000, "Limite de sessões MCP atingido.");
     return;
@@ -467,6 +487,37 @@ function closeSession(
   if (sessions.get(sessionId) === session) sessions.delete(sessionId);
   session.closing = session.server.close().catch(() => {});
   return session.closing;
+}
+
+function countSessionsForApiKey(
+  sessions: Map<string, Session>,
+  apiKey: string,
+): number {
+  return [...sessions.values()].filter((candidate) =>
+    sameFingerprint(candidate.apiKeyFingerprint, apiKey),
+  ).length;
+}
+
+async function reclaimOldestIdleSession(
+  sessions: Map<string, Session>,
+  apiKey: string,
+): Promise<boolean> {
+  let oldest: [string, Session] | undefined;
+  for (const candidate of sessions) {
+    const [, session] = candidate;
+    if (
+      session.activeRequests !== 0 ||
+      !sameFingerprint(session.apiKeyFingerprint, apiKey)
+    ) {
+      continue;
+    }
+    if (!oldest || session.lastActivityAt < oldest[1].lastActivityAt) {
+      oldest = candidate;
+    }
+  }
+  if (!oldest) return false;
+  await closeSession(sessions, oldest[0], oldest[1]);
+  return true;
 }
 
 async function authenticatesForEvents(
