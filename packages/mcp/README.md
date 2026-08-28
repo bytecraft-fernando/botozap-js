@@ -36,7 +36,7 @@ credenciais.
 O pacote pode ser executado diretamente do npm:
 
 ```bash
-pnpm dlx @botozap/mcp@0.2.3
+pnpm dlx @botozap/mcp@0.2.4
 ```
 
 Para desenvolver o monorepo localmente:
@@ -81,7 +81,7 @@ BOTOZAP_MCP_HOST=0.0.0.0 \
 BOTOZAP_MCP_PORT=3001 \
 BOTOZAP_MCP_ALLOWED_HOSTS=mcp.botozap.com.br \
 BOTOZAP_EVENT_BUS_DATABASE_URL=postgresql://... \
-pnpm dlx @botozap/mcp@0.2.3
+pnpm dlx @botozap/mcp@0.2.4
 ```
 
 Bind em `0.0.0.0` ou `::` sem `BOTOZAP_MCP_ALLOWED_HOSTS` recusa o boot (fail-closed). Em `127.0.0.1`/`::1`/`localhost` a allowlist padrão de loopback é aplicada e o desenvolvimento local segue igual.
@@ -122,7 +122,7 @@ Via CLI:
 ```bash
 claude mcp add botozap \
   --env BOTOZAP_API_KEY=bz_live_suachaveaqui \
-  -- pnpm dlx @botozap/mcp@0.2.3
+  -- pnpm dlx @botozap/mcp@0.2.4
 ```
 
 Ou no JSON do MCP (`.mcp.json` do projeto ou config do usuário):
@@ -132,7 +132,7 @@ Ou no JSON do MCP (`.mcp.json` do projeto ou config do usuário):
   "mcpServers": {
     "botozap": {
       "command": "pnpm",
-      "args": ["dlx", "@botozap/mcp@0.2.3"],
+      "args": ["dlx", "@botozap/mcp@0.2.4"],
       "env": {
         "BOTOZAP_API_KEY": "bz_live_suachaveaqui"
       }
@@ -150,7 +150,7 @@ Edite `~/.cursor/mcp.json` (global) ou `.cursor/mcp.json` (no projeto):
   "mcpServers": {
     "botozap": {
       "command": "pnpm",
-      "args": ["dlx", "@botozap/mcp@0.2.3"],
+      "args": ["dlx", "@botozap/mcp@0.2.4"],
       "env": {
         "BOTOZAP_API_KEY": "bz_live_suachaveaqui"
       }

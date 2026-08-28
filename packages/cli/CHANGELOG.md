@@ -1,5 +1,12 @@
 # @botozap/cli
 
+## 0.1.4
+
+### Patch Changes
+
+- Publica tarballs com a dependência do SDK resolvida para uma versão do registro,
+  sem expor o protocolo interno `workspace:*` aos consumidores do npm.
+
 ## 0.1.3
 
 ### Patch Changes
