@@ -1,6 +1,6 @@
 {
   "name": "@botozap/mcp",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "description": "Servidor MCP (Model Context Protocol) para a API pública do BotoZap — expõe as operações da plataforma WhatsApp Cloud API como ferramentas MCP para Claude Code, Cursor e Codex.",
   "license": "MIT",
   "type": "module",

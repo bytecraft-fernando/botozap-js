@@ -1,5 +1,12 @@
 # @botozap/mcp
 
+## 0.2.5
+
+### Patch Changes
+
+- 5219ae0: Recicla no teto a sessão mais antiga da mesma credencial quando ela mantém
+  somente o listener GET/SSE aberto, sem interromper POSTs MCP em andamento.
+
 ## 0.2.4
 
 ### Patch Changes
