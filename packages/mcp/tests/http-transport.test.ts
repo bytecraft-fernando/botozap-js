@@ -357,7 +357,7 @@ describe("transporte MCP Streamable HTTP", () => {
     }
   });
 
-  it("limita sessões e libera todo o consumo depois do cancelamento", async () => {
+  it("recicla sessão presa apenas no listener GET/SSE quando o teto é atingido", async () => {
     const eventSignal = new TestEventSignal();
     const baseUrl = await startApi([], []);
     const remote = await startStreamableHttpServer({
@@ -371,7 +371,27 @@ describe("transporte MCP Streamable HTTP", () => {
 
     const first = await connect(remote.url);
     expect(eventSignal.listenerCount()).toBe(1);
-    await expect(connect(remote.url)).rejects.toThrow();
+    const replacement = await connect(remote.url);
+
+    expect(replacement.transport.sessionId).not.toBe(first.transport.sessionId);
+    expect(eventSignal.listenerCount()).toBe(1);
+    await expect(first.client.listTools()).rejects.toThrow(/Sessão MCP inválida/);
+  });
+
+  it("libera a sessão quando o cliente envia DELETE no teardown", async () => {
+    const eventSignal = new TestEventSignal();
+    const baseUrl = await startApi([], []);
+    const remote = await startStreamableHttpServer({
+      baseUrl,
+      eventSignal,
+      maxSessions: 1,
+      host: "127.0.0.1",
+      port: 0,
+    });
+    openServers.push(remote);
+
+    const first = await connect(remote.url);
+    expect(eventSignal.listenerCount()).toBe(1);
 
     await first.transport.terminateSession();
     await first.client.close();
@@ -379,7 +399,43 @@ describe("transporte MCP Streamable HTTP", () => {
     await waitUntil(() => eventSignal.listenerCount() === 0, 500);
 
     await expect(connect(remote.url)).resolves.toBeDefined();
-    expect(eventSignal.listenerCount()).toBe(1);
+  });
+
+  it("não recicla sessão enquanto um POST MCP está em andamento", async () => {
+    let releaseRead: (() => void) | undefined;
+    let markReadStarted: (() => void) | undefined;
+    const readStarted = new Promise<void>((resolve) => {
+      markReadStarted = resolve;
+    });
+    const holdRead = new Promise<void>((resolve) => {
+      releaseRead = resolve;
+    });
+    const baseUrl = await startApi([], [], async (readNumber) => {
+      if (readNumber !== 2) return;
+      markReadStarted?.();
+      await holdRead;
+    });
+    const remote = await startStreamableHttpServer({
+      baseUrl,
+      eventSignal: new TestEventSignal(),
+      maxSessions: 1,
+      host: "127.0.0.1",
+      port: 0,
+    });
+    openServers.push(remote);
+
+    const first = await connect(remote.url);
+    const read = first.client.readResource({ uri: EVENTS_URI });
+    await readStarted;
+
+    try {
+      await expect(connect(remote.url)).rejects.toThrow();
+    } finally {
+      releaseRead?.();
+    }
+    await read;
+
+    await expect(connect(remote.url)).resolves.toBeDefined();
   });
 
   it("reserva o limite antes de inicializações concorrentes", async () => {
@@ -431,7 +487,7 @@ describe("transporte MCP Streamable HTTP", () => {
     await expect(client.subscribeResource({ uri: nextCursorUri })).resolves.toEqual({});
   });
 
-  it("impede uma única chave de consumir todas as sessões", async () => {
+  it("limita o footprint de uma chave sem bloquear outra credencial", async () => {
     const otherApiKey = "bz_live_http_transport_other";
     const baseUrl = await startApi(
       [],
@@ -449,8 +505,11 @@ describe("transporte MCP Streamable HTTP", () => {
     });
     openServers.push(remote);
 
-    await connect(remote.url);
-    await expect(connect(remote.url)).rejects.toThrow();
+    const first = await connect(remote.url);
+    const replacement = await connect(remote.url);
+
+    expect(replacement.transport.sessionId).not.toBe(first.transport.sessionId);
+    await expect(first.client.listTools()).rejects.toThrow(/Sessão MCP inválida/);
     await expect(connect(remote.url, otherApiKey)).resolves.toBeDefined();
   });
 
@@ -640,14 +699,19 @@ describe("transporte MCP Streamable HTTP", () => {
       clients.map(({ client }) => client.subscribeResource({ uri: EVENTS_URI })),
     );
     expect(eventSignal.listenerCount()).toBe(25);
-    await expect(connect(remote.url)).rejects.toThrow();
+    const replacement = await connect(remote.url);
+    replacement.client.setNotificationHandler(ResourceUpdatedNotificationSchema, () => {
+      notifications += 1;
+    });
+    await replacement.client.subscribeResource({ uri: EVENTS_URI });
+    expect(eventSignal.listenerCount()).toBe(25);
 
     events.push(event(1));
     eventSignal.publish();
     await waitUntil(() => notifications === 25, 1_000);
-    expect(resourceEvents(await clients[0]!.client.readResource({ uri: EVENTS_URI }))).toEqual([
-      expect.objectContaining({ id: "event-1" }),
-    ]);
+    expect(
+      resourceEvents(await replacement.client.readResource({ uri: EVENTS_URI })),
+    ).toEqual([expect.objectContaining({ id: "event-1" })]);
   });
 });
 

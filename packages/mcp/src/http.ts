@@ -34,6 +34,7 @@ type RateBucket = {
 };
 
 type Session = {
+  activeForegroundRequests: number;
   activeRequests: number;
   apiKeyFingerprint: Buffer;
   closing?: Promise<void>;
@@ -362,16 +363,17 @@ async function handleRequest(
   let sessionsForApiKey = countSessionsForApiKey(sessions, apiKey);
   let reservedForApiKey = reservations.byApiKey.get(apiKeyReservationKey) ?? 0;
 
-  // Alguns hosts encerram o stream HTTP sem enviar DELETE /mcp. A sessão fica
-  // stateful no processo até o sweep e pode consumir a quota da própria chave.
-  // No teto, substituímos somente a sessão MAIS ANTIGA da MESMA credencial que
-  // já não tenha request ativo. Streams/requests vivos nunca são preemptados e
-  // sessões de outro tenant nunca cedem capacidade.
+  // Alguns hosts criam uma sessão por tool e não enviam DELETE /mcp. Eles podem
+  // ainda deixar o GET/SSE de cada sessão aberto, então `activeRequests` nunca
+  // volta a zero e nem o sweep nem a reciclagem anterior recuperavam a quota.
+  // No teto, substituímos somente a sessão MAIS ANTIGA da MESMA credencial sem
+  // POST/DELETE em andamento. Um listener GET pode ser encerrado: Eventos são
+  // duráveis e recuperáveis por cursor. Sessões de outro tenant nunca cedem vaga.
   while (
     sessions.size + reservations.total >= maxSessions ||
     sessionsForApiKey + reservedForApiKey >= maxSessionsPerApiKey
   ) {
-    const reclaimed = await reclaimOldestIdleSession(sessions, apiKey);
+    const reclaimed = await reclaimOldestReplaceableSession(sessions, apiKey);
     if (!reclaimed) break;
     if (lifecycle.closing) {
       jsonRpcError(response, 503, -32000, "Servidor MCP em encerramento.");
@@ -428,6 +430,7 @@ async function handleRequest(
     maxEventSubscriptions: options.maxEventSubscriptions,
   });
   session = {
+    activeForegroundRequests: 0,
     activeRequests: 0,
     apiKeyFingerprint,
     lastActivityAt: Date.now(),
@@ -460,11 +463,14 @@ async function handleSessionRequest(
   response: ServerResponse,
   body: unknown,
 ): Promise<void> {
+  const isForegroundRequest = request.method !== "GET";
   session.activeRequests += 1;
+  if (isForegroundRequest) session.activeForegroundRequests += 1;
   session.lastActivityAt = Date.now();
   try {
     await session.transport.handleRequest(request, response, body);
   } finally {
+    if (isForegroundRequest) session.activeForegroundRequests -= 1;
     session.activeRequests -= 1;
     session.lastActivityAt = Date.now();
   }
@@ -498,7 +504,7 @@ function countSessionsForApiKey(
   ).length;
 }
 
-async function reclaimOldestIdleSession(
+async function reclaimOldestReplaceableSession(
   sessions: Map<string, Session>,
   apiKey: string,
 ): Promise<boolean> {
@@ -506,7 +512,7 @@ async function reclaimOldestIdleSession(
   for (const candidate of sessions) {
     const [, session] = candidate;
     if (
-      session.activeRequests !== 0 ||
+      session.activeForegroundRequests !== 0 ||
       !sameFingerprint(session.apiKeyFingerprint, apiKey)
     ) {
       continue;
