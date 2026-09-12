@@ -260,7 +260,8 @@ resposta `403` de `Host`/`Origin`.
 Use `pnpm release:mcp` a partir de um checkout limpo da `main`, após
 `pnpm build`, `pnpm typecheck`, `pnpm test` e `pnpm gate:tarballs`. O comando
 empacota com pnpm, verifica as dependências no próprio tarball e publica esse
-mesmo arquivo. `pnpm release:mcp --dry-run` valida sem publicar.
+mesmo arquivo com `npm publish`. Publicação usa npm; instalação, build e pack
+continuam usando pnpm. `pnpm release:mcp --dry-run` valida sem publicar.
 
 Não publique o diretório com outro empacotador: `workspace:*` pertence ao
 monorepo e precisa virar a versão do SDK no artefato. A versão 0.2.5 violou esse
