@@ -19,7 +19,7 @@ pnpm --filter @botozap/mcp build
 (cd packages/mcp && pnpm pack --out "$RELEASE_TMP/mcp.tgz")
 node scripts/verify-package.mjs "$RELEASE_TMP/mcp.tgz" \
   packages/mcp/package.json packages/sdk/package.json
-pnpm publish "$RELEASE_TMP/mcp.tgz" --access public --tag latest --publish-branch main "$@"
+npm publish "$RELEASE_TMP/mcp.tgz" --access public --tag latest "$@"
 
 if [[ $# -eq 0 ]]; then
   # Prova pós-registry: sem override ou dependência ligada ao workspace.
