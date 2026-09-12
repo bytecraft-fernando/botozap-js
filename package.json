@@ -21,8 +21,9 @@
     "typecheck": "pnpm --filter './packages/*' run typecheck",
     "test": "pnpm --filter './packages/*' run test",
     "pack:check": "pnpm --filter './packages/*' exec pnpm pack --dry-run",
-    "gate:tarballs": "bash scripts/release-gate-tarballs.sh",
-    "changeset": "changeset"
+    "gate:tarballs": "node --test scripts/verify-package.test.mjs && bash scripts/release-gate-tarballs.sh",
+    "changeset": "changeset",
+    "release:mcp": "bash scripts/publish-mcp.sh"
   },
   "devDependencies": {
     "@changesets/cli": "^2.29.0"

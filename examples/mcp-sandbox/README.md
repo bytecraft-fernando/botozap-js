@@ -4,13 +4,13 @@ Configuração mínima do servidor MCP do BotoZap (`@botozap/mcp`) usando uma
 **chave sandbox** (`bz_sandbox_…`) — nenhuma credencial real, nenhum custo,
 nenhum número de WhatsApp de verdade.
 
-O pacote está publicado no npm. Fixamos `0.1.0` abaixo para que a configuração
+O pacote está publicado no npm. Fixamos `0.2.6` abaixo para que a configuração
 seja reproduzível.
 
 ## 1. Verifique o pacote
 
 ```bash
-pnpm dlx @botozap/mcp@0.1.0
+pnpm dlx @botozap/mcp@0.2.6
 ```
 
 ## 2. Configuração no cliente MCP
@@ -25,7 +25,7 @@ Claude Code (`.mcp.json` do seu projeto):
   "mcpServers": {
     "botozap": {
       "command": "pnpm",
-      "args": ["dlx", "@botozap/mcp@0.1.0"],
+      "args": ["dlx", "@botozap/mcp@0.2.6"],
       "env": {
         "BOTOZAP_API_KEY": "bz_sandbox_SUA_CHAVE_AQUI"
       }

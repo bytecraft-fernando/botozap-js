@@ -1,8 +1,8 @@
 # @botozap/mcp
 
 Servidor **MCP (Model Context Protocol)** para a API pública do **BotoZap** — a
-plataforma dev-first sobre a WhatsApp Cloud API oficial (multi-tenant, a "Kapso
-brasileira").
+plataforma sobre a WhatsApp Cloud API oficial. Painel, API/MCP e links de setup
+operam a mesma Conta, para um ou vários negócios.
 
 Ele expõe as operações da plataforma (`/api/v1`) como **ferramentas MCP** e o
 stream durável de Eventos como **resource assinável**, para que assistentes como
@@ -36,7 +36,7 @@ credenciais.
 O pacote pode ser executado diretamente do npm:
 
 ```bash
-pnpm dlx @botozap/mcp@0.2.4
+pnpm dlx @botozap/mcp@0.2.6
 ```
 
 Para desenvolver o monorepo localmente:
@@ -81,7 +81,7 @@ BOTOZAP_MCP_HOST=0.0.0.0 \
 BOTOZAP_MCP_PORT=3001 \
 BOTOZAP_MCP_ALLOWED_HOSTS=mcp.botozap.com.br \
 BOTOZAP_EVENT_BUS_DATABASE_URL=postgresql://... \
-pnpm dlx @botozap/mcp@0.2.4
+pnpm dlx @botozap/mcp@0.2.6
 ```
 
 Bind em `0.0.0.0` ou `::` sem `BOTOZAP_MCP_ALLOWED_HOSTS` recusa o boot (fail-closed). Em `127.0.0.1`/`::1`/`localhost` a allowlist padrão de loopback é aplicada e o desenvolvimento local segue igual.
@@ -122,7 +122,7 @@ Via CLI:
 ```bash
 claude mcp add botozap \
   --env BOTOZAP_API_KEY=bz_live_suachaveaqui \
-  -- pnpm dlx @botozap/mcp@0.2.4
+  -- pnpm dlx @botozap/mcp@0.2.6
 ```
 
 Ou no JSON do MCP (`.mcp.json` do projeto ou config do usuário):
@@ -132,7 +132,7 @@ Ou no JSON do MCP (`.mcp.json` do projeto ou config do usuário):
   "mcpServers": {
     "botozap": {
       "command": "pnpm",
-      "args": ["dlx", "@botozap/mcp@0.2.4"],
+      "args": ["dlx", "@botozap/mcp@0.2.6"],
       "env": {
         "BOTOZAP_API_KEY": "bz_live_suachaveaqui"
       }
@@ -150,7 +150,7 @@ Edite `~/.cursor/mcp.json` (global) ou `.cursor/mcp.json` (no projeto):
   "mcpServers": {
     "botozap": {
       "command": "pnpm",
-      "args": ["dlx", "@botozap/mcp@0.2.4"],
+      "args": ["dlx", "@botozap/mcp@0.2.6"],
       "env": {
         "BOTOZAP_API_KEY": "bz_live_suachaveaqui"
       }
@@ -254,3 +254,16 @@ IDOR-safe). A chave é um segredo — não a comite nem a logue. O servidor MCP 
 escreve logs em **stderr** (stdout é reservado para o protocolo MCP); a chave
 nunca aparece em resultado de ferramenta, mensagem de erro, `/healthz` ou
 resposta `403` de `Host`/`Origin`.
+
+## Publicação pelos mantenedores
+
+Use `pnpm release:mcp` a partir de um checkout limpo da `main`, após
+`pnpm build`, `pnpm typecheck`, `pnpm test` e `pnpm gate:tarballs`. O comando
+empacota com pnpm, verifica as dependências no próprio tarball e publica esse
+mesmo arquivo. `pnpm release:mcp --dry-run` valida sem publicar.
+
+Não publique o diretório com outro empacotador: `workspace:*` pertence ao
+monorepo e precisa virar a versão do SDK no artefato. A versão 0.2.5 violou esse
+contrato; a 0.2.6 corrige a instalação. Após publicar, instale a versão exata em
+um projeto vazio **sem overrides** e repita o cliente MCP real. O gate com
+override serve para candidatos cujo SDK ainda não está no registry.

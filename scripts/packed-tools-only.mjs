@@ -74,6 +74,11 @@ try {
   await client.connect(transport);
 
   const tools = await client.listTools();
+  assert.equal(tools.tools.length, 37);
+  assert(tools.tools.every((tool) => tool.outputSchema), "tool sem outputSchema");
+  assert.equal(client.getServerCapabilities()?.resources?.subscribe, true);
+  const templates = await client.listResourceTemplates();
+  assert(templates.resourceTemplates.some((item) => item.uriTemplate === "botozap://events{?after,limit}"));
   const toolNames = new Set(tools.tools.map((tool) => tool.name));
   assert(toolNames.has("list_messages"));
   assert(toolNames.has("send_message"));

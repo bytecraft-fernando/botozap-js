@@ -19,6 +19,12 @@ mkdir -p "$GATE_TARBALL_DIR" "$GATE_CONSUMER_DIR"
 (cd "$GATE_ROOT/packages/mcp" && pnpm pack --out "$GATE_TARBALL_DIR/mcp.tgz")
 
 for package_name in sdk cli mcp; do
+  # Validar ANTES do override usado para testar candidatos ainda não publicados.
+  # Caso contrário, workspace:* pode ser mascarado pelo SDK local (#209).
+  node "$GATE_ROOT/scripts/verify-package.mjs" \
+    "$GATE_TARBALL_DIR/$package_name.tgz" \
+    "$GATE_ROOT/packages/$package_name/package.json" \
+    "$GATE_ROOT/packages/sdk/package.json"
   if tar -tzf "$GATE_TARBALL_DIR/$package_name.tgz" \
     | grep -E '/(src|tests?|scripts)/|/\.env|node_modules/'; then
     echo "tarball $package_name contém arquivos que não devem ser publicados" >&2

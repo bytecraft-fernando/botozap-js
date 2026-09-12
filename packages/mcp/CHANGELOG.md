@@ -1,5 +1,13 @@
 # @botozap/mcp
 
+## 0.2.6
+
+### Patch Changes
+
+- Corrige o artefato público que carregava `@botozap/sdk: workspace:*` na 0.2.5.
+  A release é empacotada por pnpm e validada antes da instalação, sem permitir que
+  overrides escondam dependências locais. Atualiza os quickstarts do pacote.
+
 ## 0.2.5
 
 ### Patch Changes
