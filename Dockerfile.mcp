@@ -18,6 +18,9 @@ FROM node:22-slim AS runtime
 WORKDIR /app
 
 ENV NODE_ENV=production
+ENV NODE_EXTRA_CA_CERTS=/app/certs/supabase-root-2021.crt
+
+COPY --chown=node:node certs/supabase-root-2021.crt ./certs/supabase-root-2021.crt
 
 COPY --from=build --chown=node:node /prod/mcp ./
 
