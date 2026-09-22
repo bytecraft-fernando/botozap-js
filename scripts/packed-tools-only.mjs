@@ -50,10 +50,7 @@ const address = api.address();
 assert(address && typeof address !== "string", "fixture HTTP sem porta");
 
 const consumerRoot = path.dirname(fileURLToPath(import.meta.url));
-const serverCommand = path.join(
-  consumerRoot,
-  "node_modules/.bin/botozap-mcp",
-);
+const serverCommand = path.join(consumerRoot, "node_modules/.bin/botozap-mcp");
 const transport = new StdioClientTransport({
   command: serverCommand,
   args: [],
@@ -74,17 +71,45 @@ try {
   await client.connect(transport);
 
   const tools = await client.listTools();
-  assert.equal(tools.tools.length, 37);
-  assert(tools.tools.every((tool) => tool.outputSchema), "tool sem outputSchema");
+  assert.equal(tools.tools.length, 127);
+  for (const name of [
+    "get_inbox_tools",
+    "list_saved_replies",
+    "list_opportunities",
+    "list_radar",
+    "list_journeys",
+    "list_appointments",
+    "list_calendar_connections",
+    "list_agents",
+    "list_agent_models",
+    "get_agent_behavior",
+  ]) {
+    assert.ok(
+      tools.tools.some((tool) => tool.name === name),
+      `missing packed tool: ${name}`,
+    );
+  }
+  assert(
+    tools.tools.every((tool) => tool.outputSchema),
+    "tool sem outputSchema",
+  );
   assert.equal(client.getServerCapabilities()?.resources?.subscribe, true);
   const templates = await client.listResourceTemplates();
-  assert(templates.resourceTemplates.some((item) => item.uriTemplate === "botozap://events{?after,limit}"));
+  assert(
+    templates.resourceTemplates.some(
+      (item) => item.uriTemplate === "botozap://events{?after,limit}",
+    ),
+  );
   const toolNames = new Set(tools.tools.map((tool) => tool.name));
   assert(toolNames.has("list_messages"));
   assert(toolNames.has("send_message"));
   assert(toolNames.has("reply_to_conversation"));
   assert(toolNames.has("send_media_message"));
-  assert.equal(requests.length, 0, "descoberta de tools iniciou I/O de Eventos");
+  assert.equal(
+    requests.length,
+    0,
+    "descoberta de tools iniciou I/O de Eventos",
+  );
 
   const result = await client.callTool({
     name: "list_messages",

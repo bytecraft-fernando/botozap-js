@@ -88,3 +88,12 @@ export type {
   EventPaging,
   EventList,
 } from "./types.js";
+
+export * from "./resources/saved-replies.js";
+export * from "./resources/inbox.js";
+export * from "./resources/crm.js";
+export * from "./resources/journeys.js";
+export * from "./resources/appointments.js";
+export * from "./resources/contact-configuration.js";
+export * from "./resources/calendar.js";
+export * from "./resources/agents.js";

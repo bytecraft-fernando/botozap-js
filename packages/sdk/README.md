@@ -308,3 +308,23 @@ Exemplos mínimos e rodáveis na raiz do monorepo, em [`examples/`](../../exampl
 ## Licença
 
 MIT
+
+## Atendimento, CRM e Agenda
+
+Recursos tipados: `savedReplies`, `inbox`, `opportunities`, `demands`, `radar`,
+`journeys`, `appointments` (inclui `services`, `schedules`, `exceptions`),
+`calendar`, `contactStages` e `contactFields`. As edições preservam os campos CAS
+exigidos pela API. Notas internas nunca enviam mensagem ao contato; rascunhos e
+respostas pessoais pertencem à sessão do Painel. Autorize Google Calendar no
+Painel antes de gerenciar conexões pelo SDK.
+
+Exemplo: `client.savedReplies.update(id, { body, expected_updated_at: row.updated_at })`.
+Não arredonde `updated_at`: preserve a precisão recebida do servidor.
+Criação de compromisso aceita segundo argumento `{ idempotencyKey: 'chave-estavel' }`.
+[Contratos, exemplos e roteiro de release](https://github.com/bytecraft-fernando/botozap-js/blob/main/docs/attendance-release.md).
+
+Agentes comerciais também estão disponíveis: configuração/ofertas, modelos,
+rascunho e publicação de comportamento, horários, execuções, prévias com chave
+estável, lacunas e pausa/retomada na conversa. SDK: `agents`; CLI: `agents`;
+MCP: `list_agents`, `get_agent_behavior`, `list_agent_models` e ferramentas de
+gestão correspondentes. Scopes `agents:read/write`; prévias podem consumir créditos.

@@ -1,5 +1,11 @@
 # @botozap/sdk
 
+## 0.4.0
+
+### Minor Changes
+
+- Add complete shared saved replies, Inbox notes/reminders/operator state, CRM opportunities and demands, Radar stage criteria, journey configuration and run control, appointment scheduling and Google Calendar operations, and commercial agent configuration, model discovery, behavior review/publication, previews, gaps and conversation control. Add contact stage/field discovery and complete assignment management in CLI/MCP. Preserve server CAS, pagination, idempotency and account identity boundaries. Existing methods remain available.
+
 ## 0.3.2
 
 ### Patch Changes

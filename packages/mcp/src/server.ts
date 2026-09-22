@@ -7,6 +7,11 @@ import { createRequire } from "node:module";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { createClient, DEFAULT_API_URL } from "./client.js";
 import { createRegister } from "./register.js";
+import { registerContactConfigurationTools } from "./tools/contact-configuration.js";
+import { registerCalendarTools } from "./tools/calendar.js";
+import { registerAgentTools } from "./tools/agents.js";
+import { registerAgendaTools } from "./tools/agenda.js";
+import { registerAttendanceTools } from "./tools/attendance.js";
 import { registerMessageTools } from "./tools/messages.js";
 import { registerConversationTools } from "./tools/conversations.js";
 import { registerContactTools } from "./tools/contacts.js";
@@ -55,6 +60,11 @@ export function buildServer(options: BuildServerOptions): McpServer {
   });
   const register = createRegister(server, client, options.apiKey);
 
+  registerAttendanceTools(register);
+  registerAgendaTools(register);
+  registerAgentTools(register);
+  registerCalendarTools(register);
+  registerContactConfigurationTools(register);
   registerMessageTools(register);
   registerConversationTools(register);
   registerContactTools(register);

@@ -206,3 +206,25 @@ pnpm --filter @botozap/cli test        # vitest
 pnpm --filter @botozap/cli build       # tsc -> dist/
 node packages/cli/dist/index.js --help
 ```
+
+## Atendimento, CRM e Agenda
+
+Comandos: `saved-replies`, `inbox-tools`, `opportunities`, `demands`, `radar`,
+`journeys`, `appointments`, `calendar`, `assignments`, `contact-stages` e
+`contact-fields`. Cada subcomando mostra campos e CAS em `--help`; os campos e
+filtros são lidos de `--input-file arquivo.json`. Use `-o json` para scripts.
+O arquivo mantém listas, objetos, null e timestamps precisos sem escape de shell.
+
+```sh
+botozap saved-replies list --input-file filtros.json -o json
+botozap opportunities create --input-file oportunidade.json -o json
+botozap appointments availability --input-file disponibilidade.json -o json
+```
+
+[Contratos e exemplos dos arquivos JSON](https://github.com/bytecraft-fernando/botozap-js/blob/main/docs/attendance-release.md).
+
+Agentes comerciais também estão disponíveis: configuração/ofertas, modelos,
+rascunho e publicação de comportamento, horários, execuções, prévias com chave
+estável, lacunas e pausa/retomada na conversa. SDK: `agents`; CLI: `agents`;
+MCP: `list_agents`, `get_agent_behavior`, `list_agent_models` e ferramentas de
+gestão correspondentes. Scopes `agents:read/write`; prévias podem consumir créditos.
