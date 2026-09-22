@@ -90,7 +90,7 @@ obrigatórios; `-o json` fornece saída para scripts. Exemplo de arquivo para
 
 - [ ] Servidor com migrations/scopes correspondentes e testes de isolamento.
 - [x] `pnpm install --frozen-lockfile`, `pnpm typecheck`, `pnpm build`, `pnpm test`.
-  Resultado local: 130 testes SDK, 73 CLI e 102 MCP, todos aprovados.
+  Resultado local: 130 testes SDK, 73 CLI e 104 MCP, todos aprovados.
 - [x] `pnpm gate:tarballs`: instala os três tarballs em consumidor limpo, verifica
   ESM/CJS, tipos, bins e MCP real sem credenciais live.
 - [x] Versões/changelogs gerados por Changesets: SDK 0.4.0, CLI 0.2.0 e MCP 0.3.0.
@@ -106,3 +106,5 @@ As operações novas não exigem regenerar chaves antigas para manter integraç�
 anteriores funcionando. Chaves restritas precisam dos scopes novos apenas para
 usar os recursos novos. Os gates de plano, ambiente, canal e consentimento
 continuam sendo decididos no servidor.
+
+Aditivos finais: Radar aceita `entity_type: appointment` e motivos de confirmação, resultado, conflito e falha de calendário. `agents.assist(id,{conversation_id,message,request_key})`, CLI `agents assist` e MCP `assist_agent_writing` sugerem texto sem enviar; a operação pode consumir crédito. Limite do texto: 6000 caracteres. A chave UUID deve permanecer estável ao consultar uma tentativa.

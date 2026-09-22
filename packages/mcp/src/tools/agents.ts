@@ -194,6 +194,32 @@ export function registerAgentTools(register: Register) {
     }),
   );
   register(
+    "assist_agent_writing",
+    "Sugere texto no contexto de uma conversa. Pode consumir créditos; requer solicitação do usuário. Não envia ao WhatsApp. agents:write.",
+    {
+      id: uuid,
+      conversation_id: uuid,
+      message: z.string().trim().min(1).max(6000),
+      request_key: uuid,
+    },
+    z.object({
+      data: z.object({
+        scenario: z.literal("assist"),
+        question: z.string(),
+        reply: z.string(),
+        cost_micros: z.string(),
+        remaining_micros: z.string(),
+      }),
+    }),
+    async (c, a) => ({
+      data: await c.agents.assist(String(a.id), {
+        conversation_id: String(a.conversation_id),
+        message: String(a.message),
+        request_key: String(a.request_key),
+      }),
+    }),
+  );
+  register(
     "list_agent_gaps",
     "Lacunas de conhecimento e avisos pendentes. agents:read.",
     { id: uuid, ...offset },

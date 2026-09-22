@@ -71,7 +71,7 @@ try {
   await client.connect(transport);
 
   const tools = await client.listTools();
-  assert.equal(tools.tools.length, 127);
+  assert.equal(tools.tools.length, 128);
   for (const name of [
     "get_inbox_tools",
     "list_saved_replies",
@@ -83,6 +83,7 @@ try {
     "list_agents",
     "list_agent_models",
     "get_agent_behavior",
+    "assist_agent_writing",
   ]) {
     assert.ok(
       tools.tools.some((tool) => tool.name === name),

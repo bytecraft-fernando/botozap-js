@@ -394,7 +394,9 @@ export function registerAttendanceTools(register: Register): void {
       ...offset,
       customer_id: uuid,
       bucket: z.enum(["critical", "at_risk", "scheduled"]).optional(),
-      entity_type: z.enum(["opportunity", "demand", "return"]).optional(),
+      entity_type: z
+        .enum(["opportunity", "demand", "return", "appointment"])
+        .optional(),
       owner_user_id: z.union([uuid, z.literal("unassigned")]).optional(),
       reason: z
         .enum([
@@ -407,6 +409,10 @@ export function registerAttendanceTools(register: Register): void {
           "automation_overdue",
           "automation_paused",
           "automation_stopped",
+          "confirmation_pending",
+          "appointment_outcome_missing",
+          "calendar_conflict",
+          "calendar_sync_failed",
         ])
         .optional(),
     },

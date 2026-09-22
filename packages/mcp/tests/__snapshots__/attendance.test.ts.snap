@@ -68,6 +68,7 @@ exports[`MCP Atendimento: schemas, domínio e transporte real em memória > cat�
   "control_agent",
   "list_agent_runs",
   "preview_agent",
+  "assist_agent_writing",
   "list_agent_gaps",
   "resolve_agent_gap",
   "control_conversation_agent",

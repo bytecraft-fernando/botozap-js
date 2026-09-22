@@ -396,3 +396,60 @@ describe("MCP Atendimento: schemas, domínio e transporte real em memória", () 
     expect(fetch).toHaveBeenCalledTimes(1);
   });
 });
+
+it("Radar aceita compromisso e motivo de calendário sem perder filtros", async () => {
+  const { client, fetch } = await connect({
+    data: [],
+    meta: {
+      page: 1,
+      per_page: 20,
+      total_count: 0,
+      total_pages: 0,
+      counts: { critical: 0, at_risk: 0, scheduled: 0 },
+    },
+  });
+  const result = await client.callTool({
+    name: "list_radar",
+    arguments: {
+      customer_id: id,
+      entity_type: "appointment",
+      reason: "calendar_conflict",
+    },
+  });
+  expect(result.isError, JSON.stringify(result)).toBeFalsy();
+  const url = new URL(String(fetch.mock.calls[0][0]));
+  expect(url.searchParams.get("entity_type")).toBe("appointment");
+  expect(url.searchParams.get("reason")).toBe("calendar_conflict");
+});
+
+it("assistência de escrita passa contexto e mantém retorno sem enviar mensagem", async () => {
+  const payload = {
+    data: {
+      scenario: "assist",
+      question: "Revisar",
+      reply: "Texto sugerido",
+      cost_micros: "10",
+      remaining_micros: "90",
+    },
+  };
+  const { client, fetch } = await connect(payload);
+  const result = await client.callTool({
+    name: "assist_agent_writing",
+    arguments: {
+      id,
+      conversation_id: other,
+      message: "Revisar",
+      request_key: id,
+    },
+  });
+  expect(result.isError).toBeFalsy();
+  expect(result.structuredContent).toEqual(payload);
+  const [url, init] = fetch.mock.calls[0] as unknown as [string, RequestInit];
+  expect(new URL(url).pathname).toBe(`/v1/agents/${id}/assist`);
+  expect(JSON.parse(String(init.body))).toEqual({
+    conversation_id: other,
+    message: "Revisar",
+    request_key: id,
+  });
+  expect(fetch).toHaveBeenCalledOnce();
+});

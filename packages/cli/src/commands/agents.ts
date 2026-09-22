@@ -1,6 +1,7 @@
 import type { Command } from "commander";
 import type {
   AgentConfig,
+  AgentAssistInput,
   AgentBehavior,
   AgentHours,
   AgentPreviewScenario,
@@ -80,6 +81,13 @@ export function registerAgents(program: Command) {
         p as { scenario: AgentPreviewScenario; request_key: string },
       ),
     ["scenario", "request_key"],
+  );
+  operation(
+    group,
+    "assist <id>",
+    "Sugere texto com contexto da conversa; pode consumir crédito, sem enviar mensagem",
+    (c, id, p) => c.agents.assist(id!, p as unknown as AgentAssistInput),
+    ["conversation_id", "message", "request_key"],
   );
   operation(
     group,

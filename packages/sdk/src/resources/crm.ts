@@ -144,7 +144,7 @@ export class CrmResource<F extends CrmFields, R> {
 }
 export interface RadarEntry {
   id: string;
-  entity_type: "opportunity" | "demand" | "return";
+  entity_type: "opportunity" | "demand" | "return" | "appointment";
   title: string;
   customer_id: string;
   contact_id: string;
@@ -189,7 +189,11 @@ export interface RadarQuery extends OffsetParams {
     | "automation_failed"
     | "automation_overdue"
     | "automation_paused"
-    | "automation_stopped";
+    | "automation_stopped"
+    | "confirmation_pending"
+    | "appointment_outcome_missing"
+    | "calendar_conflict"
+    | "calendar_sync_failed";
 }
 export type RadarPage = OffsetList<RadarEntry> & {
   meta: { counts: Record<RadarEntry["bucket"], number> };

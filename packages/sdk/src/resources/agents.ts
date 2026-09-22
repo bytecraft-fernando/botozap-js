@@ -45,6 +45,14 @@ export interface AgentPreview {
   cost_micros: string;
   remaining_micros: string;
 }
+export interface AgentAssistInput {
+  conversation_id: string;
+  message: string;
+  request_key: string;
+}
+export interface AgentAssist extends Omit<AgentPreview, "scenario"> {
+  scenario: "assist";
+}
 export interface AgentRun {
   id: string;
   [key: string]: unknown;
@@ -141,6 +149,13 @@ export class Agents {
     return this.client.requestItem(
       "POST",
       `/agents/${encodeURIComponent(id)}/preview`,
+      { body: input },
+    );
+  }
+  assist(id: string, input: AgentAssistInput): Promise<AgentAssist> {
+    return this.client.requestItem(
+      "POST",
+      `/agents/${encodeURIComponent(id)}/assist`,
       { body: input },
     );
   }
