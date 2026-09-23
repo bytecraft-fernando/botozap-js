@@ -190,7 +190,7 @@ export function registerAttendanceTools(register: Register): void {
     "Lista respostas compartilhadas. Exige saved_replies:read. Respostas pessoais só existem na sessão do Painel.",
     {
       ...offset,
-      query: z.string().max(200).optional(),
+      query: z.string().trim().max(100).optional(),
       customer_id: z.union([uuid, z.literal("account")]).optional(),
       include_account: z.boolean().optional(),
     },

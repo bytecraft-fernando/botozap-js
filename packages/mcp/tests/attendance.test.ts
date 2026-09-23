@@ -188,6 +188,35 @@ const cases: Array<[string, Record<string, unknown>, string, string, unknown]> =
     ],
   ];
 describe("MCP Atendimento: schemas, domínio e transporte real em memória", () => {
+  it("busca de respostas respeita o limite de 100 caracteres da API após trim", async () => {
+    const payload = {
+      data: [],
+      meta: { page: 1, per_page: 20, total_count: 0, total_pages: 0 },
+    };
+    const { client, fetch } = await connect(payload);
+    const { tools } = await client.listTools();
+    const tool = tools.find((candidate) => candidate.name === "list_saved_replies");
+    expect(tool?.inputSchema.properties?.query).toMatchObject({ maxLength: 100 });
+
+    const query = "á".repeat(100);
+    const accepted = await client.callTool({
+      name: "list_saved_replies",
+      arguments: { query: `  ${query}  ` },
+    });
+    expect(accepted.isError).toBeFalsy();
+    expect(accepted.structuredContent).toEqual(payload);
+    expect(fetch).toHaveBeenCalledTimes(1);
+    const url = new URL(String(fetch.mock.calls[0][0]));
+    expect(url.pathname).toBe("/v1/saved-replies");
+    expect(url.searchParams.get("query")).toBe(query);
+
+    const rejected = await client.callTool({
+      name: "list_saved_replies",
+      arguments: { query: `${query}á` },
+    });
+    expect(rejected.isError).toBe(true);
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
   it.each(cases)("%s", async (name, args, method, path, body) => {
     const { client, fetch } = await connect();
     const result = await client.callTool({ name, arguments: args });
