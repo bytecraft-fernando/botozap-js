@@ -2290,7 +2290,8 @@ export const AI_OPERATIONS: readonly AiOperation[] = [
     method: "PUT",
     path: "/ai/usage/rates",
     shape: "item",
-    description: "",
+    description:
+      "Tarifas próprias: audio_pricing ausente preserva, null remove. Reservas de tokens são estimativas; o custo real pode excedê-las.",
     fields: {
       customer_id: {
         type: "uuid",
@@ -2320,6 +2321,7 @@ export const AI_OPERATIONS: readonly AiOperation[] = [
         type: "number",
         optional: false,
       },
+      audio_pricing: { type: "audioPricing", optional: true },
       expected_revision: {
         type: "number",
         optional: false,

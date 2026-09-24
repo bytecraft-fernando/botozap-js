@@ -306,3 +306,55 @@ it("accepts case capability and explicit media settings in version configuration
       .video_frames_enabled,
   ).toBe(false);
 });
+
+it("discovers nullable audio tariffs and preserves token reservation limits", async () => {
+  const { client, fetch } = await connect();
+  const tool = (await client.listTools()).tools.find(
+    (t) => t.name === "ai_usage_save_rate",
+  )!;
+  expect(tool.inputSchema.properties).toHaveProperty("audio_pricing");
+  const base = {
+    customer_id: id,
+    provider: "openai",
+    model: "fixture-transcribe",
+    input_usd_per_million: 0,
+    output_usd_per_million: 0,
+    cache_read_usd_per_million: 0,
+    cache_write_usd_per_million: 0,
+    expected_revision: 2,
+  };
+  const audio_pricing = {
+    unit: "tokens",
+    input_audio_usd_per_million: 2,
+    input_text_usd_per_million: 1,
+    output_text_usd_per_million: 5,
+    max_input_tokens: 16000,
+    max_output_tokens: 2000,
+  };
+  const result = await client.callTool({
+    name: "ai_usage_save_rate",
+    arguments: { ...base, audio_pricing },
+  });
+  expect(result.isError).not.toBe(true);
+  expect(
+    JSON.parse(String(fetch.mock.calls[0]![1]?.body)).audio_pricing,
+  ).toEqual(audio_pricing);
+  fetch.mockClear();
+  const bad = await client.callTool({
+    name: "ai_usage_save_rate",
+    arguments: {
+      ...base,
+      audio_pricing: { ...audio_pricing, max_input_tokens: 0 },
+    },
+  });
+  expect(bad.isError).toBe(true);
+  expect(fetch).not.toHaveBeenCalled();
+  const removed = await client.callTool({
+    name: "ai_usage_save_rate",
+    arguments: { ...base, audio_pricing: null },
+  });
+  expect(removed.isError).not.toBe(true);
+  expect(
+    JSON.parse(String(fetch.mock.calls[0]![1]?.body)).audio_pricing,
+  ).toBeNull();
+});

@@ -163,3 +163,46 @@ it("preserves reviewed conversation hash, zero permission revision and skill slu
   });
   expect(fetch.mock.calls[2]![0]).toContain("/catalog/custom%2Fskill/install");
 });
+
+it("keeps audio tariff omission, duration price and explicit removal distinct", async () => {
+  const { c, fetch } = client();
+  const base = {
+    customer_id: id,
+    provider: "openai" as const,
+    model: "fixture-transcribe",
+    input_usd_per_million: 0,
+    output_usd_per_million: 0,
+    cache_read_usd_per_million: 0,
+    cache_write_usd_per_million: 0,
+    expected_revision: 3,
+  };
+  await c.ai.usage.saveRate(base);
+  await c.ai.usage.saveRate({
+    ...base,
+    audio_pricing: { unit: "duration", usd_per_minute: 0.004 },
+  });
+  await c.ai.usage.saveRate({ ...base, audio_pricing: null });
+  const bodies = fetch.mock.calls.map((call) =>
+    JSON.parse(String(call[1]?.body)),
+  );
+  expect(bodies[0]).not.toHaveProperty("audio_pricing");
+  expect(bodies[1].audio_pricing).toEqual({
+    unit: "duration",
+    usd_per_minute: 0.004,
+  });
+  expect(bodies[2].audio_pricing).toBeNull();
+});
+it.each([
+  { unit: "tokens", input_audio_usd_per_million: 1 },
+  { unit: "duration", usd_per_minute: 1e-9 },
+  { unit: "duration", usd_per_minute: 1, max_input_tokens: 1 },
+])(
+  "rejects invalid audio tariffs from generic invoke before HTTP (%j)",
+  (audio_pricing) => {
+    const { c, fetch } = client();
+    expect(() =>
+      c.ai.invoke("usage", "saveRate", { customer_id: id, audio_pricing }),
+    ).toThrow("audio_pricing");
+    expect(fetch).not.toHaveBeenCalled();
+  },
+);

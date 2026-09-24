@@ -243,6 +243,26 @@ const schemas: Record<string, ZodTypeAny> = {
   nullableUuid: uuid.nullable(),
   nullableString: text.nullable(),
   nullableNumber: z.number().finite().nullable(),
+  audioPricing: z
+    .discriminatedUnion("unit", [
+      z
+        .object({
+          unit: z.literal("tokens"),
+          input_audio_usd_per_million: z.number().finite().min(0).max(100000),
+          input_text_usd_per_million: z.number().finite().min(0).max(100000),
+          output_text_usd_per_million: z.number().finite().min(0).max(100000),
+          max_input_tokens: z.number().int().min(1).max(100000000),
+          max_output_tokens: z.number().int().min(1).max(100000000),
+        })
+        .strict(),
+      z
+        .object({
+          unit: z.literal("duration"),
+          usd_per_minute: z.number().finite().min(0).max(100000),
+        })
+        .strict(),
+    ])
+    .nullable(),
   datetime: text.datetime({ offset: true }),
   secret: text.min(8).max(4096),
   evidence: text.trim().min(10).max(2000),

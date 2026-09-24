@@ -405,6 +405,17 @@ export type AiProposal = {
   applied_version_id: string | null;
   memory_entry_id: string | null;
 };
+/** Customer-supplied transcription rates. Reservations are estimates, not provider token caps. */
+export type AiAudioPricing =
+  | {
+      unit: "tokens";
+      input_audio_usd_per_million: number;
+      input_text_usd_per_million: number;
+      output_text_usd_per_million: number;
+      max_input_tokens: number;
+      max_output_tokens: number;
+    }
+  | { unit: "duration"; usd_per_minute: number };
 export type AiRateInput = AiScope & {
   provider: AiProvider;
   model: string;
@@ -412,6 +423,8 @@ export type AiRateInput = AiScope & {
   output_usd_per_million: number;
   cache_read_usd_per_million: number;
   cache_write_usd_per_million: number;
+  /** Omit to preserve the existing audio price; null explicitly removes it. */
+  audio_pricing?: AiAudioPricing | null;
   expected_revision: number;
 };
 export type AiBudgetInput = AiScope & {
@@ -550,7 +563,11 @@ export type AiBudget = Omit<
   AiBudgetInput,
   "customer_id" | "expected_revision"
 > & { revision: number; updated_at: string | null };
-export type AiRate = Omit<AiRateInput, "customer_id" | "expected_revision"> & {
+export type AiRate = Omit<
+  AiRateInput,
+  "customer_id" | "expected_revision" | "audio_pricing"
+> & {
+  audio_pricing: AiAudioPricing | null;
   revision: number;
   updated_at: string;
 };

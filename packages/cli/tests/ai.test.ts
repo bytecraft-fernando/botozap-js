@@ -120,3 +120,36 @@ it("reads only the explicitly supplied upload path and sends bytes directly", as
     new Uint8Array(await (fetch.mock.calls[1]![1].body as Blob).arrayBuffer()),
   ).toEqual(new Uint8Array([80, 75, 1]));
 });
+
+it("passes audio pricing JSON exactly and rejects mixed units before HTTP", async () => {
+  const base = {
+    customer_id: id,
+    provider: "openai",
+    model: "fixture-transcribe",
+    input_usd_per_million: 0,
+    output_usd_per_million: 0,
+    cache_read_usd_per_million: 0,
+    cache_write_usd_per_million: 0,
+    expected_revision: 2,
+  };
+  const result = await call("usage", "save-rate", {
+    ...base,
+    audio_pricing: { unit: "duration", usd_per_minute: 0.004 },
+  });
+  expect(result.error).toBeUndefined();
+  expect(JSON.parse(fetch.mock.calls[0]![1].body).audio_pricing).toEqual({
+    unit: "duration",
+    usd_per_minute: 0.004,
+  });
+  fetch.mockClear();
+  const bad = await call("usage", "save-rate", {
+    ...base,
+    audio_pricing: {
+      unit: "duration",
+      usd_per_minute: 0.004,
+      max_output_tokens: 2,
+    },
+  });
+  expect(bad.error).toBeDefined();
+  expect(fetch).not.toHaveBeenCalled();
+});

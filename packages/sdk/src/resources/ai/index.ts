@@ -55,6 +55,7 @@ import type {
   AiSkillInput,
   AiSourceKind,
 } from "./types.js";
+import { assertAudioPricing } from "./audio-pricing.js";
 import { uploadArtifact } from "./upload.js";
 import { AI_OPERATIONS, type AiOperation } from "./operations.js";
 export * from "./types.js";
@@ -62,6 +63,12 @@ export * from "./operations.js";
 
 function request<T>(client: BotoZap, op: AiOperation, raw: object): Promise<T> {
   const input = { ...raw } as Record<string, unknown>;
+  if (
+    op.group === "usage" &&
+    op.name === "saveRate" &&
+    input.audio_pricing !== undefined
+  )
+    assertAudioPricing(input.audio_pricing);
   const path = op.path.replace(/:([a-z_]+)/g, (_, key: string) => {
     const value = input[key];
     if (typeof value !== "string" || !value)
