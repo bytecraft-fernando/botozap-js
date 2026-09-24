@@ -268,3 +268,27 @@ monorepo e precisa virar a versão do SDK no artefato. A versão 0.2.5 violou es
 contrato; a 0.2.6 corrige a instalação. Após publicar, instale a versão exata em
 um projeto vazio **sem overrides** e repita o cliente MCP real. O gate com
 override serve para candidatos cujo SDK ainda não está no registry.
+
+## Atendimento, CRM e Agenda
+
+O catálogo inclui respostas compartilhadas, notas/retornos/arquivo/adiamento,
+oportunidades/demandas com histórico e conversas, Radar, réguas e execuções,
+Agenda completa e sincronização Google Calendar. Etapas, campos e atribuições
+a membros também podem ser descobertos e gerenciados. Cada operação tem schemas
+de entrada e saída estruturada, com campos de versão exigidos quando aplicável.
+
+A chave representa a Conta: não acessa rascunhos/respostas pessoais nem executa
+a autorização OAuth em nome de um humano. Configure Google em `/calendarios`.
+Ferramentas de réguas e ativação podem gerar envios: use conforme instrução do
+usuário, preservando o controle de canal, consentimento e plano do servidor.
+
+[Scopes, CAS e roteiro de release](https://github.com/bytecraft-fernando/botozap-js/blob/main/docs/attendance-release.md).
+
+IA usa exclusivamente credenciais próprias (BYOK): SDK `client.ai`, CLI `botozap ai`
+e ferramentas MCP `ai_*`. Agentes versionados, provedores, credenciais, conhecimento,
+memória, skills, follow-ups e retornos prometidos, roteadores, casos, alertas,
+avisos, propostas de aprendizado e comerciais, controle de acesso (elegibilidade),
+inferências, promessas do operador, catálogo de modelos, execuções e uso. Scopes
+`agents:read/write`; aprovação exige chave criada por
+owner/admin ainda autorizado. Prévia não envia WhatsApp. Não há carteira, créditos
+ou compra de vagas de IA. [Contratos e exemplos IA](https://github.com/bytecraft-fernando/botozap-js/blob/main/docs/ai.md).

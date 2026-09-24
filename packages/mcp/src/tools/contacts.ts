@@ -8,6 +8,9 @@ import {
   listContactsResultSchema,
 } from "../schemas.js";
 
+/** Limites finais (20 × 40) são validados pelo servidor após aparar e remover repetidas. */
+const tagList = z.array(z.string().max(200)).max(200);
+
 export function registerContactTools(register: Register): void {
   register(
     "list_contacts",
@@ -50,6 +53,9 @@ export function registerContactTools(register: Register): void {
       user_id: z.string().optional().describe("BSUID do usuário."),
       username: z.string().optional(),
       parent_user_id: z.string().optional(),
+      tags: tagList.optional().describe(
+        "Até 20 tags de 1–40 caracteres; repetidas (sem diferenciar maiúsculas) são removidas.",
+      ),
     },
     contactResultSchema,
     async (client, args) => ({
@@ -59,11 +65,14 @@ export function registerContactTools(register: Register): void {
 
   register(
     "update_contact",
-    "Atualiza um contato (campos editáveis: profile_name, username). Retorna { data }.",
+    "Atualiza um contato (campos editáveis: profile_name, username, tags). `tags` substitui a lista inteira; `add_tags`/`remove_tags` alteram a lista atual. Não combine `tags` com `add_tags`/`remove_tags`. Retorna { data }.",
     {
       id: z.string().describe("ID do contato (uuid interno)."),
       profile_name: z.string().optional(),
       username: z.string().optional(),
+      tags: tagList.optional().describe("Substitui todas as tags (até 20 × 40 caracteres)."),
+      add_tags: tagList.optional().describe("Acrescenta tags à lista atual."),
+      remove_tags: tagList.optional().describe("Remove tags da lista atual (sem diferenciar maiúsculas)."),
     },
     contactResultSchema,
     async (client, args) => {

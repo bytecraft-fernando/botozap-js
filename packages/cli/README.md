@@ -206,3 +206,28 @@ pnpm --filter @botozap/cli test        # vitest
 pnpm --filter @botozap/cli build       # tsc -> dist/
 node packages/cli/dist/index.js --help
 ```
+
+## Atendimento, CRM e Agenda
+
+Comandos: `saved-replies`, `inbox-tools`, `opportunities`, `demands`, `radar`,
+`journeys`, `appointments`, `calendar`, `assignments`, `contact-stages` e
+`contact-fields`. Cada subcomando mostra campos e CAS em `--help`; os campos e
+filtros são lidos de `--input-file arquivo.json`. Use `-o json` para scripts.
+O arquivo mantém listas, objetos, null e timestamps precisos sem escape de shell.
+
+```sh
+botozap saved-replies list --input-file filtros.json -o json
+botozap opportunities create --input-file oportunidade.json -o json
+botozap appointments availability --input-file disponibilidade.json -o json
+```
+
+[Contratos e exemplos dos arquivos JSON](https://github.com/bytecraft-fernando/botozap-js/blob/main/docs/attendance-release.md).
+
+IA usa exclusivamente credenciais próprias (BYOK): SDK `client.ai`, CLI `botozap ai`
+e ferramentas MCP `ai_*`. Agentes versionados, provedores, credenciais, conhecimento,
+memória, skills, follow-ups e retornos prometidos, roteadores, casos, alertas,
+avisos, propostas de aprendizado e comerciais, controle de acesso (elegibilidade),
+inferências, promessas do operador, catálogo de modelos, execuções e uso. Scopes
+`agents:read/write`; aprovação exige chave criada por
+owner/admin ainda autorizado. Prévia não envia WhatsApp. Não há carteira, créditos
+ou compra de vagas de IA. [Contratos e exemplos IA](https://github.com/bytecraft-fernando/botozap-js/blob/main/docs/ai.md).

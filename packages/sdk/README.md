@@ -258,7 +258,10 @@ Passe um `AbortSignal` quando a leitura fizer parte de um tail cancelável:
 
 ```ts
 const controller = new AbortController();
-const page = await boto.events.list({ after: ultimoCursor, signal: controller.signal });
+const page = await boto.events.list({
+  after: ultimoCursor,
+  signal: controller.signal,
+});
 controller.abort(); // interrompe o I/O se a assinatura deixou de existir
 ```
 
@@ -308,3 +311,46 @@ Exemplos mínimos e rodáveis na raiz do monorepo, em [`examples/`](../../exampl
 ## Licença
 
 MIT
+
+## Atendimento, CRM e Agenda
+
+Recursos tipados: `savedReplies`, `inbox`, `opportunities`, `demands`, `radar`,
+`journeys`, `appointments` (inclui `services`, `schedules`, `exceptions`),
+`calendar`, `contactStages` e `contactFields`. As edições preservam os campos CAS
+exigidos pela API. Notas internas nunca enviam mensagem ao contato; rascunhos e
+respostas pessoais pertencem à sessão do Painel. Autorize Google Calendar no
+Painel antes de gerenciar conexões pelo SDK.
+
+Exemplo: `client.savedReplies.update(id, { body, expected_updated_at: row.updated_at })`.
+Não arredonde `updated_at`: preserve a precisão recebida do servidor.
+Criação de compromisso aceita segundo argumento `{ idempotencyKey: 'chave-estavel' }`.
+[Contratos, exemplos e roteiro de release](https://github.com/bytecraft-fernando/botozap-js/blob/main/docs/attendance-release.md).
+
+IA usa exclusivamente credenciais próprias (BYOK): SDK `client.ai`, CLI `botozap ai`
+e ferramentas MCP `ai_*`. Agentes versionados, provedores, credenciais, conhecimento,
+memória, skills, follow-ups e retornos prometidos, roteadores, casos, alertas,
+avisos, propostas de aprendizado e comerciais, controle de acesso (elegibilidade),
+inferências, promessas do operador, catálogo de modelos, execuções e uso. Scopes
+`agents:read/write`; aprovação exige chave criada por
+owner/admin ainda autorizado. Prévia não envia WhatsApp. Não há carteira, créditos
+ou compra de vagas de IA. [Contratos e exemplos IA](https://github.com/bytecraft-fernando/botozap-js/blob/main/docs/ai.md).
+
+### Tarifas próprias de transcrição
+
+`client.ai.usage.saveRate` aceita `audio_pricing` separado das tarifas de texto.
+Omitir preserva a configuração anterior; `null` remove a tarifa de áudio.
+Informe os preços do contrato da sua chave, sem assumir valores padrão:
+
+- `{ unit: "duration", usd_per_minute }` cobra por duração verificada.
+- `{ unit: "tokens", input_audio_usd_per_million, input_text_usd_per_million, output_text_usd_per_million, max_input_tokens, max_output_tokens }` usa as unidades de áudio/texto informadas pelo provedor.
+
+Preços: 0–100.000, até oito casas decimais. Reservas de tokens: inteiros de
+1–100.000.000. São estimativas para admissão, não limites técnicos impostos ao
+provedor; o custo real pode superar a reserva. Cada chamada preserva sua tarifa.
+A ausência de preço ou de medição compatível mantém o custo desconhecido e pode
+bloquear novas chamadas. `usage.reprice`, com confirmação explícita, também estima
+transcrições anteriores com unidades compatíveis e sem tarifa registrada; não
+substitui snapshots nem transforma uma inferência incerta em custo zero.
+
+A CLI `ai usage save-rate` recebe o mesmo JSON por `--input-file`; o MCP expõe
+`audio_pricing` opcional e anulável na ferramenta `ai_usage_save_rate`.

@@ -178,6 +178,10 @@ export const contactSchema = z
     created_at: z.string(),
     notes: z.string().nullable(),
     metadata: jsonValueSchema.nullable(),
+    tags: z
+      .array(z.string())
+      .optional()
+      .describe("Tags do contato (servidores com #498 sempre devolvem a lista)."),
     stage: z
       .object({
         id: internalUuidSchema,

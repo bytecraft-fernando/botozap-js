@@ -1,0 +1,221 @@
+import { mkdtemp, writeFile, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { beforeEach, afterEach, it, expect, vi } from "vitest";
+import { registerAi } from "../src/commands/ai.js";
+import { run } from "./helpers.js";
+let directory: string;
+const fetch = vi.fn(),
+  id = "11111111-1111-4111-8111-111111111111";
+beforeEach(async () => {
+  directory = await mkdtemp(join(tmpdir(), "botozap-ai-"));
+  fetch
+    .mockReset()
+    .mockImplementation(async () => Response.json({ data: { id } }));
+  vi.stubGlobal("fetch", fetch);
+});
+afterEach(async () => {
+  vi.unstubAllGlobals();
+  await rm(directory, { recursive: true, force: true });
+});
+async function call(group: string, command: string, input: unknown) {
+  const file = join(directory, "input.json");
+  await writeFile(file, JSON.stringify(input));
+  return run(registerAi, [
+    "ai",
+    group,
+    command,
+    "--input-file",
+    file,
+    "--api-key",
+    "bz_live_fake",
+    "--api-url",
+    "https://example.test/v1",
+    "-o",
+    "json",
+  ]);
+}
+it("preserves opaque revisions and does not retry conflict", async () => {
+  fetch.mockImplementation(async () =>
+    Response.json(
+      { error: { code: "revision_conflict", message: "Mudou" } },
+      { status: 409 },
+    ),
+  );
+  const body = {
+    id,
+    customer_id: id,
+    expected_revision: "9007199254740993",
+    name: "Agente",
+    config: { system_prompt: "Olá\n😀" },
+  };
+  const result = await call("agents", "save-draft", body);
+  expect(result.error).toMatchObject({ code: "revision_conflict" });
+  expect(fetch).toHaveBeenCalledOnce();
+  expect(JSON.parse(fetch.mock.calls[0]![1].body).expected_revision).toBe(
+    body.expected_revision,
+  );
+});
+it("requires attempt UUID input and explicit real-send confirmation", async () => {
+  const result = await call("agents", "preview", {
+    customer_id: id,
+    id,
+    version_id: id,
+    messages: [{ role: "user", content: "Oi" }],
+  });
+  expect(String(result.error)).toContain("operation_key");
+  const send = await call("notices", "test", {
+    customer_id: id,
+    operation_key: id,
+    confirm_send: false,
+  });
+  expect(String(send.error)).toContain("confirm_send");
+  expect(fetch).not.toHaveBeenCalled();
+});
+it("keeps numeric budget CAS separate from opaque credential CAS", async () => {
+  const result = await call("usage", "save-budget", {
+    customer_id: id,
+    expected_revision: 0,
+    mode: "off",
+    monthly_limit_usd: null,
+    alarm_threshold_pct: 80,
+  });
+  expect(result.error).toBeUndefined();
+  const bad = await call("credentials", "revalidate", {
+    customer_id: id,
+    id,
+    expected_revision: 3,
+  });
+  expect(String(bad.error)).toContain("string");
+});
+it("reads only the explicitly supplied upload path and sends bytes directly", async () => {
+  const path = join(directory, "skill.zip");
+  await writeFile(path, Buffer.from([80, 75, 1]));
+  fetch.mockImplementation(async (url, options) =>
+    String(url).endsWith("/ai/uploads")
+      ? Response.json({
+          data: {
+            upload_id: id,
+            upload_url: "https://storage.test/file",
+            headers: { "Content-Type": "application/zip" },
+            expires_at: "2999-01-01T00:00:00Z",
+          },
+        })
+      : String(url) === "https://storage.test/file"
+        ? new Response(null, { status: 200 })
+        : Response.json({ data: { id } }),
+  );
+  const result = await call("skills", "import-zip", {
+    customer_id: id,
+    file_path: path,
+  });
+  expect(result.error).toBeUndefined();
+  expect(JSON.parse(String(fetch.mock.calls[0]![1].body))).toMatchObject({
+    file_name: "skill.zip",
+    customer_id: id,
+    byte_size: 3,
+  });
+  expect(fetch.mock.calls[1]![1].headers).not.toHaveProperty("Authorization");
+  expect(
+    new Uint8Array(await (fetch.mock.calls[1]![1].body as Blob).arrayBuffer()),
+  ).toEqual(new Uint8Array([80, 75, 1]));
+});
+
+it("passes audio pricing JSON exactly and rejects mixed units before HTTP", async () => {
+  const base = {
+    customer_id: id,
+    provider: "openai",
+    model: "fixture-transcribe",
+    input_usd_per_million: 0,
+    output_usd_per_million: 0,
+    cache_read_usd_per_million: 0,
+    cache_write_usd_per_million: 0,
+    expected_revision: 2,
+  };
+  const result = await call("usage", "save-rate", {
+    ...base,
+    audio_pricing: { unit: "duration", usd_per_minute: 0.004 },
+  });
+  expect(result.error).toBeUndefined();
+  expect(JSON.parse(fetch.mock.calls[0]![1].body).audio_pricing).toEqual({
+    unit: "duration",
+    usd_per_minute: 0.004,
+  });
+  fetch.mockClear();
+  const bad = await call("usage", "save-rate", {
+    ...base,
+    audio_pricing: {
+      unit: "duration",
+      usd_per_minute: 0.004,
+      max_output_tokens: 2,
+    },
+  });
+  expect(bad.error).toBeDefined();
+  expect(fetch).not.toHaveBeenCalled();
+});
+
+it("exposes #498 commands with exact bodies and client-side revision checks", async () => {
+  const gate = await call("eligibility", "save-channel", {
+    customer_id: id,
+    id,
+    expected_revision: "0",
+    mode: "open",
+    test_phone_numbers: [],
+    confirm_open_to_all: true,
+  });
+  expect(gate.error).toBeUndefined();
+  expect(String(fetch.mock.calls[0]![0])).toBe(
+    `https://example.test/v1/ai/eligibility/channels/${id}`,
+  );
+  expect(JSON.parse(fetch.mock.calls[0]![1].body)).toEqual({
+    customer_id: id,
+    expected_revision: "0",
+    mode: "open",
+    test_phone_numbers: [],
+    confirm_open_to_all: true,
+  });
+  fetch.mockClear();
+  const numeric = await call("memory", "reactivate-entry", {
+    customer_id: id,
+    id,
+    expected_revision: 4,
+  });
+  expect(String(numeric.error)).toContain("string");
+  const missing = await call("commercial-proposals", "decide", {
+    customer_id: id,
+    id,
+    decision: "approve",
+  });
+  expect(String(missing.error)).toContain("seq");
+  expect(fetch).not.toHaveBeenCalled();
+  const decision = await call("commercial-proposals", "decide", {
+    customer_id: id,
+    id,
+    decision: "dismiss",
+    seq: 2,
+  });
+  expect(decision.error).toBeUndefined();
+  expect(String(fetch.mock.calls[0]![0])).toContain(
+    `/ai/commercial-proposals/${id}/decision`,
+  );
+});
+
+it("accepts granular binding purposes but keeps version-owned purposes out", async () => {
+  const ok = await call("providers", "save-binding", {
+    customer_id: id,
+    purpose: "commercial_proposal",
+    provider: "openai",
+    model: "gpt-4.1-mini",
+    credential_id: id,
+  });
+  expect(ok.error).toBeUndefined();
+  const owned = await call("providers", "save-binding", {
+    customer_id: id,
+    purpose: "router",
+    provider: "openai",
+    model: "gpt-4.1-mini",
+    credential_id: id,
+  });
+  expect(String(owned.error)).toContain("finalidade");
+  expect(fetch).toHaveBeenCalledOnce();
+});

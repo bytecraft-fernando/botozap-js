@@ -103,6 +103,8 @@ export interface BroadcastRecipient {
 export interface Contact {
   id: string;
   wa_id?: string;
+  /** Contact tags (stored in metadata.tags); returned by servers with #498. */
+  tags?: string[];
   [key: string]: unknown;
 }
 

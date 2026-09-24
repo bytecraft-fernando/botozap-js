@@ -1,3 +1,21 @@
+import { Ai } from "./resources/ai/index.js";
+import { Calendar } from "./resources/calendar.js";
+import {
+  ContactStages,
+  ContactFields,
+} from "./resources/contact-configuration.js";
+import { Appointments } from "./resources/appointments.js";
+import { Journeys } from "./resources/journeys.js";
+import { SavedReplies } from "./resources/saved-replies.js";
+import { Inbox } from "./resources/inbox.js";
+import {
+  CrmResource,
+  Radar,
+  type OpportunityFields,
+  type Opportunity,
+  type DemandFields,
+  type Demand,
+} from "./resources/crm.js";
 import { BotoZapError } from "./errors.js";
 import { Messages } from "./resources/messages.js";
 import { Customers } from "./resources/customers.js";
@@ -22,6 +40,8 @@ export interface BotoZapOptions {
 }
 
 export interface RequestOptions {
+  /** Chave estável da operação para endpoints que suportam idempotência. */
+  idempotencyKey?: string;
   query?: Record<string, string | number | undefined>;
   body?: unknown;
   /** Cancela o I/O HTTP sem alterar o envelope de erro do SDK. */
@@ -47,6 +67,17 @@ export class BotoZap {
   readonly conversations: Conversations;
   readonly webhooks: Webhooks;
   readonly phoneNumbers: PhoneNumbers;
+  readonly contactStages: ContactStages;
+  readonly contactFields: ContactFields;
+  readonly calendar: Calendar;
+  readonly ai: Ai;
+  readonly appointments: Appointments;
+  readonly journeys: Journeys;
+  readonly savedReplies: SavedReplies;
+  readonly inbox: Inbox;
+  readonly opportunities: CrmResource<OpportunityFields, Opportunity>;
+  readonly demands: CrmResource<DemandFields, Demand>;
+  readonly radar: Radar;
   readonly flows: Flows;
   readonly media: Media;
   readonly events: Events;
@@ -73,6 +104,17 @@ export class BotoZap {
     }
     this.fetchImpl = resolvedFetch;
 
+    this.contactStages = new ContactStages(this);
+    this.contactFields = new ContactFields(this);
+    this.calendar = new Calendar(this);
+    this.ai = new Ai(this);
+    this.appointments = new Appointments(this);
+    this.journeys = new Journeys(this);
+    this.savedReplies = new SavedReplies(this);
+    this.inbox = new Inbox(this);
+    this.opportunities = new CrmResource(this, "/opportunities");
+    this.demands = new CrmResource(this, "/demands");
+    this.radar = new Radar(this);
     this.messages = new Messages(this);
     this.customers = new Customers(this);
     this.templates = new Templates(this);
@@ -87,6 +129,43 @@ export class BotoZap {
     this.users = new Users(this);
     this.apiLogs = new ApiLogs(this);
     this.webhookDeliveries = new WebhookDeliveries(this);
+  }
+
+  /** PUT de artefato em URL assinada, sem token BotoZap nem cookies. Não segue redirecionamentos. */
+  async putArtifact(
+    url: string,
+    contentType: string,
+    file: Blob,
+  ): Promise<void> {
+    const target = new URL(url);
+    if (target.protocol !== "https:" || target.username || target.password)
+      throw new BotoZapError(
+        "invalid_upload_url",
+        "URL de upload inválida.",
+        0,
+      );
+    let response: Response;
+    try {
+      response = await this.fetchImpl(target.toString(), {
+        method: "PUT",
+        headers: { "Content-Type": contentType },
+        body: file,
+        credentials: "omit",
+        redirect: "error",
+      });
+    } catch {
+      throw new BotoZapError(
+        "upload_transport_error",
+        "Falha ao enviar arquivo ao armazenamento; repita com o mesmo arquivo.",
+        0,
+      );
+    }
+    if (!response.ok)
+      throw new BotoZapError(
+        "upload_transport_error",
+        "Armazenamento não confirmou o arquivo; repita com o mesmo arquivo.",
+        response.status,
+      );
   }
 
   /** Faz uma requisição autenticada e devolve o corpo já parseado. */
@@ -108,10 +187,20 @@ export class BotoZap {
         method,
         headers: {
           Authorization: `Bearer ${this.apiKey}`,
-          "Content-Type": "application/json",
+          ...(opts.body instanceof FormData
+            ? {}
+            : { "Content-Type": "application/json" }),
           Accept: "application/json",
+          ...(opts.idempotencyKey
+            ? { "Idempotency-Key": opts.idempotencyKey }
+            : {}),
         },
-        body: opts.body === undefined ? undefined : JSON.stringify(opts.body),
+        body:
+          opts.body instanceof FormData
+            ? opts.body
+            : opts.body === undefined
+              ? undefined
+              : JSON.stringify(opts.body),
         signal: opts.signal,
       });
     } catch (cause) {
@@ -132,8 +221,7 @@ export class BotoZap {
     const data = raw ? safeJson(raw) : undefined;
 
     const envelope = data as
-      | { error?: { code?: string; message?: string } }
-      | undefined;
+      { error?: { code?: string; message?: string } } | undefined;
     // Um corpo `{ error: {...} }` é um ERRO ainda que o status seja 2xx. A rota
     // `GET /v1/media/:id` usa exatamente isso: quando a mídia ainda está sendo
     // espelhada, responde 202 + `{error:{code:"media_not_ready"}}` + `Retry-After`
@@ -215,8 +303,14 @@ export class BotoZap {
     opts: RequestOptions = {},
   ): Promise<T> {
     const value = await this.request<unknown>(method, path, opts);
-    if (!isObject(value) || !Array.isArray(value.data) || !isObject(value.paging)) {
-      throw malformed("resposta sem data[]/paging — contrato de cursor violado");
+    if (
+      !isObject(value) ||
+      !Array.isArray(value.data) ||
+      !isObject(value.paging)
+    ) {
+      throw malformed(
+        "resposta sem data[]/paging — contrato de cursor violado",
+      );
     }
     return value as T;
   }
@@ -228,7 +322,11 @@ export class BotoZap {
     opts: RequestOptions = {},
   ): Promise<T> {
     const value = await this.request<unknown>(method, path, opts);
-    if (!isObject(value) || !Array.isArray(value.data) || !isObject(value.meta)) {
+    if (
+      !isObject(value) ||
+      !Array.isArray(value.data) ||
+      !isObject(value.meta)
+    ) {
       throw malformed("resposta sem data[]/meta — contrato de offset violado");
     }
     return value as T;

@@ -23,6 +23,25 @@ export interface CreateContactParams {
   /** wa_id canônico (BSUID "BR.1A2B…" ou dígitos E.164). */
   wa_id: string;
   phone_number_id?: string;
+  /** Até 20 tags de 1–40 caracteres; o servidor apara e remove repetidas sem diferenciar maiúsculas. Não combine com metadata.tags. */
+  tags?: string[];
+  [key: string]: unknown;
+}
+
+/**
+ * Campos do PATCH. `tags` substitui a lista inteira; `add_tags`/`remove_tags`
+ * alteram a lista atual sem perder escrita concorrente. Não combine `tags` com
+ * `add_tags`/`remove_tags`, nem com `metadata.tags` (422 invalid_tags).
+ */
+export interface UpdateContactParams {
+  profile_name?: string;
+  username?: string;
+  notes?: string | null;
+  stage_id?: string | null;
+  metadata?: Record<string, unknown>;
+  tags?: string[];
+  add_tags?: string[];
+  remove_tags?: string[];
   [key: string]: unknown;
 }
 
@@ -60,7 +79,10 @@ export class Contacts {
     });
   }
 
-  update(id: string, params: Record<string, unknown>): Promise<Contact> {
+  update(
+    id: string,
+    params: UpdateContactParams | Record<string, unknown>,
+  ): Promise<Contact> {
     return this.client.requestItem<Contact>("PATCH", `/contacts/${enc(id)}`, {
       body: params,
     });

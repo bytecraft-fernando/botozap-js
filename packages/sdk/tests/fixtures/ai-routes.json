@@ -1,0 +1,598 @@
+[
+  {
+    "method": "POST",
+    "path": "/ai/knowledge/search/diagnostics"
+  },
+  {
+    "method": "GET",
+    "path": "/ai/knowledge/:id/catalog"
+  },
+  {
+    "method": "POST",
+    "path": "/ai/knowledge/:id/catalog"
+  },
+  {
+    "method": "GET",
+    "path": "/ai/knowledge/citations"
+  },
+  {
+    "method": "POST",
+    "path": "/ai/knowledge/coverage"
+  },
+  {
+    "method": "POST",
+    "path": "/ai/memory/entries/:id/reactivate"
+  },
+  {
+    "method": "GET",
+    "path": "/ai/memory/entries/:id/events"
+  },
+  {
+    "method": "GET",
+    "path": "/ai/skills/near-misses"
+  },
+  {
+    "method": "POST",
+    "path": "/ai/skills/near-misses/:id"
+  },
+  {
+    "method": "GET",
+    "path": "/ai/skills/composition"
+  },
+  {
+    "method": "GET",
+    "path": "/ai/operator-metrics"
+  },
+  {
+    "method": "GET",
+    "path": "/ai/promises"
+  },
+  {
+    "method": "POST",
+    "path": "/ai/agents/:id/archive"
+  },
+  {
+    "method": "POST",
+    "path": "/ai/agents/:id/duplicate"
+  },
+  {
+    "method": "POST",
+    "path": "/ai/agents/:id/operation"
+  },
+  {
+    "method": "POST",
+    "path": "/ai/agents/:id/preview"
+  },
+  {
+    "method": "POST",
+    "path": "/ai/agents/:id/publish"
+  },
+  {
+    "method": "POST",
+    "path": "/ai/agents/:id/restore"
+  },
+  {
+    "method": "GET",
+    "path": "/ai/agents/:id"
+  },
+  {
+    "method": "PUT",
+    "path": "/ai/agents/:id"
+  },
+  {
+    "method": "GET",
+    "path": "/ai/agents"
+  },
+  {
+    "method": "POST",
+    "path": "/ai/agents"
+  },
+  {
+    "method": "PATCH",
+    "path": "/ai/alerts/:id"
+  },
+  {
+    "method": "GET",
+    "path": "/ai/alerts"
+  },
+  {
+    "method": "POST",
+    "path": "/ai/alerts/resolve"
+  },
+  {
+    "method": "POST",
+    "path": "/ai/cases/:id/chat"
+  },
+  {
+    "method": "GET",
+    "path": "/ai/cases/:id/chat"
+  },
+  {
+    "method": "GET",
+    "path": "/ai/cases/:id/events"
+  },
+  {
+    "method": "GET",
+    "path": "/ai/cases/:id/messages"
+  },
+  {
+    "method": "POST",
+    "path": "/ai/cases/:id/reply"
+  },
+  {
+    "method": "PATCH",
+    "path": "/ai/cases/:id"
+  },
+  {
+    "method": "GET",
+    "path": "/ai/cases/:id"
+  },
+  {
+    "method": "GET",
+    "path": "/ai/cases"
+  },
+  {
+    "method": "GET",
+    "path": "/ai/commercial-proposals"
+  },
+  {
+    "method": "POST",
+    "path": "/ai/commercial-proposals"
+  },
+  {
+    "method": "POST",
+    "path": "/ai/commercial-proposals/:id/decision"
+  },
+  {
+    "method": "GET",
+    "path": "/ai/commercial-proposals/jobs"
+  },
+  {
+    "method": "GET",
+    "path": "/ai/commercial-proposals/settings"
+  },
+  {
+    "method": "PATCH",
+    "path": "/ai/commercial-proposals/settings"
+  },
+  {
+    "method": "GET",
+    "path": "/ai/inferences"
+  },
+  {
+    "method": "GET",
+    "path": "/ai/providers/catalog"
+  },
+  {
+    "method": "POST",
+    "path": "/ai/providers/catalog"
+  },
+  {
+    "method": "POST",
+    "path": "/ai/credentials/:id/revalidate"
+  },
+  {
+    "method": "GET",
+    "path": "/ai/credentials/:id"
+  },
+  {
+    "method": "PATCH",
+    "path": "/ai/credentials/:id"
+  },
+  {
+    "method": "DELETE",
+    "path": "/ai/credentials/:id"
+  },
+  {
+    "method": "GET",
+    "path": "/ai/credentials"
+  },
+  {
+    "method": "POST",
+    "path": "/ai/credentials"
+  },
+  {
+    "method": "GET",
+    "path": "/ai/eligibility"
+  },
+  {
+    "method": "PUT",
+    "path": "/ai/eligibility/settings"
+  },
+  {
+    "method": "GET",
+    "path": "/ai/eligibility/channels/:id"
+  },
+  {
+    "method": "PUT",
+    "path": "/ai/eligibility/channels/:id"
+  },
+  {
+    "method": "GET",
+    "path": "/ai/eligibility/authorizations"
+  },
+  {
+    "method": "POST",
+    "path": "/ai/eligibility/authorizations/:id/revoke"
+  },
+  {
+    "method": "POST",
+    "path": "/ai/executions/:id/decision"
+  },
+  {
+    "method": "GET",
+    "path": "/ai/executions/:id"
+  },
+  {
+    "method": "GET",
+    "path": "/ai/executions"
+  },
+  {
+    "method": "POST",
+    "path": "/ai/followup-flows/:id/publish"
+  },
+  {
+    "method": "POST",
+    "path": "/ai/followup-flows/:id/rollback"
+  },
+  {
+    "method": "GET",
+    "path": "/ai/followup-flows/:id"
+  },
+  {
+    "method": "PUT",
+    "path": "/ai/followup-flows/:id"
+  },
+  {
+    "method": "PATCH",
+    "path": "/ai/followup-flows/:id"
+  },
+  {
+    "method": "GET",
+    "path": "/ai/followup-flows/:id/versions"
+  },
+  {
+    "method": "GET",
+    "path": "/ai/followup-flows/from-model"
+  },
+  {
+    "method": "POST",
+    "path": "/ai/followup-flows/from-model"
+  },
+  {
+    "method": "GET",
+    "path": "/ai/followup-flows"
+  },
+  {
+    "method": "POST",
+    "path": "/ai/followup-flows"
+  },
+  {
+    "method": "POST",
+    "path": "/ai/followups/effects/:id/decision"
+  },
+  {
+    "method": "POST",
+    "path": "/ai/followups/effects/:id/resolve"
+  },
+  {
+    "method": "POST",
+    "path": "/ai/followups/enrollments/:id/control"
+  },
+  {
+    "method": "GET",
+    "path": "/ai/followups/enrollments/:id"
+  },
+  {
+    "method": "GET",
+    "path": "/ai/followups/enrollments"
+  },
+  {
+    "method": "POST",
+    "path": "/ai/followups/enrollments"
+  },
+  {
+    "method": "GET",
+    "path": "/ai/followups/queue"
+  },
+  {
+    "method": "GET",
+    "path": "/ai/followups/promises"
+  },
+  {
+    "method": "POST",
+    "path": "/ai/followups/promises"
+  },
+  {
+    "method": "GET",
+    "path": "/ai/followups/promises/:id"
+  },
+  {
+    "method": "POST",
+    "path": "/ai/followups/promises/:id/cancel"
+  },
+  {
+    "method": "POST",
+    "path": "/ai/followups/promises/:id/resolve"
+  },
+  {
+    "method": "GET",
+    "path": "/ai/knowledge/:id/chunks"
+  },
+  {
+    "method": "POST",
+    "path": "/ai/knowledge/:id/reindex"
+  },
+  {
+    "method": "PATCH",
+    "path": "/ai/knowledge/:id"
+  },
+  {
+    "method": "GET",
+    "path": "/ai/knowledge/:id"
+  },
+  {
+    "method": "DELETE",
+    "path": "/ai/knowledge/:id"
+  },
+  {
+    "method": "PATCH",
+    "path": "/ai/knowledge/conversations/:id/permission"
+  },
+  {
+    "method": "GET",
+    "path": "/ai/knowledge/conversations/:id/preview"
+  },
+  {
+    "method": "GET",
+    "path": "/ai/knowledge/conversations"
+  },
+  {
+    "method": "POST",
+    "path": "/ai/knowledge/import"
+  },
+  {
+    "method": "GET",
+    "path": "/ai/knowledge"
+  },
+  {
+    "method": "POST",
+    "path": "/ai/knowledge"
+  },
+  {
+    "method": "POST",
+    "path": "/ai/knowledge/search"
+  },
+  {
+    "method": "POST",
+    "path": "/ai/knowledge/upload"
+  },
+  {
+    "method": "GET",
+    "path": "/ai/memory/checkpoints"
+  },
+  {
+    "method": "POST",
+    "path": "/ai/memory/entries/:id/approve"
+  },
+  {
+    "method": "PATCH",
+    "path": "/ai/memory/entries/:id"
+  },
+  {
+    "method": "DELETE",
+    "path": "/ai/memory/entries/:id"
+  },
+  {
+    "method": "GET",
+    "path": "/ai/memory/entries"
+  },
+  {
+    "method": "POST",
+    "path": "/ai/memory/entries"
+  },
+  {
+    "method": "GET",
+    "path": "/ai/memory"
+  },
+  {
+    "method": "PUT",
+    "path": "/ai/memory"
+  },
+  {
+    "method": "PATCH",
+    "path": "/ai/memory"
+  },
+  {
+    "method": "GET",
+    "path": "/ai/memory/versions"
+  },
+  {
+    "method": "POST",
+    "path": "/ai/notices/jobs/:id/retry"
+  },
+  {
+    "method": "GET",
+    "path": "/ai/notices/jobs"
+  },
+  {
+    "method": "GET",
+    "path": "/ai/notices/options"
+  },
+  {
+    "method": "GET",
+    "path": "/ai/notices/diagnostics"
+  },
+  {
+    "method": "GET",
+    "path": "/ai/notices/effect"
+  },
+  {
+    "method": "GET",
+    "path": "/ai/notices"
+  },
+  {
+    "method": "PATCH",
+    "path": "/ai/notices"
+  },
+  {
+    "method": "POST",
+    "path": "/ai/notices/test"
+  },
+  {
+    "method": "PATCH",
+    "path": "/ai/proposals/:id"
+  },
+  {
+    "method": "POST",
+    "path": "/ai/proposals/analyze"
+  },
+  {
+    "method": "GET",
+    "path": "/ai/proposals"
+  },
+  {
+    "method": "GET",
+    "path": "/ai/proposals/settings"
+  },
+  {
+    "method": "PATCH",
+    "path": "/ai/proposals/settings"
+  },
+  {
+    "method": "GET",
+    "path": "/ai/providers/:provider/models"
+  },
+  {
+    "method": "GET",
+    "path": "/ai/providers"
+  },
+  {
+    "method": "PUT",
+    "path": "/ai/providers"
+  },
+  {
+    "method": "DELETE",
+    "path": "/ai/providers"
+  },
+  {
+    "method": "POST",
+    "path": "/ai/routers/:id/members/:agentId/activate"
+  },
+  {
+    "method": "POST",
+    "path": "/ai/routers/:id/operation"
+  },
+  {
+    "method": "GET",
+    "path": "/ai/routers/:id"
+  },
+  {
+    "method": "PUT",
+    "path": "/ai/routers/:id"
+  },
+  {
+    "method": "DELETE",
+    "path": "/ai/routers/:id"
+  },
+  {
+    "method": "POST",
+    "path": "/ai/routers/:id/test"
+  },
+  {
+    "method": "GET",
+    "path": "/ai/routers"
+  },
+  {
+    "method": "POST",
+    "path": "/ai/routers"
+  },
+  {
+    "method": "GET",
+    "path": "/ai/skills/:id/references"
+  },
+  {
+    "method": "PATCH",
+    "path": "/ai/skills/:id"
+  },
+  {
+    "method": "DELETE",
+    "path": "/ai/skills/:id"
+  },
+  {
+    "method": "GET",
+    "path": "/ai/skills/:id"
+  },
+  {
+    "method": "GET",
+    "path": "/ai/skills/:id/versions"
+  },
+  {
+    "method": "POST",
+    "path": "/ai/skills/catalog/:slug/install"
+  },
+  {
+    "method": "GET",
+    "path": "/ai/skills/catalog"
+  },
+  {
+    "method": "POST",
+    "path": "/ai/skills/import"
+  },
+  {
+    "method": "GET",
+    "path": "/ai/skills"
+  },
+  {
+    "method": "POST",
+    "path": "/ai/skills"
+  },
+  {
+    "method": "POST",
+    "path": "/ai/uploads/:id/complete"
+  },
+  {
+    "method": "POST",
+    "path": "/ai/uploads"
+  },
+  {
+    "method": "GET",
+    "path": "/ai/usage/budget"
+  },
+  {
+    "method": "PATCH",
+    "path": "/ai/usage/budget"
+  },
+  {
+    "method": "POST",
+    "path": "/ai/usage/rates/reprice"
+  },
+  {
+    "method": "GET",
+    "path": "/ai/usage/rates"
+  },
+  {
+    "method": "PUT",
+    "path": "/ai/usage/rates"
+  },
+  {
+    "method": "GET",
+    "path": "/ai/usage"
+  },
+  {
+    "method": "GET",
+    "path": "/ai/style-adjustments"
+  },
+  {
+    "method": "PUT",
+    "path": "/ai/style-adjustments"
+  },
+  {
+    "method": "GET",
+    "path": "/ai/evolution"
+  },
+  {
+    "method": "GET",
+    "path": "/ai/agents/:id/capability-usage"
+  }
+]
