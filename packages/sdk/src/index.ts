@@ -96,4 +96,4 @@ export * from "./resources/journeys.js";
 export * from "./resources/appointments.js";
 export * from "./resources/contact-configuration.js";
 export * from "./resources/calendar.js";
-export * from "./resources/agents.js";
+export * from "./resources/ai/index.js";

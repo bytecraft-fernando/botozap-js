@@ -39,8 +39,22 @@ export interface ReplyConversationParams {
 export class Conversations {
   constructor(private readonly client: BotoZap) {}
 
+  /** Pausa/retoma o agente nesta conversa. agents:write; retomar pode gerar respostas. */
+  controlAgent(
+    id: string,
+    action: "pause" | "resume",
+  ): Promise<{ conversation_id: string; paused: boolean }> {
+    return this.client.requestItem(
+      "POST",
+      `/conversations/${encodeURIComponent(id)}/agent-control`,
+      { body: { action } },
+    );
+  }
+
   /** Lista as conversas da conta (paginação por cursor). */
-  list(params: ListConversationsParams = {}): Promise<CursorList<Conversation>> {
+  list(
+    params: ListConversationsParams = {},
+  ): Promise<CursorList<Conversation>> {
     return this.client.requestCursorList<CursorList<Conversation>>(
       "GET",
       "/conversations",

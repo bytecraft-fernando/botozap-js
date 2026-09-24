@@ -6,7 +6,7 @@ import { resolveFormat, type OutputFormat } from "./output.js";
 import { renderErrorText, renderErrorJson } from "./render-error.js";
 import { registerContactConfiguration } from "./commands/contact-configuration.js";
 import { registerCalendar } from "./commands/calendar.js";
-import { registerAgents } from "./commands/agents.js";
+import { registerAi } from "./commands/ai.js";
 import { registerAgenda } from "./commands/agenda.js";
 import { registerAttendance } from "./commands/attendance.js";
 import { registerMessages } from "./commands/messages.js";
@@ -63,7 +63,7 @@ program.hook("preAction", (_thisCommand, actionCommand) => {
 // Recursos
 registerAttendance(program);
 registerAgenda(program);
-registerAgents(program);
+registerAi(program);
 registerCalendar(program);
 registerContactConfiguration(program);
 registerMessages(program);

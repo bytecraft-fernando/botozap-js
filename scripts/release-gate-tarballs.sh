@@ -47,11 +47,13 @@ node -e "import('@botozap/sdk').then(m => { if (typeof m.BotoZap !== 'function')
 node -e "if (typeof require('@botozap/sdk').BotoZap !== 'function') process.exit(1)"
 
 printf '%s\n' \
-  'import { BotoZap, type SendResult } from "@botozap/sdk";' \
+  'import { BotoZap, type SendResult, type AiAgentConfig } from "@botozap/sdk";' \
   'const boto = new BotoZap({ apiKey: "bz_sandbox_release_gate" });' \
   'export async function smoke(): Promise<SendResult> {' \
   '  return boto.messages.send({ to: "+5500000000001", text: "Olá 😀" });' \
   '}' \
+  'const config: AiAgentConfig = { provider: "openai", system_prompt: "Atendimento" };' \
+  'export const aiSmoke = () => boto.ai.agents.saveDraft({id:"agent",customer_id:"customer",name:"Agente",expected_revision:"9007199254740993",config});' \
   > index.ts
 printf '%s\n' \
   '{ "compilerOptions": { "strict": true, "module": "nodenext", "moduleResolution": "nodenext", "target": "es2022", "noEmit": true } }' \

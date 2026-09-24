@@ -323,8 +323,9 @@ Não arredonde `updated_at`: preserve a precisão recebida do servidor.
 Criação de compromisso aceita segundo argumento `{ idempotencyKey: 'chave-estavel' }`.
 [Contratos, exemplos e roteiro de release](https://github.com/bytecraft-fernando/botozap-js/blob/main/docs/attendance-release.md).
 
-Agentes comerciais também estão disponíveis: configuração/ofertas, modelos,
-rascunho e publicação de comportamento, horários, execuções, prévias com chave
-estável, lacunas e pausa/retomada na conversa. SDK: `agents`; CLI: `agents`;
-MCP: `list_agents`, `get_agent_behavior`, `list_agent_models` e ferramentas de
-gestão correspondentes. Scopes `agents:read/write`; prévias podem consumir créditos.
+IA usa exclusivamente credenciais próprias (BYOK): SDK `client.ai`, CLI `botozap ai`
+e ferramentas MCP `ai_*`. Agentes versionados, provedores, credenciais, conhecimento,
+memória, skills, follow-ups, roteadores, casos, alertas, avisos, propostas,
+execuções e uso. Scopes `agents:read/write`; aprovação exige chave criada por
+owner/admin ainda autorizado. Prévia não envia WhatsApp. Não há carteira, créditos
+ou compra de vagas de IA. [Contratos e exemplos IA](https://github.com/bytecraft-fernando/botozap-js/blob/main/docs/ai.md).

@@ -15,7 +15,7 @@ roteiro executa publicação automaticamente.
 | Réguas e execuções | `journeys` | `journeys` | `journeys:read/write` |
 | Agenda, serviços, jornadas e exceções | `appointments` | `appointments` | `appointments:read/write` |
 | Calendários, sincronização e conflitos | `calendar` | `calendar` | `calendar:read/write` |
-| Agentes, ofertas, comportamento, prévia e lacunas | `agents` | `agents` | `agents:read/write` |
+| IA BYOK completa | `ai.*` | `ai` | `agents:read/write` |
 | Atribuições a membros | `conversations.*Assignment(s)` | `assignments` | `conversations:read/write` |
 
 MCP expõe cada operação com schema de entrada e saída estruturada. Atribuições
@@ -41,11 +41,9 @@ pelos clientes públicos.
   com revisão; DELETE de exceção envia revisão no JSON. Criar compromisso aceita
   `{ idempotencyKey }` como segundo argumento do SDK, ou `idempotency_key` no
   input CLI/MCP, enviado exclusivamente no header `Idempotency-Key`.
-- Agentes: PUT de configuração usa `expected_updated_at` exato. Descubra modelos
-  em `agents.models()` e leia rascunho em `agents.behavior(id)`. Salvar comportamento
-  não publica: faça prévia e publicação explícitas. Prévia da oferta exige UUID
-  `request_key`, mantém custos como strings de micros e pode consumir créditos.
-  Pausa/retomada da conversa usa ID da conversa, não do agente.
+- IA: [contratos versionados em `/ai`](./ai.md). Revisões opacas de agentes,
+  credenciais e bibliotecas são strings; casos/propostas/avisos usam números.
+  Preview usa `operation_key` UUID estável e não envia WhatsApp.
 - Calendar: selecionar calendário e resolver conflito exigem `expected_revision`.
   `resolveConflict` recebe **ID do compromisso**, não ID da conexão.
 - Réguas usam cursor `limit/after`; CRM/Inbox/Agenda/Calendar usam página/offset.
@@ -107,4 +105,9 @@ anteriores funcionando. Chaves restritas precisam dos scopes novos apenas para
 usar os recursos novos. Os gates de plano, ambiente, canal e consentimento
 continuam sendo decididos no servidor.
 
-Aditivos finais: Radar aceita `entity_type: appointment` e motivos de confirmação, resultado, conflito e falha de calendário. `agents.assist(id,{conversation_id,message,request_key})`, CLI `agents assist` e MCP `assist_agent_writing` sugerem texto sem enviar; a operação pode consumir crédito. Limite do texto: 6000 caracteres. A chave UUID deve permanecer estável ao consultar uma tentativa.
+Radar aceita `entity_type: appointment` e motivos de confirmação, resultado,
+conflito e falha de calendário. A definição antiga de agentes desta candidata foi
+substituída antes da publicação. Os contratos públicos das ondas anteriores permanecem.
+
+Os gates acima registram a candidata anterior. Para o port completo de IA, gere
+novos tarballs e repita o gate; não reutilize os arquivos antigos em release-artifacts.

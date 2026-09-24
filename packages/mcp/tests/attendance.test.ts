@@ -27,39 +27,6 @@ afterEach(async () => {
 const cases: Array<[string, Record<string, unknown>, string, string, unknown]> =
   [
     [
-      "create_agent",
-      {
-        customer_id: id,
-        name: "Comercial",
-        offerings: [
-          { name: "Plano", pricing_kind: "quote", price_cents: null },
-        ],
-      },
-      "POST",
-      "/agents",
-      {
-        customer_id: id,
-        name: "Comercial",
-        offerings: [
-          { name: "Plano", pricing_kind: "quote", price_cents: null },
-        ],
-      },
-    ],
-    [
-      "update_agent",
-      { id, name: "Comercial", offerings: [], expected_updated_at: stamp },
-      "PUT",
-      `/agents/${id}`,
-      { name: "Comercial", offerings: [], expected_updated_at: stamp },
-    ],
-    [
-      "control_agent",
-      { id, action: "activate", channel_account_id: other },
-      "POST",
-      `/agents/${id}/control`,
-      { action: "activate", channel_account_id: other },
-    ],
-    [
       "update_saved_reply",
       { id, title: "Olá", expected_updated_at: stamp },
       "PATCH",
@@ -236,38 +203,10 @@ describe("MCP Atendimento: schemas, domínio e transporte real em memória", () 
         Object.keys(tool.outputSchema?.properties ?? {}),
         tool.name,
       ).not.toHaveLength(0);
-    expect(tools.some((t) => /draft|oauth_callback/.test(t.name))).toBe(false);
+    expect(tools.some((t) => /(?:conversation|inbox).*draft|oauth_callback/.test(t.name))).toBe(false);
   });
   it.each([
     ["update_saved_reply", { id, body: "Sem versão" }],
-    ["update_agent", { id, name: "Sem CAS", offerings: [] }],
-    ["preview_agent", { id, scenario: "price" }],
-    [
-      "create_agent",
-      {
-        customer_id: id,
-        name: "Preço ausente",
-        offerings: [{ name: "Plano", pricing_kind: "fixed" }],
-      },
-    ],
-    [
-      "create_agent",
-      {
-        customer_id: id,
-        name: "Link inválido",
-        offerings: [
-          {
-            name: "Plano",
-            pricing_kind: "quote",
-            contract_url: "javascript:alert(1)",
-          },
-        ],
-      },
-    ],
-    [
-      "save_agent_behavior",
-      { id, model_id: "x", rules: "x".repeat(4097), fallback_model_ids: [] },
-    ],
     [
       "mutate_inbox_tools",
       {
@@ -309,38 +248,6 @@ describe("MCP Atendimento: schemas, domínio e transporte real em memória", () 
     expect(fetch).not.toHaveBeenCalled();
   });
   it.each([
-    [
-      "preview_agent",
-      { id, scenario: "price", request_key: other },
-      {
-        data: {
-          scenario: "price",
-          question: "Preço?",
-          reply: "Sob orçamento",
-          cost_micros: "1000000",
-          remaining_micros: "90000000000000000",
-        },
-      },
-      "POST",
-      `/agents/${id}/preview`,
-      { scenario: "price", request_key: other },
-    ],
-    [
-      "control_conversation_agent",
-      { conversation_id: id, action: "pause" },
-      { data: { conversation_id: id, paused: true } },
-      "POST",
-      `/conversations/${id}/agent-control`,
-      { action: "pause" },
-    ],
-    [
-      "publish_agent_behavior",
-      { id },
-      { data: { version: 2, model_id: "botozap.recommended" } },
-      "POST",
-      `/agents/${id}/behavior/control`,
-      { action: "publish" },
-    ],
     [
       "select_calendar",
       { id, destination: true, include_busy: false, expected_revision: 2 },
@@ -449,36 +356,4 @@ it("Radar aceita compromisso e motivo de calendário sem perder filtros", async 
   const url = new URL(String(fetch.mock.calls[0][0]));
   expect(url.searchParams.get("entity_type")).toBe("appointment");
   expect(url.searchParams.get("reason")).toBe("calendar_conflict");
-});
-
-it("assistência de escrita passa contexto e mantém retorno sem enviar mensagem", async () => {
-  const payload = {
-    data: {
-      scenario: "assist",
-      question: "Revisar",
-      reply: "Texto sugerido",
-      cost_micros: "10",
-      remaining_micros: "90",
-    },
-  };
-  const { client, fetch } = await connect(payload);
-  const result = await client.callTool({
-    name: "assist_agent_writing",
-    arguments: {
-      id,
-      conversation_id: other,
-      message: "Revisar",
-      request_key: id,
-    },
-  });
-  expect(result.isError).toBeFalsy();
-  expect(result.structuredContent).toEqual(payload);
-  const [url, init] = fetch.mock.calls[0] as unknown as [string, RequestInit];
-  expect(new URL(url).pathname).toBe(`/v1/agents/${id}/assist`);
-  expect(JSON.parse(String(init.body))).toEqual({
-    conversation_id: other,
-    message: "Revisar",
-    request_key: id,
-  });
-  expect(fetch).toHaveBeenCalledOnce();
 });

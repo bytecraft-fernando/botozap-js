@@ -22,11 +22,14 @@ type Operation = (
   input: Input,
 ) => Promise<unknown>;
 /** JSON files preserve nested fields, null, Unicode and microsecond CAS timestamps. */
-export async function readInput(path?: string): Promise<Input> {
+export async function readInput(
+  path?: string,
+  maxBytes = 256 * 1024,
+): Promise<Input> {
   if (!path) return {};
   const raw = await readFile(path, "utf8");
-  if (Buffer.byteLength(raw) > 256 * 1024)
-    throw new Error("JSON excede 256 KB.");
+  if (Buffer.byteLength(raw) > maxBytes)
+    throw new Error(`JSON excede ${maxBytes} bytes.`);
   const value: unknown = JSON.parse(raw);
   if (!value || typeof value !== "object" || Array.isArray(value))
     throw new Error("O arquivo deve conter um objeto JSON.");
@@ -64,6 +67,7 @@ export function operation(
   description: string,
   run: Operation,
   required: string[] = [],
+  inputOptions?: { validate: (input: Input) => void; maxBytes?: number },
 ) {
   const cmd = parent
     .command(signature)
@@ -80,17 +84,22 @@ export function operation(
   cmd.action(async (...args: unknown[]) => {
     const command = args.at(-1) as Command;
     const opts = command.opts();
-    const data = await readInput(opts.inputFile as string | undefined);
+    const data = await readInput(
+      opts.inputFile as string | undefined,
+      inputOptions?.maxBytes,
+    );
     for (const key of required)
       if (data[key] === undefined)
         throw new Error(`Campo obrigatório no JSON: ${key}.`);
-    for (const key of ["expected_version", "version", "expected_revision"])
-      if (
-        data[key] !== undefined &&
-        (!Number.isInteger(data[key]) ||
-          Number(data[key]) < (signature.startsWith("stage-rule") ? 0 : 1))
-      )
-        throw new Error(`${key} deve ser inteiro positivo.`);
+    if (inputOptions) inputOptions.validate(data);
+    else
+      for (const key of ["expected_version", "version", "expected_revision"])
+        if (
+          data[key] !== undefined &&
+          (!Number.isInteger(data[key]) ||
+            Number(data[key]) < (signature.startsWith("stage-rule") ? 0 : 1))
+        )
+          throw new Error(`${key} deve ser inteiro positivo.`);
     const { client, format } = context(command);
     const id = signature.includes("<id>") ? String(args[0]) : undefined;
     display(await run(client, id, data), format);

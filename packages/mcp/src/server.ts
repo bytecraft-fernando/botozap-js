@@ -9,7 +9,7 @@ import { createClient, DEFAULT_API_URL } from "./client.js";
 import { createRegister } from "./register.js";
 import { registerContactConfigurationTools } from "./tools/contact-configuration.js";
 import { registerCalendarTools } from "./tools/calendar.js";
-import { registerAgentTools } from "./tools/agents.js";
+import { registerAiTools } from "./tools/ai.js";
 import { registerAgendaTools } from "./tools/agenda.js";
 import { registerAttendanceTools } from "./tools/attendance.js";
 import { registerMessageTools } from "./tools/messages.js";
@@ -62,7 +62,7 @@ export function buildServer(options: BuildServerOptions): McpServer {
 
   registerAttendanceTools(register);
   registerAgendaTools(register);
-  registerAgentTools(register);
+  registerAiTools(register);
   registerCalendarTools(register);
   registerContactConfigurationTools(register);
   registerMessageTools(register);

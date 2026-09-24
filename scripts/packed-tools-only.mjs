@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { AI_OPERATIONS } from "@botozap/sdk";
 import { createServer } from "node:http";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -18,6 +19,11 @@ const api = createServer((request, response) => {
     pathname: url.pathname,
   });
 
+  if (request.method === "GET" && url.pathname === "/ai/agents") {
+    assert.equal(url.searchParams.get("customer_id"), "11111111-1111-4111-8111-111111111111");
+    response.writeHead(200,{"content-type":"application/json"});
+    response.end(JSON.stringify({data:[],meta:{page:1,per_page:20,total_count:0,total_pages:0}}));return;
+  }
   if (request.method === "GET" && url.pathname === "/messages") {
     response.writeHead(200, { "content-type": "application/json" });
     response.end(
@@ -71,7 +77,9 @@ try {
   await client.connect(transport);
 
   const tools = await client.listTools();
-  assert.equal(tools.tools.length, 128);
+  assert.equal(tools.tools.length, 220);
+  const snake=(s)=>s.replace(/[A-Z]/g,c=>`_${c.toLowerCase()}`);
+  for(const op of AI_OPERATIONS) assert(tools.tools.some(t=>t.name===`ai_${snake(op.group)}_${snake(op.name)}`));
   for (const name of [
     "get_inbox_tools",
     "list_saved_replies",
@@ -80,10 +88,11 @@ try {
     "list_journeys",
     "list_appointments",
     "list_calendar_connections",
-    "list_agents",
-    "list_agent_models",
-    "get_agent_behavior",
-    "assist_agent_writing",
+    "ai_agents_list",
+    "ai_agents_preview",
+    "ai_providers_models",
+    "ai_followups_resolve_effect",
+    "control_conversation_agent",
   ]) {
     assert.ok(
       tools.tools.some((tool) => tool.name === name),
@@ -135,7 +144,10 @@ try {
     { authorization: `Bearer ${API_KEY}`, pathname: "/messages" },
   ]);
 
-  process.stdout.write("clean tarball tools-only: ok\n");
+  const aiResult=await client.callTool({name:"ai_agents_list",arguments:{customer_id:"11111111-1111-4111-8111-111111111111"}});
+  assert.notEqual(aiResult.isError,true);
+  assert.deepEqual(aiResult.structuredContent,{data:[],meta:{page:1,per_page:20,total_count:0,total_pages:0}});
+  process.stdout.write("clean tarball tools-only: ok (108 AI routes discovered)\n");
 } finally {
   await client.close().catch(() => {});
   await new Promise((resolve, reject) => {
