@@ -295,10 +295,18 @@ Cliente só acrescenta regras à política obrigatória da plataforma.
 - `eligibility.revokeAuthorization` revoga imediatamente (204); resposta ainda
   não admitida para envio não sai mais.
 - `commercialProposals.decide` usa `seq` como lock: `409 proposal_changed` exige
-  reler a proposta. `approve` aplica o efeito no CRM atomicamente;
+  reler a proposta; `409 next_step_changed` indica que o próximo passo do negócio
+  mudou (aprove sem efeito ou gere outra proposta). `approve` aplica o efeito no CRM atomicamente;
   `apply_effect: false` aprova sem efeito. Repetir a mesma decisão devolve
   `replayed: true` sem reaplicar. `request` exige `request_key` estável
-  (`[A-Za-z0-9_.:-]{1,200}`); responde 202 quando enfileira.
+  (`[A-Za-z0-9_.:-]{1,200}`); responde 202 quando enfileira. Gerar propostas e
+  alterar `settings` exigem chave criada por owner/admin ainda autorizado.
+- `eligibility.authorizations` só devolve nome e telefone completos quando a chave
+  também tem `contacts:read`; com apenas `agents:read`, `contact_name` é `null` e
+  `contact_phone` vem mascarado (`••••1234`).
+- `styleAdjustments.save` liga/desliga um ajuste da lista fechada
+  (`sem_travessao_longo`) com CAS por item; `expected_revision` é `"0"` quando
+  nunca foi salvo.
 - `memory.reactivateEntry` e `skills.decideNearMiss` são novas aprovações e
   exigem chave criada por owner/admin ainda autorizado.
 - `alerts.resolveBulk` resolve só alertas criados até `created_before` que casam
@@ -318,7 +326,13 @@ são POST com escopo `agents:read`. `knowledge.citations` exige exatamente um de
 do período (padrão 7 dias, máximo 366). `followups.queue`/`followups.promises`
 usam cursor: repita com `cursor = next_cursor` até `null`. `usage.get` aceita
 `agent_id` e `purpose`; `agents`, `handoff` e p50/p95 diários são adicionais.
-`cases.list` filtra `kind`/`source`; `alerts.list` filtra `kind`/`severity` e cada
+Execuções (`executions.list/get`) e a prévia (`agents.preview`) trazem `security`
+aditivo: resumo, eventos de proteção sem texto nem chaves e `events_unavailable`
+quando a trilha não pôde ser lida (nunca significa "sem eventos").
+`agents.capabilityUsage` e `evolution.get` devolvem erro explícito por fonte em vez
+de zero. `cases.reply` pode responder `queued: false` com `queue_reason`; decisão
+registrada não é prova de envio. Alertas trazem `resolved_by_api_key` quando
+resolvidos por chave. `cases.list` filtra `kind`/`source`; `alerts.list` filtra `kind`/`severity` e cada
 linha traz `kind_label`, `guidance` e `links` calculados pelo servidor.
 
 | SDK (`ai.`) | Método | Rota | Scope |
@@ -360,6 +374,10 @@ linha traz `kind_label`, `guidance` e `links` calculados pelo servidor.
 | `followups.getPromise` | GET | `/ai/followups/promises/:id` | read |
 | `followups.cancelPromise` | POST | `/ai/followups/promises/:id/cancel` | write |
 | `followups.resolvePromise` | POST | `/ai/followups/promises/:id/resolve` | write |
+| `agents.capabilityUsage` | GET | `/ai/agents/:id/capability-usage` | read |
+| `evolution.get` | GET | `/ai/evolution` | read |
+| `styleAdjustments.list` | GET | `/ai/style-adjustments` | read |
+| `styleAdjustments.save` | PUT | `/ai/style-adjustments` | write |
 
 CLI: `botozap ai <módulo> <método>` em kebab-case (ex.: `botozap ai eligibility
 save-channel --input-file gate.json`). MCP: `ai_<módulo>_<método>` em snake_case

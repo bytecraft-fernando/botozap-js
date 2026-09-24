@@ -3682,4 +3682,93 @@ export const AI_OPERATIONS: readonly AiOperation[] = [
       },
     },
   },
+  // #498 final round: capability usage, evolution and style adjustments.
+  {
+    group: "agents",
+    name: "capabilityUsage",
+    method: "GET",
+    path: "/ai/agents/:id/capability-usage",
+    shape: "item",
+    description:
+      "Uso real das ferramentas do agente e do operador contra a configuração publicada (ou rascunho). Fonte que falha responde 503, nunca \"nunca usada\".",
+    fields: {
+      customer_id: {
+        type: "uuid",
+        optional: false,
+      },
+      id: {
+        type: "uuid",
+        optional: false,
+      },
+      days: {
+        type: "number",
+        optional: true,
+      },
+    },
+  },
+  {
+    group: "evolution",
+    name: "get",
+    method: "GET",
+    path: "/ai/evolution",
+    shape: "item",
+    description:
+      "Painel Evolução: cada fonte (learning, knowledge, skills, routing, crm) volta com status próprio; falha nunca vira zero. days 7, 30 ou 90.",
+    fields: {
+      customer_id: {
+        type: "uuid",
+        optional: false,
+      },
+      days: {
+        type: "evolutionDays",
+        optional: true,
+      },
+      agent_id: {
+        type: "uuid",
+        optional: true,
+      },
+    },
+  },
+  {
+    group: "styleAdjustments",
+    name: "list",
+    method: "GET",
+    path: "/ai/style-adjustments",
+    shape: "item",
+    description:
+      "Ajustes de estilo das respostas (lista fechada; padrão desligado).",
+    fields: {
+      customer_id: {
+        type: "uuid",
+        optional: false,
+      },
+    },
+  },
+  {
+    group: "styleAdjustments",
+    name: "save",
+    method: "PUT",
+    path: "/ai/style-adjustments",
+    shape: "item",
+    description:
+      "Liga/desliga um ajuste de estilo com CAS por item (expected_revision string; 0 quando nunca salvo).",
+    fields: {
+      customer_id: {
+        type: "uuid",
+        optional: false,
+      },
+      adjustment: {
+        type: "styleAdjustment",
+        optional: false,
+      },
+      enabled: {
+        type: "boolean",
+        optional: false,
+      },
+      expected_revision: {
+        type: "revisionZero",
+        optional: false,
+      },
+    },
+  },
 ];

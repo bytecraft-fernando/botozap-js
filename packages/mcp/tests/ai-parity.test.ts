@@ -284,3 +284,24 @@ it("forwards contact tag edits and accepts tags in the contact output", async ()
   expect(created.isError).not.toBe(true);
   expect(body(fetch, 1).tags).toEqual(["vip"]);
 });
+
+it("announces final-round tools and validates their closed inputs before HTTP", async () => {
+  const { client, fetch } = await connect({ data: {} });
+  const names = (await client.listTools()).tools.map((t) => t.name);
+  for (const name of ["ai_agents_capability_usage", "ai_evolution_get", "ai_style_adjustments_list", "ai_style_adjustments_save"])
+    expect(names).toContain(name);
+  const badDays = await client.callTool({ name: "ai_evolution_get", arguments: { customer_id: id, days: 45 } });
+  const badStyle = await client.callTool({
+    name: "ai_style_adjustments_save",
+    arguments: { customer_id: id, adjustment: "sem_emoji", enabled: true, expected_revision: "0" },
+  });
+  expect(badDays.isError).toBe(true);
+  expect(badStyle.isError).toBe(true);
+  expect(fetch).not.toHaveBeenCalled();
+  const ok = await client.callTool({
+    name: "ai_style_adjustments_save",
+    arguments: { customer_id: id, adjustment: "sem_travessao_longo", enabled: false, expected_revision: "3" },
+  });
+  expect(ok.isError).not.toBe(true);
+  expect(body(fetch)).toEqual({ customer_id: id, adjustment: "sem_travessao_longo", enabled: false, expected_revision: "3" });
+});

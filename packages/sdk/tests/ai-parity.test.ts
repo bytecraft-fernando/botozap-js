@@ -335,3 +335,48 @@ it("never retries an ambiguous promise schedule", async () => {
   ).rejects.toMatchObject({ status: 503 });
   expect(fetch).toHaveBeenCalledOnce();
 });
+
+it("covers capability usage, evolution and style adjustments with exact CAS", async () => {
+  const { c, fetch } = client({ data: {} });
+  await c.ai.agents.capabilityUsage({ customer_id: id, id, days: 14 });
+  await c.ai.evolution.get({ customer_id: id, days: 90, agent_id: other });
+  await c.ai.styleAdjustments.list({ customer_id: id });
+  await c.ai.styleAdjustments.save({
+    customer_id: id,
+    adjustment: "sem_travessao_longo",
+    enabled: true,
+    expected_revision: "0",
+  });
+  expect(
+    fetch.mock.calls.map((call) => `${call[1]?.method} ${new URL(String(call[0])).pathname}`),
+  ).toEqual([
+    `GET /v1/ai/agents/${id}/capability-usage`,
+    "GET /v1/ai/evolution",
+    "GET /v1/ai/style-adjustments",
+    "PUT /v1/ai/style-adjustments",
+  ]);
+  expect(url(fetch, 1).searchParams.get("days")).toBe("90");
+  expect(body(fetch, 3)).toEqual({
+    customer_id: id,
+    adjustment: "sem_travessao_longo",
+    enabled: true,
+    expected_revision: "0",
+  });
+});
+
+it("keeps the additive execution security trail from preview", async () => {
+  const security = {
+    summary: { hold: "evaluation_vetoed", guard: null, evaluation: { verdict: "vetoed", attempts: 1, codes: ["x"] }, disclosure_version: 1 },
+    events: null,
+    events_unavailable: true,
+  };
+  const { c } = client({ data: { id, status: "awaiting_approval", security } });
+  const r = await c.ai.agents.preview({
+    customer_id: id,
+    id,
+    version_id: id,
+    operation_key: other,
+    messages: [{ role: "user", content: "Oi" }],
+  });
+  expect(r.security).toEqual(security);
+});

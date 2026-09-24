@@ -261,6 +261,45 @@ export type AiExecution = {
   run_id: string | null;
   conversation_id: string | null;
   operator_execution?: AiExecution;
+  /** #498 protection trail without message text or keys; null when there is no record. */
+  security?: AiExecutionSecurity | null;
+};
+export type AiExecutionSecurity = {
+  summary: {
+    hold: string | null;
+    guard: {
+      verdict: "pass" | "flagged" | "blocked" | "unavailable";
+      level: "none" | "low" | "high";
+      layer: "heuristic" | "model";
+      codes: string[];
+    } | null;
+    evaluation: {
+      verdict: "pass" | "vetoed" | "unavailable";
+      attempts: number;
+      codes: string[];
+    } | null;
+    disclosure_version: number | null;
+  } | null;
+  events: {
+    stage:
+      | "input_guard"
+      | "before_send"
+      | "checkpoint_policy"
+      | "approval"
+      | "style_adjustments"
+      | "urgency_signal"
+      | (string & {});
+    attempt: number;
+    verdict: string;
+    layer: string;
+    codes: string[];
+    /** Only reviewed keys (level, reason, versions, binding summary, …). */
+    detail: AiRecord;
+    policy_version: number;
+    created_at: string;
+  }[] | null;
+  /** The detailed trace could not be read; never means "no events". */
+  events_unavailable: boolean;
 };
 export type AiSourceKind =
   "text" | "faq" | "document" | "catalog" | "conversation";
@@ -461,6 +500,8 @@ export type AiAlert = {
   reminder_count?: number;
   last_reminded_at?: string | null;
   case_status?: AiCase["status"] | null;
+  resolved_by?: string | null;
+  resolved_by_api_key?: string | null;
 };
 /** Alert list rows: cause label, guidance and destinations projected by the server from stored IDs. */
 export type AiAlertListItem = AiAlert & {
@@ -957,7 +998,9 @@ export type AiContactAuthorization = {
   id: string;
   channel_account_id: string;
   contact_id: string;
+  /** null unless the key also has contacts:read. */
   contact_name: string | null;
+  /** Full phone with contacts:read; otherwise masked as "••••1234" (or null). */
   contact_phone: string | null;
   kind: "broadcast_reply" | "journey_reply" | "followup_reply" | "manual_resume";
   reason: string;
@@ -1352,4 +1395,105 @@ export type AiFollowupQueueFilters = {
   contact_id?: string;
   cursor?: string;
   limit?: number;
+};
+
+export type AiCapabilitySignal =
+  | "only_failures"
+  | "failing"
+  | "outside_config"
+  | "never_used"
+  | "recently_enabled"
+  | "test_only"
+  | "healthy";
+export type AiCapabilityUsageList = {
+  summary: { uses: number; failures: number; needs_attention: number };
+  items: {
+    tool: string;
+    label: string;
+    enabled: boolean;
+    signal: AiCapabilitySignal;
+    recommendation: string;
+    total: number;
+    failures: number;
+    unknown: number;
+    test: number;
+    last_at: string | null;
+  }[];
+};
+export type AiCapabilityUsage = {
+  agent_id: string;
+  since: string;
+  days: number;
+  source: "published" | "draft";
+  configured_at: string | null;
+  agent: AiCapabilityUsageList;
+  operator: AiCapabilityUsageList & { enabled: boolean };
+};
+/** Each source reports its own status: an error is never shown as zero. */
+export type AiEvolutionSource<T> =
+  | { status: "ok"; data: T; error: null }
+  | { status: "error"; data: null; error: string };
+type AiSearchEvolution = {
+  total: number;
+  failures: number;
+  empty: number;
+  with_results: number;
+  series: { day: string; total: number; empty: number }[];
+  empty_samples: { at: string; query: string | null }[];
+  by_name: Record<string, number> | null;
+  sources: { ready: number; indexing: number; failed: number; inactive: number } | null;
+};
+export type AiEvolution = {
+  from: string;
+  to: string;
+  days: 7 | 30 | 90;
+  agent_id: string | null;
+  sources: {
+    learning: AiEvolutionSource<{
+      memory: {
+        created: number;
+        created_manual: number;
+        created_from_proposals: number;
+        active: number;
+        pending: number;
+        archived: number;
+      };
+      proposals: { created: number; applied: number; rejected: number; pending: number };
+      skills: { updated: number; installed: number };
+      timeline: { at: string; kind: "memory" | "proposal" | "skill"; title: string }[];
+      timeline_total: number;
+    }>;
+    knowledge: AiEvolutionSource<AiSearchEvolution>;
+    skills: AiEvolutionSource<AiSearchEvolution>;
+    routing: AiEvolutionSource<{
+      total: number;
+      by_outcome: Record<string, number>;
+      by_intent: Record<string, number>;
+      failed: number;
+      no_match: number;
+    }>;
+    crm: AiEvolutionSource<{
+      opportunities: { created: number; won: number; lost: number; open: number };
+      stage_moves: number;
+      cases_opened: number;
+      inbound_messages: number;
+      executions: {
+        live: number;
+        completed: number;
+        failed: number;
+        unknown: number;
+        preview: number;
+      };
+    }>;
+  };
+};
+export type AiStyleAdjustmentId = "sem_travessao_longo";
+export type AiStyleAdjustment = {
+  adjustment: AiStyleAdjustmentId;
+  enabled: boolean;
+  /** Opaque CAS revision; "0" when never saved. */
+  revision: string;
+  updated_at: string | null;
+  updated_by: string | null;
+  updated_by_api_key: string | null;
 };

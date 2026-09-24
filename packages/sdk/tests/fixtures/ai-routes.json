@@ -578,5 +578,21 @@
   {
     "method": "GET",
     "path": "/ai/usage"
+  },
+  {
+    "method": "GET",
+    "path": "/ai/style-adjustments"
+  },
+  {
+    "method": "PUT",
+    "path": "/ai/style-adjustments"
+  },
+  {
+    "method": "GET",
+    "path": "/ai/evolution"
+  },
+  {
+    "method": "GET",
+    "path": "/ai/agents/:id/capability-usage"
   }
 ]

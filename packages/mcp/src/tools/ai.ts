@@ -305,6 +305,8 @@ const schemas: Record<string, ZodTypeAny> = {
     .strict(),
   inferencePoint: z.string().regex(/^[a-z_]{1,64}$/),
   uuidList: z.array(uuid).max(100),
+  evolutionDays: z.union([z.literal(7), z.literal(30), z.literal(90)]),
+  styleAdjustment: z.enum(["sem_travessao_longo"]),
   queueStatus: z.string().regex(/^[a-z_]{1,40}$/),
   queueSearch: z.string().trim().max(100),
   queueCursor: z.string().max(400),

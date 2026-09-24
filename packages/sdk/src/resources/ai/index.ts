@@ -94,6 +94,10 @@ import type {
   AiFollowupPromiseDetail,
   AiFollowupQueuePage,
   AiFollowupQueueFilters,
+  AiCapabilityUsage,
+  AiEvolution,
+  AiStyleAdjustment,
+  AiStyleAdjustmentId,
 } from "./types.js";
 import type { OffsetMeta } from "../../types.js";
 import { assertAudioPricing } from "./audio-pricing.js";
@@ -217,6 +221,12 @@ export class AiAgentsResource {
     },
   ): Promise<AiExecution> {
     return request(this.client, AI_OPERATIONS[9]!, input);
+  }
+  /** Uso real das ferramentas contra a configuração (days 1–90, padrão 30); falha de leitura é 503. */
+  capabilityUsage(
+    input: AiScope & { id: string; days?: number },
+  ): Promise<AiCapabilityUsage> {
+    return request(this.client, named("agents", "capabilityUsage"), input);
   }
 }
 export class AiCredentialsResource {
@@ -1169,6 +1179,27 @@ export class AiOperatorResource {
     return request(this.client, named("operator", "promises"), input);
   }
 }
+export class AiEvolutionResource {
+  constructor(private readonly client: BotoZap) {}
+  /** Cada fonte volta com status próprio; falha nunca vira zero. */
+  get(
+    input: AiScope & { days?: 7 | 30 | 90; agent_id?: string },
+  ): Promise<AiEvolution> {
+    return request(this.client, named("evolution", "get"), input);
+  }
+}
+export class AiStyleAdjustmentsResource {
+  constructor(private readonly client: BotoZap) {}
+  list(input: AiScope): Promise<{ adjustments: AiStyleAdjustment[] }> {
+    return request(this.client, named("styleAdjustments", "list"), input);
+  }
+  /** CAS por item: expected_revision é a revisão lida ("0" quando nunca salvo). */
+  save(
+    input: AiRevision & { adjustment: AiStyleAdjustmentId; enabled: boolean },
+  ): Promise<AiStyleAdjustment> {
+    return request(this.client, named("styleAdjustments", "save"), input);
+  }
+}
 export class Ai {
   readonly uploads: AiUploadsResource;
   readonly agents: AiAgentsResource;
@@ -1190,6 +1221,8 @@ export class Ai {
   readonly eligibility: AiEligibilityResource;
   readonly inferences: AiInferencesResource;
   readonly operator: AiOperatorResource;
+  readonly evolution: AiEvolutionResource;
+  readonly styleAdjustments: AiStyleAdjustmentsResource;
   constructor(private readonly client: BotoZap) {
     this.uploads = new AiUploadsResource(client);
     this.agents = new AiAgentsResource(client);
@@ -1211,6 +1244,8 @@ export class Ai {
     this.eligibility = new AiEligibilityResource(client);
     this.inferences = new AiInferencesResource(client);
     this.operator = new AiOperatorResource(client);
+    this.evolution = new AiEvolutionResource(client);
+    this.styleAdjustments = new AiStyleAdjustmentsResource(client);
   }
   /** Executes only a declared operation. Prefer typed module methods in application code. */
   invoke(

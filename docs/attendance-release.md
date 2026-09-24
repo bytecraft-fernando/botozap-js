@@ -89,10 +89,10 @@ obrigatórios; `-o json` fornece saída para scripts. Exemplo de arquivo para
 
 - [ ] Servidor com migrations/scopes correspondentes e testes de isolamento.
 - [x] `pnpm install --frozen-lockfile`, `pnpm typecheck`, `pnpm build`, `pnpm test`.
-  Resultado local (com paridade #498): 148 testes SDK, 84 CLI e 121 MCP, todos aprovados.
+  Resultado local (com paridade #498): 150 testes SDK, 84 CLI e 122 MCP, todos aprovados.
 - [x] `pnpm gate:tarballs`: instala os três tarballs em consumidor limpo, verifica
   ESM/CJS, tipos, bins e MCP real sem credenciais live.
-  Com #498: 145 rotas IA descobertas no tarball do MCP (257 ferramentas), sem publicar.
+  Com #498: 149 rotas IA descobertas no tarball do MCP (261 ferramentas), sem publicar.
 - [x] Versões/changelogs gerados por Changesets: SDK 0.4.0, CLI 0.2.0 e MCP 0.3.0.
   Candidatos empacotados com pnpm, ainda não publicados.
 - [ ] Validar smoke do servidor com chave de teste autorizada e scopes mínimos;
