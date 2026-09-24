@@ -5,6 +5,8 @@ export interface ConversationNote {
   conversation_id: string;
   author_user_id: string | null;
   author_api_key_id: string | null;
+  /** Nota registrada por um agente de IA. */
+  author_agent_id?: string | null;
   body: string;
   version: number;
   created_at: string;

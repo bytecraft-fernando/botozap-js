@@ -170,7 +170,8 @@ export interface StageRuleInput {
   require_next_step: boolean;
 }
 export interface StageRule extends Omit<StageRuleInput, "expected_version"> {
-  account_id: string;
+  /** Presente em `stageRules` (GET); a resposta de `configureStageRule` não o inclui. */
+  account_id?: string;
   stage_id: string;
   version: number;
   updated_at: string;

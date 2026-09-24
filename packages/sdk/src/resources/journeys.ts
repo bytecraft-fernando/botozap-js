@@ -18,6 +18,8 @@ export interface JourneyConfig {
   date_field_key?: string | null;
   stage_id?: string | null;
   demand_status?: "open" | "in_progress" | "waiting_customer" | null;
+  /** Serviço da Agenda que dispara a régua quando `trigger_kind` é `appointment`. */
+  appointment_service_id?: string | null;
   offset_days?: number;
   offset_hours?: number;
   yearly?: boolean;
@@ -27,7 +29,8 @@ export interface JourneyConfig {
   send_end_hour?: number;
   steps: JourneyStep[];
 }
-export interface Journey extends Required<Omit<JourneyConfig, "steps">> {
+export interface Journey extends Required<Omit<JourneyConfig, "steps" | "appointment_service_id">> {
+  appointment_service_id?: string | null;
   id: string;
   version: number;
   archived_at: string | null;

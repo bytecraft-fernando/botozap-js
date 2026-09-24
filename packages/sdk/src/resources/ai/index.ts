@@ -823,9 +823,12 @@ export class AiRoutersResource {
   }
   /** Ativa membro sem criar vínculo direto com canal. */
   activateMember(
-    input: AiRevision & { id: string } & {
+    input: AiScope & {
+      id: string;
       agent_id: string;
       mode: "automatic" | "assisted";
+      /** Revisão atual do agente membro (a API recusa `expected_revision` aqui). */
+      expected_agent_revision: string;
     },
   ): Promise<AiRecord> {
     return request(this.client, AI_OPERATIONS[72]!, input);

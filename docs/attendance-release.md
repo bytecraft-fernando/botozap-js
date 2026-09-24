@@ -94,12 +94,12 @@ obrigatórios; `-o json` fornece saída para scripts. Exemplo de arquivo para
   ESM/CJS, tipos, bins e MCP real sem credenciais live.
   Com #498: 149 rotas IA descobertas no tarball do MCP (261 ferramentas), sem publicar.
 - [x] Versões/changelogs gerados por Changesets: SDK 0.4.0, CLI 0.2.0 e MCP 0.3.0.
-  Candidatos empacotados com pnpm, ainda não publicados.
+  Publicados no npm em 24/09/2026 a partir dos tarballs validados; SDK 0.4.1 corrige tipos.
 - [ ] Validar smoke do servidor com chave de teste autorizada e scopes mínimos;
   confirmar 403 quando scope ausente e 409 em CAS obsoleto, sem tocar produção.
 - [ ] Validar Google OAuth/Calendar, provedor de IA/prévias e envios automáticos com credenciais externas
   próprias, quando disponíveis; testes locais cobrem contratos com mocks.
-- [ ] Publicação npm somente após autorização explícita, sobre tarballs validados;
+- [x] Publicação npm somente após autorização explícita, sobre tarballs validados;
   SDK antes de CLI/MCP. O deploy remoto MCP é outra ação, também posterior.
 
 As operações novas não exigem regenerar chaves antigas para manter integrações
