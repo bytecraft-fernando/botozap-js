@@ -15,7 +15,7 @@ roteiro executa publicação automaticamente.
 | Réguas e execuções | `journeys` | `journeys` | `journeys:read/write` |
 | Agenda, serviços, jornadas e exceções | `appointments` | `appointments` | `appointments:read/write` |
 | Calendários, sincronização e conflitos | `calendar` | `calendar` | `calendar:read/write` |
-| IA BYOK completa | `ai.*` | `ai` | `agents:read/write` |
+| IA BYOK completa, incluindo paridade #498 | `ai.*` | `ai` | `agents:read/write` |
 | Atribuições a membros | `conversations.*Assignment(s)` | `assignments` | `conversations:read/write` |
 
 MCP expõe cada operação com schema de entrada e saída estruturada. Atribuições
@@ -88,9 +88,10 @@ obrigatórios; `-o json` fornece saída para scripts. Exemplo de arquivo para
 
 - [ ] Servidor com migrations/scopes correspondentes e testes de isolamento.
 - [x] `pnpm install --frozen-lockfile`, `pnpm typecheck`, `pnpm build`, `pnpm test`.
-  Resultado local: 130 testes SDK, 73 CLI e 104 MCP, todos aprovados.
+  Resultado local (com paridade #498): 146 testes SDK, 80 CLI e 120 MCP, todos aprovados.
 - [x] `pnpm gate:tarballs`: instala os três tarballs em consumidor limpo, verifica
   ESM/CJS, tipos, bins e MCP real sem credenciais live.
+  Com #498: 145 rotas IA descobertas no tarball do MCP (257 ferramentas), sem publicar.
 - [x] Versões/changelogs gerados por Changesets: SDK 0.4.0, CLI 0.2.0 e MCP 0.3.0.
   Candidatos empacotados com pnpm, ainda não publicados.
 - [ ] Validar smoke do servidor com chave de teste autorizada e scopes mínimos;

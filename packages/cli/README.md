@@ -225,7 +225,9 @@ botozap appointments availability --input-file disponibilidade.json -o json
 
 IA usa exclusivamente credenciais próprias (BYOK): SDK `client.ai`, CLI `botozap ai`
 e ferramentas MCP `ai_*`. Agentes versionados, provedores, credenciais, conhecimento,
-memória, skills, follow-ups, roteadores, casos, alertas, avisos, propostas,
-execuções e uso. Scopes `agents:read/write`; aprovação exige chave criada por
+memória, skills, follow-ups e retornos prometidos, roteadores, casos, alertas,
+avisos, propostas de aprendizado e comerciais, controle de acesso (elegibilidade),
+inferências, promessas do operador, catálogo de modelos, execuções e uso. Scopes
+`agents:read/write`; aprovação exige chave criada por
 owner/admin ainda autorizado. Prévia não envia WhatsApp. Não há carteira, créditos
 ou compra de vagas de IA. [Contratos e exemplos IA](https://github.com/bytecraft-fernando/botozap-js/blob/main/docs/ai.md).

@@ -69,8 +69,12 @@ revalidar, inativar e excluir quando não estiver em uso. As respostas contêm a
 metadados, últimos quatro caracteres e estado de validação; nunca a chave.
 
 `providers.models` lista modelos obtidos para uma credencial e capacidades do
-adapter. `providers.saveBinding` aceita `default`, `followup`, `proposal`,
-`transcription` e `embedding`. `agent_turn` e `agent_operator` são configurados na
+adapter. `providers.saveBinding` aceita as finalidades de `AI_CONFIGURABLE_PURPOSES`:
+`default`, `followup`, `proposal`, `transcription`, `embedding` e as finalidades
+granulares `guard`, `evaluator`, `classification`, `compaction`, `case_chat`,
+`learning_judge`, `learning_distiller`, `vision` e `commercial_proposal`. Sem
+vínculo próprio, as granulares herdam o padrão do Cliente (judge/distiller passam
+antes por `proposal`). `agent_turn` e `agent_operator` são configurados na
 versão do agente; `router`, no roteador. Fallback exige outra credencial própria
 explícita. Não há fallback para uma chave de plataforma.
 
@@ -98,7 +102,7 @@ await bz.ai.skills.importZip({customer_id: customerId,
   file:new Blob([zipBytes], {type:'application/zip'}), file_name:'atendimento.zip'});
 ```
 
-O SDK usa multipart. Documento: até 10 MiB; ZIP: até 5 MiB. A CLI lê o arquivo
+O SDK usa upload direto (abaixo). Documento: até 20 MiB; ZIP: até 5 MiB. A CLI lê o arquivo
 explicitamente indicado por `file_path` no JSON e aceita `file_name` e `mime_type`.
 O MCP recebe `file_base64` e `file_name`; nunca lê caminhos do servidor. Substituir
 skill exige `id` e `expected_revision` juntos. Fontes/skills em versões publicadas
@@ -255,7 +259,7 @@ Configuração de mídia: `config.media` permite `images_enabled`, `documents_en
 
 ## Upload direto e retomada
 
-`knowledge.upload` (10 MiB) e `skills.importZip` (5 MiB) calculam SHA-256, preparam a intenção, enviam bytes por PUT direto ao armazenamento e finalizam pelo mesmo `upload_id`. CLI e MCP usam esse transporte automaticamente. As rotas multipart anteriores permanecem para compatibilidade; arquivos grandes devem usar o transporte direto para não atravessar o limite HTTP da hospedagem.
+`knowledge.upload` (20 MiB) e `skills.importZip` (5 MiB) calculam SHA-256, preparam a intenção, enviam bytes por PUT direto ao armazenamento e finalizam pelo mesmo `upload_id`. CLI e MCP usam esse transporte automaticamente. As rotas multipart anteriores permanecem para compatibilidade; arquivos grandes devem usar o transporte direto para não atravessar o limite HTTP da hospedagem.
 
 Nenhum token BotoZap ou cookie é enviado ao armazenamento. O SDK preserva em memória a intenção para retries com os mesmos bytes: falha do PUT repete o PUT; falha ao finalizar repete apenas a finalização. `upload_expired` confirmado permite começar outra intenção. Para persistir a retomada entre processos, use `onUploadPrepared: ({upload_id}) => salvar(upload_id)`; após o PUT, `ai.uploads.complete({customer_id,id:upload_id})` devolve o mesmo recurso em caso de resposta anterior perdida. A API de baixo nível `ai.uploads.prepare` permite administrar também o PUT e seus headers exatos. Não registre nem compartilhe a URL assinada.
 
@@ -266,3 +270,98 @@ Nenhum token BotoZap ou cookie é enviado ao armazenamento. O SDK preserva em me
 | memory.checkpoints | GET | /ai/memory/checkpoints |
 | uploads.prepare | POST | /ai/uploads |
 | uploads.complete | POST | /ai/uploads/:id/complete |
+
+## Paridade de agentes (#498)
+
+Candidata ainda não publicada no npm: SDK 0.4.0, CLI 0.2.0 e MCP 0.3.0 incluem as
+rotas abaixo. Os contratos seguem o código da API integrada; nada é inferido.
+
+**Configuração do agente.** `config` aceita as ferramentas novas do catálogo
+governado (`contacts.search`, `conversations.history`, `crm.search`, `radar.read`,
+`cases.note`, `cases.close`, `followups.schedule`, `followups.list` e demais valores
+de `AiToolId`), `platform_skills` (`none`/`all`), `data_access.other_contacts`
+(opt-in obrigatório para publicar ferramentas que leem outros contatos),
+`accountability` (declaração de promessas e sugestão de etapa; cada uma gera
+inferência BYOK adicional) e, em `safety`, `additional_rules`, `disclosure_text`,
+`commercial_limits`, `guard_sensitivity` e `semantic_evaluator`. A camada do
+Cliente só acrescenta regras à política obrigatória da plataforma.
+
+**Confirmações que continuam com a pessoa.**
+
+- `eligibility.saveChannel` substitui modo e lista inteira de telefones de teste
+  com CAS (`expected_revision` string). Mudar um canal para `open` libera a IA
+  para qualquer contato e exige `confirm_open_to_all: true`; sem isso a API
+  responde `open_confirmation_required`. O SDK/CLI/MCP não preenchem esse campo.
+- `eligibility.revokeAuthorization` revoga imediatamente (204); resposta ainda
+  não admitida para envio não sai mais.
+- `commercialProposals.decide` usa `seq` como lock: `409 proposal_changed` exige
+  reler a proposta. `approve` aplica o efeito no CRM atomicamente;
+  `apply_effect: false` aprova sem efeito. Repetir a mesma decisão devolve
+  `replayed: true` sem reaplicar. `request` exige `request_key` estável
+  (`[A-Za-z0-9_.:-]{1,200}`); responde 202 quando enfileira.
+- `memory.reactivateEntry` e `skills.decideNearMiss` são novas aprovações e
+  exigem chave criada por owner/admin ainda autorizado.
+- `alerts.resolveBulk` resolve só alertas criados até `created_before` que casam
+  com `filters`, até 500 por chamada; `remaining` indica o restante.
+- `followups.schedulePromise` reabre a conversa pelo agente no horário ajustado à
+  janela publicada e pode enviar mensagem. Preserve `operation_key` UUID: repetir
+  devolve o mesmo retorno (200 em vez de 201). `outside_window: "template"` envia
+  template fora da janela. `resolvePromise` concilia resultado incerto com
+  evidência e nunca reenvia.
+- `providers.syncCatalog` lê o catálogo com a chave própria na revisão informada;
+  nunca altera tarifas. Falha do provedor responde `502 provider_*` sem alteração.
+
+**Leitura e diagnóstico.** `knowledge.searchDiagnostics` e `knowledge.coverage`
+são POST com escopo `agents:read`. `knowledge.citations` exige exatamente um de
+`execution_id` ou `conversation_id`; citações são dado interno da equipe.
+`inferences.list` é paginado por offset e traz `meta.summary` com falhas e pontos
+do período (padrão 7 dias, máximo 366). `followups.queue`/`followups.promises`
+usam cursor: repita com `cursor = next_cursor` até `null`. `usage.get` aceita
+`agent_id` e `purpose`; `agents`, `handoff` e p50/p95 diários são adicionais.
+`cases.list` filtra `kind`/`source`; `alerts.list` filtra `kind`/`severity` e cada
+linha traz `kind_label`, `guidance` e `links` calculados pelo servidor.
+
+| SDK (`ai.`) | Método | Rota | Scope |
+| --- | --- | --- | --- |
+| `alerts.resolveBulk` | POST | `/ai/alerts/resolve` | write |
+| `cases.events` | GET | `/ai/cases/:id/events` | read |
+| `commercialProposals.list` | GET | `/ai/commercial-proposals` | read |
+| `commercialProposals.request` | POST | `/ai/commercial-proposals` | write |
+| `commercialProposals.decide` | POST | `/ai/commercial-proposals/:id/decision` | write |
+| `commercialProposals.jobs` | GET | `/ai/commercial-proposals/jobs` | read |
+| `commercialProposals.settings` | GET | `/ai/commercial-proposals/settings` | read |
+| `commercialProposals.saveSettings` | PATCH | `/ai/commercial-proposals/settings` | write |
+| `eligibility.get` | GET | `/ai/eligibility` | read |
+| `eligibility.saveSettings` | PUT | `/ai/eligibility/settings` | write |
+| `eligibility.channel` | GET | `/ai/eligibility/channels/:id` | read |
+| `eligibility.saveChannel` | PUT | `/ai/eligibility/channels/:id` | write |
+| `eligibility.authorizations` | GET | `/ai/eligibility/authorizations` | read |
+| `eligibility.revokeAuthorization` | POST | `/ai/eligibility/authorizations/:id/revoke` | write |
+| `inferences.list` | GET | `/ai/inferences` | read |
+| `knowledge.searchDiagnostics` | POST | `/ai/knowledge/search/diagnostics` | read |
+| `knowledge.catalogItems` | GET | `/ai/knowledge/:id/catalog` | read |
+| `knowledge.syncCatalog` | POST | `/ai/knowledge/:id/catalog` | write |
+| `knowledge.citations` | GET | `/ai/knowledge/citations` | read |
+| `knowledge.coverage` | POST | `/ai/knowledge/coverage` | read |
+| `memory.entryEvents` | GET | `/ai/memory/entries/:id/events` | read |
+| `memory.reactivateEntry` | POST | `/ai/memory/entries/:id/reactivate` | write |
+| `notices.diagnostics` | GET | `/ai/notices/diagnostics` | read |
+| `notices.effect` | GET | `/ai/notices/effect` | read |
+| `operator.metrics` | GET | `/ai/operator-metrics` | read |
+| `operator.promises` | GET | `/ai/promises` | read |
+| `providers.catalog` | GET | `/ai/providers/catalog` | read |
+| `providers.syncCatalog` | POST | `/ai/providers/catalog` | write |
+| `skills.nearMisses` | GET | `/ai/skills/near-misses` | read |
+| `skills.decideNearMiss` | POST | `/ai/skills/near-misses/:id` | write |
+| `skills.composition` | GET | `/ai/skills/composition` | read |
+| `followups.queue` | GET | `/ai/followups/queue` | read |
+| `followups.promises` | GET | `/ai/followups/promises` | read |
+| `followups.schedulePromise` | POST | `/ai/followups/promises` | write |
+| `followups.getPromise` | GET | `/ai/followups/promises/:id` | read |
+| `followups.cancelPromise` | POST | `/ai/followups/promises/:id/cancel` | write |
+| `followups.resolvePromise` | POST | `/ai/followups/promises/:id/resolve` | write |
+
+CLI: `botozap ai <módulo> <método>` em kebab-case (ex.: `botozap ai eligibility
+save-channel --input-file gate.json`). MCP: `ai_<módulo>_<método>` em snake_case
+(ex.: `ai_commercial_proposals_decide`). Chamadas de escrita não são repetidas
+automaticamente em erro ou timeout.
