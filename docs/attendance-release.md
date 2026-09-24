@@ -16,6 +16,7 @@ roteiro executa publicação automaticamente.
 | Agenda, serviços, jornadas e exceções | `appointments` | `appointments` | `appointments:read/write` |
 | Calendários, sincronização e conflitos | `calendar` | `calendar` | `calendar:read/write` |
 | IA BYOK completa, incluindo paridade #498 | `ai.*` | `ai` | `agents:read/write` |
+| Tags de contatos (`tags`, `add_tags`, `remove_tags`) | `contacts.create/update` | `contacts create/update --tag/--add-tag/--remove-tag` | `contacts:write` |
 | Atribuições a membros | `conversations.*Assignment(s)` | `assignments` | `conversations:read/write` |
 
 MCP expõe cada operação com schema de entrada e saída estruturada. Atribuições
@@ -88,7 +89,7 @@ obrigatórios; `-o json` fornece saída para scripts. Exemplo de arquivo para
 
 - [ ] Servidor com migrations/scopes correspondentes e testes de isolamento.
 - [x] `pnpm install --frozen-lockfile`, `pnpm typecheck`, `pnpm build`, `pnpm test`.
-  Resultado local (com paridade #498): 146 testes SDK, 80 CLI e 120 MCP, todos aprovados.
+  Resultado local (com paridade #498): 148 testes SDK, 84 CLI e 121 MCP, todos aprovados.
 - [x] `pnpm gate:tarballs`: instala os três tarballs em consumidor limpo, verifica
   ESM/CJS, tipos, bins e MCP real sem credenciais live.
   Com #498: 145 rotas IA descobertas no tarball do MCP (257 ferramentas), sem publicar.

@@ -251,3 +251,36 @@ it("accepts the follow-up trigger agent and promise tools in configuration", asy
   expect(agent.isError).not.toBe(true);
   expect(body(fetch).config.tool_ids).toEqual(["followups.schedule", "followups.list"]);
 });
+
+it("forwards contact tag edits and accepts tags in the contact output", async () => {
+  const contact = {
+    id,
+    wa_id: "5592999990000",
+    profile_name: null,
+    phone: null,
+    user_id: null,
+    username: null,
+    parent_user_id: null,
+    phone_number_id: id,
+    last_seen_at: null,
+    created_at: "2026-09-24T00:00:00Z",
+    notes: null,
+    metadata: { tags: ["vip"] },
+    tags: ["vip"],
+    stage: null,
+  };
+  const { client, fetch } = await connect({ data: contact });
+  const result = await client.callTool({
+    name: "update_contact",
+    arguments: { id, add_tags: ["vip"], remove_tags: ["frio"] },
+  });
+  expect(result.isError).not.toBe(true);
+  expect(result.structuredContent).toEqual({ data: contact });
+  expect(body(fetch)).toEqual({ add_tags: ["vip"], remove_tags: ["frio"] });
+  const created = await client.callTool({
+    name: "create_contact",
+    arguments: { wa_id: "5592999990000", customer_id: id, tags: ["vip"] },
+  });
+  expect(created.isError).not.toBe(true);
+  expect(body(fetch, 1).tags).toEqual(["vip"]);
+});

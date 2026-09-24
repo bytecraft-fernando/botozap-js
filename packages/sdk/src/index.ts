@@ -31,7 +31,11 @@ export type {
   ListRecipientsParams,
   AddRecipientsResult,
 } from "./resources/broadcasts.js";
-export type { ListContactsParams, CreateContactParams } from "./resources/contacts.js";
+export type {
+  ListContactsParams,
+  CreateContactParams,
+  UpdateContactParams,
+} from "./resources/contacts.js";
 export type {
   ListConversationsParams,
   CreateAssignmentParams,

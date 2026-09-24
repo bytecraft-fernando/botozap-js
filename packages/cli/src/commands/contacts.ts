@@ -8,6 +8,10 @@ import {
   printLine,
 } from "../output.js";
 
+function collect(value: string, previous: string[] | undefined): string[] {
+  return [...(previous ?? []), value];
+}
+
 export function registerContacts(program: Command): void {
   const contacts = program
     .command("contacts")
@@ -69,6 +73,7 @@ export function registerContacts(program: Command): void {
     .option("--username <username>", "username")
     .option("--customer-id <id>", "cliente vinculado")
     .option("--phone-number-id <id>", "número vinculado")
+    .option("--tag <tag>", "tag do contato (repetível; até 20 × 40 caracteres)", collect)
     .action(async (opts, cmd: Command) => {
       const { client, format } = context(cmd);
       const data = await client.contacts.create({
@@ -79,6 +84,7 @@ export function registerContacts(program: Command): void {
         username: opts.username,
         customer_id: opts.customerId,
         phone_number_id: opts.phoneNumberId,
+        ...(opts.tag ? { tags: opts.tag as string[] } : {}),
       });
       if (format === "json") return printJson(data);
       printLine("Contato criado.");
@@ -90,13 +96,26 @@ export function registerContacts(program: Command): void {
     .description("Atualiza um contato")
     .option("--profile-name <nome>", "novo nome do perfil")
     .option("--username <username>", "novo username")
+    .option("--tag <tag>", "substitui todas as tags (repetível)", collect)
+    .option("--add-tag <tag>", "acrescenta tag (repetível)", collect)
+    .option("--remove-tag <tag>", "remove tag (repetível)", collect)
     .action(async (id: string, opts, cmd: Command) => {
       const { client, format } = context(cmd);
       const body: Record<string, unknown> = {};
       if (opts.profileName !== undefined) body.profile_name = opts.profileName;
       if (opts.username !== undefined) body.username = opts.username;
+      if (opts.tag) body.tags = opts.tag;
+      if (opts.addTag) body.add_tags = opts.addTag;
+      if (opts.removeTag) body.remove_tags = opts.removeTag;
+      if (opts.tag && (opts.addTag || opts.removeTag)) {
+        throw new Error(
+          "Use --tag para substituir a lista ou --add-tag/--remove-tag para alterá-la, não os dois.",
+        );
+      }
       if (Object.keys(body).length === 0) {
-        throw new Error("Informe ao menos --profile-name ou --username.");
+        throw new Error(
+          "Informe ao menos --profile-name, --username, --tag, --add-tag ou --remove-tag.",
+        );
       }
       const data = await client.contacts.update(id, body);
       if (format === "json") return printJson(data);
