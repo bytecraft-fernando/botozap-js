@@ -54,7 +54,44 @@ import type {
   AiSkill,
   AiSkillInput,
   AiSourceKind,
+  AiAlertBulkFilters,
+  AiAlertListItem,
+  AiCaseEvent,
+  AiCaseKind,
+  AiCaseSource,
+  AiCommercialProposal,
+  AiCommercialJob,
+  AiCommercialRequest,
+  AiCommercialDecision,
+  AiCommercialSettings,
+  AiEligibilityOverview,
+  AiEligibilitySettings,
+  AiChannelGate,
+  AiGateMode,
+  AiContactAuthorization,
+  AiInference,
+  AiInferenceOutcome,
+  AiInferenceSummary,
+  AiKnowledgeHit,
+  AiKnowledgeSearchDiagnostics,
+  AiCatalogItems,
+  AiCatalogSyncInput,
+  AiCatalogSyncResult,
+  AiExecutionCitations,
+  AiAgentCoverage,
+  AiMemoryEntryEvent,
+  AiNoticeCheck,
+  AiNoticeEffect,
+  AiOperatorMetrics,
+  AiTurnPromise,
+  AiModelCatalogSnapshot,
+  AiModelCatalogSync,
+  AiSkillNearMiss,
+  AiPlatformSkillComposition,
+  AiPurpose,
+  AiToolId,
 } from "./types.js";
+import type { OffsetMeta } from "../../types.js";
 import { assertAudioPricing } from "./audio-pricing.js";
 import { uploadArtifact } from "./upload.js";
 import { AI_OPERATIONS, type AiOperation } from "./operations.js";
@@ -80,7 +117,7 @@ function request<T>(client: BotoZap, op: AiOperation, raw: object): Promise<T> {
     const { file, file_name, ...fields } = input;
     if (!(file instanceof Blob) || typeof file_name !== "string")
       throw new Error("Informe file Blob e file_name.");
-    const limit = op.group === "skills" ? 5 * 1024 * 1024 : 10 * 1024 * 1024;
+    const limit = op.group === "skills" ? 5 * 1024 * 1024 : 20 * 1024 * 1024;
     if (!file.size || file.size > limit)
       throw new Error("Arquivo vazio ou excede o limite do upload.");
     return uploadArtifact<T>(client, {
@@ -98,6 +135,12 @@ function request<T>(client: BotoZap, op: AiOperation, raw: object): Promise<T> {
   if (op.shape === "offset")
     return client.requestOffsetList<T>(op.method, path, opts);
   return client.requestItem<T>(op.method, path, opts);
+}
+/** Lookup by name for operations appended after the original index-based table. */
+function named(group: string, name: string): AiOperation {
+  const op = AI_OPERATIONS.find((o) => o.group === group && o.name === name);
+  if (!op) throw new Error(`Operação IA não declarada: ${group}.${name}`);
+  return op;
 }
 export class AiAgentsResource {
   constructor(private readonly client: BotoZap) {}
@@ -244,6 +287,16 @@ export class AiProvidersResource {
   ): Promise<AiProviderModel[]> {
     return request(this.client, AI_OPERATIONS[19]!, input);
   }
+  /** Último snapshot do catálogo por credencial; nunca contém chaves. */
+  catalog(input: AiScope): Promise<AiModelCatalogSnapshot[]> {
+    return request(this.client, named("providers", "catalog"), input);
+  }
+  /** Consulta o catálogo com a chave própria na revisão informada. Nunca altera tarifas; 502 provider_* sem alteração. */
+  syncCatalog(
+    input: AiRevision & { credential_id: string },
+  ): Promise<AiModelCatalogSync> {
+    return request(this.client, named("providers", "syncCatalog"), input);
+  }
 }
 export class AiExecutionsResource {
   constructor(private readonly client: BotoZap) {}
@@ -342,12 +395,50 @@ export class AiKnowledgeResource {
       top_k?: number;
       threshold?: number;
     },
-  ): Promise<
-    (AiKnowledgeChunk & { source_name: string; similarity: number })[]
-  > {
+  ): Promise<AiKnowledgeHit[]> {
     return request(this.client, AI_OPERATIONS[30]!, input);
   }
-  /** Upload de documento de até 10 MiB para indexação BYOK. */
+  /** Mesma busca de `search` com motivo, melhor trecho abaixo do limiar e estado das fontes. */
+  searchDiagnostics(
+    input: AiScope & {
+      source_ids: string[];
+      query: string;
+      top_k?: number;
+      threshold?: number;
+    },
+  ): Promise<AiKnowledgeSearchDiagnostics> {
+    return request(this.client, named("knowledge", "searchDiagnostics"), input);
+  }
+  /** Itens atuais e últimos eventos da sincronização incremental de uma fonte de produtos. */
+  catalogItems(input: AiScope & { id: string }): Promise<AiCatalogItems> {
+    return request(this.client, named("knowledge", "catalogItems"), input);
+  }
+  /** Upserts/remoções por item; event_key idempotente (replayed não reaplica). */
+  syncCatalog(input: AiCatalogSyncInput): Promise<AiCatalogSyncResult> {
+    return request(this.client, named("knowledge", "syncCatalog"), input);
+  }
+  /** Fontes citadas nas respostas da IA (uso interno). Exatamente um filtro. */
+  citations(
+    input: AiScope &
+      (
+        | { execution_id: string; conversation_id?: never }
+        | { conversation_id: string; execution_id?: never }
+      ),
+  ): Promise<AiExecutionCitations[]> {
+    return request(this.client, named("knowledge", "citations"), input);
+  }
+  /** Prontidão das fontes, skills e etapas escolhidas para um agente; não altera nada. */
+  coverage(
+    input: AiScope & {
+      knowledge_source_ids?: string[];
+      skill_ids?: string[];
+      allowed_stage_ids?: string[];
+      tool_ids?: (AiToolId | (string & {}))[];
+    },
+  ): Promise<AiAgentCoverage> {
+    return request(this.client, named("knowledge", "coverage"), input);
+  }
+  /** Upload de documento de até 20 MiB para indexação BYOK (direto ao armazenamento). */
   upload(
     input: AiScope & {
       name: string;
@@ -416,6 +507,14 @@ export class AiMemoryResource {
   approveEntry(input: AiRevision & { id: string }): Promise<AiMemoryEntry> {
     return request(this.client, AI_OPERATIONS[40]!, input);
   }
+  /** Devolve memória arquivada ao contexto; é nova aprovação de owner/admin. */
+  reactivateEntry(input: AiRevision & { id: string }): Promise<AiMemoryEntry> {
+    return request(this.client, named("memory", "reactivateEntry"), input);
+  }
+  /** Auditoria das transições da entrada (até 50, mais recentes primeiro). */
+  entryEvents(input: AiScope & { id: string }): Promise<AiMemoryEntryEvent[]> {
+    return request(this.client, named("memory", "entryEvents"), input);
+  }
 }
 export class AiSkillsResource {
   catalog(input: AiScope): Promise<AiPlatformSkill[]> {
@@ -473,6 +572,25 @@ export class AiSkillsResource {
     },
   ): Promise<AiSkill> {
     return request(this.client, AI_OPERATIONS[48]!, input);
+  }
+  /** Quase acionamentos por palavra de sondagem, para curadoria humana. */
+  nearMisses(
+    input: AiScope & { status?: AiSkillNearMiss["status"]; skill_id?: string },
+  ): Promise<AiSkillNearMiss[]> {
+    return request(this.client, named("skills", "nearMisses"), input);
+  }
+  /** accept cria nova versão da skill (CAS em skill_revision); ignore encerra. */
+  decideNearMiss(
+    input: AiRevision & { id: string } & (
+        | { decision: "accept"; phrase: string; skill_revision: string }
+        | { decision: "ignore"; phrase?: never; skill_revision?: never }
+      ),
+  ): Promise<{ near_miss: AiSkillNearMiss; skill: AiSkill | null }> {
+    return request(this.client, named("skills", "decideNearMiss"), input);
+  }
+  /** Skills da plataforma e se o Cliente as substitui. */
+  composition(input: AiScope): Promise<AiPlatformSkillComposition[]> {
+    return request(this.client, named("skills", "composition"), input);
   }
 }
 export class AiFollowupFlowsResource {
@@ -661,9 +779,17 @@ export class AiCasesResource {
   constructor(private readonly client: BotoZap) {}
   /** GET /ai/cases */
   list(
-    input: AiPage & { status?: AiCase["status"] },
+    input: AiPage & {
+      status?: AiCase["status"];
+      kind?: AiCaseKind;
+      source?: AiCaseSource;
+    },
   ): Promise<OffsetList<AiCase>> {
     return request(this.client, AI_OPERATIONS[73]!, input);
+  }
+  /** Linha do tempo tipada, da mais antiga para a mais recente. */
+  events(input: AiPage & { id: string }): Promise<OffsetList<AiCaseEvent>> {
+    return request(this.client, named("cases", "events"), input);
   }
   /** GET /ai/cases/:id */
   get(input: AiScope & { id: string }): Promise<AiCase> {
@@ -698,9 +824,19 @@ export class AiAlertsResource {
   constructor(private readonly client: BotoZap) {}
   /** GET /ai/alerts */
   list(
-    input: AiPage & { status?: AiAlert["status"] },
-  ): Promise<OffsetList<AiAlert>> {
+    input: AiPage & {
+      status?: AiAlert["status"];
+      kind?: string;
+      severity?: AiAlert["severity"];
+    },
+  ): Promise<OffsetList<AiAlertListItem>> {
     return request(this.client, AI_OPERATIONS[77]!, input);
+  }
+  /** Resolve em lote apenas alertas criados até created_before (até 500 por chamada). */
+  resolveBulk(
+    input: AiScope & { created_before: string; filters?: AiAlertBulkFilters },
+  ): Promise<{ resolved_count: number; remaining: number }> {
+    return request(this.client, named("alerts", "resolveBulk"), input);
   }
   /** PATCH /ai/alerts/:id */
   update(
@@ -746,6 +882,14 @@ export class AiNoticesResource {
   retry(input: AiScope & { id: string }): Promise<{ queued: true }> {
     return request(this.client, AI_OPERATIONS[84]!, input);
   }
+  /** Checagens de destino, canal, conexão e template; não envia mensagem. */
+  diagnostics(input: AiScope): Promise<AiNoticeCheck[]> {
+    return request(this.client, named("notices", "diagnostics"), input);
+  }
+  /** Efeito dos avisos no tempo de resposta (days 1–90, padrão 30). */
+  effect(input: AiScope & { days?: number }): Promise<AiNoticeEffect> {
+    return request(this.client, named("notices", "effect"), input);
+  }
 }
 export class AiProposalsResource {
   constructor(private readonly client: BotoZap) {}
@@ -785,7 +929,14 @@ export class AiProposalsResource {
 export class AiUsageResource {
   constructor(private readonly client: BotoZap) {}
   /** Medições e estimativas de consumo BYOK, sem cobrança ou crédito BotoZap. */
-  get(input: AiScope & { from?: string; to?: string }): Promise<AiRecord> {
+  get(
+    input: AiScope & {
+      from?: string;
+      to?: string;
+      agent_id?: string;
+      purpose?: AiPurpose;
+    },
+  ): Promise<AiRecord> {
     return request(this.client, AI_OPERATIONS[90]!, input);
   }
   /** GET /ai/usage/budget */
@@ -827,6 +978,139 @@ export class AiUploadsResource {
     return request(this.client, AI_OPERATIONS[107]!, input);
   }
 }
+export class AiCommercialProposalsResource {
+  constructor(private readonly client: BotoZap) {}
+  /** Propostas de próxima ação; status decided reúne approved e dismissed. */
+  list(
+    input: AiPage & {
+      status?: AiCommercialProposal["status"] | "decided";
+      opportunity_id?: string;
+    },
+  ): Promise<OffsetList<AiCommercialProposal>> {
+    return request(this.client, named("commercialProposals", "list"), input);
+  }
+  /** Enfileira geração BYOK; reuse request_key ao repetir. Não altera o CRM. */
+  request(
+    input: AiScope & { opportunity_id: string; request_key: string },
+  ): Promise<AiCommercialRequest> {
+    return request(this.client, named("commercialProposals", "request"), input);
+  }
+  /** approve aplica o efeito no CRM; seq é o lock (409 proposal_changed). Repetição devolve replayed. */
+  decide(
+    input: AiScope & {
+      id: string;
+      decision: "approve" | "dismiss";
+      seq: number;
+      note?: string;
+      apply_effect?: boolean;
+    },
+  ): Promise<AiCommercialDecision> {
+    return request(this.client, named("commercialProposals", "decide"), input);
+  }
+  /** Últimas 50 gerações. */
+  jobs(input: AiScope): Promise<AiCommercialJob[]> {
+    return request(this.client, named("commercialProposals", "jobs"), input);
+  }
+  settings(input: AiScope): Promise<AiCommercialSettings> {
+    return request(this.client, named("commercialProposals", "settings"), input);
+  }
+  saveSettings(
+    input: AiScope & { enabled: boolean; expected_revision: number },
+  ): Promise<AiCommercialSettings & { updated_at: string }> {
+    return request(
+      this.client,
+      named("commercialProposals", "saveSettings"),
+      input,
+    );
+  }
+}
+export class AiEligibilityResource {
+  constructor(private readonly client: BotoZap) {}
+  /** Configurações e gate de cada canal. */
+  get(input: AiScope): Promise<AiEligibilityOverview> {
+    return request(this.client, named("eligibility", "get"), input);
+  }
+  /** assignment_blocks_ai omitido preserva; false reduz a proteção. */
+  saveSettings(
+    input: AiRevision & {
+      authorization_ttl_days: number;
+      authorize_broadcast_replies: boolean;
+      authorize_automation_replies: boolean;
+      assignment_blocks_ai?: boolean;
+    },
+  ): Promise<AiEligibilitySettings> {
+    return request(this.client, named("eligibility", "saveSettings"), input);
+  }
+  channel(input: AiScope & { id: string }): Promise<AiChannelGate> {
+    return request(this.client, named("eligibility", "channel"), input);
+  }
+  /** Substitui modo e lista inteira (CAS). Abrir para todos exige confirm_open_to_all: true após confirmação do usuário. */
+  saveChannel(
+    input: AiRevision & {
+      id: string;
+      mode: AiGateMode;
+      test_phone_numbers: string[];
+      confirm_open_to_all?: boolean;
+    },
+  ): Promise<AiChannelGate> {
+    return request(this.client, named("eligibility", "saveChannel"), input);
+  }
+  authorizations(
+    input: AiScope & {
+      channel_account_id?: string;
+      status?: "active" | "all";
+      limit?: number;
+    },
+  ): Promise<AiContactAuthorization[]> {
+    return request(this.client, named("eligibility", "authorizations"), input);
+  }
+  /** Revoga já; resposta ainda não admitida para envio não sai. */
+  revokeAuthorization(input: AiScope & { id: string }): Promise<void> {
+    return request(
+      this.client,
+      named("eligibility", "revokeAuthorization"),
+      input,
+    );
+  }
+}
+export class AiInferencesResource {
+  constructor(private readonly client: BotoZap) {}
+  /** Chamadas de modelo do ledger BYOK; meta.summary agrega falhas e pontos do período. */
+  list(
+    input: AiPage & {
+      from?: string;
+      to?: string;
+      purpose?: AiPurpose;
+      point?: string;
+      outcome?: AiInferenceOutcome;
+      agent_id?: string;
+    },
+  ): Promise<{
+    data: AiInference[];
+    meta: OffsetMeta & { summary: AiInferenceSummary };
+  }> {
+    return request(this.client, named("inferences", "list"), input);
+  }
+}
+export class AiOperatorResource {
+  constructor(private readonly client: BotoZap) {}
+  /** Promessas por agente (days 1–90, padrão 30). */
+  metrics(
+    input: AiScope & { agent_id?: string; days?: number },
+  ): Promise<AiOperatorMetrics> {
+    return request(this.client, named("operator", "metrics"), input);
+  }
+  /** Somente leitura; correções são feitas por uma pessoa no painel. */
+  promises(
+    input: AiScope & {
+      agent_id?: string;
+      status?: AiTurnPromise["status"];
+      limit?: number;
+    },
+  ): Promise<AiTurnPromise[]> {
+    return request(this.client, named("operator", "promises"), input);
+  }
+}
 export class Ai {
   readonly uploads: AiUploadsResource;
   readonly agents: AiAgentsResource;
@@ -844,6 +1128,10 @@ export class Ai {
   readonly notices: AiNoticesResource;
   readonly proposals: AiProposalsResource;
   readonly usage: AiUsageResource;
+  readonly commercialProposals: AiCommercialProposalsResource;
+  readonly eligibility: AiEligibilityResource;
+  readonly inferences: AiInferencesResource;
+  readonly operator: AiOperatorResource;
   constructor(private readonly client: BotoZap) {
     this.uploads = new AiUploadsResource(client);
     this.agents = new AiAgentsResource(client);
@@ -861,6 +1149,10 @@ export class Ai {
     this.notices = new AiNoticesResource(client);
     this.proposals = new AiProposalsResource(client);
     this.usage = new AiUsageResource(client);
+    this.commercialProposals = new AiCommercialProposalsResource(client);
+    this.eligibility = new AiEligibilityResource(client);
+    this.inferences = new AiInferencesResource(client);
+    this.operator = new AiOperatorResource(client);
   }
   /** Executes only a declared operation. Prefer typed module methods in application code. */
   invoke(

@@ -1,6 +1,54 @@
 [
   {
     "method": "POST",
+    "path": "/ai/knowledge/search/diagnostics"
+  },
+  {
+    "method": "GET",
+    "path": "/ai/knowledge/:id/catalog"
+  },
+  {
+    "method": "POST",
+    "path": "/ai/knowledge/:id/catalog"
+  },
+  {
+    "method": "GET",
+    "path": "/ai/knowledge/citations"
+  },
+  {
+    "method": "POST",
+    "path": "/ai/knowledge/coverage"
+  },
+  {
+    "method": "POST",
+    "path": "/ai/memory/entries/:id/reactivate"
+  },
+  {
+    "method": "GET",
+    "path": "/ai/memory/entries/:id/events"
+  },
+  {
+    "method": "GET",
+    "path": "/ai/skills/near-misses"
+  },
+  {
+    "method": "POST",
+    "path": "/ai/skills/near-misses/:id"
+  },
+  {
+    "method": "GET",
+    "path": "/ai/skills/composition"
+  },
+  {
+    "method": "GET",
+    "path": "/ai/operator-metrics"
+  },
+  {
+    "method": "GET",
+    "path": "/ai/promises"
+  },
+  {
+    "method": "POST",
     "path": "/ai/agents/:id/archive"
   },
   {
@@ -49,11 +97,19 @@
   },
   {
     "method": "POST",
+    "path": "/ai/alerts/resolve"
+  },
+  {
+    "method": "POST",
     "path": "/ai/cases/:id/chat"
   },
   {
     "method": "GET",
     "path": "/ai/cases/:id/chat"
+  },
+  {
+    "method": "GET",
+    "path": "/ai/cases/:id/events"
   },
   {
     "method": "GET",
@@ -74,6 +130,42 @@
   {
     "method": "GET",
     "path": "/ai/cases"
+  },
+  {
+    "method": "GET",
+    "path": "/ai/commercial-proposals"
+  },
+  {
+    "method": "POST",
+    "path": "/ai/commercial-proposals"
+  },
+  {
+    "method": "POST",
+    "path": "/ai/commercial-proposals/:id/decision"
+  },
+  {
+    "method": "GET",
+    "path": "/ai/commercial-proposals/jobs"
+  },
+  {
+    "method": "GET",
+    "path": "/ai/commercial-proposals/settings"
+  },
+  {
+    "method": "PATCH",
+    "path": "/ai/commercial-proposals/settings"
+  },
+  {
+    "method": "GET",
+    "path": "/ai/inferences"
+  },
+  {
+    "method": "GET",
+    "path": "/ai/providers/catalog"
+  },
+  {
+    "method": "POST",
+    "path": "/ai/providers/catalog"
   },
   {
     "method": "POST",
@@ -98,6 +190,30 @@
   {
     "method": "POST",
     "path": "/ai/credentials"
+  },
+  {
+    "method": "GET",
+    "path": "/ai/eligibility"
+  },
+  {
+    "method": "PUT",
+    "path": "/ai/eligibility/settings"
+  },
+  {
+    "method": "GET",
+    "path": "/ai/eligibility/channels/:id"
+  },
+  {
+    "method": "PUT",
+    "path": "/ai/eligibility/channels/:id"
+  },
+  {
+    "method": "GET",
+    "path": "/ai/eligibility/authorizations"
+  },
+  {
+    "method": "POST",
+    "path": "/ai/eligibility/authorizations/:id/revoke"
   },
   {
     "method": "POST",
@@ -278,6 +394,14 @@
   {
     "method": "GET",
     "path": "/ai/notices/options"
+  },
+  {
+    "method": "GET",
+    "path": "/ai/notices/diagnostics"
+  },
+  {
+    "method": "GET",
+    "path": "/ai/notices/effect"
   },
   {
     "method": "GET",

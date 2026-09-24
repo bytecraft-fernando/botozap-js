@@ -77,7 +77,8 @@ try {
   await client.connect(transport);
 
   const tools = await client.listTools();
-  assert.equal(tools.tools.length, 220);
+  // 111 non-AI tools + 1 conversation control + one tool per declared AI operation.
+  assert.equal(tools.tools.length, 112 + AI_OPERATIONS.length);
   const snake=(s)=>s.replace(/[A-Z]/g,c=>`_${c.toLowerCase()}`);
   for(const op of AI_OPERATIONS) assert(tools.tools.some(t=>t.name===`ai_${snake(op.group)}_${snake(op.name)}`));
   for (const name of [
@@ -92,6 +93,9 @@ try {
     "ai_agents_preview",
     "ai_providers_models",
     "ai_followups_resolve_effect",
+    "ai_eligibility_save_channel",
+    "ai_commercial_proposals_decide",
+    "ai_inferences_list",
     "control_conversation_agent",
   ]) {
     assert.ok(
@@ -147,7 +151,7 @@ try {
   const aiResult=await client.callTool({name:"ai_agents_list",arguments:{customer_id:"11111111-1111-4111-8111-111111111111"}});
   assert.notEqual(aiResult.isError,true);
   assert.deepEqual(aiResult.structuredContent,{data:[],meta:{page:1,per_page:20,total_count:0,total_pages:0}});
-  process.stdout.write("clean tarball tools-only: ok (108 AI routes discovered)\n");
+  process.stdout.write(`clean tarball tools-only: ok (${AI_OPERATIONS.length} AI routes discovered)\n`);
 } finally {
   await client.close().catch(() => {});
   await new Promise((resolve, reject) => {

@@ -1,5 +1,9 @@
 import { z, type ZodTypeAny } from "zod";
-import { AI_OPERATIONS } from "@botozap/sdk";
+import {
+  AI_CONFIGURABLE_PURPOSES,
+  AI_OPERATIONS,
+  AI_PURPOSES,
+} from "@botozap/sdk";
 import type { Register } from "../register.js";
 import { emptyOperationResult } from "../register.js";
 const uuid = z.string().uuid(),
@@ -13,16 +17,7 @@ const uuid = z.string().uuid(),
     "deepseek",
     "xai",
   ]),
-  purpose = z.enum([
-    "default",
-    "agent_turn",
-    "agent_operator",
-    "router",
-    "followup",
-    "proposal",
-    "transcription",
-    "embedding",
-  ]),
+  purpose = z.enum(AI_PURPOSES),
   binding = z
     .object({ provider, model: text.min(1).max(200), credential_id: uuid })
     .strict(),
@@ -60,7 +55,35 @@ const tool = z.enum([
   "cases.update",
   "handoff",
   "alerts.create",
+  "contacts.search",
+  "contacts.get",
+  "contacts.propose_update",
+  "conversations.list",
+  "conversations.get",
+  "conversations.history",
+  "conversations.assign",
+  "team.members.read",
+  "inbox.queue.read",
+  "tags.read",
+  "tags.manage",
+  "saved_replies.read",
+  "saved_replies.render",
+  "automations.read",
+  "automations.runs.read",
+  "radar.read",
+  "radar.propose_reactivation",
+  "catalog.products.search",
+  "privacy.consent.read",
+  "knowledge.sources.read",
+  "proposals.read",
+  "cases.read",
+  "crm.search",
+  "agenda.schedule.read",
+  "agenda.appointments.confirm",
+  "cases.note",
+  "cases.close",
 ]);
+const toolLimit = tool.options.length;
 const agentConfig = z
   .object({
     system_prompt: text.max(20000).optional(),
@@ -68,14 +91,14 @@ const agentConfig = z
     model: text.max(200).optional(),
     credential_id: uuid.nullable().optional(),
     channel_account_id: uuid.nullable().optional(),
-    tool_ids: z.array(tool).max(26).optional(),
+    tool_ids: z.array(tool).max(toolLimit).optional(),
     operator: z
       .object({
         enabled: z.boolean().optional(),
         provider: provider.nullable().optional(),
         model: text.nullable().optional(),
         credential_id: uuid.nullable().optional(),
-        tool_ids: z.array(tool).max(26).optional(),
+        tool_ids: z.array(tool).max(toolLimit).optional(),
       })
       .strict()
       .optional(),
@@ -113,7 +136,19 @@ const agentConfig = z
     allowed_stage_ids: z.array(uuid).max(100).optional(),
     knowledge_source_ids: z.array(uuid).max(100).optional(),
     skill_ids: z.array(uuid).max(100).optional(),
+    platform_skills: z.enum(["none", "all"]).optional(),
     memory_enabled: z.boolean().optional(),
+    data_access: z
+      .object({ other_contacts: z.boolean().optional() })
+      .strict()
+      .optional(),
+    accountability: z
+      .object({
+        enabled: z.boolean().optional(),
+        classification: z.boolean().optional(),
+      })
+      .strict()
+      .optional(),
     media: z
       .object({
         images_enabled: z.boolean().optional(),
@@ -135,6 +170,18 @@ const agentConfig = z
         disclose_ai: z.boolean().optional(),
         prohibited_claims: z.array(text).max(50).optional(),
         escalation_instructions: text.max(4000).optional(),
+        additional_rules: z.array(text.min(1).max(500)).max(30).optional(),
+        disclosure_text: text.max(300).optional(),
+        commercial_limits: z
+          .object({
+            min_price_brl: z.number().min(0).max(1000000000).nullable().optional(),
+            max_discount_percent: z.number().min(0).max(100).nullable().optional(),
+            max_installments: z.number().int().min(1).max(120).nullable().optional(),
+          })
+          .strict()
+          .optional(),
+        guard_sensitivity: z.enum(["standard", "strict"]).optional(),
+        semantic_evaluator: z.boolean().optional(),
       })
       .strict()
       .optional(),
@@ -173,68 +220,90 @@ const routerConfig = z
       .max(30),
   })
   .strict();
+const alertKind = z.string().regex(/^[a-z][a-z0-9_]{1,47}$/);
+/** Same product contract as knowledge import (catalog kind products). */
+const catalogProduct = z
+  .object({
+    id: z.string().min(1).max(100),
+    name: z.union([
+      z.string().min(1).max(300),
+      z.object({ pt: z.string().min(1).max(300) }).strict(),
+    ]),
+    description: z.string().max(10000).optional(),
+    price: z
+      .string()
+      .regex(/^\d{1,12}(?:[.,]\d{1,2})?$/)
+      .optional(),
+    sku: z.string().max(150).optional(),
+    permalink: z.string().url().max(2000).optional(),
+    variants: z
+      .array(
+        z
+          .object({
+            price: z.string().optional(),
+            sku: z.string().optional(),
+          })
+          .strict(),
+      )
+      .max(100)
+      .optional(),
+    categories: z
+      .array(
+        z
+          .object({
+            name: z.union([
+              z.string(),
+              z.object({ pt: z.string() }).strict(),
+            ]),
+          })
+          .strict(),
+      )
+      .max(30)
+      .optional(),
+  })
+  .strict();
 const schemas: Record<string, ZodTypeAny> = {
   uuid,
   revision,
   provider,
   purpose,
-  configurablePurpose: z.enum([
-    "default",
-    "followup",
-    "proposal",
-    "transcription",
-    "embedding",
-  ]),
+  configurablePurpose: z.enum(
+    AI_CONFIGURABLE_PURPOSES as unknown as [string, ...string[]],
+  ),
   agentConfig,
   revisionZero: z.string().regex(/^(0|[1-9]\d{0,18})$/),
   sha256: z.string().regex(/^[a-f0-9]{64}$/),
   caseBody: z.string().trim().min(1).max(4000),
   caseQuestion: z.string().trim().min(3).max(1000),
-  catalogProducts: z
+  catalogProducts: z.array(catalogProduct).min(1).max(1000),
+  catalogUpserts: z
+    .array(catalogProduct.extend({ updated_at: text.datetime({ offset: true }).optional() }))
+    .max(1000),
+  catalogRemovals: z
     .array(
       z
         .object({
-          id: z.string().min(1).max(100),
-          name: z.union([
-            z.string().min(1).max(300),
-            z.object({ pt: z.string().min(1).max(300) }).strict(),
-          ]),
-          description: z.string().max(10000).optional(),
-          price: z
-            .string()
-            .regex(/^\d{1,12}(?:[.,]\d{1,2})?$/)
-            .optional(),
-          sku: z.string().max(150).optional(),
-          permalink: z.string().url().max(2000).optional(),
-          variants: z
-            .array(
-              z
-                .object({
-                  price: z.string().optional(),
-                  sku: z.string().optional(),
-                })
-                .strict(),
-            )
-            .max(100)
-            .optional(),
-          categories: z
-            .array(
-              z
-                .object({
-                  name: z.union([
-                    z.string(),
-                    z.object({ pt: z.string() }).strict(),
-                  ]),
-                })
-                .strict(),
-            )
-            .max(30)
-            .optional(),
+          id: z.string().trim().min(1).max(100),
+          updated_at: text.datetime({ offset: true }).optional(),
         })
         .strict(),
     )
-    .min(1)
     .max(1000),
+  eventKey: z.string().trim().min(1).max(200),
+  integration: z.string().regex(/^[a-z][a-z0-9_]{1,39}$/),
+  requestKey: z.string().regex(/^[A-Za-z0-9_.:-]{1,200}$/),
+  testPhones: z.array(z.string().max(40)).max(200),
+  alertKind,
+  alertBulkFilters: z
+    .object({
+      kind: alertKind.optional(),
+      severity: z.enum(["info", "warning", "critical"]).optional(),
+      status: z.enum(["open", "acknowledged"]).optional(),
+    })
+    .strict(),
+  inferencePoint: z.string().regex(/^[a-z_]{1,64}$/),
+  uuidList: z.array(uuid).max(100),
+  toolIdList: z.array(z.string().max(80)).max(100),
   routerConfig,
   string: text,
   number: z.number().finite(),
@@ -381,24 +450,25 @@ export function registerAiTools(register: Register) {
       input.file_base64 = z
         .string()
         .min(1)
-        .max(op.group === "skills" ? 7 * 1024 * 1024 : 14 * 1024 * 1024)
+        .max(op.group === "skills" ? 7 * 1024 * 1024 : 28 * 1024 * 1024)
         .describe(
           "Conteúdo base64 do arquivo autorizado; nunca um caminho do servidor MCP.",
         );
     const scope =
-      op.method === "GET" || (op.group === "knowledge" && op.name === "search")
-        ? "agents:read"
-        : "agents:write";
+      op.scope ?? (op.method === "GET" ? "agents:read" : "agents:write");
     const output =
       op.shape === "offset"
         ? z.object({
             data: z.array(z.unknown()),
-            meta: z.object({
-              page: z.number(),
-              per_page: z.number(),
-              total_count: z.number(),
-              total_pages: z.number(),
-            }),
+            // Passthrough keeps route extras such as inferences meta.summary.
+            meta: z
+              .object({
+                page: z.number(),
+                per_page: z.number(),
+                total_count: z.number(),
+                total_pages: z.number(),
+              })
+              .passthrough(),
           })
         : op.shape === "empty"
           ? z.object({ success: z.literal(true) })
@@ -420,7 +490,7 @@ export function registerAiTools(register: Register) {
             throw new Error("Base64 inválido.");
           const bytes = Buffer.from(base64, "base64");
           const limit =
-            op.group === "skills" ? 5 * 1024 * 1024 : 10 * 1024 * 1024;
+            op.group === "skills" ? 5 * 1024 * 1024 : 20 * 1024 * 1024;
           if (!bytes.length || bytes.length > limit)
             throw new Error("Arquivo vazio ou excede o limite.");
           raw.file = new Blob([bytes], {

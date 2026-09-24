@@ -1,17 +1,36 @@
 /** Public /api/v1/ai contracts. Revisions are opaque strings unless the endpoint explicitly uses a number. */
 export type AiProvider =
   "anthropic" | "openai" | "google" | "openrouter" | "deepseek" | "xai";
-export type AiPurpose =
-  | "default"
-  | "agent_turn"
-  | "agent_operator"
-  | "router"
-  | "followup"
-  | "proposal"
-  | "transcription"
-  | "embedding";
-export type AiConfigurablePurpose =
-  "default" | "followup" | "proposal" | "transcription" | "embedding";
+/** Every BYOK purpose. #498 added granular purposes; without their own binding they inherit the Customer default. */
+export const AI_PURPOSES = [
+  "default",
+  "agent_turn",
+  "agent_operator",
+  "router",
+  "followup",
+  "proposal",
+  "transcription",
+  "embedding",
+  "guard",
+  "evaluator",
+  "classification",
+  "compaction",
+  "case_chat",
+  "learning_judge",
+  "learning_distiller",
+  "vision",
+  "commercial_proposal",
+] as const;
+export type AiPurpose = (typeof AI_PURPOSES)[number];
+/** Purposes bound in Providers; agent_turn/agent_operator/router come from the agent version or router. */
+export const AI_CONFIGURABLE_PURPOSES = AI_PURPOSES.filter(
+  (p): p is Exclude<AiPurpose, "agent_turn" | "agent_operator" | "router"> =>
+    p !== "agent_turn" && p !== "agent_operator" && p !== "router",
+);
+export type AiConfigurablePurpose = Exclude<
+  AiPurpose,
+  "agent_turn" | "agent_operator" | "router"
+>;
 export type AiScope = { customer_id: string };
 export type AiRevision = AiScope & { expected_revision: string };
 export type AiRecord = Record<string, unknown>;
@@ -67,7 +86,34 @@ export type AiToolId =
   | "cases.open"
   | "cases.update"
   | "handoff"
-  | "alerts.create";
+  | "alerts.create"
+  | "contacts.search"
+  | "contacts.get"
+  | "contacts.propose_update"
+  | "conversations.list"
+  | "conversations.get"
+  | "conversations.history"
+  | "conversations.assign"
+  | "team.members.read"
+  | "inbox.queue.read"
+  | "tags.read"
+  | "tags.manage"
+  | "saved_replies.read"
+  | "saved_replies.render"
+  | "automations.read"
+  | "automations.runs.read"
+  | "radar.read"
+  | "radar.propose_reactivation"
+  | "catalog.products.search"
+  | "privacy.consent.read"
+  | "knowledge.sources.read"
+  | "proposals.read"
+  | "cases.read"
+  | "crm.search"
+  | "agenda.schedule.read"
+  | "agenda.appointments.confirm"
+  | "cases.note"
+  | "cases.close";
 export interface AiAgentConfig {
   system_prompt?: string;
   provider?: AiProvider;
@@ -105,7 +151,13 @@ export interface AiAgentConfig {
   allowed_stage_ids?: string[];
   knowledge_source_ids?: string[];
   skill_ids?: string[];
+  /** Opt-in platform skills composed at runtime; Customer copies override them. */
+  platform_skills?: "none" | "all";
   memory_enabled?: boolean;
+  /** Reading OTHER contacts/conversations is an explicit opt-in (contacts.search, radar.read, crm.search require it to publish). */
+  data_access?: { other_contacts?: boolean };
+  /** Turn closing (promise declaration/checkpoint) and stage suggestion; each adds a BYOK inference per turn. */
+  accountability?: { enabled?: boolean; classification?: boolean };
   media?: {
     images_enabled?: boolean;
     documents_enabled?: boolean;
@@ -120,6 +172,16 @@ export interface AiAgentConfig {
     disclose_ai?: boolean;
     prohibited_claims?: string[];
     escalation_instructions?: string;
+    /** Only adds rules above the mandatory platform policy. */
+    additional_rules?: string[];
+    disclosure_text?: string;
+    commercial_limits?: {
+      min_price_brl?: number | null;
+      max_discount_percent?: number | null;
+      max_installments?: number | null;
+    };
+    guard_sensitivity?: "standard" | "strict";
+    semantic_evaluator?: boolean;
   };
   style?: {
     tone?: "professional" | "friendly" | "direct";
@@ -353,6 +415,31 @@ export type AiCase = {
   last_human_at: string | null;
   last_human_revision: number | null;
   reply_operator_version: number | null;
+  /** #498: subject, explicit blocker, origin and closing outcome (older rows: outro/null/agent). */
+  kind?: AiCaseKind;
+  blocker?: string | null;
+  source?: AiCaseSource;
+  outcome?: "resolved" | "no_action_needed" | "escalated" | "cancelled" | null;
+  last_action_at?: string;
+  stale_reminders?: number;
+  contact_name?: string | null;
+};
+export type AiCaseKind =
+  "agendamento" | "duvida" | "problema" | "financeiro" | "acesso" | "outro";
+export type AiCaseSource = "agent" | "guardrail" | "human" | "operator";
+export type AiCaseEvent = {
+  id: string;
+  case_id: string;
+  kind: string;
+  actor_kind: "agent" | "human" | "api_key" | "system" | "contact";
+  actor_user_id: string | null;
+  actor_api_key_id: string | null;
+  actor_agent_id: string | null;
+  body: string | null;
+  details: AiRecord;
+  created_at: string;
+  /** Lay label computed by the server next to the raw kind. */
+  label: string;
 };
 export type AiAlert = {
   id: string;
@@ -366,6 +453,22 @@ export type AiAlert = {
   revision: number;
   created_at: string;
   resolved_at: string | null;
+  kind?: string;
+  reminder_count?: number;
+  last_reminded_at?: string | null;
+  case_status?: AiCase["status"] | null;
+};
+/** Alert list rows: cause label, guidance and destinations projected by the server from stored IDs. */
+export type AiAlertListItem = AiAlert & {
+  kind: string;
+  kind_label: string;
+  guidance: string;
+  links: { href: string; label: string }[];
+};
+export type AiAlertBulkFilters = {
+  kind?: string;
+  severity?: AiAlert["severity"];
+  status?: "open" | "acknowledged";
 };
 export type AiNoticeField =
   "case_title" | "case_summary" | "case_url" | "contact_name" | "agent_name";
@@ -387,6 +490,9 @@ export type AiNoticeJob = {
   created_at: string;
   finished_at: string | null;
   external_id: string | null;
+  destination_masked?: string | null;
+  case_title?: string | null;
+  case_status?: string | null;
 };
 export type AiProposal = {
   id: string;
@@ -500,6 +606,7 @@ export type AiRouterTest = {
     | "sticky"
     | "reclassified"
     | "fallback"
+    | "session"
     | "no_match"
     | "classifier_failed";
   error_code: string | null;
@@ -558,6 +665,20 @@ export type AiUsageSummary = {
     audio_seconds: number | null;
     estimated_cost_usd: number | null;
   }[];
+  /** #498: per-agent breakdown and handoff rate (agent_id filter applies; purpose does not). */
+  agents?: {
+    agent_id: string | null;
+    calls: number;
+    estimated_cost_usd: number | null;
+    unmeasured_calls: number;
+  }[];
+  handoff?: {
+    conversations: number;
+    handoffs: number;
+    rate: number | null;
+    purpose_filter_applied: false;
+    agent_filter_applied: boolean;
+  };
 };
 export type AiBudget = Omit<
   AiBudgetInput,
@@ -602,6 +723,7 @@ export type AiCaseChat = {
     reason: "no_agent" | "paused" | "archived" | "unpublished" | null;
     agent_id: string | null;
     version_id: string | null;
+    binding?: "purpose" | "customer_default" | null;
   } | null;
   usage: {
     input_tokens: number | null;
@@ -729,3 +851,413 @@ export interface AiConversationCheckpoint {
 export type AiUploadReceiptCallback = (receipt: {
   upload_id: string;
 }) => void | Promise<void>;
+
+/* ───────────── #498 agent parity: contracts mirror the /api/v1/ai routes. ───────────── */
+
+export type AiCommercialEffect =
+  | { kind: "none" }
+  | { kind: "schedule_follow_up"; at: string }
+  | { kind: "move_stage"; stage_id: string }
+  | { kind: "create_task"; title: string; due_at: string | null };
+export type AiCommercialProposal = {
+  id: string;
+  opportunity_id: string;
+  opportunity_title: string;
+  opportunity_status: string;
+  stage_id: string | null;
+  stage_label: string | null;
+  contact_id: string;
+  contact_name: string | null;
+  /** Optimistic lock echoed in `commercialProposals.decide`. */
+  seq: number;
+  status: "pending" | "approved" | "dismissed" | "superseded";
+  next_action: string;
+  rationale: string;
+  evidence: string[];
+  effect: AiCommercialEffect;
+  effect_stage_label: string | null;
+  provider: string;
+  model: string;
+  binding_source: string | null;
+  created_at: string;
+  decided_at: string | null;
+  decided_by: string | null;
+  decided_by_label: string | null;
+  decided_by_api_key: string | null;
+  decision_note: string | null;
+  effect_applied: boolean | null;
+  effect_result: AiRecord | null;
+};
+export type AiCommercialJob = {
+  id: string;
+  opportunity_id: string;
+  opportunity_title: string | null;
+  reason: "manual" | "automatic";
+  status: string;
+  last_error: string | null;
+  proposal_id: string | null;
+  created_at: string;
+  finished_at: string | null;
+};
+export type AiCommercialRequest = {
+  job_id: string;
+  status: string;
+  queued: boolean;
+  replayed: boolean;
+};
+export type AiCommercialDecision = {
+  id: string;
+  status: "approved" | "dismissed";
+  seq: number;
+  effect_applied: boolean | null;
+  effect_result: AiRecord | null;
+  replayed: boolean;
+};
+export type AiCommercialSettings = {
+  enabled: boolean;
+  revision: number;
+  updated_at: string | null;
+};
+
+export type AiGateMode = "open" | "allowlist" | "pre_go_live";
+export type AiChannelGate = {
+  channel_account_id: string;
+  channel_name: string;
+  channel: string;
+  mode: AiGateMode;
+  /** "default" = not configured: closed channel (test numbers only, empty list). */
+  origin: "default" | "legacy" | "user" | "api";
+  test_phone_numbers: string[];
+  revision: string;
+  opened_at: string | null;
+  updated_at: string | null;
+  ai_owner: {
+    kind: "agent" | "router";
+    id: string;
+    name: string;
+    automatic: boolean;
+  } | null;
+};
+export type AiEligibilitySettings = {
+  authorization_ttl_days: number;
+  authorize_broadcast_replies: boolean;
+  authorize_automation_replies: boolean;
+  assignment_blocks_ai: boolean;
+  revision: string;
+};
+export type AiEligibilityOverview = {
+  settings: AiEligibilitySettings;
+  channels: AiChannelGate[];
+};
+export type AiContactAuthorization = {
+  id: string;
+  channel_account_id: string;
+  contact_id: string;
+  contact_name: string | null;
+  contact_phone: string | null;
+  kind: "broadcast_reply" | "journey_reply" | "followup_reply" | "manual_resume";
+  reason: string;
+  source_id: string | null;
+  authorized_at: string;
+  expires_at: string;
+  status: "active" | "expired" | "revoked";
+  revoked_at: string | null;
+  revoked_reason: string | null;
+};
+
+export type AiInferenceOutcome = "ok" | "failed" | "unknown" | "in_progress";
+export type AiInferenceOrigin =
+  | "purpose"
+  | "inherited_proposal"
+  | "customer_default"
+  | "fallback"
+  | "agent_version"
+  | "router_config"
+  | "unrecorded";
+type AiInferenceExplanation = {
+  point_label: string;
+  origin_explanation: string;
+  /** Present when the row has an error code. */
+  cause?: string;
+  consequence?: string;
+  suggested_action?: string;
+};
+export type AiInference = AiInferenceExplanation & {
+  id: string;
+  created_at: string;
+  completed_at: string | null;
+  purpose: string;
+  point: string;
+  provider: string;
+  model: string;
+  status: "started" | "completed" | "failed" | "unknown";
+  outcome: AiInferenceOutcome;
+  measurement_status: string;
+  error_code: string | null;
+  http_status: number | null;
+  origin: AiInferenceOrigin;
+  agent_id: string | null;
+  execution_id: string | null;
+  latency_ms: number | null;
+  input_tokens: number | null;
+  output_tokens: number | null;
+  estimated_cost_usd: number | null;
+  reserved_usd: number | null;
+};
+export type AiInferenceSummary = {
+  failures: (AiInferenceExplanation & {
+    code: string;
+    point: string;
+    origin: AiInferenceOrigin;
+    calls: number;
+    last_at: string;
+  })[];
+  points: {
+    point: string;
+    point_label: string;
+    calls: number;
+    failed: number;
+    unknown: number;
+    in_progress: number;
+    fallback_calls: number;
+    estimated_cost_usd: number | null;
+    unmeasured_calls: number;
+  }[];
+};
+
+export type AiKnowledgeHit = AiKnowledgeChunk & {
+  source_name: string;
+  similarity: number;
+};
+export type AiKnowledgeSearchDiagnostics = {
+  hits: AiKnowledgeHit[];
+  diagnostics: {
+    reason: "ok" | "below_threshold" | "not_indexed" | "inactive" | "no_candidates";
+    explanation: string;
+    threshold: number;
+    best: {
+      chunk_id: string;
+      source_id: string;
+      source_name: string;
+      similarity: number;
+    } | null;
+    sources: {
+      id: string;
+      name: string;
+      active: boolean;
+      status: AiKnowledgeSource["status"];
+      has_active_version: boolean;
+      pending: boolean;
+      chunk_count: number | null;
+      last_error: string | null;
+    }[];
+  };
+};
+export type AiCatalogItems = {
+  items: {
+    id: string;
+    hash: string;
+    updated_at: string;
+    source_updated_at: string | null;
+  }[];
+  last_events: {
+    event_key: string;
+    integration: string;
+    created_at: string;
+    result: unknown;
+  }[];
+};
+export type AiCatalogSyncInput = AiScope & {
+  /** Product source (import kind products). */
+  id: string;
+  /** Producer event id: retry the same body with the same key. */
+  event_key: string;
+  integration?: string;
+  upserts?: (AiCatalogProduct & { updated_at?: string })[];
+  removals?: { id: string; updated_at?: string }[];
+};
+export type AiCatalogSyncResult = {
+  source_id: string;
+  revision: string;
+  active: boolean;
+  status: string;
+  changed: number;
+  removed: number;
+  unchanged: number;
+  stale: number;
+  missing: number;
+  items: number;
+  reindex_queued: boolean;
+  emptied: boolean;
+  reactivated: boolean;
+  replayed: boolean;
+};
+export type AiKnowledgeCitation = {
+  chunk_id: string;
+  source_id: string;
+  source_name: string;
+  version_id?: string | null;
+  ordinal?: number | null;
+  snippet: string;
+  score: number;
+  query?: string | null;
+};
+export type AiExecutionCitations = {
+  execution_id: string;
+  agent_id: string;
+  conversation_id: string | null;
+  citations: AiKnowledgeCitation[];
+  updated_at: string;
+};
+export type AiAgentCoverage = {
+  sources: {
+    id: string;
+    name: string | null;
+    status: AiKnowledgeSource["status"] | null;
+    active: boolean;
+    ready: boolean;
+    issue: "missing" | "inactive" | "not_indexed" | "failed" | "reindexing" | null;
+  }[];
+  skills: {
+    id: string;
+    name: string | null;
+    ready: boolean;
+    issue: "missing" | "inactive" | null;
+  }[];
+  embedding_ready: boolean;
+  funnel: {
+    stages: { id: string; label: string; position: number; allowed: boolean }[];
+    allowed_count: number;
+    total_count: number;
+    can_move: boolean;
+    mute: boolean;
+    unknown_allowed_ids: string[];
+  };
+  issues: string[];
+};
+
+export type AiMemoryEntryEvent = {
+  id: string;
+  action: "archived" | "reactivated" | "approved" | "status_changed";
+  from_status: string;
+  to_status: string;
+  entry_revision: string;
+  actor_user_id: string | null;
+  actor_api_key_id: string | null;
+  created_at: string;
+};
+
+export type AiNoticeCheck = {
+  id: string;
+  status: "ok" | "warning" | "error";
+  message: string;
+};
+export type AiNoticeEffect = {
+  days: number;
+  sampled: number;
+  total: number;
+  with_notice: { cases: number; answered: number; median_minutes: number | null };
+  without_notice: { cases: number; answered: number; median_minutes: number | null };
+  median_to_notice_minutes: number | null;
+};
+
+export type AiOperatorMetrics = {
+  days: number;
+  agents: {
+    agent_id: string;
+    turns: number;
+    turns_absent: number;
+    turns_with_promises: number;
+    turns_not_delivered: number;
+    promises: number;
+    owned: number;
+    owned_by_agent: number;
+    owned_by_operator: number;
+    owned_by_human: number;
+    unowned: number;
+    dismissed: number;
+    pending: number;
+    corrections: number;
+    corrections_by_operator: number;
+    corrections_by_human: number;
+    unowned_reasons: Record<string, number>;
+    ownership_rate: number | null;
+  }[];
+};
+export type AiTurnPromise = {
+  id: string;
+  declaration_id: string;
+  agent_id: string;
+  conversation_id: string | null;
+  contact_id: string | null;
+  description: string;
+  due_at: string | null;
+  due_text: string | null;
+  status: "pending" | "owned" | "unowned" | "dismissed";
+  owner_kind: string | null;
+  owner_source: string | null;
+  unowned_reason: string | null;
+  corrected_by_kind: string | null;
+  correction_note: string | null;
+  revision: number;
+  created_at: string;
+};
+
+export type AiCatalogModel = {
+  model: string;
+  label: string | null;
+  context_tokens: number | null;
+  max_output_tokens: number | null;
+  /** null = the provider catalog does not report it. */
+  tools: boolean | null;
+  vision: boolean | null;
+  /** Suggestion only; never applied to tariffs automatically. */
+  pricing: {
+    input_usd_per_million: number;
+    output_usd_per_million: number;
+    cache_read_usd_per_million: number | null;
+    cache_write_usd_per_million: number | null;
+    notes: ("request_fee" | "long_context" | "image_input" | "variable")[];
+  } | null;
+};
+export type AiModelCatalogSnapshot = {
+  id: string;
+  credential_id: string;
+  provider: string;
+  version: number;
+  credential_revision: string;
+  model_count: number;
+  fetched_at: string;
+  models: AiCatalogModel[];
+};
+export type AiModelCatalogSync = Omit<
+  AiModelCatalogSnapshot,
+  "credential_revision" | "models"
+>;
+
+export type AiSkillNearMiss = {
+  id: string;
+  skill_id: string;
+  skill_name: string;
+  skill_revision: string | null;
+  probe: string;
+  excerpt: string;
+  occurrences: number;
+  status: "pending" | "accepted" | "ignored";
+  revision: string;
+  agent_id: string | null;
+  conversation_id: string | null;
+  accepted_phrase: string | null;
+  first_seen_at: string;
+  last_seen_at: string;
+  decided_at: string | null;
+};
+export type AiPlatformSkillComposition = {
+  slug: string;
+  name: string;
+  description: string;
+  version: number;
+  state: "available" | "overridden_by_copy" | "overridden_by_name";
+  customer_skill_id: string | null;
+  customer_skill_active: boolean | null;
+};

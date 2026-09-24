@@ -1,7 +1,7 @@
 import { readFile, stat } from "node:fs/promises";
 import { basename } from "node:path";
 import type { Command } from "commander";
-import { AI_OPERATIONS } from "@botozap/sdk";
+import { AI_CONFIGURABLE_PURPOSES, AI_OPERATIONS } from "@botozap/sdk";
 import { operation } from "./attendance.js";
 const kebab = (value: string) =>
   value.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`);
@@ -52,7 +52,7 @@ export function registerAi(program: Command) {
           if (op.shape === "multipart") {
             const path = String(input.file_path);
             const limit =
-              op.group === "skills" ? 5 * 1024 * 1024 : 10 * 1024 * 1024;
+              op.group === "skills" ? 5 * 1024 * 1024 : 20 * 1024 * 1024;
             const size = (await stat(path)).size;
             if (!size || size > limit)
               throw new Error("Arquivo vazio ou acima do limite de upload.");
@@ -82,19 +82,15 @@ export function registerAi(program: Command) {
               if (value === undefined) continue;
               if (
                 field.type === "configurablePurpose" &&
-                ![
-                  "default",
-                  "followup",
-                  "proposal",
-                  "transcription",
-                  "embedding",
-                ].includes(String(value))
+                !(AI_CONFIGURABLE_PURPOSES as readonly string[]).includes(
+                  String(value),
+                )
               )
                 throw new Error(
                   "Esta finalidade é configurada na versão do agente ou no roteador.",
                 );
               if (
-                field.type === "revision" &&
+                (field.type === "revision" || field.type === "revisionZero") &&
                 (typeof value !== "string" || !/^\d+$/.test(value))
               )
                 throw new Error(

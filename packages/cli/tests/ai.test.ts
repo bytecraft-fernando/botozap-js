@@ -153,3 +153,69 @@ it("passes audio pricing JSON exactly and rejects mixed units before HTTP", asyn
   expect(bad.error).toBeDefined();
   expect(fetch).not.toHaveBeenCalled();
 });
+
+it("exposes #498 commands with exact bodies and client-side revision checks", async () => {
+  const gate = await call("eligibility", "save-channel", {
+    customer_id: id,
+    id,
+    expected_revision: "0",
+    mode: "open",
+    test_phone_numbers: [],
+    confirm_open_to_all: true,
+  });
+  expect(gate.error).toBeUndefined();
+  expect(String(fetch.mock.calls[0]![0])).toBe(
+    `https://example.test/v1/ai/eligibility/channels/${id}`,
+  );
+  expect(JSON.parse(fetch.mock.calls[0]![1].body)).toEqual({
+    customer_id: id,
+    expected_revision: "0",
+    mode: "open",
+    test_phone_numbers: [],
+    confirm_open_to_all: true,
+  });
+  fetch.mockClear();
+  const numeric = await call("memory", "reactivate-entry", {
+    customer_id: id,
+    id,
+    expected_revision: 4,
+  });
+  expect(String(numeric.error)).toContain("string");
+  const missing = await call("commercial-proposals", "decide", {
+    customer_id: id,
+    id,
+    decision: "approve",
+  });
+  expect(String(missing.error)).toContain("seq");
+  expect(fetch).not.toHaveBeenCalled();
+  const decision = await call("commercial-proposals", "decide", {
+    customer_id: id,
+    id,
+    decision: "dismiss",
+    seq: 2,
+  });
+  expect(decision.error).toBeUndefined();
+  expect(String(fetch.mock.calls[0]![0])).toContain(
+    `/ai/commercial-proposals/${id}/decision`,
+  );
+});
+
+it("accepts granular binding purposes but keeps version-owned purposes out", async () => {
+  const ok = await call("providers", "save-binding", {
+    customer_id: id,
+    purpose: "commercial_proposal",
+    provider: "openai",
+    model: "gpt-4.1-mini",
+    credential_id: id,
+  });
+  expect(ok.error).toBeUndefined();
+  const owned = await call("providers", "save-binding", {
+    customer_id: id,
+    purpose: "router",
+    provider: "openai",
+    model: "gpt-4.1-mini",
+    credential_id: id,
+  });
+  expect(String(owned.error)).toContain("finalidade");
+  expect(fetch).toHaveBeenCalledOnce();
+});

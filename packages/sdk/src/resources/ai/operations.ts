@@ -8,6 +8,8 @@ export interface AiOperation {
   method: string;
   path: string;
   shape: string;
+  /** Required API scope when it differs from the method default (GET = read, others = write). */
+  scope?: "agents:read" | "agents:write";
   description: string;
   fields: Record<string, AiField>;
 }
@@ -741,6 +743,7 @@ export const AI_OPERATIONS: readonly AiOperation[] = [
     method: "POST",
     path: "/ai/knowledge/search",
     shape: "item",
+    scope: "agents:read",
     description:
       "Busca somente nas fontes permitidas; pode chamar embeddings BYOK.",
     fields: {
@@ -772,7 +775,7 @@ export const AI_OPERATIONS: readonly AiOperation[] = [
     method: "POST",
     path: "/ai/knowledge/upload",
     shape: "multipart",
-    description: "Upload de documento de até 10 MiB para indexação BYOK.",
+    description: "Upload de documento de até 20 MiB para indexação BYOK.",
     fields: {
       customer_id: {
         type: "uuid",
@@ -1816,6 +1819,14 @@ export const AI_OPERATIONS: readonly AiOperation[] = [
         type: "open|waiting|resolved|closed",
         optional: true,
       },
+      kind: {
+        type: "agendamento|duvida|problema|financeiro|acesso|outro",
+        optional: true,
+      },
+      source: {
+        type: "agent|guardrail|human|operator",
+        optional: true,
+      },
     },
   },
   {
@@ -1923,6 +1934,14 @@ export const AI_OPERATIONS: readonly AiOperation[] = [
       },
       status: {
         type: "open|acknowledged|resolved",
+        optional: true,
+      },
+      kind: {
+        type: "alertKind",
+        optional: true,
+      },
+      severity: {
+        type: "info|warning|critical",
         optional: true,
       },
     },
@@ -2210,7 +2229,7 @@ export const AI_OPERATIONS: readonly AiOperation[] = [
     path: "/ai/usage",
     shape: "item",
     description:
-      "Medições e estimativas de consumo BYOK, sem cobrança ou crédito BotoZap.",
+      "Medições e estimativas de consumo BYOK, sem cobrança ou crédito BotoZap. agent_id e purpose filtram; agents, handoff e p50/p95 diários são adicionais.",
     fields: {
       customer_id: {
         type: "uuid",
@@ -2222,6 +2241,14 @@ export const AI_OPERATIONS: readonly AiOperation[] = [
       },
       to: {
         type: "datetime",
+        optional: true,
+      },
+      agent_id: {
+        type: "uuid",
+        optional: true,
+      },
+      purpose: {
+        type: "purpose",
         optional: true,
       },
     },
@@ -2679,6 +2706,767 @@ export const AI_OPERATIONS: readonly AiOperation[] = [
         optional: false,
       },
       id: {
+        type: "uuid",
+        optional: false,
+      },
+    },
+  },
+  // #498 agent parity: appended so existing indexes stay stable.
+  {
+    group: "alerts",
+    name: "resolveBulk",
+    method: "POST",
+    path: "/ai/alerts/resolve",
+    shape: "item",
+    description:
+      "Resolve em lote somente alertas criados até created_before que casam com filters (status open|acknowledged, kind, severity); até 500 por chamada e remaining indica o restante. Confirme o filtro com o usuário.",
+    fields: {
+      customer_id: {
+        type: "uuid",
+        optional: false,
+      },
+      created_before: {
+        type: "datetime",
+        optional: false,
+      },
+      filters: {
+        type: "alertBulkFilters",
+        optional: true,
+      },
+    },
+  },
+  {
+    group: "cases",
+    name: "events",
+    method: "GET",
+    path: "/ai/cases/:id/events",
+    shape: "offset",
+    description:
+      "Linha do tempo tipada do caso, da mais antiga para a mais recente, com label leigo ao lado do kind.",
+    fields: {
+      customer_id: {
+        type: "uuid",
+        optional: false,
+      },
+      page: {
+        type: "number",
+        optional: true,
+      },
+      per_page: {
+        type: "number",
+        optional: true,
+      },
+      id: {
+        type: "uuid",
+        optional: false,
+      },
+    },
+  },
+  {
+    group: "commercialProposals",
+    name: "list",
+    method: "GET",
+    path: "/ai/commercial-proposals",
+    shape: "offset",
+    description:
+      "Propostas de próxima ação comercial. status decided reúne approved e dismissed.",
+    fields: {
+      customer_id: {
+        type: "uuid",
+        optional: false,
+      },
+      page: {
+        type: "number",
+        optional: true,
+      },
+      per_page: {
+        type: "number",
+        optional: true,
+      },
+      status: {
+        type: "pending|approved|dismissed|superseded|decided",
+        optional: true,
+      },
+      opportunity_id: {
+        type: "uuid",
+        optional: true,
+      },
+    },
+  },
+  {
+    group: "commercialProposals",
+    name: "request",
+    method: "POST",
+    path: "/ai/commercial-proposals",
+    shape: "item",
+    description:
+      "Enfileira geração BYOK de proposta para o negócio; não altera o CRM. Reuse o mesmo request_key ao repetir (replayed). Exige CRM no plano.",
+    fields: {
+      customer_id: {
+        type: "uuid",
+        optional: false,
+      },
+      opportunity_id: {
+        type: "uuid",
+        optional: false,
+      },
+      request_key: {
+        type: "requestKey",
+        optional: false,
+      },
+    },
+  },
+  {
+    group: "commercialProposals",
+    name: "decide",
+    method: "POST",
+    path: "/ai/commercial-proposals/:id/decision",
+    shape: "item",
+    description:
+      "approve aplica o efeito no CRM (etapa, tarefa ou retorno) atomicamente; apply_effect false aprova sem efeito. Revise e confirme com o usuário. seq é o lock: 409 proposal_changed exige reler. Repetir a mesma decisão devolve replayed:true sem reaplicar.",
+    fields: {
+      customer_id: {
+        type: "uuid",
+        optional: false,
+      },
+      id: {
+        type: "uuid",
+        optional: false,
+      },
+      decision: {
+        type: "approve|dismiss",
+        optional: false,
+      },
+      seq: {
+        type: "number",
+        optional: false,
+      },
+      note: {
+        type: "string",
+        optional: true,
+      },
+      apply_effect: {
+        type: "boolean",
+        optional: true,
+      },
+    },
+  },
+  {
+    group: "commercialProposals",
+    name: "jobs",
+    method: "GET",
+    path: "/ai/commercial-proposals/jobs",
+    shape: "item",
+    description: "Últimas 50 gerações de proposta comercial e seus erros.",
+    fields: {
+      customer_id: {
+        type: "uuid",
+        optional: false,
+      },
+    },
+  },
+  {
+    group: "commercialProposals",
+    name: "settings",
+    method: "GET",
+    path: "/ai/commercial-proposals/settings",
+    shape: "item",
+    description: "",
+    fields: {
+      customer_id: {
+        type: "uuid",
+        optional: false,
+      },
+    },
+  },
+  {
+    group: "commercialProposals",
+    name: "saveSettings",
+    method: "PATCH",
+    path: "/ai/commercial-proposals/settings",
+    shape: "item",
+    description:
+      "Liga/desliga a geração automática de propostas comerciais. CAS numérico.",
+    fields: {
+      customer_id: {
+        type: "uuid",
+        optional: false,
+      },
+      enabled: {
+        type: "boolean",
+        optional: false,
+      },
+      expected_revision: {
+        type: "number",
+        optional: false,
+      },
+    },
+  },
+  {
+    group: "eligibility",
+    name: "get",
+    method: "GET",
+    path: "/ai/eligibility",
+    shape: "item",
+    description: "Controle de acesso da IA: configurações e gate de cada canal.",
+    fields: {
+      customer_id: {
+        type: "uuid",
+        optional: false,
+      },
+    },
+  },
+  {
+    group: "eligibility",
+    name: "saveSettings",
+    method: "PUT",
+    path: "/ai/eligibility/settings",
+    shape: "item",
+    description:
+      "Validade e origens de autorização. assignment_blocks_ai omitido preserva; false reduz a proteção e exige confirmação do usuário.",
+    fields: {
+      customer_id: {
+        type: "uuid",
+        optional: false,
+      },
+      expected_revision: {
+        type: "revisionZero",
+        optional: false,
+      },
+      authorization_ttl_days: {
+        type: "number",
+        optional: false,
+      },
+      authorize_broadcast_replies: {
+        type: "boolean",
+        optional: false,
+      },
+      authorize_automation_replies: {
+        type: "boolean",
+        optional: false,
+      },
+      assignment_blocks_ai: {
+        type: "boolean",
+        optional: true,
+      },
+    },
+  },
+  {
+    group: "eligibility",
+    name: "channel",
+    method: "GET",
+    path: "/ai/eligibility/channels/:id",
+    shape: "item",
+    description: "",
+    fields: {
+      customer_id: {
+        type: "uuid",
+        optional: false,
+      },
+      id: {
+        type: "uuid",
+        optional: false,
+      },
+    },
+  },
+  {
+    group: "eligibility",
+    name: "saveChannel",
+    method: "PUT",
+    path: "/ai/eligibility/channels/:id",
+    shape: "item",
+    description:
+      "Substitui modo e a lista inteira de telefones de teste (CAS). Mudar para open libera a IA para qualquer contato: só com confirmação explícita do usuário e confirm_open_to_all:true (senão open_confirmation_required).",
+    fields: {
+      customer_id: {
+        type: "uuid",
+        optional: false,
+      },
+      id: {
+        type: "uuid",
+        optional: false,
+      },
+      expected_revision: {
+        type: "revisionZero",
+        optional: false,
+      },
+      mode: {
+        type: "open|allowlist|pre_go_live",
+        optional: false,
+      },
+      test_phone_numbers: {
+        type: "testPhones",
+        optional: false,
+      },
+      confirm_open_to_all: {
+        type: "boolean",
+        optional: true,
+      },
+    },
+  },
+  {
+    group: "eligibility",
+    name: "authorizations",
+    method: "GET",
+    path: "/ai/eligibility/authorizations",
+    shape: "item",
+    description: "",
+    fields: {
+      customer_id: {
+        type: "uuid",
+        optional: false,
+      },
+      channel_account_id: {
+        type: "uuid",
+        optional: true,
+      },
+      status: {
+        type: "active|all",
+        optional: true,
+      },
+      limit: {
+        type: "number",
+        optional: true,
+      },
+    },
+  },
+  {
+    group: "eligibility",
+    name: "revokeAuthorization",
+    method: "POST",
+    path: "/ai/eligibility/authorizations/:id/revoke",
+    shape: "empty",
+    description:
+      "Revoga já: resposta ainda não admitida para envio não sai. Confirme com o usuário.",
+    fields: {
+      customer_id: {
+        type: "uuid",
+        optional: false,
+      },
+      id: {
+        type: "uuid",
+        optional: false,
+      },
+    },
+  },
+  {
+    group: "inferences",
+    name: "list",
+    method: "GET",
+    path: "/ai/inferences",
+    shape: "offset",
+    description:
+      "Cada chamada de modelo do ledger BYOK (padrão: últimos 7 dias; até 366). meta.summary agrega falhas e pontos do período filtrado.",
+    fields: {
+      customer_id: {
+        type: "uuid",
+        optional: false,
+      },
+      page: {
+        type: "number",
+        optional: true,
+      },
+      per_page: {
+        type: "number",
+        optional: true,
+      },
+      from: {
+        type: "datetime",
+        optional: true,
+      },
+      to: {
+        type: "datetime",
+        optional: true,
+      },
+      purpose: {
+        type: "purpose",
+        optional: true,
+      },
+      point: {
+        type: "inferencePoint",
+        optional: true,
+      },
+      outcome: {
+        type: "ok|failed|unknown|in_progress",
+        optional: true,
+      },
+      agent_id: {
+        type: "uuid",
+        optional: true,
+      },
+    },
+  },
+  {
+    group: "knowledge",
+    name: "searchDiagnostics",
+    method: "POST",
+    path: "/ai/knowledge/search/diagnostics",
+    shape: "item",
+    scope: "agents:read",
+    description:
+      "Mesma busca de search mais diagnóstico: motivo, melhor trecho abaixo do limiar e estado das fontes. Pode chamar embeddings BYOK.",
+    fields: {
+      customer_id: {
+        type: "uuid",
+        optional: false,
+      },
+      source_ids: {
+        type: "uuids",
+        optional: false,
+      },
+      query: {
+        type: "string",
+        optional: false,
+      },
+      top_k: {
+        type: "number",
+        optional: true,
+      },
+      threshold: {
+        type: "number",
+        optional: true,
+      },
+    },
+  },
+  {
+    group: "knowledge",
+    name: "catalogItems",
+    method: "GET",
+    path: "/ai/knowledge/:id/catalog",
+    shape: "item",
+    description: "",
+    fields: {
+      customer_id: {
+        type: "uuid",
+        optional: false,
+      },
+      id: {
+        type: "uuid",
+        optional: false,
+      },
+    },
+  },
+  {
+    group: "knowledge",
+    name: "syncCatalog",
+    method: "POST",
+    path: "/ai/knowledge/:id/catalog",
+    shape: "item",
+    description:
+      "Sincronização incremental de fonte de produtos: upserts/removals por item, até 1.000. event_key é idempotente: repita o mesmo corpo com a mesma chave (replayed:true não reaplica).",
+    fields: {
+      customer_id: {
+        type: "uuid",
+        optional: false,
+      },
+      id: {
+        type: "uuid",
+        optional: false,
+      },
+      event_key: {
+        type: "eventKey",
+        optional: false,
+      },
+      integration: {
+        type: "integration",
+        optional: true,
+      },
+      upserts: {
+        type: "catalogUpserts",
+        optional: true,
+      },
+      removals: {
+        type: "catalogRemovals",
+        optional: true,
+      },
+    },
+  },
+  {
+    group: "knowledge",
+    name: "citations",
+    method: "GET",
+    path: "/ai/knowledge/citations",
+    shape: "item",
+    description:
+      "Fontes por trás das respostas da IA; dado interno da equipe, nunca enviado ao contato. Informe exatamente um: execution_id ou conversation_id.",
+    fields: {
+      customer_id: {
+        type: "uuid",
+        optional: false,
+      },
+      execution_id: {
+        type: "uuid",
+        optional: true,
+      },
+      conversation_id: {
+        type: "uuid",
+        optional: true,
+      },
+    },
+  },
+  {
+    group: "knowledge",
+    name: "coverage",
+    method: "POST",
+    path: "/ai/knowledge/coverage",
+    shape: "item",
+    scope: "agents:read",
+    description:
+      "Diagnóstico de prontidão das fontes, skills e etapas do funil selecionadas para um agente. Não altera nada.",
+    fields: {
+      customer_id: {
+        type: "uuid",
+        optional: false,
+      },
+      knowledge_source_ids: {
+        type: "uuidList",
+        optional: true,
+      },
+      skill_ids: {
+        type: "uuidList",
+        optional: true,
+      },
+      allowed_stage_ids: {
+        type: "uuidList",
+        optional: true,
+      },
+      tool_ids: {
+        type: "toolIdList",
+        optional: true,
+      },
+    },
+  },
+  {
+    group: "memory",
+    name: "entryEvents",
+    method: "GET",
+    path: "/ai/memory/entries/:id/events",
+    shape: "item",
+    description: "",
+    fields: {
+      customer_id: {
+        type: "uuid",
+        optional: false,
+      },
+      id: {
+        type: "uuid",
+        optional: false,
+      },
+    },
+  },
+  {
+    group: "memory",
+    name: "reactivateEntry",
+    method: "POST",
+    path: "/ai/memory/entries/:id/reactivate",
+    shape: "item",
+    description:
+      "Devolve memória arquivada ao contexto dos agentes. É nova aprovação: chave criada por owner/admin atual; confirme com o usuário.",
+    fields: {
+      customer_id: {
+        type: "uuid",
+        optional: false,
+      },
+      id: {
+        type: "uuid",
+        optional: false,
+      },
+      expected_revision: {
+        type: "revisionZero",
+        optional: false,
+      },
+    },
+  },
+  {
+    group: "notices",
+    name: "diagnostics",
+    method: "GET",
+    path: "/ai/notices/diagnostics",
+    shape: "item",
+    description:
+      "Checagens dos avisos da equipe (destino, canal, conexão, template); não envia mensagem.",
+    fields: {
+      customer_id: {
+        type: "uuid",
+        optional: false,
+      },
+    },
+  },
+  {
+    group: "notices",
+    name: "effect",
+    method: "GET",
+    path: "/ai/notices/effect",
+    shape: "item",
+    description:
+      "Efeito dos avisos no tempo de resposta da equipe (1–90 dias, padrão 30).",
+    fields: {
+      customer_id: {
+        type: "uuid",
+        optional: false,
+      },
+      days: {
+        type: "number",
+        optional: true,
+      },
+    },
+  },
+  {
+    group: "operator",
+    name: "metrics",
+    method: "GET",
+    path: "/ai/operator-metrics",
+    shape: "item",
+    description:
+      "Promessas por agente: responsáveis, sem dono e correções (1–90 dias, padrão 30).",
+    fields: {
+      customer_id: {
+        type: "uuid",
+        optional: false,
+      },
+      agent_id: {
+        type: "uuid",
+        optional: true,
+      },
+      days: {
+        type: "number",
+        optional: true,
+      },
+    },
+  },
+  {
+    group: "operator",
+    name: "promises",
+    method: "GET",
+    path: "/ai/promises",
+    shape: "item",
+    description:
+      "Promessas declaradas e responsáveis. Somente leitura; correções são feitas por uma pessoa no painel.",
+    fields: {
+      customer_id: {
+        type: "uuid",
+        optional: false,
+      },
+      agent_id: {
+        type: "uuid",
+        optional: true,
+      },
+      status: {
+        type: "pending|owned|unowned|dismissed",
+        optional: true,
+      },
+      limit: {
+        type: "number",
+        optional: true,
+      },
+    },
+  },
+  {
+    group: "providers",
+    name: "catalog",
+    method: "GET",
+    path: "/ai/providers/catalog",
+    shape: "item",
+    description:
+      "Último snapshot do catálogo de cada credencial; nunca contém chaves.",
+    fields: {
+      customer_id: {
+        type: "uuid",
+        optional: false,
+      },
+    },
+  },
+  {
+    group: "providers",
+    name: "syncCatalog",
+    method: "POST",
+    path: "/ai/providers/catalog",
+    shape: "item",
+    description:
+      "Consulta o catálogo do provedor com a chave própria na revisão informada e grava snapshot. Nunca altera tarifas: preços são sugestões. 502 provider_* quando o provedor falha, sem alteração.",
+    fields: {
+      customer_id: {
+        type: "uuid",
+        optional: false,
+      },
+      credential_id: {
+        type: "uuid",
+        optional: false,
+      },
+      expected_revision: {
+        type: "revision",
+        optional: false,
+      },
+    },
+  },
+  {
+    group: "skills",
+    name: "nearMisses",
+    method: "GET",
+    path: "/ai/skills/near-misses",
+    shape: "item",
+    description:
+      "Quase acionamentos por palavra de sondagem, para curadoria humana.",
+    fields: {
+      customer_id: {
+        type: "uuid",
+        optional: false,
+      },
+      status: {
+        type: "pending|accepted|ignored",
+        optional: true,
+      },
+      skill_id: {
+        type: "uuid",
+        optional: true,
+      },
+    },
+  },
+  {
+    group: "skills",
+    name: "decideNearMiss",
+    method: "POST",
+    path: "/ai/skills/near-misses/:id",
+    shape: "item",
+    description:
+      "Curadoria humana: accept cria nova versão da skill com phrase (exige skill_revision; CAS); ignore encerra. Confirme com o usuário.",
+    fields: {
+      customer_id: {
+        type: "uuid",
+        optional: false,
+      },
+      id: {
+        type: "uuid",
+        optional: false,
+      },
+      expected_revision: {
+        type: "revisionZero",
+        optional: false,
+      },
+      decision: {
+        type: "accept|ignore",
+        optional: false,
+      },
+      phrase: {
+        type: "string",
+        optional: true,
+      },
+      skill_revision: {
+        type: "revisionZero",
+        optional: true,
+      },
+    },
+  },
+  {
+    group: "skills",
+    name: "composition",
+    method: "GET",
+    path: "/ai/skills/composition",
+    shape: "item",
+    description:
+      "Skills da plataforma e se uma cópia ou skill homônima do Cliente as substitui.",
+    fields: {
+      customer_id: {
         type: "uuid",
         optional: false,
       },
