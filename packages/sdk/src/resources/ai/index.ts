@@ -90,6 +90,10 @@ import type {
   AiPlatformSkillComposition,
   AiPurpose,
   AiToolId,
+  AiFollowupPromise,
+  AiFollowupPromiseDetail,
+  AiFollowupQueuePage,
+  AiFollowupQueueFilters,
 } from "./types.js";
 import type { OffsetMeta } from "../../types.js";
 import { assertAudioPricing } from "./audio-pricing.js";
@@ -706,6 +710,60 @@ export class AiFollowupsResource {
     },
   ): Promise<{ resolved: true }> {
     return request(this.client, AI_OPERATIONS[64]!, input);
+  }
+  /** Fila unificada (inscrições e retornos avulsos) por cursor. */
+  queue(
+    input: AiScope &
+      AiFollowupQueueFilters & {
+        kind?: "enrollment" | "promise";
+        flow_id?: string;
+      },
+  ): Promise<AiFollowupQueuePage> {
+    return request(this.client, named("followups", "queue"), input);
+  }
+  /** Retornos avulsos por cursor. */
+  promises(
+    input: AiScope & AiFollowupQueueFilters,
+  ): Promise<AiFollowupQueuePage> {
+    return request(this.client, named("followups", "promises"), input);
+  }
+  /** Marca retorno que reabre a conversa pelo agente; preserve operation_key UUID para repetir. */
+  schedulePromise(
+    input: AiScope & {
+      contact_id: string;
+      conversation_id: string;
+      agent_id: string;
+      operation_key: string;
+      reason: string;
+      promise: string;
+      context_snapshot?: string;
+      promised_at: string;
+      outside_window?: "alert" | "template";
+      template_id?: string;
+      template_variables?: Record<string, string>;
+    },
+  ): Promise<AiFollowupPromise> {
+    return request(this.client, named("followups", "schedulePromise"), input);
+  }
+  getPromise(input: AiScope & { id: string }): Promise<AiFollowupPromiseDetail> {
+    return request(this.client, named("followups", "getPromise"), input);
+  }
+  /** Desmarca retorno não disparado; 409 quando já disparado ou cancelado. */
+  cancelPromise(
+    input: AiScope & { id: string; reason?: string },
+  ): Promise<AiFollowupPromise> {
+    return request(this.client, named("followups", "cancelPromise"), input);
+  }
+  /** Concilia template com resultado incerto; nunca reenvia. */
+  resolvePromise(
+    input: AiScope & {
+      id: string;
+      outcome: "sent" | "rejected";
+      note: string;
+      wamid?: string;
+    },
+  ): Promise<{ ok: boolean; status?: string; code?: string }> {
+    return request(this.client, named("followups", "resolvePromise"), input);
   }
 }
 export class AiRoutersResource {

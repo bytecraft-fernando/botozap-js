@@ -3472,4 +3472,214 @@ export const AI_OPERATIONS: readonly AiOperation[] = [
       },
     },
   },
+  // #498 follow-ups: promised returns and unified queue.
+  {
+    group: "followups",
+    name: "queue",
+    method: "GET",
+    path: "/ai/followups/queue",
+    shape: "item",
+    description:
+      "Fila unificada de inscrições em fluxos e retornos avulsos. Pagine com cursor = next_cursor (null encerra); limit 1–100, padrão 30.",
+    fields: {
+      customer_id: {
+        type: "uuid",
+        optional: false,
+      },
+      kind: {
+        type: "enrollment|promise",
+        optional: true,
+      },
+      flow_id: {
+        type: "uuid",
+        optional: true,
+      },
+      status: {
+        type: "queueStatus",
+        optional: true,
+      },
+      q: {
+        type: "queueSearch",
+        optional: true,
+      },
+      contact_id: {
+        type: "uuid",
+        optional: true,
+      },
+      cursor: {
+        type: "queueCursor",
+        optional: true,
+      },
+      limit: {
+        type: "number",
+        optional: true,
+      },
+    },
+  },
+  {
+    group: "followups",
+    name: "promises",
+    method: "GET",
+    path: "/ai/followups/promises",
+    shape: "item",
+    description:
+      "Retornos avulsos (mesma fila, kind promise). Pagine com cursor = next_cursor.",
+    fields: {
+      customer_id: {
+        type: "uuid",
+        optional: false,
+      },
+      status: {
+        type: "queueStatus",
+        optional: true,
+      },
+      q: {
+        type: "queueSearch",
+        optional: true,
+      },
+      contact_id: {
+        type: "uuid",
+        optional: true,
+      },
+      cursor: {
+        type: "queueCursor",
+        optional: true,
+      },
+      limit: {
+        type: "number",
+        optional: true,
+      },
+    },
+  },
+  {
+    group: "followups",
+    name: "schedulePromise",
+    method: "POST",
+    path: "/ai/followups/promises",
+    shape: "item",
+    description:
+      "Marca retorno avulso: no horário (ajustado à janela do agente) o agente reabre a conversa e pode enviar mensagem. Um pendente por contato. Preserve operation_key UUID: repetir devolve o mesmo retorno. outside_window template envia template fora da janela; confirme com o usuário.",
+    fields: {
+      customer_id: {
+        type: "uuid",
+        optional: false,
+      },
+      contact_id: {
+        type: "uuid",
+        optional: false,
+      },
+      conversation_id: {
+        type: "uuid",
+        optional: false,
+      },
+      agent_id: {
+        type: "uuid",
+        optional: false,
+      },
+      operation_key: {
+        type: "uuid",
+        optional: false,
+      },
+      reason: {
+        type: "string",
+        optional: false,
+      },
+      promise: {
+        type: "string",
+        optional: false,
+      },
+      context_snapshot: {
+        type: "string",
+        optional: true,
+      },
+      promised_at: {
+        type: "datetime",
+        optional: false,
+      },
+      outside_window: {
+        type: "alert|template",
+        optional: true,
+      },
+      template_id: {
+        type: "uuid",
+        optional: true,
+      },
+      template_variables: {
+        type: "templateVariables",
+        optional: true,
+      },
+    },
+  },
+  {
+    group: "followups",
+    name: "getPromise",
+    method: "GET",
+    path: "/ai/followups/promises/:id",
+    shape: "item",
+    description: "",
+    fields: {
+      customer_id: {
+        type: "uuid",
+        optional: false,
+      },
+      id: {
+        type: "uuid",
+        optional: false,
+      },
+    },
+  },
+  {
+    group: "followups",
+    name: "cancelPromise",
+    method: "POST",
+    path: "/ai/followups/promises/:id/cancel",
+    shape: "item",
+    description:
+      "Desmarca retorno ainda não disparado; disparado ou já cancelado responde 409.",
+    fields: {
+      customer_id: {
+        type: "uuid",
+        optional: false,
+      },
+      id: {
+        type: "uuid",
+        optional: false,
+      },
+      reason: {
+        type: "string",
+        optional: true,
+      },
+    },
+  },
+  {
+    group: "followups",
+    name: "resolvePromise",
+    method: "POST",
+    path: "/ai/followups/promises/:id/resolve",
+    shape: "item",
+    description:
+      "Concilia template de retorno com resultado incerto, com evidência (note); nunca reenvia. sent pode incluir wamid.",
+    fields: {
+      customer_id: {
+        type: "uuid",
+        optional: false,
+      },
+      id: {
+        type: "uuid",
+        optional: false,
+      },
+      outcome: {
+        type: "sent|rejected",
+        optional: false,
+      },
+      note: {
+        type: "evidence",
+        optional: false,
+      },
+      wamid: {
+        type: "string",
+        optional: true,
+      },
+    },
+  },
 ];

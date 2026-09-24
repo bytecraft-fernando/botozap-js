@@ -85,6 +85,8 @@ export type AiToolId =
   | "followups.cancel"
   | "cases.open"
   | "cases.update"
+  | "followups.schedule"
+  | "followups.list"
   | "handoff"
   | "alerts.create"
   | "contacts.search"
@@ -374,6 +376,8 @@ export type AiFlowSettings = {
   timezone: string;
   purpose: "utility" | "marketing";
   environment: "live" | "sandbox";
+  /** Agent responsible for automatic triggers when several enable the flow; omitted = the only eligible one. */
+  trigger_agent_id?: string | null;
 };
 export type AiFlowInput = AiScope & {
   name: string;
@@ -1260,4 +1264,92 @@ export type AiPlatformSkillComposition = {
   state: "available" | "overridden_by_copy" | "overridden_by_name";
   customer_skill_id: string | null;
   customer_skill_active: boolean | null;
+};
+
+export type AiFollowupPromiseStatus =
+  | "scheduled"
+  | "turn_enqueued"
+  | "template_pending"
+  | "template_dispatching"
+  | "alerted"
+  | "completed"
+  | "skipped"
+  | "failed"
+  | "unknown"
+  | "cancelled";
+/** Promised return: at due_at the responsible agent reopens the conversation. */
+export type AiFollowupPromise = {
+  id: string;
+  contact_id: string;
+  conversation_id: string;
+  agent_id: string;
+  source: "agent" | "human" | "api";
+  reason: string;
+  promise: string;
+  context_snapshot: string | null;
+  promised_at: string;
+  /** promised_at adjusted to the agent's published service window. */
+  due_at: string;
+  time_zone: string;
+  outside_window: "alert" | "template";
+  template_id: string | null;
+  status: AiFollowupPromiseStatus;
+  revision: string;
+  fired_at: string | null;
+  fired_run_id: string | null;
+  alert_id: string | null;
+  outcome_reason: string | null;
+  last_error: string | null;
+  cancelled_at: string | null;
+  cancel_reason: string | null;
+  cancelled_by_kind: "user" | "api_key" | "agent" | null;
+  created_by_kind: "user" | "api_key" | "agent";
+  origin_run_id: string | null;
+  external_id: string | null;
+  completed_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+export type AiFollowupPromiseDetail = AiFollowupPromise & {
+  contact: { id: string; name: string | null; phone: string | null };
+  agent: { id: string; name: string } | null;
+  run: {
+    id: string;
+    status: string;
+    skip_reason: string | null;
+    execution_id: string | null;
+    execution_status: string | null;
+  } | null;
+  alert: { id: string; status: string } | null;
+};
+export type AiFollowupQueueRow = {
+  kind: "enrollment" | "promise";
+  id: string;
+  contact_id: string;
+  contact_name: string | null;
+  contact_phone: string | null;
+  conversation_id: string;
+  flow_id: string | null;
+  flow_name: string | null;
+  agent_id: string | null;
+  agent_name: string | null;
+  status: string;
+  node_id: string | null;
+  next_fire_at: string | null;
+  reason: string | null;
+  updated_at: string;
+  created_at: string;
+  last_error: string | null;
+};
+/** Cursor page: pass next_cursor back as cursor; null means the end. */
+export type AiFollowupQueuePage = {
+  data: AiFollowupQueueRow[];
+  next_cursor: string | null;
+};
+export type AiFollowupQueueFilters = {
+  status?: string;
+  q?: string;
+  contact_id?: string;
+  cursor?: string;
+  limit?: number;
 };

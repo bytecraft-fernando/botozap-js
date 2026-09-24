@@ -264,3 +264,74 @@ it("allows 20 MiB knowledge uploads and still rejects larger files before HTTP",
   expect(url(fetch).pathname).toBe("/v1/ai/uploads");
   expect(body(fetch).byte_size).toBe(20 * 1024 * 1024);
 });
+
+it("pages the unified follow-up queue by cursor and keeps promise idempotency", async () => {
+  const page = { data: [{ kind: "promise", id }], next_cursor: "eyJiIjowfQ" };
+  const { c, fetch } = client({ data: page });
+  expect(
+    await c.ai.followups.queue({
+      customer_id: id,
+      kind: "promise",
+      cursor: "abc",
+      limit: 50,
+    }),
+  ).toEqual(page);
+  expect(Object.fromEntries(url(fetch).searchParams)).toEqual({
+    customer_id: id,
+    kind: "promise",
+    cursor: "abc",
+    limit: "50",
+  });
+  await c.ai.followups.promises({ customer_id: id, status: "scheduled" });
+  expect(url(fetch, 1).pathname).toBe("/v1/ai/followups/promises");
+  const input = {
+    customer_id: id,
+    contact_id: id,
+    conversation_id: other,
+    agent_id: id,
+    operation_key: other,
+    reason: "Cliente pediu retorno",
+    promise: "Retornar com o orçamento",
+    promised_at: "2026-09-25T13:00:00-04:00",
+    outside_window: "alert" as const,
+  };
+  await c.ai.followups.schedulePromise(input);
+  expect(fetch.mock.calls[2]![1]?.method).toBe("POST");
+  expect(body(fetch, 2)).toEqual(input);
+  await c.ai.followups.cancelPromise({ customer_id: id, id, reason: "Resolvido" });
+  await c.ai.followups.resolvePromise({
+    customer_id: id,
+    id,
+    outcome: "sent",
+    note: "Confirmado no WhatsApp Manager",
+    wamid: "wamid.X",
+  });
+  await c.ai.followups.getPromise({ customer_id: id, id });
+  expect(
+    fetch.mock.calls.slice(3).map((call) => `${call[1]?.method} ${new URL(String(call[0])).pathname}`),
+  ).toEqual([
+    `POST /v1/ai/followups/promises/${id}/cancel`,
+    `POST /v1/ai/followups/promises/${id}/resolve`,
+    `GET /v1/ai/followups/promises/${id}`,
+  ]);
+});
+
+it("never retries an ambiguous promise schedule", async () => {
+  const { c, fetch } = client(
+    { error: { code: "unavailable", message: "Tente novamente" } },
+    503,
+  );
+  await expect(
+    c.ai.followups.schedulePromise({
+      customer_id: id,
+      contact_id: id,
+      conversation_id: id,
+      agent_id: id,
+      operation_key: other,
+      reason: "r",
+      promise: "p",
+      promised_at: "2026-09-25T13:00:00Z",
+    }),
+  ).rejects.toMatchObject({ status: 503 });
+  expect(fetch).toHaveBeenCalledOnce();
+});

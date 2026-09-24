@@ -53,6 +53,8 @@ const tool = z.enum([
   "followups.cancel",
   "cases.open",
   "cases.update",
+  "followups.schedule",
+  "followups.list",
   "handoff",
   "alerts.create",
   "contacts.search",
@@ -303,6 +305,10 @@ const schemas: Record<string, ZodTypeAny> = {
     .strict(),
   inferencePoint: z.string().regex(/^[a-z_]{1,64}$/),
   uuidList: z.array(uuid).max(100),
+  queueStatus: z.string().regex(/^[a-z_]{1,40}$/),
+  queueSearch: z.string().trim().max(100),
+  queueCursor: z.string().max(400),
+  templateVariables: z.record(z.string().min(1).max(2000)),
   toolIdList: z.array(z.string().max(80)).max(100),
   routerConfig,
   string: text,
@@ -413,6 +419,7 @@ const schemas: Record<string, ZodTypeAny> = {
       timezone: text,
       purpose: z.enum(["utility", "marketing"]),
       environment: z.enum(["live", "sandbox"]),
+      trigger_agent_id: uuid.nullable().optional(),
     })
     .strict(),
 };

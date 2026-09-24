@@ -293,6 +293,30 @@
   },
   {
     "method": "GET",
+    "path": "/ai/followups/queue"
+  },
+  {
+    "method": "GET",
+    "path": "/ai/followups/promises"
+  },
+  {
+    "method": "POST",
+    "path": "/ai/followups/promises"
+  },
+  {
+    "method": "GET",
+    "path": "/ai/followups/promises/:id"
+  },
+  {
+    "method": "POST",
+    "path": "/ai/followups/promises/:id/cancel"
+  },
+  {
+    "method": "POST",
+    "path": "/ai/followups/promises/:id/resolve"
+  },
+  {
+    "method": "GET",
     "path": "/ai/knowledge/:id/chunks"
   },
   {

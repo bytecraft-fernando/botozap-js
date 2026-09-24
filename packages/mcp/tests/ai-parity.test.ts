@@ -201,3 +201,53 @@ it("accepts #498 agent configuration and granular binding purposes", async () =>
   expect(owned.isError).toBe(true);
   expect(fetch).toHaveBeenCalledTimes(2);
 });
+
+it("validates promised returns before HTTP and forwards the exact schedule", async () => {
+  const { client, fetch } = await connect({ data: { id, status: "scheduled" } });
+  const base = {
+    customer_id: id,
+    contact_id: id,
+    conversation_id: id,
+    agent_id: id,
+    operation_key: id,
+    reason: "Pediu retorno",
+    promise: "Retornar amanhã com o orçamento",
+    promised_at: "2026-09-25T13:00:00-04:00",
+  };
+  const bad = await client.callTool({
+    name: "ai_followups_schedule_promise",
+    arguments: { ...base, promised_at: "amanhã" },
+  });
+  expect(bad.isError).toBe(true);
+  const weak = await client.callTool({
+    name: "ai_followups_resolve_promise",
+    arguments: { customer_id: id, id, outcome: "sent", note: "ok" },
+  });
+  expect(weak.isError).toBe(true);
+  expect(fetch).not.toHaveBeenCalled();
+  const ok = await client.callTool({
+    name: "ai_followups_schedule_promise",
+    arguments: { ...base, outside_window: "template", template_id: id, template_variables: { "body:1": "Ana" } },
+  });
+  expect(ok.isError).not.toBe(true);
+  expect(body(fetch).template_variables).toEqual({ "body:1": "Ana" });
+  const queue = await client.callTool({
+    name: "ai_followups_queue",
+    arguments: { customer_id: id, kind: "enrollment", limit: 10 },
+  });
+  expect(queue.isError).not.toBe(true);
+});
+
+it("accepts the follow-up trigger agent and promise tools in configuration", async () => {
+  const { client, fetch } = await connect({ data: { id } });
+  const agent = await client.callTool({
+    name: "ai_agents_create",
+    arguments: {
+      customer_id: id,
+      name: "Agente",
+      config: { tool_ids: ["followups.schedule", "followups.list"] },
+    },
+  });
+  expect(agent.isError).not.toBe(true);
+  expect(body(fetch).config.tool_ids).toEqual(["followups.schedule", "followups.list"]);
+});
