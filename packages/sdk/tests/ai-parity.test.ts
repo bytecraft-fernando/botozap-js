@@ -380,3 +380,11 @@ it("keeps the additive execution security trail from preview", async () => {
   });
   expect(r.security).toEqual(security);
 });
+
+it("types routers.activateMember with the agent revision the API requires (0.4.1)", async () => {
+  const { fetch, c } = client({ data: { id } });
+  await c.ai.routers.activateMember({ customer_id: other, id, agent_id: other, mode: "assisted", expected_agent_revision: "3" });
+  expect(url(fetch).pathname).toBe(`/v1/ai/routers/${id}/members/${other}/activate`);
+  expect(body(fetch)).toMatchObject({ customer_id: other, mode: "assisted", expected_agent_revision: "3" });
+  expect(body(fetch)).not.toHaveProperty("expected_revision");
+});

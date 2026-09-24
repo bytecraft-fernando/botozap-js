@@ -2,7 +2,6 @@
 
 ## 0.2.0
 
-> Candidata ainda não publicada no npm (#498); a publicação depende de autorização explícita.
 
 ### Minor Changes
 

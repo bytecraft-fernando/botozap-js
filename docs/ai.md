@@ -273,8 +273,8 @@ Nenhum token BotoZap ou cookie é enviado ao armazenamento. O SDK preserva em me
 
 ## Paridade de agentes (#498)
 
-Candidata ainda não publicada no npm: SDK 0.4.0, CLI 0.2.0 e MCP 0.3.0 incluem as
-rotas abaixo. Os contratos seguem o código da API integrada; nada é inferido.
+Publicado no npm em 24/09/2026: SDK 0.4.0 (patch 0.4.1 corrige tipos), CLI 0.2.0 e
+MCP 0.3.0 incluem as rotas abaixo. Os contratos seguem o código da API integrada; nada é inferido.
 
 **Configuração do agente.** `config` aceita as ferramentas novas do catálogo
 governado (`contacts.search`, `conversations.history`, `crm.search`, `radar.read`,

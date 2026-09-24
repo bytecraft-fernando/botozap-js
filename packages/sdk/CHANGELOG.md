@@ -1,8 +1,12 @@
 # @botozap/sdk
 
-## 0.4.0
+## 0.4.1
 
-> Candidata ainda não publicada no npm (#498); a publicação depende de autorização explícita.
+### Patch Changes
+
+- Fix types that diverged from the API, found by the core's SDK contract matrix: `ai.routers.activateMember` now takes `expected_agent_revision` (the typed call used to send `expected_revision` and always got 422; CLI/MCP were not affected); `JourneyConfig`/`Journey` accept `appointment_service_id` for appointment-triggered journeys; `StageRule.account_id` is optional because `radar.configureStageRule` does not return it; `ConversationNote` declares `author_agent_id` for notes written by an AI agent. No runtime change.
+
+## 0.4.0
 
 ### Minor Changes
 
