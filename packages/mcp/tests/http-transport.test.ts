@@ -4,7 +4,7 @@ import {
   type Server,
   type ServerResponse,
 } from "node:http";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { ResourceUpdatedNotificationSchema } from "@modelcontextprotocol/sdk/types.js";
@@ -147,6 +147,24 @@ async function connect(url: URL, apiKey = API_KEY): Promise<{
   return { client, transport };
 }
 
+/**
+ * Dispara o sweep (setInterval falso) em ticks de tempo real até a condição
+ * valer. O tempo real entre ticks deixa o idle timeout vencer por `Date.now()`
+ * e o abort do cliente chegar ao servidor, sem depender de um sleep fixo.
+ */
+async function sweepUntil(
+  predicate: () => boolean,
+  sweepIntervalMs: number,
+  timeoutMs: number,
+): Promise<void> {
+  const deadline = performance.now() + timeoutMs;
+  while (!predicate()) {
+    if (performance.now() >= deadline) throw new Error("condição não atingida");
+    await new Promise((resolve) => setTimeout(resolve, sweepIntervalMs));
+    vi.advanceTimersByTime(sweepIntervalMs);
+  }
+}
+
 describe("transporte MCP Streamable HTTP", () => {
   it("mantém sessão autenticada e entrega o sinal sem expor a credencial", async () => {
     const events: BotoZapEvent[] = [];
@@ -284,10 +302,13 @@ describe("transporte MCP Streamable HTTP", () => {
     const events = Array.from({ length: 101 }, (_, index) => event(index + 1));
     const eventSignal = new TestEventSignal();
     const baseUrl = await startApi(events, []);
+    // Heartbeat fora do alcance do teste: a 2ª notification só pode vir da
+    // drenagem de `has_more` e a 3ª só do sinal, não da reconciliação periódica.
+    // Assim a espera pode ser generosa sem depender da latência do runner.
     const remote = await startStreamableHttpServer({
       baseUrl,
       eventSignal,
-      eventPollIntervalMs: 1_000,
+      eventPollIntervalMs: 60_000,
       host: "127.0.0.1",
       port: 0,
     });
@@ -300,7 +321,7 @@ describe("transporte MCP Streamable HTTP", () => {
     });
     await client.subscribeResource({ uri: EVENTS_URI });
 
-    await waitUntil(() => notifications >= 2, 300);
+    await waitUntil(() => notifications >= 2, 2_000);
     expect(notifications).toBe(2);
     expect(resourceEvents(await client.readResource({ uri: EVENTS_URI }))).toHaveLength(100);
     expect(
@@ -311,7 +332,7 @@ describe("transporte MCP Streamable HTTP", () => {
 
     events.push(event(102));
     eventSignal.publish();
-    await waitUntil(() => notifications === 3, 300);
+    await waitUntil(() => notifications === 3, 2_000);
     expect(
       resourceEvents(
         await client.readResource({ uri: "botozap://events?after=101&limit=100" }),
@@ -538,27 +559,51 @@ describe("transporte MCP Streamable HTTP", () => {
   });
 
   it("expira sessão abandonada sem DELETE e recupera sua capacidade", async () => {
-    const eventSignal = new TestEventSignal();
-    const baseUrl = await startApi([], []);
-    const remote = await startStreamableHttpServer({
-      baseUrl,
-      eventSignal,
-      maxSessions: 1,
-      sessionIdleTimeoutMs: 40,
-      sessionSweepIntervalMs: 10,
-      host: "127.0.0.1",
-      port: 0,
-    });
-    openServers.push(remote);
+    // A varredura roda num setInterval; só ele fica sob relógio controlado.
+    // Com o sweep em tempo real, um runner lento podia expirar a sessão no
+    // intervalo entre a resposta do initialize e o POST de
+    // notifications/initialized (sem request ativo), derrubando o próprio
+    // handshake com "Sessão MCP inválida". Aqui o sweep só roda quando o
+    // teste o dispara; Date e o I/O continuam reais.
+    vi.useFakeTimers({ toFake: ["setInterval", "clearInterval"] });
+    try {
+      const sweepIntervalMs = 10;
+      const otherApiKey = "bz_live_http_transport_outro_tenant";
+      const eventSignal = new TestEventSignal();
+      const baseUrl = await startApi([], [], undefined, new Set([API_KEY, otherApiKey]));
+      const remote = await startStreamableHttpServer({
+        baseUrl,
+        eventSignal,
+        maxSessions: 1,
+        sessionIdleTimeoutMs: 40,
+        sessionSweepIntervalMs: sweepIntervalMs,
+        host: "127.0.0.1",
+        port: 0,
+      });
+      openServers.push(remote);
 
-    const abandoned = await connect(remote.url);
-    expect(eventSignal.listenerCount()).toBe(1);
-    await abandoned.client.close();
-    openClients.splice(openClients.indexOf(abandoned.client), 1);
+      const abandoned = await connect(remote.url);
+      expect(eventSignal.listenerCount()).toBe(1);
+      // Abandono: fecha o cliente sem DELETE /mcp (sem terminateSession).
+      await abandoned.client.close();
+      openClients.splice(openClients.indexOf(abandoned.client), 1);
 
-    await waitUntil(() => eventSignal.listenerCount() === 0, 500);
-    await expect(connect(remote.url)).resolves.toBeDefined();
-  });
+      // Enquanto o sweep não roda, a sessão abandonada segura a única vaga. Outra
+      // credencial não pode reciclá-la (só a mesma chave cede sessão antiga),
+      // então a vaga só volta pela expiração por inatividade.
+      await expect(connect(remote.url, otherApiKey)).rejects.toThrow(
+        /Limite de sessões MCP atingido/,
+      );
+      expect(eventSignal.listenerCount()).toBe(1);
+
+      await sweepUntil(() => eventSignal.listenerCount() === 0, sweepIntervalMs, 5_000);
+      await expect(connect(remote.url, otherApiKey)).resolves.toBeDefined();
+      expect(eventSignal.listenerCount()).toBe(1);
+      await remote.close();
+    } finally {
+      vi.useRealTimers();
+    }
+  }, 15_000);
 
   it("não deixa initialize em voo escapar do shutdown", async () => {
     let releaseAuthentication: (() => void) | undefined;
