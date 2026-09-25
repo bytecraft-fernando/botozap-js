@@ -296,10 +296,20 @@ export interface SetupLink {
   whatsapp_setup_status: string;
   url: string;
   allowed_connection_types: string[];
-  provision_phone_number: boolean;
+  /** Código de idioma da página; `null` = automático. */
   language: string | null;
+  /**
+   * Destino depois de concluir; recebe `setup_link_id` e `status=completed`
+   * (a query string da URL é preservada, o token nunca é enviado).
+   */
   success_redirect_url: string | null;
+  /**
+   * Destino com `status=failed` (link esgotado) ou `status=cancelled` (o
+   * Cliente voltou num erro recuperável; o link segue válido), mais
+   * `setup_link_id`.
+   */
   failure_redirect_url: string | null;
+  /** Reservado: hoje sempre `null` (a página de conexão não aplica tema). */
   theme_config: unknown;
   expires_at: string | null;
   created_at: string;

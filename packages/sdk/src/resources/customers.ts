@@ -19,13 +19,41 @@ export interface UpdateCustomerParams {
   external_customer_id?: string;
 }
 
-/** Corpo de `POST /v1/customers/:id/setup_links`. */
+/**
+ * Corpo de `POST /v1/customers/:id/setup_links`.
+ *
+ * Redirecionamentos: acontecem na página de conexão, só em estado final do
+ * link. Conexão concluída leva a `success_redirect_url` com
+ * `?setup_link_id=<id>&status=completed` (confirme o número em
+ * `phoneNumbers.list`: uma conexão concluída ainda pode ter pendência de
+ * registro). Link esgotado sem concluir leva a `failure_redirect_url` com
+ * `status=failed`. Num erro em que dá para tentar de novo, o Cliente pode
+ * escolher voltar: vai para `failure_redirect_url` com `status=cancelled` e o
+ * link continua válido. A query string que a sua URL já tiver é preservada e o
+ * token do link nunca é enviado. Link expirado ou revogado mostra a página de
+ * erro, sem redirecionar.
+ */
 export interface CreateSetupLinkParams {
-  /** Tipos de conexão liberados: "dedicated" e/ou "coexistence". */
+  /**
+   * Tipos de conexão liberados: "dedicated" e/ou "coexistence" (padrão
+   * "dedicated"). Uma lista sem nenhum tipo válido responde
+   * `422 invalid_connection_types`; tipos desconhecidos ao lado de válidos são
+   * ignorados.
+   */
   allowed_connection_types?: string[];
-  provision_phone_number?: boolean;
+  /** Código de idioma da página (ex.: "pt_BR"); "auto" ou vazio deixa automático. */
   language?: string;
+  /**
+   * Destino depois de concluir (`status=completed`). Precisa ser `https://`,
+   * sem usuário/senha e com até 2048 caracteres; senão a API responde
+   * `422 invalid_redirect_url`.
+   */
   success_redirect_url?: string;
+  /**
+   * Destino quando o link se esgota sem concluir (`status=failed`) ou quando o
+   * Cliente escolhe voltar num erro recuperável (`status=cancelled`; o link
+   * segue válido). Mesmas regras de `success_redirect_url`.
+   */
   failure_redirect_url?: string;
 }
 
@@ -91,7 +119,12 @@ export class Customers {
     );
   }
 
-  /** Cria um link de setup sob um cliente. */
+  /**
+   * Cria um link de setup sob um cliente (expira em 30 dias). Envie a `url`
+   * devolvida ao Cliente; veja em {@link CreateSetupLinkParams} como funcionam
+   * os redirecionamentos. URL de redirecionamento inválida lança
+   * `BotoZapError` com `code: "invalid_redirect_url"` (422).
+   */
   createSetupLink(
     customerId: string,
     params: CreateSetupLinkParams = {},

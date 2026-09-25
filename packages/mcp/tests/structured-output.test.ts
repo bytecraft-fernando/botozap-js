@@ -114,7 +114,6 @@ const setupLink = {
   whatsapp_setup_status: "pending",
   url: "https://botozap.com.br/whatsapp/setup/token-opaco",
   allowed_connection_types: ["dedicated"],
-  provision_phone_number: false,
   language: "pt_BR",
   success_redirect_url: null,
   failure_redirect_url: null,
@@ -804,6 +803,33 @@ describe("MCP — output schemas e structured content", () => {
       method: "PATCH",
       path: `/webhooks/${WEBHOOK_ID}`,
       body: { customer_id: null },
+    });
+  });
+  it("create_setup_link repassa redirects e não anuncia nem envia provision_phone_number", async () => {
+    const client = await connect();
+    const discovery = await client.listTools();
+    const tool = discovery.tools.find((t) => t.name === "create_setup_link");
+    expect(Object.keys(tool?.inputSchema.properties ?? {})).not.toContain("provision_phone_number");
+    expect(JSON.stringify(tool?.outputSchema ?? {})).not.toContain("provision_phone_number");
+    expect(tool?.description).toContain("status=cancelled");
+
+    const result = await client.callTool({
+      name: "create_setup_link",
+      arguments: {
+        customer_id: CUSTOMER_ID,
+        success_redirect_url: "https://parceiro.example/ok?ref=42",
+        failure_redirect_url: "https://parceiro.example/erro",
+        provision_phone_number: true,
+      },
+    });
+    expect(result.isError).toBeFalsy();
+    expect(calls.at(-1)).toEqual({
+      method: "POST",
+      path: `/customers/${CUSTOMER_ID}/setup_links`,
+      body: {
+        success_redirect_url: "https://parceiro.example/ok?ref=42",
+        failure_redirect_url: "https://parceiro.example/erro",
+      },
     });
   });
   it("create_contact/update_contact repassam display_name; null limpa", async () => {

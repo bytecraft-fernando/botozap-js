@@ -152,7 +152,13 @@ botozap customers create --name "Acme LTDA" --external-customer-id acme-001
 
 # Setup links de um cliente
 botozap setup-links list --customer <customerId>
-botozap setup-links create --customer <customerId>
+botozap setup-links create --customer <customerId> \
+  --success-redirect-url "https://seu-app.com/whatsapp/ok" \
+  --failure-redirect-url "https://seu-app.com/whatsapp/erro"
+# Redirects só em estado final: concluído → success (status=completed); link
+# esgotado → failure (status=failed); cliente volta num erro recuperável →
+# failure (status=cancelled, o link segue válido). Todo destino recebe
+# setup_link_id; URLs https, sem usuário/senha, até 2048 caracteres.
 
 # Números, rótulo local e saúde
 botozap numbers list

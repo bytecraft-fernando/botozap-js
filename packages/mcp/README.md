@@ -169,7 +169,7 @@ Nomes em inglês (snake_case, melhor para tool-calling); descrições em PT-BR.
 **Contatos** — `list_contacts`, `get_contact`, `create_contact`, `update_contact`, `delete_contact` (`display_name` é o nome dado pela empresa; `null` limpa)
 **Mídia** — `send_media_message`, `ingest_media`
 **Clientes** — `list_customers`, `get_customer`, `create_customer`, `update_customer`, `delete_customer`
-**Links de setup** — `list_setup_links`, `create_setup_link`, `update_setup_link`
+**Links de setup** — `list_setup_links`, `create_setup_link`, `update_setup_link` (redirects `https`: concluído → `success_redirect_url` com `status=completed`; link esgotado → `failure_redirect_url` com `status=failed`; cliente volta num erro recuperável → `failure_redirect_url` com `status=cancelled`, link segue válido; todo destino recebe `setup_link_id`)
 **Números** — `list_phone_numbers`, `get_phone_number`, `update_phone_number` (só o `label`, nome local), `phone_number_health`
 **Templates** — `list_templates`, `get_template`, `create_template`
 **Webhooks** — `list_webhooks`, `get_webhook`, `create_webhook`, `update_webhook`, `delete_webhook`, `test_webhook`
