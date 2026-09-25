@@ -27,7 +27,10 @@ if [[ $# -eq 0 ]]; then
   mkdir "$RELEASE_TMP/consumer"
   cd "$RELEASE_TMP/consumer"
   printf '{"name":"botozap-registry-consumer","private":true}\n' > package.json
+  SDK_VERSION="$(node -p 'JSON.parse(require("node:fs").readFileSync("'"$RELEASE_ROOT"'/packages/sdk/package.json", "utf8")).version')"
   pnpm add "@botozap/mcp@$MCP_VERSION" --ignore-scripts
+  # packed-tools-only.mjs importa @botozap/sdk direto; o pnpm só expõe dependências diretas.
+  pnpm add "@botozap/sdk@$SDK_VERSION" --ignore-scripts
   pnpm add -D @modelcontextprotocol/sdk@1.29.0 --ignore-scripts
   cp "$RELEASE_ROOT/scripts/packed-tools-only.mjs" ./packed-tools-only.mjs
   node ./packed-tools-only.mjs
