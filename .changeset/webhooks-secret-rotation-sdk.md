@@ -2,4 +2,4 @@
 "@botozap/sdk": minor
 ---
 
-`webhooks.update` aceita `secret` para rotacionar o secret de assinatura (PATCH /v1/webhooks/:id).
+`webhooks.update` accepts `secret` to rotate the signing secret (`PATCH /v1/webhooks/:id`).
