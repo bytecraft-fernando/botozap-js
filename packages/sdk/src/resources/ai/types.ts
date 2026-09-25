@@ -208,6 +208,14 @@ export type AiAgent = {
   archived: boolean;
   published_version_id: string | null;
   updated_at: string;
+  /** Estado do ciclo de vida. Presente em `ai.agents.list` e `ai.agents.get`. */
+  lifecycle?: "draft" | "published" | "active" | "paused" | "archived";
+  /** `true` só quando o agente está de fato respondendo no canal. Presente em list/get. */
+  serving?: boolean;
+  /** Como o agente atende: vínculo direto ou membro de roteador ativo; `null` quando não atende. */
+  serving_via?: "direct" | "router" | null;
+  /** Conta de canal da versão publicada; `null` sem versão publicada. */
+  channel_account_id?: string | null;
 };
 export type AiAgentVersion = {
   id: string;
