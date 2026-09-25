@@ -1,5 +1,11 @@
 # @botozap/sdk
 
+## 0.6.0
+
+### Minor Changes
+
+- 5e435ea: `Appointment.google_etag` and `Appointment.google_base_data` become optional and deprecated: they are internal Google Calendar sync data and the API stops sending them on 2026-10-26.
+
 ## 0.5.0
 
 ### Minor Changes

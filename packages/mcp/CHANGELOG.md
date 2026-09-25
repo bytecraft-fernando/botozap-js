@@ -1,5 +1,12 @@
 # @botozap/mcp
 
+## 0.4.1
+
+### Patch Changes
+
+- Updated dependencies [5e435ea]
+  - @botozap/sdk@0.6.0
+
 ## 0.4.0
 
 ### Minor Changes

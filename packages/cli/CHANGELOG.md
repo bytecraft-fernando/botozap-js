@@ -1,5 +1,12 @@
 # @botozap/cli
 
+## 0.3.1
+
+### Patch Changes
+
+- Updated dependencies [5e435ea]
+  - @botozap/sdk@0.6.0
+
 ## 0.3.0
 
 ### Minor Changes
