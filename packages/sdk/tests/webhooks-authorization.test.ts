@@ -129,4 +129,45 @@ describe("SDK — webhooks Authorization", () => {
     await boto.webhooks.update("wh_1", { headers: { Authorization: null } });
     expect(captured[0]?.body).toEqual({ headers: { Authorization: null } });
   });
+
+  it("create/update enviam customer_id; null remove o filtro no PATCH", async () => {
+    const customerId = "11111111-1111-4111-8111-111111111111";
+    responder = () => ({
+      status: 201,
+      json: {
+        data: {
+          id: "wh_1",
+          customer_id: customerId,
+          url: "https://hooks.example.test/boto",
+          events: ["messages"],
+          active: false,
+          has_authorization: false,
+          secret: "whsec_only_hmac",
+          created_at: "2026-08-27T00:00:00.000Z",
+          updated_at: "2026-08-27T00:00:00.000Z",
+        },
+      },
+    });
+
+    const created = await boto.webhooks.create({
+      url: "https://hooks.example.test/boto",
+      events: ["messages"],
+      customer_id: customerId,
+    });
+    expect(captured[0]?.body).toEqual({
+      url: "https://hooks.example.test/boto",
+      events: ["messages"],
+      customer_id: customerId,
+    });
+    expect(created.customer_id).toBe(customerId);
+
+    captured.length = 0;
+    await boto.webhooks.update("wh_1", { customer_id: null });
+    expect(captured[0]?.method).toBe("PATCH");
+    expect(captured[0]?.path).toBe("/webhooks/wh_1");
+    expect(captured[0]?.body).toEqual({ customer_id: null });
+
+    expectTypeOf<CreateWebhookParams["customer_id"]>().toEqualTypeOf<string | null | undefined>();
+    expectTypeOf<UpdateWebhookParams["customer_id"]>().toEqualTypeOf<string | null | undefined>();
+  });
 });

@@ -128,6 +128,8 @@ export interface Assignment {
 
 export interface Webhook {
   id: string;
+  /** Cliente cujas entregas o endpoint recebe; `null` = todos os da Conta. */
+  customer_id?: string | null;
   url: string;
   events?: string[];
   active?: boolean;
@@ -140,15 +142,6 @@ export interface Webhook {
 
 export interface PhoneNumber {
   id: string;
-  [key: string]: unknown;
-}
-
-export interface Flow {
-  id: string;
-  [key: string]: unknown;
-}
-
-export interface FlowVersion {
   [key: string]: unknown;
 }
 
@@ -173,8 +166,17 @@ export interface BotoZapEvent {
   /** Cursor monotônico e contíguo, serializado como string. */
   cursor: string;
   type: string;
-  /** WAMID da mensagem que originou o Evento. */
-  message_id: string;
+  /**
+   * WAMID da mensagem do WhatsApp que originou o Evento. `null` fora do
+   * WhatsApp (ex.: Instagram) ou em Eventos sem mensagem; use `external_id`
+   * para o identificador genérico do canal.
+   */
+  message_id: string | null;
+  /**
+   * Identificador da mensagem no canal de origem: o `wamid` no WhatsApp, o
+   * `mid` no Instagram. Pode ser `null` em Eventos sem mensagem.
+   */
+  external_id: string | null;
   /** UUID interno da Mensagem; pode ser null em status de Broadcast. */
   message_resource_id: string | null;
   occurred_at: string;

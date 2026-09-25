@@ -13,8 +13,8 @@ rede passa por ele.
 > estabilidade de comandos/flags até a `1.0`. A [API REST](https://botozap.com.br/docs)
 > é a interface oficial e estável — se algo faltar na CLI, chame
 > `https://botozap.com.br/api/v1` direto (`curl` + `Authorization: Bearer`).
-> A CLI cobre hoje um SUBCONJUNTO da API: transmissões (`broadcasts`) e `flows`
-> existem no SDK/REST, mas ainda não têm comando. Bugs:
+> A CLI cobre hoje um SUBCONJUNTO da API: transmissões (`broadcasts`) existem
+> no SDK/REST, mas ainda não têm comando. Bugs:
 > [issues do monorepo](https://github.com/bytecraft-fernando/botozap-js/issues)
 > — nunca inclua sua chave de API no relato.
 
@@ -160,9 +160,11 @@ botozap numbers health <phoneNumberId>
 botozap templates create --name boas_vindas --language pt_BR \
   --category UTILITY --components ./components.json
 
-# Webhooks (eventos válidos: messages, statuses)
+# Webhooks (eventos válidos: messages, statuses, crm, account; secret: 16–256 caracteres)
 botozap webhooks create --url https://meu.app/webhook \
-  --events messages,statuses --secret s3cr3t
+  --events messages,statuses --secret troque-por-um-segredo-longo
+# Só entregas de um cliente; --clear-customer volta a receber de toda a conta
+botozap webhooks update <id> --customer-id <customerId>
 botozap webhooks test <id>
 
 # Entregas e logs

@@ -30,6 +30,8 @@ export type {
   ScheduleBroadcastParams,
   ListRecipientsParams,
   AddRecipientsResult,
+  AddRecipientsError,
+  BroadcastRecipientInput,
 } from "./resources/broadcasts.js";
 export type {
   ListContactsParams,
@@ -47,13 +49,6 @@ export type {
   WebhookAuthorizationHeaders,
 } from "./resources/webhooks.js";
 export type { ListPhoneNumbersParams } from "./resources/phone-numbers.js";
-export type {
-  CreateFlowParams,
-  ListFlowsParams,
-  FlowPhoneParams,
-  CreateFlowVersionParams,
-  SetFlowDataEndpointParams,
-} from "./resources/flows.js";
 export type { UploadMediaParams } from "./resources/media.js";
 export type { ListEventsParams } from "./resources/events.js";
 export type {
@@ -80,8 +75,6 @@ export type {
   Assignment,
   Webhook,
   PhoneNumber,
-  Flow,
-  FlowVersion,
   User,
   ApiLog,
   WebhookDelivery,

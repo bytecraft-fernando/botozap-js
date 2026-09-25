@@ -7,7 +7,7 @@
  * entregue ao chamador — falha se a rota ou o SDK divergirem do contrato.
  *
  * Cobre: broadcasts.create (body real), broadcasts.update, listRecipients status,
- * flows com phone_number_id, apiLogs filtros, messages.list, templates.create,
+ * apiLogs filtros, messages.list, templates.create,
  * customers.update/delete, setup links (3), 429 com headers no BotoZapError e o
  * caso `data: null` explícito passando no requestItem.
  */
@@ -16,6 +16,8 @@ import { afterAll, beforeAll, beforeEach, describe, expect, expectTypeOf, it } f
 import {
   BotoZap,
   BotoZapError,
+  type AddRecipientsError,
+  type BroadcastRecipientInput,
   type CreateAssignmentParams,
 } from "../src/index.js";
 
@@ -188,129 +190,36 @@ describe("SDK contract — correções E3.2", () => {
     expect(list.data).toEqual([{ id: "r_1", status: "failed" }]);
   });
 
-  it("flows.list: envia phone_number_id na query (a rota exige phone_number_id OU waba_connection_id)", async () => {
+  it("broadcasts.addRecipients: body { recipients: [{ to_recipient, components? }] } e erros por item tipados", async () => {
     responder = () => ({
       status: 200,
       json: {
-        data: [{ id: "flow_1", name: "onboarding", status: "published" }],
-        meta: { page: 1, per_page: 20, total_pages: 1, total_count: 1 },
+        data: {
+          added: 1,
+          duplicates: 0,
+          errors: [{ index: 1, to_recipient: "abc", reason: "Destinatário inválido." }],
+        },
       },
     });
 
-    const list = await boto.flows.list({
-      page: 1,
-      per_page: 20,
-      phone_number_id: "1279498075235551",
-    });
-
-    const req = lastRequest();
-    expect(req.method).toBe("GET");
-    expect(req.path).toBe("/flows");
-    expect(req.query).toEqual({
-      page: "1",
-      per_page: "20",
-      phone_number_id: "1279498075235551",
-    });
-    expect(list.data).toEqual([{ id: "flow_1", name: "onboarding", status: "published" }]);
-    expect(list.meta.total_count).toBe(1);
-  });
-
-  it("flows.list: aceita waba_connection_id como alternativa na query", async () => {
-    responder = () => ({
-      status: 200,
-      json: {
-        data: [],
-        meta: { page: 1, per_page: 20, total_pages: 0, total_count: 0 },
+    const recipients: BroadcastRecipientInput[] = [
+      {
+        to_recipient: "5592999990000",
+        components: [{ type: "body", parameters: [{ type: "text", text: "Ana" }] }],
       },
-    });
-
-    await boto.flows.list({ waba_connection_id: "conn_1" });
-
-    const req = lastRequest();
-    expect(req.method).toBe("GET");
-    expect(req.path).toBe("/flows");
-    expect(req.query).toEqual({ waba_connection_id: "conn_1" });
-  });
-
-  it("flows.get: exige phone_number_id na QUERY", async () => {
-    responder = () => ({ status: 200, json: { data: { id: "flow_1", status: "draft" } } });
-
-    const flow = await boto.flows.get("flow_1", { phone_number_id: "1279498075235551" });
-
-    const req = lastRequest();
-    expect(req.method).toBe("GET");
-    expect(req.path).toBe("/flows/flow_1");
-    expect(req.query).toEqual({ phone_number_id: "1279498075235551" });
-    expect(req.body).toBeUndefined();
-    expect(flow).toEqual({ id: "flow_1", status: "draft" });
-  });
-
-  it("flows.delete: phone_number_id na QUERY; 204 → void", async () => {
-    responder = () => ({ status: 204 });
-
-    const result = await boto.flows.delete("flow_1", { phone_number_id: "1279498075235551" });
-
-    const req = lastRequest();
-    expect(req.method).toBe("DELETE");
-    expect(req.path).toBe("/flows/flow_1");
-    expect(req.query).toEqual({ phone_number_id: "1279498075235551" });
-    expect(result).toBeUndefined();
-  });
-
-  it("flows.publish: phone_number_id no BODY", async () => {
-    responder = () => ({ status: 200, json: { data: { id: "flow_1", status: "published" } } });
-
-    await boto.flows.publish("flow_1", { phone_number_id: "1279498075235551" });
+      { to_recipient: "abc" },
+    ];
+    const result = await boto.broadcasts.addRecipients("bc_1", recipients);
 
     const req = lastRequest();
     expect(req.method).toBe("POST");
-    expect(req.path).toBe("/flows/flow_1/publish");
-    expect(req.body).toEqual({ phone_number_id: "1279498075235551" });
-  });
-
-  it("flows.setupEncryption: phone_number_id no BODY", async () => {
-    responder = () => ({ status: 200, json: { data: { status: "success" } } });
-
-    await boto.flows.setupEncryption("flow_1", { phone_number_id: "1279498075235551" });
-
-    const req = lastRequest();
-    expect(req.method).toBe("POST");
-    expect(req.path).toBe("/flows/flow_1/setup_encryption");
-    expect(req.body).toEqual({ phone_number_id: "1279498075235551" });
-  });
-
-  it("flows.createVersion: body {phone_number_id, flow_json}", async () => {
-    responder = () => ({ status: 201, json: { data: { id: "ver_1" } } });
-
-    await boto.flows.createVersion("flow_1", {
-      phone_number_id: "1279498075235551",
-      flow_json: { version: "5.0" },
-    });
-
-    const req = lastRequest();
-    expect(req.method).toBe("POST");
-    expect(req.path).toBe("/flows/flow_1/versions");
-    expect(req.body).toEqual({
-      phone_number_id: "1279498075235551",
-      flow_json: { version: "5.0" },
-    });
-  });
-
-  it("flows.setDataEndpoint: body {phone_number_id, forward_url}", async () => {
-    responder = () => ({ status: 200, json: { data: { flow_id: "flow_1", has_data_endpoint: true } } });
-
-    await boto.flows.setDataEndpoint("flow_1", {
-      phone_number_id: "1279498075235551",
-      forward_url: "https://dev.exemplo.com/flow",
-    });
-
-    const req = lastRequest();
-    expect(req.method).toBe("POST");
-    expect(req.path).toBe("/flows/flow_1/data_endpoint");
-    expect(req.body).toEqual({
-      phone_number_id: "1279498075235551",
-      forward_url: "https://dev.exemplo.com/flow",
-    });
+    expect(req.path).toBe("/broadcasts/bc_1/recipients");
+    expect(req.body).toEqual({ recipients });
+    expect(result.errors[0]).toEqual({ index: 1, to_recipient: "abc", reason: "Destinatário inválido." });
+    expectTypeOf(result.errors).toEqualTypeOf<AddRecipientsError[]>();
+    // Strings soltas viram erro por item na API; o tipo barra antes do HTTP.
+    // @ts-expect-error — recipients exige objetos { to_recipient }.
+    void (() => boto.broadcasts.addRecipients("bc_1", ["5592999990000"]));
   });
 
   it("apiLogs.list: filtros reais source/method/status_code na query", async () => {

@@ -174,7 +174,7 @@ if (page.paging.next) {
   page = await boto.contacts.list({ limit: 50, after: page.paging.next });
 }
 
-// Offset/página (customers, templates, broadcasts, phoneNumbers, users, flows,
+// Offset/página (customers, templates, broadcasts, phoneNumbers, users,
 // conversations.listAssignments): params { page, per_page }.
 const { data, meta } = await boto.templates.list({ page: 2, per_page: 20 });
 console.log(meta.total_count, meta.total_pages);
@@ -233,9 +233,8 @@ O SDK cobre os recursos da API `/v1`:
 - `broadcasts` — criar, destinatários, agendar, enviar, cancelar
 - `contacts` — listar, buscar, criar, atualizar, remover
 - `conversations` — listar, buscar, atualizar, atribuições
-- `webhooks` — CRUD e teste
+- `webhooks` — CRUD e teste; `customer_id` opcional limita as entregas a um Cliente da Conta (`null` no update remove o filtro)
 - `phoneNumbers` — listar, buscar, remover, saúde (a rota de update não expõe campos editáveis, então o SDK não tem `phoneNumbers.update`)
-- `flows` — criar, versionar, publicar, data endpoint (as operações por flow exigem `phone_number_id`, que amarra o flow à sua WABA)
 - `media` — subir arquivo (obter um media_id) e **buscar metadados + URL de download** de uma mídia recebida
 - `events` — reler inbound e mudanças de status pelo cursor durável da Conta/ambiente
 - `users`, `apiLogs`, `webhookDeliveries` — leitura
@@ -253,6 +252,11 @@ for (const event of page.data) {
 
 ultimoCursor = page.paging.cursor;
 ```
+
+Cada Evento traz `message_id` (o `wamid`, só no WhatsApp; `null` em outros
+canais) e `external_id` (o id da mensagem no canal de origem: `wamid` no
+WhatsApp, `mid` no Instagram). Para correlacionar mensagens de qualquer canal,
+use `external_id`; ambos podem ser `null` em Eventos sem mensagem.
 
 Passe um `AbortSignal` quando a leitura fizer parte de um tail cancelável:
 
@@ -273,6 +277,17 @@ await boto.broadcasts.create({
   template_name: "promo_sexta",
   template_language: "pt_BR",
 });
+
+// Destinatários: objetos { to_recipient, components? } (até 1000 por chamada,
+// só em draft). Strings soltas NÃO são aceitas. Itens inválidos voltam em
+// `errors` ({ index, to_recipient?, reason }) sem derrubar o lote.
+const { added, duplicates, errors } = await boto.broadcasts.addRecipients(broadcastId, [
+  { to_recipient: "5592999990000" },
+  {
+    to_recipient: "5592988880000",
+    components: [{ type: "body", parameters: [{ type: "text", text: "Ana" }] }],
+  },
+]);
 
 // Criar um template (submetido à Meta para análise).
 await boto.templates.create({
@@ -295,6 +310,7 @@ const link = await boto.customers.createSetupLink(customerId, {
 await boto.webhooks.create({
   url: "https://seu-app.com/hooks",
   events: ["messages", "statuses"], // categorias aceitas pela API (a rota rejeita nomes finos)
+  customer_id, // opcional: só entregas deste Cliente (omitido = todos da Conta)
 });
 const { data: numeros } = await boto.phoneNumbers.list({ customer_id });
 ```
