@@ -37,7 +37,7 @@ export function registerWebhookTools(register: Register): void {
 
   register(
     "create_webhook",
-    "Cria um endpoint de webhook. `url` precisa ser https. `events` é a lista de tipos de evento assinados (ao menos um). `headers.Authorization` é opcional (ex.: Bearer …) e nunca é devolvido. Retorna { data }.",
+    "Cria um endpoint de webhook. `url` precisa ser https. `events` é a lista de categorias assinadas (messages, statuses, crm, account; ao menos uma). `customer_id` opcional limita as entregas a um Cliente da conta. `headers.Authorization` é opcional (ex.: Bearer …) e nunca é devolvido. Retorna { data }.",
     {
       url: z.string().describe("URL https do endpoint."),
       events: z.array(z.string()).describe("Tipos de evento assinados."),
@@ -55,6 +55,12 @@ export function registerWebhookTools(register: Register): void {
         .strict()
         .optional()
         .describe("Somente Authorization é aceito."),
+      customer_id: z
+        .string()
+        .optional()
+        .describe(
+          "UUID de um Cliente da conta: limita as entregas a ele. Omitido = entregas de toda a conta.",
+        ),
     },
     webhookResultSchema,
     async (client, args) => {
@@ -63,6 +69,7 @@ export function registerWebhookTools(register: Register): void {
         events: args.events as string[],
         active: typeof args.active === "boolean" ? args.active : undefined,
         headers: args.headers as CreateWebhookParams["headers"],
+        customer_id: typeof args.customer_id === "string" ? args.customer_id : undefined,
       };
       return { data: await client.webhooks.create(params) };
     },
@@ -70,7 +77,7 @@ export function registerWebhookTools(register: Register): void {
 
   register(
     "update_webhook",
-    "Atualiza um webhook (url, events, active, headers.Authorization). Authorization null remove o header. O valor nunca é devolvido. Retorna { data }.",
+    "Atualiza um webhook (url, events, active, customer_id, headers.Authorization). customer_id null remove o filtro de Cliente. Authorization null remove o header; o valor nunca é devolvido. Retorna { data }.",
     {
       id: z.string().describe("ID do webhook (uuid interno)."),
       url: z.string().optional(),
@@ -90,6 +97,13 @@ export function registerWebhookTools(register: Register): void {
         .strict()
         .optional()
         .describe("Somente Authorization é aceito. Omitir não altera o header."),
+      customer_id: z
+        .string()
+        .nullable()
+        .optional()
+        .describe(
+          "UUID de um Cliente da conta para limitar as entregas; null remove o filtro. Omitir não altera.",
+        ),
     },
     webhookResultSchema,
     async (client, args) => {

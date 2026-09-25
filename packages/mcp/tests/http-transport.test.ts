@@ -58,6 +58,7 @@ function event(cursor: number): BotoZapEvent {
     cursor: String(cursor),
     type: "whatsapp.message.received",
     message_id: `wamid.http.${cursor}`,
+    external_id: `wamid.http.${cursor}`,
     message_resource_id: `message-${cursor}`,
     occurred_at: "2026-08-26T12:00:00.000Z",
     created_at: "2026-08-26T12:00:00.100Z",

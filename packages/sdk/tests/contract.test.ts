@@ -19,7 +19,7 @@
  * a extensão `.js` do source NodeNext para o `.ts` real; não usa o `dist`.
  */
 import { createServer, type Server } from "node:http";
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, expectTypeOf, it } from "vitest";
 import { BotoZap, BotoZapError } from "../src/index.js";
 
 /** Request capturado pelo servidor-mock — o que o SDK REALMENTE mandou. */
@@ -296,13 +296,26 @@ describe("SDK contract — request montado + response entregue", () => {
             cursor: "43",
             type: "whatsapp.message.received",
             message_id: "wamid.inbound.1",
+            external_id: "wamid.inbound.1",
             message_resource_id: "msg_1",
             occurred_at: "2026-08-26T12:00:00.000Z",
             created_at: "2026-08-26T12:00:00.100Z",
             data: { event: "whatsapp.message.received" },
           },
+          {
+            // Instagram (#328): o wamid não existe; o id do canal vem em external_id.
+            id: "evt_2",
+            cursor: "44",
+            type: "instagram.message.received",
+            message_id: null,
+            external_id: "ig_mid_1",
+            message_resource_id: "msg_2",
+            occurred_at: "2026-08-26T12:01:00.000Z",
+            created_at: "2026-08-26T12:01:00.100Z",
+            data: { event: "instagram.message.received" },
+          },
         ],
-        paging: { cursor: "43", next: null, has_more: false },
+        paging: { cursor: "44", next: null, has_more: false },
       },
     });
 
@@ -316,9 +329,13 @@ describe("SDK contract — request montado + response entregue", () => {
       cursor: "43",
       type: "whatsapp.message.received",
       message_id: "wamid.inbound.1",
+      external_id: "wamid.inbound.1",
     });
+    expect(page.data[1]).toMatchObject({ message_id: null, external_id: "ig_mid_1" });
+    expectTypeOf(page.data[0]!.message_id).toEqualTypeOf<string | null>();
+    expectTypeOf(page.data[0]!.external_id).toEqualTypeOf<string | null>();
     expect(page.paging).toEqual({
-      cursor: "43",
+      cursor: "44",
       next: null,
       has_more: false,
     });

@@ -167,13 +167,17 @@ const webhookDelivery = {
   created_at: "2026-08-25T12:00:00.000Z",
 };
 
-const calls: Array<{ method: string; path: string }> = [];
+const calls: Array<{ method: string; path: string; body?: unknown }> = [];
 
 const fetchStub = (async (input: unknown, init?: RequestInit) => {
   const url = new URL(typeof input === "string" ? input : String(input));
   const method = (init?.method ?? "GET").toUpperCase();
   const path = url.pathname.replace(/^\/v1/, "");
-  calls.push({ method, path });
+  calls.push({
+    method,
+    path,
+    body: typeof init?.body === "string" ? JSON.parse(init.body) : undefined,
+  });
 
   if (method === "GET" && path === "/templates/missing") {
     return jsonResponse(404, {
@@ -707,5 +711,30 @@ describe("MCP — output schemas e structured content", () => {
     expect(updated.isError).toBeFalsy();
     expect(JSON.stringify(updated.structuredContent)).not.toContain(secret);
     expect(textOf(updated)).not.toContain(secret);
+  });
+
+  it("create_webhook/update_webhook repassam customer_id; null remove o filtro", async () => {
+    const client = await connect();
+    const created = await client.callTool({
+      name: "create_webhook",
+      arguments: { url: webhook.url, events: webhook.events, customer_id: CUSTOMER_ID },
+    });
+    expect(created.isError).toBeFalsy();
+    expect(calls.at(-1)).toEqual({
+      method: "POST",
+      path: "/webhooks",
+      body: { url: webhook.url, events: webhook.events, customer_id: CUSTOMER_ID },
+    });
+
+    const cleared = await client.callTool({
+      name: "update_webhook",
+      arguments: { id: WEBHOOK_ID, customer_id: null },
+    });
+    expect(cleared.isError).toBeFalsy();
+    expect(calls.at(-1)).toEqual({
+      method: "PATCH",
+      path: `/webhooks/${WEBHOOK_ID}`,
+      body: { customer_id: null },
+    });
   });
 });

@@ -25,7 +25,6 @@ import { Contacts } from "./resources/contacts.js";
 import { Conversations } from "./resources/conversations.js";
 import { Webhooks } from "./resources/webhooks.js";
 import { PhoneNumbers } from "./resources/phone-numbers.js";
-import { Flows } from "./resources/flows.js";
 import { Media } from "./resources/media.js";
 import { Events } from "./resources/events.js";
 import { Users, ApiLogs, WebhookDeliveries } from "./resources/read-only.js";
@@ -78,7 +77,6 @@ export class BotoZap {
   readonly opportunities: CrmResource<OpportunityFields, Opportunity>;
   readonly demands: CrmResource<DemandFields, Demand>;
   readonly radar: Radar;
-  readonly flows: Flows;
   readonly media: Media;
   readonly events: Events;
   readonly users: Users;
@@ -123,7 +121,6 @@ export class BotoZap {
     this.conversations = new Conversations(this);
     this.webhooks = new Webhooks(this);
     this.phoneNumbers = new PhoneNumbers(this);
-    this.flows = new Flows(this);
     this.media = new Media(this);
     this.events = new Events(this);
     this.users = new Users(this);

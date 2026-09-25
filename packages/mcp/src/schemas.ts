@@ -329,6 +329,10 @@ export const listUsersResultSchema = offsetListResultSchemaFor(userSchema);
 export const webhookSchema = z
   .object({
     id: internalUuidSchema.describe("UUID interno do Endpoint no BotoZap."),
+    customer_id: internalUuidSchema
+      .nullable()
+      .optional()
+      .describe("Cliente cujas entregas o endpoint recebe; null = toda a conta."),
     url: z.string(),
     events: z.array(z.string()),
     active: z.boolean(),

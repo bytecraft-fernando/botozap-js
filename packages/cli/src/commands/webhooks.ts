@@ -56,6 +56,10 @@ export function registerWebhooks(program: Command): void {
     )
     .option("--secret <segredo>", "segredo para assinar as entregas")
     .option("--active <bool>", "true | false")
+    .option(
+      "--customer-id <id>",
+      "limita as entregas a um cliente (uuid) da conta; omitido = todos",
+    )
     .action(async (opts, cmd: Command) => {
       const { client, format } = context(cmd);
       const events = String(opts.events)
@@ -67,6 +71,7 @@ export function registerWebhooks(program: Command): void {
         events,
         secret: opts.secret,
         active: toBool(opts.active),
+        customer_id: opts.customerId,
       });
       if (format === "json") return printJson(data);
       printLine("Webhook criado.");
@@ -80,8 +85,13 @@ export function registerWebhooks(program: Command): void {
     .option("--events <lista>", "novos eventos (separados por vírgula)")
     .option("--secret <segredo>", "novo segredo")
     .option("--active <bool>", "true | false")
+    .option("--customer-id <id>", "limita as entregas a este cliente (uuid)")
+    .option("--clear-customer", "remove o filtro de cliente (entregas de toda a conta)")
     .action(async (id: string, opts, cmd: Command) => {
       const { client, format } = context(cmd);
+      if (opts.customerId !== undefined && opts.clearCustomer) {
+        throw new Error("Use --customer-id OU --clear-customer, não os dois.");
+      }
       const body: Record<string, unknown> = {};
       if (opts.url !== undefined) body.url = opts.url;
       if (opts.events !== undefined) {
@@ -92,6 +102,8 @@ export function registerWebhooks(program: Command): void {
       }
       if (opts.secret !== undefined) body.secret = opts.secret;
       if (opts.active !== undefined) body.active = toBool(opts.active);
+      if (opts.customerId !== undefined) body.customer_id = opts.customerId;
+      if (opts.clearCustomer) body.customer_id = null;
       if (Object.keys(body).length === 0) {
         throw new Error("Informe ao menos um campo para atualizar.");
       }

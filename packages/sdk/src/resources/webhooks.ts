@@ -13,9 +13,21 @@ export interface CreateWebhookParams {
   secret?: string;
   /** `{ Authorization: "Bearer …" }` — persistido no Vault; ausente na resposta. */
   headers?: WebhookAuthorizationHeaders;
+  /**
+   * Limita as entregas a um Cliente (UUID) da Conta da chave. Omitido, `null`
+   * ou vazio = sem filtro. UUID inválido → 422 `invalid_customer_id`; Cliente
+   * de outra Conta → 404 `customer_not_found`.
+   */
+  customer_id?: string | null;
 }
 
 export interface UpdateWebhookParams {
+  /**
+   * Rotaciona o secret de assinatura (16 a 256 caracteres, sem quebra de
+   * linha). Vale a partir da próxima tentativa de entrega; a resposta não
+   * devolve o valor. Formato inválido responde `422 invalid_secret`.
+   */
+  secret?: string;
   url?: string;
   events?: string[];
   active?: boolean;
@@ -24,6 +36,11 @@ export interface UpdateWebhookParams {
    * `{ Authorization: null }` remove o header.
    */
   headers?: { Authorization?: string | null };
+  /**
+   * Omitido = não mexe. UUID de um Cliente da Conta limita as entregas a ele;
+   * `null` (ou string vazia) remove o filtro sem invalidar a verificação.
+   */
+  customer_id?: string | null;
 }
 
 /** Webhooks: endpoints assinados que recebem os eventos da conta. */

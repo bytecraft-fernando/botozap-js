@@ -52,11 +52,29 @@ export interface ListRecipientsParams extends CursorParams {
   status?: string;
 }
 
+/**
+ * Um destinatário de `addRecipients`. `to_recipient` é telefone internacional
+ * (E.164) ou BSUID; `components` são os parâmetros do template
+ * PARA ESTE destinatário, no mesmo formato de `POST /v1/messages` (até 20
+ * objetos, 16 KB serializados).
+ */
+export interface BroadcastRecipientInput {
+  to_recipient: string;
+  components?: Record<string, unknown>[];
+}
+
+/** Erro por item de `addRecipients`; `index` aponta a posição no array enviado. */
+export interface AddRecipientsError {
+  index: number;
+  to_recipient?: string;
+  reason: string;
+}
+
 /** Resultado de `addRecipients`: quantos entraram, quantos eram duplicados, erros. */
 export interface AddRecipientsResult {
   added: number;
   duplicates: number;
-  errors: unknown[];
+  errors: AddRecipientsError[];
 }
 
 /** Transmissões: criar, adicionar destinatários, agendar/enviar/cancelar. */
@@ -113,8 +131,16 @@ export class Broadcasts {
     );
   }
 
-  /** Adiciona destinatários (lista de números ou contatos). */
-  addRecipients(id: string, recipients: unknown[]): Promise<AddRecipientsResult> {
+  /**
+   * Adiciona destinatários a uma transmissão em `draft` (até 1000 por chamada).
+   * Cada item é um objeto `{ to_recipient, components? }` — strings soltas não
+   * são aceitas. Itens inválidos não derrubam o lote: voltam em `errors`.
+   * Duplicatas (no lote ou já cadastradas) contam em `duplicates`.
+   */
+  addRecipients(
+    id: string,
+    recipients: BroadcastRecipientInput[],
+  ): Promise<AddRecipientsResult> {
     return this.client.requestItem<AddRecipientsResult>(
       "POST",
       `/broadcasts/${enc(id)}/recipients`,
