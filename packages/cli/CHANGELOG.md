@@ -1,7 +1,19 @@
 # @botozap/cli
 
-## 0.2.0
+## 0.3.0
 
+### Minor Changes
+
+- 4127500: `webhooks create` and `webhooks update` accept `--customer-id <uuid>` to limit deliveries to one Customer of the account; `webhooks update --clear-customer` removes the filter. The README no longer mentions WhatsApp Flows, which the API removed.
+
+### Patch Changes
+
+- Updated dependencies [eda9708]
+- Updated dependencies [4127500]
+- Updated dependencies [3b79628]
+  - @botozap/sdk@0.5.0
+
+## 0.2.0
 
 ### Minor Changes
 

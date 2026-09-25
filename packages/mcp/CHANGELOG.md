@@ -1,7 +1,19 @@
 # @botozap/mcp
 
-## 0.3.0
+## 0.4.0
 
+### Minor Changes
+
+- 4127500: `create_webhook` and `update_webhook` accept `customer_id` (on update, `null` removes the filter), and the webhook output schema declares `customer_id`.
+
+### Patch Changes
+
+- Updated dependencies [eda9708]
+- Updated dependencies [4127500]
+- Updated dependencies [3b79628]
+  - @botozap/sdk@0.5.0
+
+## 0.3.0
 
 ### Minor Changes
 
