@@ -22,6 +22,12 @@ export interface CreateWebhookParams {
 }
 
 export interface UpdateWebhookParams {
+  /**
+   * Rotaciona o secret de assinatura (16 a 256 caracteres, sem quebra de
+   * linha). Vale a partir da próxima tentativa de entrega; a resposta não
+   * devolve o valor. Formato inválido responde `422 invalid_secret`.
+   */
+  secret?: string;
   url?: string;
   events?: string[];
   active?: boolean;
