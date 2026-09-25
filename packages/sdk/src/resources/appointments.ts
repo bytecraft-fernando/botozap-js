@@ -37,8 +37,16 @@ export interface Appointment extends Required<AppointmentFields> {
   google_conflict: Record<string, unknown> | null;
   google_event_id: string | null;
   google_selection_id: string | null;
-  google_etag: string | null;
-  google_base_data: Record<string, unknown> | null;
+  /**
+   * @deprecated Dado interno da sincronização com o Google Calendar. A API deixa de
+   * enviar este campo a partir de 26/10/2026; não dependa dele.
+   */
+  google_etag?: string | null;
+  /**
+   * @deprecated Dado interno da sincronização com o Google Calendar. A API deixa de
+   * enviar este campo a partir de 26/10/2026; não dependa dele.
+   */
+  google_base_data?: Record<string, unknown> | null;
   google_synced_revision: number | null;
   buffer_before_minutes: number;
   buffer_after_minutes: number;
