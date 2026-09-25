@@ -425,6 +425,13 @@ exports[`MCP — output schemas e structured content > anuncia schemas não vazi
               "format": "uuid",
               "type": "string",
             },
+            "label": {
+              "description": "Nome local do Número no BotoZap; null quando não definido.",
+              "type": [
+                "string",
+                "null",
+              ],
+            },
             "phone_number_id": {
               "description": "ID Meta do Número (phone_number_id); use em send_message.from.",
               "type": "string",
@@ -992,6 +999,13 @@ exports[`MCP — output schemas e structured content > anuncia schemas não vazi
                 "description": "UUID interno do Número no BotoZap; use nas tools get_phone_number e phone_number_health.",
                 "format": "uuid",
                 "type": "string",
+              },
+              "label": {
+                "description": "Nome local do Número no BotoZap; null quando não definido.",
+                "type": [
+                  "string",
+                  "null",
+                ],
               },
               "phone_number_id": {
                 "description": "ID Meta do Número (phone_number_id); use em send_message.from.",

@@ -8,6 +8,7 @@ import type {
   Customer,
   Message,
   MediaUploadResult,
+  MetaCostReport,
   OffsetMeta,
   PhoneNumber,
   SendResult,
@@ -169,6 +170,11 @@ export const contactSchema = z
     id: internalUuidSchema.describe("UUID interno do Contato no BotoZap."),
     wa_id: z.string().describe("Identidade canônica do Contato: telefone ou BSUID."),
     profile_name: z.string().nullable(),
+    display_name: z
+      .string()
+      .nullable()
+      .optional()
+      .describe("Nome que a empresa dá ao Contato; null quando não definido. Não vem do canal."),
     phone: z.string().nullable(),
     user_id: z.string().nullable(),
     username: z.string().nullable(),
@@ -222,6 +228,33 @@ export const conversationSchema = z
       .strict(),
     status: z.enum(["active", "ended"]),
     window_expires_at: z.string().nullable(),
+    entry_point: z
+      .enum(["ctwa", "organic"])
+      .nullable()
+      .optional()
+      .describe("Origem: ctwa (anúncio Click-to-WhatsApp), organic ou null (desconhecida)."),
+    referral: z
+      .object({
+        source_id: z.string().nullable(),
+        source_url: z.string().nullable(),
+        headline: z.string().nullable(),
+        ctwa_clid: z.string().nullable(),
+        received_at: z.string().nullable(),
+      })
+      .passthrough()
+      .nullable()
+      .optional()
+      .describe("Último clique em anúncio Click-to-WhatsApp; null se a Conversa nunca veio de anúncio."),
+    fep_expires_at: z
+      .string()
+      .nullable()
+      .optional()
+      .describe("Fim da janela grátis do Free Entry Point informado pela Meta; null fora dela."),
+    fep_reply_by: z
+      .string()
+      .nullable()
+      .optional()
+      .describe("Estimativa (último clique + 24h) do prazo para responder e abrir a janela grátis."),
     last_message_at: z.string().nullable(),
     last_read_at: z.string().nullable(),
     created_at: z.string(),
@@ -384,6 +417,11 @@ export const phoneNumberSchema = z
     phone_number_id: metaPhoneNumberIdSchema,
     display_phone_number: z.string().nullable(),
     verified_name: z.string().nullable(),
+    label: z
+      .string()
+      .nullable()
+      .optional()
+      .describe("Nome local do Número no BotoZap; null quando não definido."),
     quality_rating: z.string(),
     type: z.string().nullable(),
     waba_connection_id: internalUuidSchema,
@@ -431,3 +469,63 @@ export const templateSchema = z
 export const listTemplatesResultSchema = offsetListResultSchemaFor(templateSchema);
 
 export const templateResultSchema = itemResultSchemaFor(templateSchema);
+
+const metaCostGroupShape = {
+  currency: z.string().nullable().describe("Moeda da WABA; moedas nunca são somadas nem convertidas."),
+  volume: z.number().nonnegative(),
+  cost: z
+    .number()
+    .nullable()
+    .describe("Custo aproximado informado pela Meta; null se faltou custo em alguma linha (nunca 0)."),
+  estimated_cost: z
+    .number()
+    .nullable()
+    .describe("Custo da Meta + volume × tarifa publicada onde a Meta não informou; null sem tarifa conhecida."),
+  cost_source: z.enum(["meta", "estimate", "mixed"]).nullable(),
+};
+
+export const metaCostReportSchema = z
+  .object({
+    customer_id: internalUuidSchema
+      .nullable()
+      .describe("Cliente do recorte; null quando cobre a Conta inteira."),
+    source: z.string(),
+    approximate: z.literal(true),
+    from: z.string(),
+    to: z.string(),
+    unavailable: z.boolean(),
+    unavailable_reason: z.enum(["not_synced", "cost_not_returned"]).nullable(),
+    totals: z.array(z.object(metaCostGroupShape).passthrough()),
+    by_day: z.array(z.object({ day: z.string(), ...metaCostGroupShape }).passthrough()),
+    by_category: z.array(
+      z
+        .object({
+          pricing_category: z.string(),
+          pricing_type: z.string(),
+          ...metaCostGroupShape,
+        })
+        .passthrough(),
+    ),
+    estimate: z
+      .object({
+        available: z.boolean(),
+        basis: z.string(),
+        market: z.string(),
+        rates_effective_from: z.string(),
+        rates_as_of: z.string(),
+        source_url: z.string(),
+        excludes: z.array(z.string()),
+      })
+      .passthrough(),
+    sync: z
+      .object({
+        connections: z.number().int().nonnegative(),
+        synced_connections: z.number().int().nonnegative(),
+        last_synced_at: z.string().nullable(),
+        covered_from: z.string().nullable(),
+      })
+      .passthrough(),
+  })
+  .passthrough() satisfies z.ZodType<MetaCostReport>;
+
+export const metaCostsResultSchema = itemResultSchemaFor(metaCostReportSchema);

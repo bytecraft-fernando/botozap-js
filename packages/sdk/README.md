@@ -231,12 +231,13 @@ O SDK cobre os recursos da API `/v1`:
 - `customers` — listar, buscar, criar, **atualizar**, **remover**, e **links de setup** (listar/criar/atualizar)
 - `templates` — listar, buscar, **criar**
 - `broadcasts` — criar, destinatários, agendar, enviar, cancelar
-- `contacts` — listar, buscar, criar, atualizar, remover
-- `conversations` — listar, buscar, atualizar, atribuições
+- `contacts` — listar, buscar, criar, atualizar, remover; `display_name` é o nome que a empresa dá ao Contato (1–200 caracteres; `null` limpa), separado do `profile_name` que vem do canal
+- `conversations` — listar, buscar, atualizar, atribuições; leituras trazem `entry_point` (`ctwa`/`organic`/`null`), `referral` do último clique em anúncio Click-to-WhatsApp, `fep_expires_at` (fim da janela grátis informado pela Meta) e `fep_reply_by` (estimativa do prazo para responder)
 - `webhooks` — CRUD e teste; `customer_id` opcional limita as entregas a um Cliente da Conta (`null` no update remove o filtro)
-- `phoneNumbers` — listar, buscar, remover, saúde (a rota de update não expõe campos editáveis, então o SDK não tem `phoneNumbers.update`)
+- `phoneNumbers` — listar, buscar, **atualizar o `label`** (nome local, até 100 caracteres; `null` limpa), remover, saúde
 - `media` — subir arquivo (obter um media_id) e **buscar metadados + URL de download** de uma mídia recebida
 - `events` — reler inbound e mudanças de status pelo cursor durável da Conta/ambiente
+- `usage` — `metaCosts`: custo aproximado da Meta por dia, categoria e moeda (Pricing Analytics), com estimativa por tarifa publicada onde a Meta não devolveu custo
 - `users`, `apiLogs`, `webhookDeliveries` — leitura
 
 Inbound e mudanças de status compartilham um stream crescente. Guarde
@@ -313,6 +314,11 @@ await boto.webhooks.create({
   customer_id, // opcional: só entregas deste Cliente (omitido = todos da Conta)
 });
 const { data: numeros } = await boto.phoneNumbers.list({ customer_id });
+await boto.phoneNumbers.update(numeros[0]!.id, { label: "Recepção" });
+
+// Custo da Meta (aproximado; a fatura da Meta é a autoridade). Custo ausente
+// vem null, nunca 0 — veja `unavailable_reason` e `estimated_cost`.
+const custos = await boto.usage.metaCosts({ customer_id, from: "2026-09-01", to: "2026-09-25" });
 ```
 
 ## Exemplos

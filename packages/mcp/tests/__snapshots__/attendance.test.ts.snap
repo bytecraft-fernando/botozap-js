@@ -250,6 +250,7 @@ exports[`MCP Atendimento: schemas, domínio e transporte real em memória > cat�
   "update_setup_link",
   "list_phone_numbers",
   "get_phone_number",
+  "update_phone_number",
   "phone_number_health",
   "list_templates",
   "get_template",
@@ -263,5 +264,6 @@ exports[`MCP Atendimento: schemas, domínio e transporte real em memória > cat�
   "list_webhook_deliveries",
   "list_api_logs",
   "list_users",
+  "get_meta_costs",
 ]
 `;

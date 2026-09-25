@@ -103,12 +103,13 @@ botozap contacts      list | get | create | update | delete
 botozap media         ingest
 botozap customers     list | get | create | update | delete
 botozap setup-links   list | create | update      (--customer <id>)
-botozap numbers       list | get | health
+botozap numbers       list | get | update | health
 botozap templates     list | get | create
 botozap webhooks      list | get | create | update | delete | test
 botozap deliveries    list                          (webhook_deliveries)
 botozap logs          list                          (api_logs)
 botozap users         list
+botozap usage         meta-costs                    (custo aproximado da Meta)
 botozap config        set | get | path
 botozap login
 botozap status
@@ -138,8 +139,9 @@ botozap messages list --after <cursor>
 # Encerrar uma conversa
 botozap conversations update <id> --status ended
 
-# Criar contato
-botozap contacts create --wa-id 5511999999999 --profile-name "Maria"
+# Criar contato (display_name = nome dado pela empresa; o profile_name vem do canal)
+botozap contacts create --wa-id 5511999999999 --display-name "Maria (loja centro)"
+botozap contacts update <id> --clear-display-name
 
 # Ingerir mídia por URL
 botozap media ingest --phone-number-id <id> --source https://exemplo.com/foto.jpg
@@ -152,9 +154,13 @@ botozap customers create --name "Acme LTDA" --external-customer-id acme-001
 botozap setup-links list --customer <customerId>
 botozap setup-links create --customer <customerId>
 
-# Números e saúde
+# Números, rótulo local e saúde
 botozap numbers list
+botozap numbers update <id> --label "Recepção"   # --clear-label remove
 botozap numbers health <phoneNumberId>
+
+# Custo aproximado da Meta (custo ausente aparece como "indisponível", nunca 0)
+botozap usage meta-costs --customer-id <customerId> --from 2026-09-01 --to 2026-09-25
 
 # Templates (componentes via arquivo JSON)
 botozap templates create --name boas_vindas --language pt_BR \

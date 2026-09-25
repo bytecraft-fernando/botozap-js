@@ -23,6 +23,11 @@ export interface CreateContactParams {
   /** wa_id canônico (BSUID "BR.1A2B…" ou dígitos E.164). */
   wa_id: string;
   phone_number_id?: string;
+  /**
+   * Nome que a empresa dá ao Contato (1–200 caracteres após aparar). `null`
+   * ou `""` não grava nome. Independe de `profile_name`, que vem do canal.
+   */
+  display_name?: string | null;
   /** Até 20 tags de 1–40 caracteres; o servidor apara e remove repetidas sem diferenciar maiúsculas. Não combine com metadata.tags. */
   tags?: string[];
   [key: string]: unknown;
@@ -35,6 +40,11 @@ export interface CreateContactParams {
  */
 export interface UpdateContactParams {
   profile_name?: string;
+  /**
+   * Nome que a empresa dá ao Contato (1–200 caracteres após aparar); `null`
+   * ou `""` limpa. A ingestão de mensagens nunca o sobrescreve.
+   */
+  display_name?: string | null;
   username?: string;
   notes?: string | null;
   stage_id?: string | null;

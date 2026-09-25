@@ -5,6 +5,7 @@ import {
   printTable,
   printDetail,
   printOffsetFooter,
+  printLine,
 } from "../output.js";
 
 export function registerNumbers(program: Command): void {
@@ -30,7 +31,8 @@ export function registerNumbers(program: Command): void {
         { header: "ID", key: "id", max: 36 },
         { header: "NÚMERO", key: "display_phone_number" },
         { header: "NOME", key: "verified_name" },
-        { header: "STATUS", key: "status" },
+        { header: "RÓTULO", key: "label" },
+        { header: "STATUS", key: "connection_status" },
         { header: "QUALIDADE", key: "quality_rating" },
       ]);
       printOffsetFooter(res.meta);
@@ -43,6 +45,27 @@ export function registerNumbers(program: Command): void {
       const { client, format } = context(cmd);
       const data = await client.phoneNumbers.get(id);
       if (format === "json") return printJson(data);
+      printDetail(data as Record<string, unknown>);
+    });
+
+  numbers
+    .command("update <id>")
+    .description("Atualiza o rótulo (nome local) de um número")
+    .option("--label <nome>", "nome local (até 100 caracteres, sem quebras de linha)")
+    .option("--clear-label", "remove o nome local")
+    .action(async (id: string, opts, cmd: Command) => {
+      const { client, format } = context(cmd);
+      if (opts.label !== undefined && opts.clearLabel) {
+        throw new Error("Use --label OU --clear-label, não os dois.");
+      }
+      if (opts.label === undefined && !opts.clearLabel) {
+        throw new Error("Informe --label <nome> ou --clear-label.");
+      }
+      const data = await client.phoneNumbers.update(id, {
+        label: opts.clearLabel ? null : (opts.label as string),
+      });
+      if (format === "json") return printJson(data);
+      printLine("Número atualizado.");
       printDetail(data as Record<string, unknown>);
     });
 

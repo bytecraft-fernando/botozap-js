@@ -48,9 +48,23 @@ export type {
   UpdateWebhookParams,
   WebhookAuthorizationHeaders,
 } from "./resources/webhooks.js";
-export type { ListPhoneNumbersParams } from "./resources/phone-numbers.js";
+export type {
+  ListPhoneNumbersParams,
+  UpdatePhoneNumberParams,
+} from "./resources/phone-numbers.js";
 export type { UploadMediaParams } from "./resources/media.js";
 export type { ListEventsParams } from "./resources/events.js";
+export type {
+  MetaCostsParams,
+  MetaCostSource,
+  MetaCostUnavailableReason,
+  MetaCostGroup,
+  MetaCostDay,
+  MetaCostCategory,
+  MetaCostEstimate,
+  MetaCostSync,
+  MetaCostReport,
+} from "./resources/usage.js";
 export type {
   ListApiLogsParams,
   ListWebhookDeliveriesParams,
@@ -72,6 +86,8 @@ export type {
   BroadcastRecipient,
   Contact,
   Conversation,
+  ConversationEntryPoint,
+  ConversationReferral,
   Assignment,
   Webhook,
   PhoneNumber,

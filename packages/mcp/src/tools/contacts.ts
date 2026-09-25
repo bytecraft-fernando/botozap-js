@@ -11,6 +11,14 @@ import {
 /** Limites finais (20 × 40) são validados pelo servidor após aparar e remover repetidas. */
 const tagList = z.array(z.string().max(200)).max(200);
 
+/** O servidor apara e valida 1–200 caracteres; null ou "" não grava nome. */
+const displayName = z
+  .string()
+  .nullable()
+  .describe(
+    "Nome que a empresa dá ao Contato (1–200 caracteres). null ou \"\" limpa. Independe de profile_name, que vem do canal.",
+  );
+
 export function registerContactTools(register: Register): void {
   register(
     "list_contacts",
@@ -49,6 +57,7 @@ export function registerContactTools(register: Register): void {
       phone_number_id: z.string().optional().describe("phone_number_id (Meta) ao qual atar."),
       customer_id: z.string().optional().describe("Cliente cujo número será usado."),
       profile_name: z.string().optional(),
+      display_name: displayName.optional(),
       phone: z.string().optional(),
       user_id: z.string().optional().describe("BSUID do usuário."),
       username: z.string().optional(),
@@ -65,10 +74,11 @@ export function registerContactTools(register: Register): void {
 
   register(
     "update_contact",
-    "Atualiza um contato (campos editáveis: profile_name, username, tags). `tags` substitui a lista inteira; `add_tags`/`remove_tags` alteram a lista atual. Não combine `tags` com `add_tags`/`remove_tags`. Retorna { data }.",
+    "Atualiza um contato (campos editáveis: profile_name, display_name, username, tags). `display_name: null` limpa o nome dado pela empresa. `tags` substitui a lista inteira; `add_tags`/`remove_tags` alteram a lista atual. Não combine `tags` com `add_tags`/`remove_tags`. Retorna { data }.",
     {
       id: z.string().describe("ID do contato (uuid interno)."),
       profile_name: z.string().optional(),
+      display_name: displayName.optional(),
       username: z.string().optional(),
       tags: tagList.optional().describe("Substitui todas as tags (até 20 × 40 caracteres)."),
       add_tags: tagList.optional().describe("Acrescenta tags à lista atual."),
