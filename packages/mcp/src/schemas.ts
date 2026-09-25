@@ -292,11 +292,20 @@ export const setupLinkSchema = z
     ]),
     url: z.string().describe("URL pública com token opaco embutido."),
     allowed_connection_types: z.array(z.enum(["dedicated", "coexistence"])),
-    provision_phone_number: z.boolean(),
-    language: z.string().nullable(),
-    success_redirect_url: z.string().nullable(),
-    failure_redirect_url: z.string().nullable(),
-    theme_config: jsonValueSchema.nullable(),
+    language: z.string().nullable().describe("Código de idioma da página; null = automático."),
+    success_redirect_url: z
+      .string()
+      .nullable()
+      .describe("Destino ao concluir (recebe setup_link_id e status=completed)."),
+    failure_redirect_url: z
+      .string()
+      .nullable()
+      .describe(
+        "Destino com status=failed (link esgotado) ou status=cancelled (cliente voltou; link segue válido), mais setup_link_id.",
+      ),
+    theme_config: jsonValueSchema
+      .nullable()
+      .describe("Reservado: hoje sempre null (a página de conexão não aplica tema)."),
     expires_at: z.string().nullable(),
     created_at: z.string(),
     updated_at: z.string(),

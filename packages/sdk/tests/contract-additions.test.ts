@@ -428,7 +428,8 @@ describe("SDK contract — correções E3.2", () => {
 
     const link = await boto.customers.createSetupLink("cus_1", {
       allowed_connection_types: ["dedicated"],
-      provision_phone_number: true,
+      success_redirect_url: "https://parceiro.example/ok?ref=42",
+      failure_redirect_url: "https://parceiro.example/erro",
     });
 
     const req = lastRequest();
@@ -436,7 +437,8 @@ describe("SDK contract — correções E3.2", () => {
     expect(req.path).toBe("/customers/cus_1/setup_links");
     expect(req.body).toEqual({
       allowed_connection_types: ["dedicated"],
-      provision_phone_number: true,
+      success_redirect_url: "https://parceiro.example/ok?ref=42",
+      failure_redirect_url: "https://parceiro.example/erro",
     });
     expect(link.id).toBe("lnk_2");
   });

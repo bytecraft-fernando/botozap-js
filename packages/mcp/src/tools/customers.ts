@@ -95,17 +95,29 @@ export function registerCustomerTools(register: Register): void {
 
   register(
     "create_setup_link",
-    "Cria um link de setup para um cliente. Opções: allowed_connection_types ('dedicated'|'coexistence'), provision_phone_number, language e redirects. Retorna { data }.",
+    "Cria um link de setup (Embedded Signup) para um cliente; envie a `url` devolvida ao cliente. Opções: allowed_connection_types ('dedicated'|'coexistence'), language e redirects. Redirects só em estado final: sucesso → success_redirect_url com setup_link_id e status=completed; link esgotado → failure_redirect_url com status=failed; cliente volta num erro recuperável → failure_redirect_url com status=cancelled (o link segue válido). A query da URL é preservada e o token nunca é enviado. URLs precisam ser https, sem usuário/senha, até 2048 caracteres (senão 422 invalid_redirect_url). Retorna { data }.",
     {
       customer_id: z.string().describe("ID do cliente (uuid interno)."),
       allowed_connection_types: z
         .array(z.enum(["dedicated", "coexistence"]))
         .optional()
-        .describe("Modos de conexão permitidos."),
-      provision_phone_number: z.boolean().optional(),
-      language: z.string().optional().describe("Idioma (ou 'auto')."),
-      success_redirect_url: z.string().optional(),
-      failure_redirect_url: z.string().optional(),
+        .describe("Modos de conexão permitidos (padrão: dedicated)."),
+      language: z
+        .string()
+        .optional()
+        .describe("Código de idioma da página (ex.: pt_BR); 'auto' ou vazio = automático."),
+      success_redirect_url: z
+        .string()
+        .optional()
+        .describe(
+          "URL https (sem usuário/senha, até 2048 caracteres) para onde o cliente vai ao concluir; recebe setup_link_id e status=completed.",
+        ),
+      failure_redirect_url: z
+        .string()
+        .optional()
+        .describe(
+          "URL https (sem usuário/senha, até 2048 caracteres) para link esgotado (status=failed) ou quando o cliente volta num erro recuperável (status=cancelled; o link segue válido); recebe setup_link_id.",
+        ),
     },
     setupLinkResultSchema,
     async (client, args) => {

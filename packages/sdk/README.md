@@ -306,7 +306,16 @@ const msgs = await boto.messages.list({ limit: 50, direction: "inbound" });
 await boto.customers.update(customerId, { name: "Padaria do João" });
 const link = await boto.customers.createSetupLink(customerId, {
   allowed_connection_types: ["dedicated"],
+  // https, sem usuário/senha, até 2048 caracteres (senão 422 invalid_redirect_url).
+  // Concluído → success com ?setup_link_id=…&status=completed. Link esgotado →
+  // failure com status=failed; cliente volta num erro recuperável → failure com
+  // status=cancelled (o link segue válido). A query da URL é preservada e o
+  // token do link nunca é enviado.
+  success_redirect_url: "https://seu-app.com/whatsapp/ok?ref=42",
+  failure_redirect_url: "https://seu-app.com/whatsapp/erro",
 });
+// Envie link.url ao Cliente. No sucesso, confirme o número em phoneNumbers.list:
+// uma conexão concluída ainda pode ter pendência de registro.
 
 await boto.webhooks.create({
   url: "https://seu-app.com/hooks",

@@ -1,5 +1,16 @@
 # @botozap/mcp
 
+## 0.6.0
+
+### Minor Changes
+
+- 505f0a6: **Breaking:** `create_setup_link` no longer accepts `provision_phone_number` (it never had any effect; the value is dropped before the request) and the setup link output schema no longer declares it. The tool and schema descriptions now explain the redirects (`https` only, no credentials, up to 2048 characters; `status=completed`, `status=failed` or `status=cancelled` plus `setup_link_id`) and mark `theme_config` as reserved (always `null`).
+
+### Patch Changes
+
+- Updated dependencies [505f0a6]
+  - @botozap/sdk@0.8.0
+
 ## 0.5.0
 
 ### Minor Changes
