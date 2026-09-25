@@ -165,17 +165,18 @@ Transportes: **stdio** (padrão, local) e **Streamable HTTP** (remoto stateful).
 Nomes em inglês (snake_case, melhor para tool-calling); descrições em PT-BR.
 
 **Mensagens** — `send_message`, `list_messages`, `get_message`
-**Conversas** — `reply_to_conversation`, `list_conversations`, `get_conversation`, `update_conversation`
-**Contatos** — `list_contacts`, `get_contact`, `create_contact`, `update_contact`, `delete_contact`
+**Conversas** — `reply_to_conversation`, `list_conversations`, `get_conversation`, `update_conversation` (leituras trazem `entry_point`, `referral` Click-to-WhatsApp, `fep_expires_at` e `fep_reply_by`)
+**Contatos** — `list_contacts`, `get_contact`, `create_contact`, `update_contact`, `delete_contact` (`display_name` é o nome dado pela empresa; `null` limpa)
 **Mídia** — `send_media_message`, `ingest_media`
 **Clientes** — `list_customers`, `get_customer`, `create_customer`, `update_customer`, `delete_customer`
 **Links de setup** — `list_setup_links`, `create_setup_link`, `update_setup_link`
-**Números** — `list_phone_numbers`, `get_phone_number`, `phone_number_health`
+**Números** — `list_phone_numbers`, `get_phone_number`, `update_phone_number` (só o `label`, nome local), `phone_number_health`
 **Templates** — `list_templates`, `get_template`, `create_template`
 **Webhooks** — `list_webhooks`, `get_webhook`, `create_webhook`, `update_webhook`, `delete_webhook`, `test_webhook`
 **Entregas de webhook** — `list_webhook_deliveries`
 **Logs** — `list_api_logs`
 **Usuários** — `list_users`
+**Uso** — `get_meta_costs` (custo aproximado da Meta por moeda, dia e categoria; custo ausente vem `null`, nunca 0)
 
 ## Resource de Eventos
 

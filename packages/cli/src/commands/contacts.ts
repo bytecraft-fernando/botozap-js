@@ -47,6 +47,7 @@ export function registerContacts(program: Command): void {
         { header: "ID", key: "id", max: 36 },
         { header: "WA_ID", key: "wa_id" },
         { header: "NOME", key: "profile_name" },
+        { header: "NOME DA EMPRESA", key: "display_name" },
         { header: "USERNAME", key: "username" },
         { header: "CLIENTE", key: "customer_id", max: 36 },
       ]);
@@ -68,6 +69,7 @@ export function registerContacts(program: Command): void {
     .description("Cria um contato")
     .requiredOption("--wa-id <wa_id>", "WhatsApp ID (obrigatório)")
     .option("--profile-name <nome>", "nome do perfil")
+    .option("--display-name <nome>", "nome dado pela empresa (1–200 caracteres)")
     .option("--phone <telefone>", "telefone")
     .option("--user-id <id>", "id externo do usuário")
     .option("--username <username>", "username")
@@ -79,6 +81,7 @@ export function registerContacts(program: Command): void {
       const data = await client.contacts.create({
         wa_id: opts.waId,
         profile_name: opts.profileName,
+        display_name: opts.displayName,
         phone: opts.phone,
         user_id: opts.userId,
         username: opts.username,
@@ -95,14 +98,21 @@ export function registerContacts(program: Command): void {
     .command("update <id>")
     .description("Atualiza um contato")
     .option("--profile-name <nome>", "novo nome do perfil")
+    .option("--display-name <nome>", "nome dado pela empresa (1–200 caracteres)")
+    .option("--clear-display-name", "remove o nome dado pela empresa")
     .option("--username <username>", "novo username")
     .option("--tag <tag>", "substitui todas as tags (repetível)", collect)
     .option("--add-tag <tag>", "acrescenta tag (repetível)", collect)
     .option("--remove-tag <tag>", "remove tag (repetível)", collect)
     .action(async (id: string, opts, cmd: Command) => {
       const { client, format } = context(cmd);
+      if (opts.displayName !== undefined && opts.clearDisplayName) {
+        throw new Error("Use --display-name OU --clear-display-name, não os dois.");
+      }
       const body: Record<string, unknown> = {};
       if (opts.profileName !== undefined) body.profile_name = opts.profileName;
+      if (opts.displayName !== undefined) body.display_name = opts.displayName;
+      if (opts.clearDisplayName) body.display_name = null;
       if (opts.username !== undefined) body.username = opts.username;
       if (opts.tag) body.tags = opts.tag;
       if (opts.addTag) body.add_tags = opts.addTag;
@@ -114,7 +124,7 @@ export function registerContacts(program: Command): void {
       }
       if (Object.keys(body).length === 0) {
         throw new Error(
-          "Informe ao menos --profile-name, --username, --tag, --add-tag ou --remove-tag.",
+          "Informe ao menos --profile-name, --display-name, --clear-display-name, --username, --tag, --add-tag ou --remove-tag.",
         );
       }
       const data = await client.contacts.update(id, body);

@@ -21,6 +21,7 @@ import { registerPhoneNumberTools } from "./tools/phone-numbers.js";
 import { registerTemplateTools } from "./tools/templates.js";
 import { registerWebhookTools } from "./tools/webhooks.js";
 import { registerMiscTools } from "./tools/misc.js";
+import { registerUsageTools } from "./tools/usage.js";
 import {
   registerEventResources,
   type EventSignalSource,
@@ -74,6 +75,7 @@ export function buildServer(options: BuildServerOptions): McpServer {
   registerTemplateTools(register);
   registerWebhookTools(register);
   registerMiscTools(register);
+  registerUsageTools(register);
   const closeEventResources = registerEventResources(server, client, {
     maxSubscriptions: options.maxEventSubscriptions,
     pollIntervalMs: options.eventPollIntervalMs ?? 1_500,

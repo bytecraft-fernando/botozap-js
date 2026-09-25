@@ -103,9 +103,34 @@ export interface BroadcastRecipient {
 export interface Contact {
   id: string;
   wa_id?: string;
+  /** Nome do perfil no canal; a ingestão o sobrescreve a cada inbound. */
+  profile_name?: string | null;
+  /**
+   * Nome que a empresa dá ao Contato (1–200 caracteres). Só a API o grava;
+   * `null` quando não definido. Não substitui `profile_name`.
+   */
+  display_name?: string | null;
   /** Contact tags (stored in metadata.tags); returned by servers with #498. */
   tags?: string[];
   [key: string]: unknown;
+}
+
+/** Origem da Conversa: anúncio Click-to-WhatsApp, orgânica ou desconhecida (`null`). */
+export type ConversationEntryPoint = "ctwa" | "organic";
+
+/**
+ * Último clique em anúncio Click-to-WhatsApp que trouxe o Contato. Só os
+ * campos de atribuição; o texto completo do anúncio fica na mensagem.
+ */
+export interface ConversationReferral {
+  /** ID do anúncio ou post na Meta. */
+  source_id: string | null;
+  source_url: string | null;
+  headline: string | null;
+  /** Click ID do anúncio (atribuição/conversões). */
+  ctwa_clid: string | null;
+  /** Quando o BotoZap recebeu o clique (ISO 8601). */
+  received_at: string | null;
 }
 
 export interface Conversation {
@@ -118,6 +143,20 @@ export interface Conversation {
     phone?: string | null;
     [key: string]: unknown;
   };
+  /** `"ctwa"` (anúncio), `"organic"` ou `null` quando desconhecida. */
+  entry_point?: ConversationEntryPoint | null;
+  /** Último referral de anúncio; `null` se a Conversa nunca veio de anúncio. */
+  referral?: ConversationReferral | null;
+  /**
+   * Fim da janela grátis do Free Entry Point informado pela Meta no status de
+   * um envio (ISO 8601); `null` fora dela.
+   */
+  fep_expires_at?: string | null;
+  /**
+   * ESTIMATIVA do prazo para responder e abrir a janela grátis (último clique
+   * + 24h); `null` sem clique recente. Não altera a regra da janela de 24h.
+   */
+  fep_reply_by?: string | null;
   [key: string]: unknown;
 }
 
@@ -142,6 +181,8 @@ export interface Webhook {
 
 export interface PhoneNumber {
   id: string;
+  /** Nome local do Número no BotoZap (até 100 caracteres); `null` se não definido. */
+  label?: string | null;
   [key: string]: unknown;
 }
 

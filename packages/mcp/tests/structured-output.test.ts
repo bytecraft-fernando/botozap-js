@@ -66,6 +66,7 @@ const contact = {
   created_at: "2026-08-25T11:00:00.000Z",
   notes: null,
   metadata: { origem: "mcp" },
+  display_name: "Contato (loja centro)",
   stage: null,
 };
 
@@ -83,6 +84,16 @@ const conversation = {
   },
   status: "active",
   window_expires_at: "2026-08-26T12:00:00.000Z",
+  entry_point: "ctwa",
+  referral: {
+    source_id: "120210000000000000",
+    source_url: "https://fb.me/abc",
+    headline: "Promoção de setembro",
+    ctwa_clid: "ARAkLkA8rmlFeiCktEJQ",
+    received_at: "2026-08-25T11:59:00.000Z",
+  },
+  fep_expires_at: "2026-08-28T12:00:00.000Z",
+  fep_reply_by: "2026-08-26T11:59:00.000Z",
   last_message_at: "2026-08-25T12:00:00.000Z",
   last_read_at: null,
   created_at: "2026-08-25T11:00:00.000Z",
@@ -167,7 +178,50 @@ const webhookDelivery = {
   created_at: "2026-08-25T12:00:00.000Z",
 };
 
-const calls: Array<{ method: string; path: string; body?: unknown }> = [];
+const metaCosts = {
+  customer_id: CUSTOMER_ID,
+  source: "meta_pricing_analytics",
+  approximate: true,
+  from: "2026-09-01",
+  to: "2026-09-02",
+  unavailable: true,
+  unavailable_reason: "cost_not_returned",
+  totals: [
+    { currency: "BRL", volume: 12, cost: null, estimated_cost: 1.25, cost_source: "mixed" },
+  ],
+  by_day: [
+    { day: "2026-09-01", currency: "BRL", volume: 10, cost: 0.9, estimated_cost: 0.9, cost_source: "meta" },
+    { day: "2026-09-02", currency: "BRL", volume: 2, cost: null, estimated_cost: 0.35, cost_source: "estimate" },
+  ],
+  by_category: [
+    {
+      pricing_category: "MARKETING",
+      pricing_type: "REGULAR",
+      currency: "BRL",
+      volume: 12,
+      cost: null,
+      estimated_cost: 1.25,
+      cost_source: "mixed",
+    },
+  ],
+  estimate: {
+    available: true,
+    basis: "published_rates",
+    market: "BR",
+    rates_effective_from: "2026-07-01",
+    rates_as_of: "2026-09-20",
+    source_url: "https://developers.facebook.com/docs/whatsapp/pricing",
+    excludes: ["volume_tiers", "non_brazil_recipients"],
+  },
+  sync: {
+    connections: 1,
+    synced_connections: 1,
+    last_synced_at: "2026-09-25T06:00:00.000Z",
+    covered_from: "2026-08-01",
+  },
+};
+
+const calls: Array<{ method: string; path: string; body?: unknown; query?: Record<string, string> }> = [];
 
 const fetchStub = (async (input: unknown, init?: RequestInit) => {
   const url = new URL(typeof input === "string" ? input : String(input));
@@ -177,6 +231,7 @@ const fetchStub = (async (input: unknown, init?: RequestInit) => {
     method,
     path,
     body: typeof init?.body === "string" ? JSON.parse(init.body) : undefined,
+    ...(url.search ? { query: Object.fromEntries(url.searchParams) } : {}),
   });
 
   if (method === "GET" && path === "/templates/missing") {
@@ -219,6 +274,13 @@ const fetchStub = (async (input: unknown, init?: RequestInit) => {
   }
   if (method === "GET" && path === `/phone_numbers/${PHONE_ID}`) {
     return jsonResponse(200, { data: phoneNumber });
+  }
+  if (method === "PATCH" && path === `/phone_numbers/${PHONE_ID}`) {
+    const body = JSON.parse(String(init?.body)) as { label: string | null };
+    return jsonResponse(200, { data: { ...phoneNumber, label: body.label } });
+  }
+  if (method === "GET" && path === "/usage/meta-costs") {
+    return jsonResponse(200, { data: metaCosts });
   }
   if (method === "GET" && path === "/templates") {
     return jsonResponse(200, { data: [template], meta: offsetMetaFixture });
@@ -472,6 +534,11 @@ const utilityCalls = [
   ],
   ["list_api_logs", { limit: 20 }],
   ["list_users", { page: 1, per_page: 20 }],
+  ["update_phone_number", { id: PHONE_ID, label: "Recepção" }],
+  [
+    "get_meta_costs",
+    { customer_id: CUSTOMER_ID, from: "2026-09-01", to: "2026-09-02" },
+  ],
 ] as const;
 
 const webhookCalls = [
@@ -512,6 +579,7 @@ const completeCatalog = [
   "update_setup_link",
   "list_phone_numbers",
   "get_phone_number",
+  "update_phone_number",
   "phone_number_health",
   "list_templates",
   "get_template",
@@ -525,6 +593,7 @@ const completeCatalog = [
   "list_webhook_deliveries",
   "list_api_logs",
   "list_users",
+  "get_meta_costs",
 ] as const;
 
 const completeCatalogCalls = [
@@ -736,5 +805,92 @@ describe("MCP — output schemas e structured content", () => {
       path: `/webhooks/${WEBHOOK_ID}`,
       body: { customer_id: null },
     });
+  });
+  it("create_contact/update_contact repassam display_name; null limpa", async () => {
+    const client = await connect();
+    const created = await client.callTool({
+      name: "create_contact",
+      arguments: { wa_id: contact.wa_id, customer_id: CUSTOMER_ID, display_name: "Ana (loja)" },
+    });
+    expect(created.isError).toBeFalsy();
+    expect(calls.at(-1)?.body).toEqual({
+      wa_id: contact.wa_id,
+      customer_id: CUSTOMER_ID,
+      display_name: "Ana (loja)",
+    });
+
+    const cleared = await client.callTool({
+      name: "update_contact",
+      arguments: { id: CONTACT_ID, display_name: null },
+    });
+    expect(cleared.isError).toBeFalsy();
+    expect(calls.at(-1)).toEqual({
+      method: "PATCH",
+      path: `/contacts/${CONTACT_ID}`,
+      body: { display_name: null },
+    });
+    expect(
+      (cleared.structuredContent as { data: { display_name: string } }).data.display_name,
+    ).toBe(contact.display_name);
+  });
+
+  it("update_phone_number envia só o label; null limpa", async () => {
+    const client = await connect();
+    const cleared = await client.callTool({
+      name: "update_phone_number",
+      arguments: { id: PHONE_ID, label: null },
+    });
+    expect(cleared.isError).toBeFalsy();
+    expect(calls.at(-1)).toEqual({
+      method: "PATCH",
+      path: `/phone_numbers/${PHONE_ID}`,
+      body: { label: null },
+    });
+    expect(cleared.structuredContent).toEqual({ data: { ...phoneNumber, label: null } });
+
+    const missing = await client.callTool({
+      name: "update_phone_number",
+      arguments: { id: PHONE_ID },
+    });
+    expect(missing.isError).toBe(true);
+    expect(calls).toHaveLength(1);
+  });
+
+  it("get_meta_costs repassa os filtros e mantém custo ausente como null", async () => {
+    const client = await connect();
+    const result = await client.callTool({
+      name: "get_meta_costs",
+      arguments: { customer_id: CUSTOMER_ID, from: "2026-09-01", to: "2026-09-02" },
+    });
+    expect(result.isError).toBeFalsy();
+    expect(calls.at(-1)).toEqual({
+      method: "GET",
+      path: "/usage/meta-costs",
+      body: undefined,
+      query: { customer_id: CUSTOMER_ID, from: "2026-09-01", to: "2026-09-02" },
+    });
+    const data = (result.structuredContent as { data: typeof metaCosts }).data;
+    expect(data.totals[0]?.cost).toBeNull();
+    expect(data.unavailable_reason).toBe("cost_not_returned");
+  });
+
+  it("get_meta_costs rejeita data fora de YYYY-MM-DD antes do HTTP", async () => {
+    const client = await connect();
+    const result = await client.callTool({
+      name: "get_meta_costs",
+      arguments: { from: "01/09/2026" },
+    });
+    expect(result.isError).toBe(true);
+    expect(calls).toHaveLength(0);
+  });
+
+  it("get_conversation valida entry_point, referral e janela do Free Entry Point", async () => {
+    const client = await connect();
+    const result = await client.callTool({
+      name: "get_conversation",
+      arguments: { id: CONVERSATION_ID },
+    });
+    expect(result.isError).toBeFalsy();
+    expect(result.structuredContent).toEqual({ data: conversation });
   });
 });

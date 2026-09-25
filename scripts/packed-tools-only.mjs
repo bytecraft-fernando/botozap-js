@@ -77,8 +77,8 @@ try {
   await client.connect(transport);
 
   const tools = await client.listTools();
-  // 111 non-AI tools + 1 conversation control + one tool per declared AI operation.
-  assert.equal(tools.tools.length, 112 + AI_OPERATIONS.length);
+  // 113 non-AI tools + 1 conversation control + one tool per declared AI operation.
+  assert.equal(tools.tools.length, 114 + AI_OPERATIONS.length);
   const snake=(s)=>s.replace(/[A-Z]/g,c=>`_${c.toLowerCase()}`);
   for(const op of AI_OPERATIONS) assert(tools.tools.some(t=>t.name===`ai_${snake(op.group)}_${snake(op.name)}`));
   for (const name of [

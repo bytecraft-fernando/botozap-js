@@ -21,6 +21,7 @@ import { registerWebhooks } from "./commands/webhooks.js";
 import { registerDeliveries } from "./commands/deliveries.js";
 import { registerLogs } from "./commands/logs.js";
 import { registerUsers } from "./commands/users.js";
+import { registerUsage } from "./commands/usage.js";
 import { registerConfig } from "./commands/config.js";
 import { registerStatus } from "./commands/status.js";
 import { registerLogin } from "./commands/login.js";
@@ -78,6 +79,7 @@ registerWebhooks(program);
 registerDeliveries(program);
 registerLogs(program);
 registerUsers(program);
+registerUsage(program);
 
 // Sessão / utilidades
 registerLogin(program);

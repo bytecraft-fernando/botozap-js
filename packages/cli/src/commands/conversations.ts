@@ -35,9 +35,11 @@ export function registerConversations(program: Command): void {
       if (format === "json") return printJson(res);
       printTable(res.data, [
         { header: "ID", key: "id", max: 36 },
-        { header: "CONTATO", key: "phone_number" },
+        { header: "CONTATO", key: "contact.name" },
+        { header: "TELEFONE", key: "contact.phone" },
         { header: "STATUS", key: "status" },
-        { header: "ATUALIZADA", key: "updated_at" },
+        { header: "ORIGEM", key: "entry_point" },
+        { header: "ÚLTIMA MSG", key: "last_message_at" },
       ]);
       printCursorFooter(res.paging);
     });
