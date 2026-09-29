@@ -65,9 +65,12 @@ describe("MCP OAuth protected resources and credential binding", () => {
     expect(response.headers.get("www-authenticate")).toBe(`Bearer resource_metadata="https://mcp.example.test/.well-known/oauth-protected-resource/mcp"`);
     const metadata = await fetch(new URL("/.well-known/oauth-protected-resource/mcp", server.url));
     expect(metadata.status).toBe(200);
-    expect(await metadata.json()).toMatchObject({ resource, authorization_servers: [issuer], bearer_methods_supported: ["header"] });
+    const discovered = await metadata.json();
+    expect(discovered).toMatchObject({ resource, authorization_servers: [issuer], bearer_methods_supported: ["header"],
+      scopes_supported: ["openid", "profile", "email", "phone"] });
     const root = await fetch(new URL("/.well-known/oauth-protected-resource", server.url));
     expect(root.status).toBe(200);
+    expect(await root.json()).toEqual(discovered);
   });
 
   it("accepts a refreshed token on the same session and uses it for API requests", async () => {

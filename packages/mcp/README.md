@@ -342,6 +342,8 @@ OAUTH_ISSUER_URL=https://botozap.com.br
 
 O endpoint publica metadados RFC 9728 em `/.well-known/oauth-protected-resource/mcp` e `/.well-known/oauth-protected-resource`. Respostas 401 incluem o endereço desses metadados em `WWW-Authenticate`. As URLs vêm da configuração do servidor.
 
+`scopes_supported` anuncia `openid`, `profile`, `email` e `phone`, aceitos pelo servidor de autorização do app. As permissões BotoZap, como `contacts:read` e `messages:send`, são escolhidas no consentimento e retornadas por `/v1/me`; não devem ser enviadas no parâmetro OAuth `scope`. O parâmetro OAuth `resource` deve usar a URL canônica `https://mcp.botozap.com.br/mcp` em autorização e troca de token.
+
 Cada request, inclusive em sessões já abertas, valida a credencial em `/v1/me`. Uma sessão OAuth aceita o token renovado somente quando grant, usuário, cliente, Conta e ambiente permanecem iguais. Chaves de API continuam vinculadas ao fingerprint original. Tokens de requests simultâneos ficam isolados; chamadas de API usam a credencial do próprio request. A descoberta de ferramentas acompanha os scopes e as rotas efetivamente permitidas pelo app. Revogação e mudança de papel passam a valer na próxima requisição.
 
 O transporte stdio continua recebendo a credencial pelo ambiente `BOTOZAP_API_KEY`. O servidor MCP não realiza login nem armazena refresh tokens.

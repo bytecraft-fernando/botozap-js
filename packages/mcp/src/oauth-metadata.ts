@@ -1,5 +1,8 @@
 import type { ServerResponse } from "node:http";
-import { MCP_TOOL_POLICIES } from "./permissions.js";
+
+// OAuth request scopes accepted by the app's authorization server. BotoZap
+// permissions are selected during consent and returned separately by /v1/me.
+const OAUTH_REQUEST_SCOPES = ["openid", "profile", "email", "phone"] as const;
 
 export type ProtectedResourceConfig = { resource: string; issuer: string; metadataUrl: string; metadataPath: string };
 function canonicalUrl(raw: string, name: string): URL {
@@ -35,7 +38,7 @@ export function writeProtectedResourceMetadata(response: ServerResponse, config:
     resource: config.resource,
     authorization_servers: [config.issuer],
     bearer_methods_supported: ["header"],
-    scopes_supported: [...new Set(Object.values(MCP_TOOL_POLICIES).flatMap((p) => [...p.requiredScopes]))].sort(),
+    scopes_supported: [...OAUTH_REQUEST_SCOPES],
     resource_name: "BotoZap",
   }));
 }
