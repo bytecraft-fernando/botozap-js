@@ -265,5 +265,6 @@ exports[`MCP Atendimento: schemas, domínio e transporte real em memória > cat�
   "list_api_logs",
   "list_users",
   "get_meta_costs",
+  "get_profile",
 ]
 `;

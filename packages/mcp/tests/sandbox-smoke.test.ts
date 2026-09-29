@@ -21,6 +21,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { buildServer } from "../src/server.js";
+import { fullAccessIdentity } from "./helpers/identity.js";
 
 const API_KEY = "bz_sandbox_test-key";
 const BASE_URL = "https://sandbox.test/v1";
@@ -77,7 +78,7 @@ const fetchStub = (async (input: unknown, init?: RequestInit) => {
 }) as unknown as typeof fetch;
 
 async function connect(): Promise<Client> {
-  const server = buildServer({ apiKey: API_KEY, baseUrl: BASE_URL, fetch: fetchStub });
+  const server = await buildServer({ apiKey: API_KEY, baseUrl: BASE_URL, fetch: fetchStub }, { ...fullAccessIdentity, environment: "sandbox" });
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
   const client = new Client({ name: "sandbox-smoke-client", version: "0.0.0" });
   await Promise.all([

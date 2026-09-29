@@ -238,7 +238,16 @@ O SDK cobre os recursos da API `/v1`:
 - `media` — subir arquivo (obter um media_id) e **buscar metadados + URL de download** de uma mídia recebida
 - `events` — reler inbound e mudanças de status pelo cursor durável da Conta/ambiente
 - `usage` — `metaCosts`: custo aproximado da Meta por dia, categoria e moeda (Pricing Analytics), com estimativa por tarifa publicada onde a Meta não devolveu custo
+- `me` — `get`: Conta, ambiente (`live` ou `sandbox`) e scopes efetivos da chave autenticada; não retorna a chave nem uma identidade pessoal
 - `users`, `apiLogs`, `webhookDeliveries` — leitura
+
+`me.get()` é útil para conferir a identidade configurada antes de executar
+operações em uma integração:
+
+```ts
+const identity = await boto.me.get();
+// { account_id: "…", environment: "live", scopes: ["messages:write"] }
+```
 
 Inbound e mudanças de status compartilham um stream crescente. Guarde
 `paging.cursor` e use-o como `after` na leitura seguinte; após uma desconexão,

@@ -29,6 +29,7 @@ import { Media } from "./resources/media.js";
 import { Events } from "./resources/events.js";
 import { Usage } from "./resources/usage.js";
 import { Users, ApiLogs, WebhookDeliveries } from "./resources/read-only.js";
+import { MeResource } from "./resources/me.js";
 
 export interface BotoZapOptions {
   /** Chave de API da conta (cabeçalho Authorization: Bearer). */
@@ -84,6 +85,7 @@ export class BotoZap {
   readonly users: Users;
   readonly apiLogs: ApiLogs;
   readonly webhookDeliveries: WebhookDeliveries;
+  readonly me: MeResource;
 
   private readonly apiKey: string;
   private readonly baseUrl: string;
@@ -129,6 +131,7 @@ export class BotoZap {
     this.users = new Users(this);
     this.apiLogs = new ApiLogs(this);
     this.webhookDeliveries = new WebhookDeliveries(this);
+    this.me = new MeResource(this);
   }
 
   /** PUT de artefato em URL assinada, sem token BotoZap nem cookies. Não segue redirecionamentos. */

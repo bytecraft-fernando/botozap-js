@@ -14,6 +14,7 @@ import {
   type EventSignalSource,
 } from "../src/http.js";
 import { waitUntil, withTimeout } from "./helpers/async.js";
+import { fullAccessIdentity } from "./helpers/identity.js";
 
 const API_KEY = "bz_live_http_transport_secret";
 const EVENTS_URI = "botozap://events?after=0&limit=100";
@@ -72,14 +73,14 @@ function event(cursor: number): BotoZapEvent {
 async function startApi(
   events: BotoZapEvent[],
   requests: URL[],
-  beforeEventsResponse?: (
+  beforeApiResponse?: (
     readNumber: number,
     request: IncomingMessage,
   ) => Promise<void>,
   allowedApiKeys: ReadonlySet<string> = new Set([API_KEY]),
   eventsByApiKey?: ReadonlyMap<string, BotoZapEvent[]>,
 ): Promise<string> {
-  let eventReadCount = 0;
+  let apiReadCount = 0;
   const api = createServer(async (request, response) => {
     const url = new URL(request.url ?? "/", "http://127.0.0.1");
     requests.push(url);
@@ -90,10 +91,16 @@ async function startApi(
       });
       return;
     }
+    if (url.pathname === "/me") {
+      apiReadCount += 1;
+      await beforeApiResponse?.(apiReadCount, request);
+      jsonResponse(response, 200, { data: fullAccessIdentity });
+      return;
+    }
     if (url.pathname === "/events") {
-      eventReadCount += 1;
+      apiReadCount += 1;
       const visibleEvents = [...(eventsByApiKey?.get(apiKey) ?? events)];
-      await beforeEventsResponse?.(eventReadCount, request);
+      await beforeApiResponse?.(apiReadCount, request);
       const after = Number(url.searchParams.get("after") ?? "0");
       const limit = Number(url.searchParams.get("limit") ?? "100");
       const remaining = visibleEvents.filter((item) => Number(item.cursor) > after);

@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { buildServer } from "../src/server.js";
+import { fullAccessIdentity } from "./helpers/identity.js";
 
 const API_KEY = "bz_live_media_mcp_secreta";
 const BASE_URL = "https://api.test/v1";
@@ -12,7 +13,7 @@ afterEach(async () => {
 });
 
 async function connect(fetchImpl: typeof fetch): Promise<Client> {
-  const server = buildServer({ apiKey: API_KEY, baseUrl: BASE_URL, fetch: fetchImpl });
+  const server = await buildServer({ apiKey: API_KEY, baseUrl: BASE_URL, fetch: fetchImpl }, fullAccessIdentity);
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
   const client = new Client({ name: "send-media-test", version: "0.0.0" });
   await Promise.all([server.connect(serverTransport), client.connect(clientTransport)]);

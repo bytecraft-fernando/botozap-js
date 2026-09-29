@@ -9,9 +9,8 @@ import { BlockList, isIP } from "node:net";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { createClient } from "./client.js";
 import type { EventSignalSource } from "./resources/events.js";
-import { buildServer } from "./server.js";
+import { buildServer, getApiIdentity, IntrospectionError } from "./server.js";
 
 export type { EventSignalSource } from "./resources/events.js";
 
@@ -347,11 +346,33 @@ async function handleRequest(
     return;
   }
 
-  if (!(await authenticatesForEvents(apiKey, options))) {
-    response.setHeader("WWW-Authenticate", "Bearer");
-    jsonRpcError(response, 401, -32001, "Credencial inválida ou sem events:read.");
+  let identity;
+  try {
+    identity = await getApiIdentity({
+      apiKey,
+      baseUrl: options.baseUrl,
+      fetch: options.fetch,
+    });
+  } catch (error) {
+    const failure = error instanceof IntrospectionError
+      ? error
+      : new IntrospectionError(503, "introspection_unavailable");
+    if (failure.httpStatus === 401) response.setHeader("WWW-Authenticate", "Bearer");
+    if (failure.httpStatus === 429) response.setHeader("Retry-After", "60");
+    const status = failure.httpStatus;
+    const message = status === 401
+      ? "Credencial BotoZap inválida ou expirada."
+      : status === 403
+        ? "A conta ou credencial não tem acesso à API BotoZap."
+        : status === 429
+          ? "Limite de introspecção atingido."
+          : status === 502
+            ? "A API retornou uma identidade inválida."
+            : "A API BotoZap está indisponível para validar a chave.";
+    jsonRpcError(response, status, -32001, message);
     return;
   }
+
   if (lifecycle.closing) {
     jsonRpcError(response, 503, -32000, "Servidor MCP em encerramento.");
     return;
@@ -421,23 +442,24 @@ async function handleRequest(
       if (closed) await closeSession(sessions, closedSessionId, closed);
     },
   });
-  const server = buildServer({
-    apiKey,
-    baseUrl: options.baseUrl,
-    fetch: options.fetch,
-    eventPollIntervalMs: options.eventPollIntervalMs ?? 15_000,
-    eventSignal: options.eventSignal,
-    maxEventSubscriptions: options.maxEventSubscriptions,
-  });
-  session = {
-    activeForegroundRequests: 0,
-    activeRequests: 0,
-    apiKeyFingerprint,
-    lastActivityAt: Date.now(),
-    server,
-    transport,
-  };
+  let server: McpServer | undefined;
   try {
+    server = await buildServer({
+      apiKey,
+      baseUrl: options.baseUrl,
+      fetch: options.fetch,
+      eventPollIntervalMs: options.eventPollIntervalMs ?? 15_000,
+      eventSignal: options.eventSignal,
+      maxEventSubscriptions: options.maxEventSubscriptions,
+    }, identity);
+    session = {
+      activeForegroundRequests: 0,
+      activeRequests: 0,
+      apiKeyFingerprint,
+      lastActivityAt: Date.now(),
+      server,
+      transport,
+    };
     await server.connect(transport);
     if (lifecycle.closing) {
       await server.close().catch(() => {});
@@ -446,10 +468,11 @@ async function handleRequest(
     }
     await handleSessionRequest(session, request, response, body);
   } catch (error) {
-    if (initializedSessionId) {
+    if (initializedSessionId && session) {
       await closeSession(sessions, initializedSessionId, session);
     } else {
-      await server.close().catch(() => {});
+      await server?.close().catch(() => {});
+      releaseReservation();
     }
     throw error;
   } finally {
@@ -524,22 +547,6 @@ async function reclaimOldestReplaceableSession(
   if (!oldest) return false;
   await closeSession(sessions, oldest[0], oldest[1]);
   return true;
-}
-
-async function authenticatesForEvents(
-  apiKey: string,
-  options: Pick<StreamableHttpServerOptions, "baseUrl" | "fetch">,
-): Promise<boolean> {
-  try {
-    await createClient({
-      apiKey,
-      baseUrl: options.baseUrl,
-      fetch: options.fetch,
-    }).events.list({ after: "0", limit: 1 });
-    return true;
-  } catch {
-    return false;
-  }
 }
 
 function writeHealthz(response: ServerResponse): void {

@@ -17,6 +17,7 @@ import {
   structuredError,
   type StructuredError,
 } from "./schemas.js";
+import { getToolPolicy, isToolAllowed } from "./permissions.js";
 
 /** Assinatura do handler de uma ferramenta: recebe o client + args validados. */
 export type ToolHandler<Args> = (
@@ -111,7 +112,8 @@ function isStructuredToolResult(value: unknown): value is StructuredToolResult {
 export function createRegister(
   server: McpServer,
   client: Client,
-  apiKey?: string,
+  apiKey: string,
+  identity: { scopes: readonly string[]; environment: "live" | "sandbox" },
 ) {
   const register: Register = function register(
     name: string,
@@ -120,6 +122,8 @@ export function createRegister(
     outputOrHandler: AnyZodObject | ToolHandler<Record<string, unknown>>,
     maybeHandler?: ToolHandler<Record<string, unknown>>,
   ): void {
+    const policy = getToolPolicy(name);
+    if (!isToolAllowed(policy, identity)) return;
     const outputSchema = maybeHandler ? (outputOrHandler as AnyZodObject) : undefined;
     const handler = maybeHandler ?? (outputOrHandler as ToolHandler<Record<string, unknown>>);
     server.registerTool(
@@ -127,6 +131,11 @@ export function createRegister(
       {
         description,
         inputSchema,
+        annotations: {
+          readOnlyHint: policy.readOnlyHint,
+          destructiveHint: policy.destructiveHint,
+          openWorldHint: policy.openWorldHint,
+        },
         ...(outputSchema
           ? { outputSchema: compatibleOutputSchema(outputSchema) }
           : {}),

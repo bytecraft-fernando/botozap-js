@@ -31,6 +31,31 @@ credenciais.
 - Uma chave de API do BotoZap (gere em **/chaves** no painel).
 - **pnpm** (este monorepo usa pnpm exclusivamente).
 
+## Descoberta por permissão (próxima versão)
+
+A inicialização consulta `GET /v1/me` pelo SDK e anuncia somente as ferramentas
+permitidas pelos escopos e pelo ambiente da credencial. A API precisa oferecer
+esse endpoint antes de atualizar o MCP; erro de introspecção impede iniciar a
+sessão, sem fallback para o catálogo completo. Essa consulta não exige
+`events:read`: o escopo só é necessário para o resource de Eventos.
+
+O catálogo reflete a inicialização. Reconecte para atualizar a descoberta após
+alterar os escopos. A API continua autorizando cada chamada, inclusive após
+revogação da chave; esconder uma ferramenta não substitui essa verificação.
+`reply_to_conversation` exige `conversations:read` e `messages:send`, pois o SDK
+resolve a conversa antes de enviar. `get_profile` identifica a Conta e o ambiente
+autorizados e revalida a credencial a cada consulta; não representa uma pessoa.
+
+Todas as ferramentas declaram `readOnlyHint`, `destructiveHint` e `openWorldHint`
+conforme seus efeitos. Operações compostas consideram também efeitos indiretos.
+As anotações orientam o host; não implementam autorização nem comprovam que uma
+pessoa confirmou a ação. OAuth e a publicação no diretório ChatGPT são etapas
+separadas.
+
+Para desenvolvimento: `buildServer` é assíncrono. Aguarde sua conclusão antes de
+conectar o transporte. Os testes de operação usam identidade previamente validada;
+os testes de descoberta exercitam o contrato real de introspecção com HTTP simulado.
+
 ## Instalação
 
 O pacote pode ser executado diretamente do npm:

@@ -24,7 +24,7 @@ async function main(): Promise<void> {
   }
 
   const config = configFromEnv();
-  const server = buildServer(config);
+  const server = await buildServer(config);
   const transport = new StdioServerTransport();
   await server.connect(transport);
   console.error("[botozap-mcp] servidor MCP iniciado (stdio).");

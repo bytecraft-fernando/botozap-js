@@ -11,6 +11,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { buildServer } from "../src/server.js";
+import { fullAccessIdentity } from "./helpers/identity.js";
 import {
   CONVERSATION_ID,
   CUSTOMER_ID,
@@ -106,7 +107,7 @@ function jsonResponse(status: number, payload: unknown): Response {
 }
 
 async function connect(): Promise<Client> {
-  const server = buildServer({ apiKey: API_KEY, baseUrl: BASE_URL, fetch: fetchStub });
+  const server = await buildServer({ apiKey: API_KEY, baseUrl: BASE_URL, fetch: fetchStub }, fullAccessIdentity);
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
   const client = new Client({ name: "test-client", version: "0.0.0" });
   await Promise.all([
