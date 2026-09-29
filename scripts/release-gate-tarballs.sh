@@ -64,4 +64,5 @@ pnpm exec tsc -p tsconfig.json
 ./node_modules/.bin/botozap --help > /dev/null
 
 cp "$GATE_ROOT/scripts/packed-tools-only.mjs" ./packed-tools-only.mjs
+cp "$GATE_ROOT/packages/mcp/tests/fixtures/release-0.6.0-tools.json" ./release-0.6.0-tools.json
 node ./packed-tools-only.mjs

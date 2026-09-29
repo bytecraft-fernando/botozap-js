@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { AI_OPERATIONS } from "@botozap/sdk";
 import { createServer } from "node:http";
 import path from "node:path";
@@ -71,6 +72,8 @@ const transport = new StdioClientTransport({
   args: [],
   env: {
     ...getDefaultEnvironment(),
+    BOTOZAP_MCP_UI_ENABLED: "false",
+    OAUTH_ENABLED: "false",
     BOTOZAP_API_KEY: API_KEY,
     BOTOZAP_API_URL: `http://127.0.0.1:${address.port}`,
   },
@@ -86,11 +89,25 @@ try {
   await client.connect(transport);
 
   const tools = await client.listTools();
-  // 114 core tools + connection profile + one tool per declared AI operation.
-  assert.equal(tools.tools.length, 115 + AI_OPERATIONS.length);
+  const baseline = JSON.parse(readFileSync(new URL("./release-0.6.0-tools.json", import.meta.url), "utf8"));
+  const oldNames = new Set(baseline.tools.map(tool => tool.name));
+  const currentNames = new Set(tools.tools.map(tool => tool.name));
+  const added = [...currentNames].filter(name => !oldNames.has(name)).sort();
+  const removed = [...oldNames].filter(name => !currentNames.has(name)).sort();
+  process.stdout.write(`packed tools vs 0.6.0: ${JSON.stringify({ added, removed })}\n`);
+  assert.deepEqual(added, ["get_profile", "prepare_send_intent"]);
+  assert.deepEqual(removed, []);
+  assert.equal(tools.tools.length, oldNames.size + added.length);
+  for (const name of ["open_review_panel", "stage_review_reply"]) {
+    assert(!currentNames.has(name), `UI tool exposed with UI disabled: ${name}`);
+  }
+  const resources = await client.listResources();
+  assert(resources.resources.every(resource => !resource.uri.startsWith("ui://")), "UI resource exposed with UI disabled");
   const snake=(s)=>s.replace(/[A-Z]/g,c=>`_${c.toLowerCase()}`);
   for(const op of AI_OPERATIONS) assert(tools.tools.some(t=>t.name===`ai_${snake(op.group)}_${snake(op.name)}`));
   for (const name of [
+    "prepare_send_intent",
+    "get_profile",
     "get_inbox_tools",
     "list_saved_replies",
     "list_opportunities",
@@ -126,6 +143,7 @@ try {
       (item) => item.uriTemplate === "botozap://events{?after,limit}",
     ),
   );
+  assert(templates.resourceTemplates.every(resource => !resource.uriTemplate.startsWith("ui://")), "UI resource template exposed with UI disabled");
   const toolNames = new Set(tools.tools.map((tool) => tool.name));
   assert(toolNames.has("list_messages"));
   assert(toolNames.has("send_message"));
