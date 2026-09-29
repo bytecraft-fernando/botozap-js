@@ -3,6 +3,7 @@ import { startStreamableHttpServer, type RunningStreamableHttpServer } from "../
 import { parseIdentity, type ApiIdentity } from "../src/server.js";
 import { MCP_TOOL_POLICIES, getToolPolicy, isToolAllowed } from "../src/permissions.js";
 import { requestAuthContext } from "../src/auth-context.js";
+import { waitUntil } from "./helpers/async.js";
 import { createClient } from "../src/client.js";
 
 const resource = "https://mcp.example.test/mcp";
@@ -13,7 +14,7 @@ const identity: ApiIdentity = {
   allowed_routes: ["GET /v1/me", "GET /v1/contacts", "POST /v1/contacts", "PATCH /v1/contacts/:id", "POST /v1/customers", "POST /v1/messages"],
 };
 const servers: RunningStreamableHttpServer[] = [];
-afterEach(async () => { await Promise.all(servers.splice(0).map((s) => s.close())); });
+afterEach(async () => { vi.restoreAllMocks(); await Promise.all(servers.splice(0).map((s) => s.close())); });
 
 async function remote(tokens: Map<string, ApiIdentity>, wait?: (token: string, path: string) => Promise<void>) {
   const calls: { token: string; path: string }[] = [];
@@ -25,12 +26,13 @@ async function remote(tokens: Map<string, ApiIdentity>, wait?: (token: string, p
     const principal = tokens.get(token);
     if (!principal) return Response.json({ error: { code: "unauthorized", message: "Revoked." } }, { status: 401 });
     if (path === "/v1/me") return Response.json({ data: principal });
+    if (path === "/v1/events") return Response.json({ data: [], paging: { cursor: "0", next: null, has_more: false } });
     if (path === "/v1/contacts") return Response.json({ data: [], paging: { cursors: { before: null, after: null }, next: null, previous: null } });
     if (path === "/v1/messages") return Response.json({ id: "message", wamid: "wamid.test", to: "5511999999999", status: "accepted" });
     return Response.json({ data: {} });
   });
   const server = await startStreamableHttpServer({ baseUrl: "https://api.test/v1", fetch,
-    eventSignal: { subscribe: () => () => {} }, oauthResourceUrl: resource, oauthIssuerUrl: issuer });
+    eventSignal: { subscribe: () => () => {} }, eventPollIntervalMs: 25, oauthResourceUrl: resource, oauthIssuerUrl: issuer });
   servers.push(server);
   return { server, calls, fetch };
 }
@@ -58,6 +60,37 @@ async function result(response: Response) {
 }
 
 describe("MCP OAuth protected resources and credential binding", () => {
+  it.each(["key", "oauth"])("shares a 60s identity cache across %s tools and event polls", async (kind) => {
+    const principal: ApiIdentity = kind === "oauth"
+      ? { ...identity, scopes: [...identity.scopes, "events:read"], allowed_routes: [...identity.allowed_routes!, "GET /v1/events"] }
+      : { account_id: identity.account_id, environment: "live", scopes: ["contacts:read", "events:read"] };
+    const token = kind === "key" ? "bz_live_cached" : "cached-oauth";
+    const { server, calls } = await remote(new Map([[token, principal], ["refreshed-oauth", principal]]));
+    const session = await initialize(server, token);
+    const meReads = () => calls.filter(c => c.path === "/v1/me").length;
+    for (let i = 0; i < 3; i++) {
+      const response = await rpc(server, token, "tools/call", { name: "list_contacts", arguments: {} }, session);
+      expect((await result(response)).result.isError).not.toBe(true);
+    }
+    await result(await rpc(server, token, "resources/subscribe", { uri: "botozap://events?after=0&limit=100" }, session));
+    await waitUntil(() => calls.filter(c => c.path === "/v1/events").length >= 3, 1_000);
+    expect(meReads()).toBe(1);
+    vi.spyOn(Date, "now").mockReturnValue(Date.now() + 60_001);
+    await Promise.all(Array.from({ length: 3 }, async () => {
+      await result(await rpc(server, token, "tools/call", { name: "list_contacts", arguments: {} }, session));
+    }));
+    expect(meReads()).toBe(2);
+    if (kind === "oauth") {
+      await result(await rpc(server, "refreshed-oauth", "tools/call", { name: "list_contacts", arguments: {} }, session));
+      expect(meReads()).toBe(3);
+      const eventReads = calls.filter(c => c.path === "/v1/events").length;
+      await waitUntil(() => calls.filter(c => c.path === "/v1/events").length > eventReads, 1_000);
+      expect(calls.filter(c => c.path === "/v1/events").at(-1)?.token).toBe("refreshed-oauth");
+      expect(meReads()).toBe(3);
+    }
+    await result(await rpc(server, kind === "oauth" ? "refreshed-oauth" : token, "resources/unsubscribe", { uri: "botozap://events?after=0&limit=100" }, session));
+  });
+
   it("advertises canonical RFC 9728 metadata and a 401 discovery challenge", async () => {
     const { server } = await remote(new Map());
     const response = await fetch(server.url, { method: "POST" });
@@ -97,6 +130,7 @@ describe("MCP OAuth protected resources and credential binding", () => {
     const { server } = await remote(tokens);
     const session = await initialize(server, "first");
     tokens.clear();
+    vi.spyOn(Date, "now").mockReturnValue(Date.now() + 60_001);
     const response = await rpc(server, "first", "tools/list", {}, session);
     expect(response.status).toBe(401);
     expect(response.headers.get("www-authenticate")).toContain('error="invalid_token"');
@@ -113,6 +147,7 @@ describe("MCP OAuth protected resources and credential binding", () => {
     expect(tools).not.toContain("delete_contact");
     expect(tools).not.toContain("delete_customer");
     tokens.set("first", { ...identity, allowed_routes: ["GET /v1/me", "GET /v1/contacts"] });
+    vi.spyOn(Date, "now").mockReturnValue(Date.now() + 60_001);
     const downgraded = (await result(await rpc(server, "first", "tools/list", {}, session))).result.tools.map((t: { name: string }) => t.name);
     expect(downgraded).toContain("list_contacts");
     expect(downgraded).not.toContain("create_contact");

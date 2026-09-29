@@ -39,6 +39,10 @@ type Session = {
   activeRequests: number;
   apiKeyFingerprint: Buffer;
   identity: ApiIdentity;
+  identityFingerprint: Buffer;
+  identityValidatedAt: number;
+  identityRefresh?: Promise<ApiIdentity>;
+  identityRefreshFingerprint?: Buffer;
   reservationKey: string;
   backgroundCredential: string;
   closing?: Promise<void>;
@@ -196,7 +200,7 @@ export function buildTrustedProxyList(
  * Inicia um endpoint MCP remoto stateful. Cada sessão é criada a partir da
  * credencial Bearer do initialize. Chaves ficam presas ao fingerprint; OAuth
  * aceita refresh apenas com o mesmo grant, usuário, cliente e Conta. Cada
- * request revalida a autoridade na API BotoZap.
+ * autoridade é atualizada no refresh ou após 60 s; a API autoriza cada operação.
  */
 export async function startStreamableHttpServer(
   options: StreamableHttpServerOptions,
@@ -348,7 +352,7 @@ async function handleRequest(
       jsonRpcError(response, 404, -32001, "Sessão MCP inválida.");
       return;
     }
-    const identity = await authenticateCurrentCredential(apiKey, options, response, oauth);
+    const identity = await authenticateCurrentCredential(apiKey, options, response, oauth, session);
     if (!identity) return;
     const compatible = session.identity.auth_type === "oauth"
       ? sameOAuthBinding(session.identity, identity)
@@ -469,16 +473,11 @@ async function handleRequest(
           if (!compatible) throw new IntrospectionError(401, "invalid_session_binding");
           return foreground;
         }
-        // Event polls outlive requests. Revalidate the latest successfully
-        // bound token instead of retaining the initialize token forever.
+        // Polls share the session cache and use the latest accepted token.
         const credential = session?.backgroundCredential ?? apiKey;
-        const current = await getApiIdentity({ apiKey: credential, baseUrl: options.baseUrl, fetch: options.fetch });
-        if (identity.auth_type === "oauth" && !sameOAuthBinding(identity, current)) {
-          throw new IntrospectionError(401, "invalid_session_binding");
-        }
-        if (identity.auth_type !== "oauth" && (current.auth_type === "oauth" || current.account_id !== identity.account_id || current.environment !== identity.environment)) {
-          throw new IntrospectionError(401, "invalid_session_binding");
-        }
+        const current = session
+          ? await resolveSessionIdentity(session, credential, options)
+          : identity;
         return { credential, identity: current };
       },
     }, identity);
@@ -487,6 +486,8 @@ async function handleRequest(
       activeRequests: 0,
       apiKeyFingerprint,
       identity,
+      identityFingerprint: apiKeyFingerprint,
+      identityValidatedAt: Date.now(),
       reservationKey: apiKeyReservationKey,
       backgroundCredential: apiKey,
       lastActivityAt: Date.now(),
@@ -513,12 +514,59 @@ async function handleRequest(
   }
 }
 
+const IDENTITY_CACHE_TTL_MS = 60_000;
+
+/** One refresh at a time per session, shared by foreground requests and polls.
+ * An incompatible bearer never updates the cache or the background credential. */
+async function resolveSessionIdentity(
+  session: Session, credential: string, options: StreamableHttpServerOptions,
+): Promise<ApiIdentity> {
+  for (;;) {
+    if (sameFingerprint(session.identityFingerprint, credential) &&
+        Date.now() - session.identityValidatedAt < IDENTITY_CACHE_TTL_MS) {
+      return session.identity;
+    }
+    if (session.identityRefresh) {
+      if (session.identityRefreshFingerprint && sameFingerprint(session.identityRefreshFingerprint, credential)) {
+        return await session.identityRefresh;
+      }
+      // A different bearer must perform its own validation after this refresh.
+      // Failure belongs to that request and does not poison another credential.
+      await session.identityRefresh.catch(() => {});
+      continue;
+    }
+    const refresh = (async () => {
+      const current = await getApiIdentity({ apiKey: credential, baseUrl: options.baseUrl, fetch: options.fetch });
+      const compatible = session.identity.auth_type === "oauth"
+        ? sameOAuthBinding(session.identity, current)
+        : current.auth_type !== "oauth" && sameFingerprint(session.apiKeyFingerprint, credential) &&
+          current.account_id === session.identity.account_id && current.environment === session.identity.environment;
+      if (!compatible) throw new IntrospectionError(404, "invalid_session_binding");
+      session.identity = current;
+      session.identityFingerprint = fingerprint(credential);
+      session.identityValidatedAt = Date.now();
+      refreshServerIdentity(session.server, current);
+      return current;
+    })();
+    session.identityRefresh = refresh;
+    session.identityRefreshFingerprint = fingerprint(credential);
+    try { return await refresh; }
+    finally {
+      if (session.identityRefresh === refresh) {
+        session.identityRefresh = undefined;
+        session.identityRefreshFingerprint = undefined;
+      }
+    }
+  }
+}
+
 async function authenticateCurrentCredential(
   credential: string, options: StreamableHttpServerOptions,
-  response: ServerResponse, oauth?: ProtectedResourceConfig,
+  response: ServerResponse, oauth?: ProtectedResourceConfig, session?: Session,
 ): Promise<ApiIdentity | undefined> {
   try {
-    const identity = await getApiIdentity({ apiKey: credential, baseUrl: options.baseUrl, fetch: options.fetch });
+    const identity = session ? await resolveSessionIdentity(session, credential, options)
+      : await getApiIdentity({ apiKey: credential, baseUrl: options.baseUrl, fetch: options.fetch });
     if (identity.auth_type === "oauth" && !oauth) throw new IntrospectionError(401, "oauth_disabled");
     return identity;
   } catch (error) {

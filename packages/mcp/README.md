@@ -35,13 +35,20 @@ credenciais.
 
 A inicialização consulta `GET /v1/me` pelo SDK e anuncia somente as ferramentas
 permitidas pelos escopos e pelo ambiente da credencial. A API precisa oferecer
-esse endpoint antes de atualizar o MCP; erro de introspecção impede iniciar a
+esse endpoint antes de publicar o SDK e o MCP; erro de introspecção impede iniciar a
 sessão, sem fallback para o catálogo completo. Essa consulta não exige
 `events:read`: o escopo só é necessário para o resource de Eventos.
 
-O catálogo reflete a inicialização. Reconecte para atualizar a descoberta após
-alterar os escopos. A API continua autorizando cada chamada, inclusive após
-revogação da chave; esconder uma ferramenta não substitui essa verificação.
+No stdio, o catálogo reflete a inicialização; reconecte após alterar escopos.
+No Streamable HTTP, a identidade da sessão é reutilizada por até 60 segundos,
+inclusive nas consultas periódicas de Eventos. Após esse prazo, uma introspecção
+compartilhada entre requests e polls atualiza as permissões. A chave de API precisa
+manter o fingerprint original. Um bearer OAuth novo exige introspecção imediata e
+só é aceito para a mesma Conta, ambiente, usuário, cliente e grant. A descoberta
+OAuth também exige as rotas concretas usadas pela ferramenta.
+
+A API continua autorizando cada chamada, inclusive após revogação da credencial;
+esconder uma ferramenta e reutilizar a identidade não substituem essa verificação.
 `reply_to_conversation` exige `conversations:read` e `messages:send`, pois o SDK
 resolve a conversa antes de enviar. `get_profile` identifica a Conta e o ambiente
 autorizados e revalida a credencial a cada consulta; não representa uma pessoa.
@@ -55,6 +62,20 @@ separadas.
 Para desenvolvimento: `buildServer` é assíncrono. Aguarde sua conclusão antes de
 conectar o transporte. Os testes de operação usam identidade previamente validada;
 os testes de descoberta exercitam o contrato real de introspecção com HTTP simulado.
+
+## Compatibilidade das respostas e ordem de publicação
+
+Respostas tipadas publicam somente os campos declarados pelo schema, tanto no
+JSON textual quanto em `structuredContent`. `list_users.data[].id` e o alias
+`data[].user_id` continuam disponíveis. A auditoria dos endpoints revisados não
+identificou remoção de campo público na projeção final. O segredo HMAC de webhook
+continua disponível apenas em `create_webhook`. Conteúdo dinâmico de mensagens,
+metadados de contatos e payloads de IA preservam seus objetos de negócio.
+
+**Publique primeiro a API com `GET /v1/me` validado; só depois publique SDK e MCP.**
+Clientes que usam `npx @botozap/mcp` ou `pnpm dlx @botozap/mcp` sem versão podem
+receber a atualização imediatamente. Veja o [plano de release](../../docs/chatgpt-phase1-release.md)
+para a auditoria dos campos e as verificações por ambiente.
 
 ## Instalação
 
