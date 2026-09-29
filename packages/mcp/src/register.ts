@@ -2,7 +2,7 @@
  * Helper de registro de ferramentas: encapsula o padrão comum de
  *  1. validar args (zod, feito pelo SDK a partir do `inputSchema`),
  *  2. chamar a API via cliente do `@botozap/sdk`,
- *  3. devolver o JSON cru como conteúdo de texto (JSON pretty),
+ *  3. devolver JSON compacto como conteúdo de texto,
  *  4. nas tools migradas, validar a saída forte e devolvê-la também como
  *     `structuredContent`, com `outputSchema` compatível com MCP SDK 1.29,
  *  5. converter `BotoZapError`/exceções em resultado `isError` com mensagem PT-BR.
@@ -152,10 +152,9 @@ export function createRegister(
           const textFallback = isStructuredToolResult(handlerResult)
             ? handlerResult.textFallback
             : handlerResult;
-          const content = [
-            { type: "text" as const, text: JSON.stringify(textFallback, null, 2) },
-          ];
-          if (!outputSchema) return { content };
+          if (!outputSchema) return {
+            content: [{ type: "text", text: JSON.stringify(textFallback) }],
+          };
 
           if (!isObject(data)) {
             throw new Error(
@@ -171,9 +170,13 @@ export function createRegister(
             );
           }
 
+          // Publish only the validated projection. Keep the historical null
+          // fallback for 204 responses; all other text mirrors structured data.
           return {
-            content,
-            structuredContent: data,
+            content: [{ type: "text", text: JSON.stringify(
+              isStructuredToolResult(handlerResult) ? textFallback : parsed.data,
+            ) }],
+            structuredContent: parsed.data,
           };
         } catch (err) {
           const result = errorResult(err, apiKey);

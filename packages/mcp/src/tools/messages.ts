@@ -110,7 +110,7 @@ export const sendMessageSchema = z
 export function registerMessageTools(register: Register): void {
   register(
     "send_message",
-    "Envia uma mensagem de WhatsApp (texto ou template) via API do BotoZap. `to` é o número E.164 ou wa_id do destinatário. Para texto: type='text' e text={ body }. Para template: type='template' e template={ name, language, components? }. `from` aceita ID Meta ou UUID interno do Número e é obrigatório se a conta tem mais de um. Retorna { id, wamid, to, status }.",
+    "Envia uma mensagem de WhatsApp (texto ou template) ao destinatário via API do BotoZap. `to` é o número E.164 ou wa_id. Para texto: type='text' e text={ body }. Para template: type='template' e template={ name, language, components? }. `from` aceita ID Meta ou UUID interno do Número e é obrigatório se a conta tem mais de um. O envio pode entregar uma mensagem real. Retorna `id` (UUID interno do BotoZap) e `wamid` (ID da mensagem na Meta), além de `to` e `status`.",
     sendMessageShape,
     sendMessageResultSchema,
     (client, args) => {
@@ -133,9 +133,9 @@ export function registerMessageTools(register: Register): void {
 
   register(
     "list_messages",
-    "Lista mensagens da conta (paginação por cursor: { data, paging }). Filtros opcionais por número, conversa, direção, status, tipo e presença de mídia.",
+    "Lista mensagens da conta (paginação por cursor: { data, paging }). Filtros opcionais por número (ID Meta ou UUID interno), conversa (UUID interno), direção, status, tipo e presença de mídia.",
     {
-      phone_number_id: z.string().optional().describe("Filtra pelo phone_number_id (Meta)."),
+      phone_number_id: z.string().optional().describe("Filtra pelo ID Meta ou UUID interno do número."),
       conversation_id: z.string().optional().describe("Filtra pela conversa (uuid interno)."),
       direction: z.enum(["inbound", "outbound"]).optional(),
       status: z.string().optional().describe("Status da mensagem (enum message_status)."),
@@ -151,8 +151,8 @@ export function registerMessageTools(register: Register): void {
 
   register(
     "get_message",
-    "Busca uma mensagem específica pelo id (uuid interno). Retorna { data }.",
-    { id: z.string().describe("ID da mensagem (uuid interno).") },
+    "Busca uma mensagem pelo UUID interno do BotoZap ou pelo `wamid` atribuído pela Meta. Retorna { data }.",
+    { id: z.string().describe("UUID interno da mensagem ou `wamid` da Meta.") },
     getMessageResultSchema,
     async (client, args) => ({ data: await client.messages.get(String(args.id)) }),
   );

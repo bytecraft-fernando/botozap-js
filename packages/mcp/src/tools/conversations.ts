@@ -32,9 +32,9 @@ export function registerConversationTools(register: Register): void {
 
   register(
     "list_conversations",
-    "Lista conversas da conta (paginação por cursor: { data, paging }). Filtros opcionais por número e por busca textual de contato.",
+    "Lista conversas da conta (paginação por cursor: { data, paging }). Filtros opcionais por número (ID Meta ou UUID interno), status e busca textual de contato.",
     {
-      phone_number_id: z.string().optional().describe("Filtra pelo phone_number_id (Meta)."),
+      phone_number_id: z.string().optional().describe("Filtra pelo ID Meta ou UUID interno do número."),
       status: z.string().optional().describe("Filtra por status (active|ended)."),
       // A rota (/v1/conversations) casa por `contact`/`phone_number` (busca parcial
       // em nome/username/telefone/wa_id, INNER join em contacts). Não existe filtro

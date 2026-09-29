@@ -11,7 +11,7 @@ import {
 export function registerPhoneNumberTools(register: Register): void {
   register(
     "list_phone_numbers",
-    "Lista os números de telefone conectados da conta (paginação offset: { data, meta }). Filtro opcional por cliente.",
+    "Lista os números conectados da conta (paginação offset: { data, meta }; page é 1-based e per_page tem máximo 100). Em cada resultado, `id` é UUID interno do BotoZap e `phone_number_id` é o identificador da Meta. Filtro opcional por cliente.",
     {
       customer_id: z.string().optional().describe("Filtra pelos números de um cliente."),
       page: z.number().int().positive().optional().describe("Página (1-based)."),
@@ -23,15 +23,15 @@ export function registerPhoneNumberTools(register: Register): void {
 
   register(
     "get_phone_number",
-    "Busca um número pelo id (uuid interno). Retorna { data }.",
-    { id: z.string().describe("ID do número (uuid interno).") },
+    "Busca um número pelo UUID interno do BotoZap ou pelo `phone_number_id` da Meta. Retorna { data }.",
+    { id: z.string().describe("UUID interno do número ou `phone_number_id` da Meta.") },
     getPhoneNumberResultSchema,
     async (client, args) => ({ data: await client.phoneNumbers.get(String(args.id)) }),
   );
 
   register(
     "update_phone_number",
-    "Atualiza o rótulo (label, nome local no BotoZap) de um número. É o único campo editável: display_phone_number, verified_name e quality_rating vêm da Meta. Retorna { data }.",
+    "Atualiza somente o rótulo local (`label`) de um número, selecionado por UUID interno ou `phone_number_id` da Meta. `display_phone_number`, `verified_name` e `quality_rating` vêm da Meta e não são editáveis. Retorna { data }.",
     {
       id: z.string().describe("ID do número (uuid interno) ou phone_number_id da Meta."),
       label: z
@@ -51,8 +51,8 @@ export function registerPhoneNumberTools(register: Register): void {
 
   register(
     "phone_number_health",
-    "Retorna a saúde/qualidade de um número (quality rating, status de verificação, limites). Retorna { data }.",
-    { id: z.string().describe("ID do número (uuid interno).") },
+    "Retorna a prontidão da conexão do número, motivo, próxima ação e verificações do token, usando UUID interno ou `phone_number_id` da Meta. A verificação pode consultar a conexão ativa na Meta e atualizar o estado da última checagem. Retorna { data }.",
+    { id: z.string().describe("UUID interno do número ou `phone_number_id` da Meta.") },
     phoneNumberHealthResultSchema,
     async (client, args) => ({ data: await client.phoneNumbers.health(String(args.id)) }),
   );

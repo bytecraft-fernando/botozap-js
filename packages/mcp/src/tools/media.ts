@@ -94,7 +94,7 @@ export const sendMediaSchema = z.discriminatedUnion("type", [
 export function registerMediaTools(register: Register): void {
   register(
     "send_media_message",
-    "Envia image, video, audio ou document por URL https pelo endpoint canônico de mensagens. image/video/document aceitam caption; audio não. filename é exclusivo de document. O processo MCP não baixa o arquivo. Retorna { id, wamid, to, status }.",
+    "Envia image, video, audio ou document por URL https pelo endpoint canônico de mensagens; isso pode entregar uma mensagem real ao destinatário. image/video/document aceitam caption; audio não. filename é exclusivo de document. O processo MCP não baixa o arquivo. Retorna `id` (UUID interno do BotoZap) e `wamid` (ID da Meta), além de `to` e `status`.",
     sendMediaShape,
     sendMessageResultSchema,
     (client, args) => {
@@ -108,7 +108,7 @@ export function registerMediaTools(register: Register): void {
 
   register(
     "ingest_media",
-    "Faz o ingest de uma mídia a partir de uma URL para a Meta. delivery='meta_media' (default) retorna um media_id usável em mensagens; delivery='meta_resumable_asset' retorna um handle reutilizável (ex.: header de template). Retorna { data }.",
+    "Busca a mídia na URL HTTPS informada e faz upload para a Meta (a URL será acessada pelo servidor BotoZap). Não envia mensagem. `phone_number_id` deve ser o identificador Meta do número. `delivery='meta_media'` (padrão) retorna um `media_id` para mensagens; `delivery='meta_resumable_asset'` retorna um handle reutilizável, por exemplo em cabeçalho de template. Retorna { data }.",
     {
       phone_number_id: z.string().describe("phone_number_id (Meta) dono da mídia."),
       source: z.string().describe("URL de origem da mídia (https)."),

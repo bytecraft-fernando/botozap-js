@@ -484,7 +484,7 @@ export function registerAiTools(register: Register) {
           : z.object({ data: z.unknown() });
     register(
       `ai_${snake(op.group)}_${snake(op.name)}`,
-      `${op.method} ${op.path}. ${scope}; chave live. ${op.description || "Operação sobre o Cliente informado."} Use customer_id do cliente autorizado; não confunda com account_id.`,
+      `${op.method} ${op.path}. ${scope}; chave live. ${op.description || `Operação ${op.name} sobre recursos do grupo ${op.group}.`} Use customer_id do cliente autorizado; não confunda com account_id. ${"page" in op.fields ? "Paginação por offset: page começa em 1; per_page aceita até 100 quando disponível. Use meta para acompanhar total_count/total_pages." : ""}`,
       input,
       output,
       async (client, args) => {

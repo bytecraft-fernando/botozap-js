@@ -56,7 +56,10 @@ write(["update_customer", "update_setup_link"], "customers:write", false,
 write(["delete_customer"], "customers:write", false,
   { destructiveHint: true, openWorldHint: false });
 read(["list_phone_numbers"], "numbers:read", true);
-read(["get_phone_number", "phone_number_health"], "numbers:read", false);
+read(["get_phone_number"], "numbers:read", false);
+// Health probes Graph and persists token_status/token_checked_at.
+write(["phone_number_health"], "numbers:read", false,
+  { destructiveHint: false, openWorldHint: true });
 write(["update_phone_number"], "numbers:write", false,
   { destructiveHint: true, openWorldHint: false });
 read(["list_templates", "get_template"], "templates:read", true);

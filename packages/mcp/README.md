@@ -318,3 +318,14 @@ inferências, promessas do operador, catálogo de modelos, execuções e uso. Sc
 `agents:read/write`; aprovação exige chave criada por
 owner/admin ainda autorizado. Prévia não envia WhatsApp. Não há carteira, créditos
 ou compra de vagas de IA. [Contratos e exemplos IA](https://github.com/bytecraft-fernando/botozap-js/blob/main/docs/ai.md).
+
+### Tamanho e contrato dos retornos
+
+O texto de cada resposta usa JSON compacto. Nas entidades com schema tipado,
+campos fora do contrato são removidos antes de gerar texto e `structuredContent`.
+IDs, cursores e metadados de paginação são preservados; textos e listas não são
+truncados. O segredo HMAC de webhook só é retornado na criação.
+
+Os payloads de negócio dinâmicos (IA, CRM/Agenda, conteúdo de mensagens,
+metadados de contato, diagnóstico de saúde e extensões de mídia) mantêm seu
+conteúdo. Reduções futuras nesses domínios precisam de contratos específicos.

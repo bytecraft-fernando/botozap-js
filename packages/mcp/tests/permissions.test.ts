@@ -114,6 +114,10 @@ describe("filtro de permissões MCP", () => {
         readOnlyHint: expect.any(Boolean), destructiveHint: expect.any(Boolean), openWorldHint: expect.any(Boolean),
       }));
     }
+    expect(tools.find(tool => tool.name === "phone_number_health")?.annotations)
+      .toMatchObject({ readOnlyHint: false, openWorldHint: true });
+    expect(tools.find(tool => tool.name === "send_message")?.annotations)
+      .toMatchObject({ readOnlyHint: false, destructiveHint: true, openWorldHint: true });
   });
 
   it("classifies failed introspection without leaking credentials", async () => {

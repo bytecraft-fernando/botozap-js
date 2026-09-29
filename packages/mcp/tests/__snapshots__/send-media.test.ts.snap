@@ -52,7 +52,7 @@ exports[`MCP — send_media_message > anuncia o contrato de mídia e seus limite
   },
   "outputSchema": {
     "$schema": "http://json-schema.org/draft-07/schema#",
-    "additionalProperties": true,
+    "additionalProperties": false,
     "properties": {
       "error": {
         "additionalProperties": false,
@@ -110,6 +110,25 @@ exports[`MCP — send_media_message > anuncia o contrato de mídia e seus limite
       "wamid": {
         "description": "ID da Mensagem atribuído pelo WhatsApp/Meta.",
         "type": "string",
+      },
+      "warnings": {
+        "items": {
+          "additionalProperties": false,
+          "properties": {
+            "code": {
+              "type": "string",
+            },
+            "message": {
+              "type": "string",
+            },
+          },
+          "required": [
+            "code",
+            "message",
+          ],
+          "type": "object",
+        },
+        "type": "array",
       },
     },
     "type": "object",
