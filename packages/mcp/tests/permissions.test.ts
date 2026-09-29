@@ -11,6 +11,7 @@ const ACCOUNT_ID = "00000000-0000-4000-8000-000000000001";
 async function connect(
   scopes: string[],
   environment: "live" | "sandbox" = "live",
+  uiEnabled = false,
 ) {
   const fetch = vi.fn(async (input: RequestInfo | URL) => {
     const url = new URL(String(input));
@@ -21,6 +22,7 @@ async function connect(
   });
   const server = await buildServer({
     apiKey: "bz_live_permission_test",
+    uiEnabled,
     baseUrl: "https://api.test/v1",
     fetch,
   });
@@ -106,7 +108,7 @@ describe("filtro de permissões MCP", () => {
   });
 
   it("covers every registered tool with explicit annotations", async () => {
-    const { client } = await connect(fullAccessIdentity.scopes);
+    const { client } = await connect(fullAccessIdentity.scopes, "live", true);
     const tools = (await client.listTools()).tools;
     expect(tools.map(t => t.name).sort()).toEqual([...Object.keys(MCP_TOOL_POLICIES), "get_profile"].sort());
     for (const tool of tools) {

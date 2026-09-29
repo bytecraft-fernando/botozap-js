@@ -1,3 +1,4 @@
+import { registerSendIntent, sendIntentKey } from "../send-intent.js";
 /** Ferramentas de mensagens: envio, listagem e leitura. */
 import { z } from "zod";
 import type { ListMessagesParams } from "@botozap/sdk";
@@ -18,6 +19,7 @@ import {
  * pro JSON Schema; a regra cruzada (type ↔ payload) mora no `sendMessageSchema`.
  */
 const sendMessageShape = {
+  idempotency_key: sendIntentKey.optional(),
   to: z.string().describe("Destinatário: telefone E.164 (ex.: 5511999999999) ou wa_id."),
   type: z.enum(["text", "template"]).describe("Tipo da mensagem."),
   text: z
@@ -108,9 +110,10 @@ export const sendMessageSchema = z
   });
 
 export function registerMessageTools(register: Register): void {
+  registerSendIntent(register);
   register(
     "send_message",
-    "Envia uma mensagem de WhatsApp (texto ou template) ao destinatário via API do BotoZap. `to` é o número E.164 ou wa_id. Para texto: type='text' e text={ body }. Para template: type='template' e template={ name, language, components? }. `from` aceita ID Meta ou UUID interno do Número e é obrigatório se a conta tem mais de um. O envio pode entregar uma mensagem real. Retorna `id` (UUID interno do BotoZap) e `wamid` (ID da mensagem na Meta), além de `to` e `status`.",
+    "Recomendado: use prepare_send_intent uma vez e reutilize idempotency_key em retries. Chamadas sem chave continuam aceitas, com o comportamento anterior sem deduplicação. Envia uma mensagem de WhatsApp (texto ou template) ao destinatário via API do BotoZap. `to` é o número E.164 ou wa_id. Para texto: type='text' e text={ body }. Para template: type='template' e template={ name, language, components? }. `from` aceita ID Meta ou UUID interno do Número e é obrigatório se a conta tem mais de um. O envio pode entregar uma mensagem real. Retorna `id` (UUID interno do BotoZap) e `wamid` (ID da mensagem na Meta), além de `to` e `status`.",
     sendMessageShape,
     sendMessageResultSchema,
     (client, args) => {
@@ -121,13 +124,13 @@ export function registerMessageTools(register: Register): void {
       if (!parsed.success) {
         throw new Error(parsed.error.issues.map((i) => i.message).join(" "));
       }
-      const { to, type, text, template, from } = parsed.data;
+      const { to, type, text, template, from, idempotency_key } = parsed.data;
       // Despacha pelo `type` — o superRefine já garantiu o payload correspondente.
       // Resposta direta (sem envelope), igual ao POST /messages.
       if (type === "text") {
-        return client.messages.send({ to, text: text!.body, from });
+        return client.messages.send({ to, text: text!.body, from }, { idempotencyKey: idempotency_key });
       }
-      return client.messages.sendTemplate({ to, template: template!, from });
+      return client.messages.sendTemplate({ to, template: template!, from }, { idempotencyKey: idempotency_key });
     },
   );
 

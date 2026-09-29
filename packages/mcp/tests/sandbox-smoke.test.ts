@@ -103,7 +103,7 @@ describe("smoke hermético do sandbox — send_message (fetch stub fiel)", () =>
     const client = await connect();
     const result = (await client.callTool({
       name: "send_message",
-      arguments: { to: MAGIC_TO, type: "text", text: { body: UNICODE_BODY } },
+      arguments: { idempotency_key: "intent-fixture-0001", to: MAGIC_TO, type: "text", text: { body: UNICODE_BODY } },
     })) as ToolResult;
 
     expect(result.isError).toBeFalsy();
@@ -138,7 +138,7 @@ describe("smoke hermético do sandbox — send_message (fetch stub fiel)", () =>
     const client = await connect();
     const result = (await client.callTool({
       name: "send_message",
-      arguments: {
+      arguments: { idempotency_key: "intent-fixture-0001",
         to: MAGIC_TO,
         type: "template",
         template: { name: "qualquer_template", language: { code: "pt_BR" } },

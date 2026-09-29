@@ -6,3 +6,6 @@ dist/
 .env
 .env.*
 *.tgz
+
+# Generated local Plugin Extensions visual harness
+packages/mcp/web/.preview/

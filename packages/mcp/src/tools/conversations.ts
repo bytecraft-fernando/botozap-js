@@ -1,3 +1,4 @@
+import { sendIntentKey } from "../send-intent.js";
 /** Ferramentas de conversas: listar, ler e atualizar status. */
 import { z } from "zod";
 import type { ListConversationsParams } from "@botozap/sdk";
@@ -11,8 +12,9 @@ import {
 export function registerConversationTools(register: Register): void {
   register(
     "reply_to_conversation",
-    "Responde uma Conversa com texto. Informe somente o UUID da Conversa e o corpo; o BotoZap resolve Contato e Número, e a API revalida Conta, ambiente, janela de 24h, quota e billing. Exige scopes conversations:read e messages:send.",
+    "Recomendado: use prepare_send_intent uma vez e reutilize idempotency_key em retries. Chamadas sem chave continuam aceitas, com o comportamento anterior sem deduplicação. Responde uma Conversa com texto. Informe o UUID da Conversa e o corpo; o BotoZap resolve Contato e Número, e a API revalida Conta, ambiente, janela de 24h, quota e billing. Exige scopes conversations:read e messages:send.",
     {
+      idempotency_key: sendIntentKey.optional(),
       conversation_id: z
         .string()
         .uuid()
@@ -27,7 +29,7 @@ export function registerConversationTools(register: Register): void {
     (client, args) =>
       client.conversations.reply(String(args.conversation_id), {
         text: (args.text as { body: string }).body,
-      }),
+      }, { idempotencyKey: args.idempotency_key as string | undefined }),
   );
 
   register(

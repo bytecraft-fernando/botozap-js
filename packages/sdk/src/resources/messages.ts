@@ -77,13 +77,19 @@ export type SendMediaParams =
   | SendAudioParams
   | SendDocumentParams;
 
+export interface SendOptions {
+  /** Reuse for retries of the same send; a different payload conflicts. */
+  idempotencyKey?: string;
+}
+
 /** Endpoints de mensagem (POST /v1/messages, GET /v1/messages/:id). */
 export class Messages {
   constructor(private readonly client: BotoZap) {}
 
   /** Envia uma mensagem de texto. */
-  async send(params: SendTextParams): Promise<SendResult> {
+  async send(params: SendTextParams, options: SendOptions = {}): Promise<SendResult> {
     const result = await this.client.requestObject<SendResult>("POST", "/messages", {
+      idempotencyKey: options.idempotencyKey,
       body: {
         to: params.to,
         type: "text",
@@ -95,8 +101,9 @@ export class Messages {
   }
 
   /** Envia uma mensagem usando um template aprovado. */
-  async sendTemplate(params: SendTemplateParams): Promise<SendResult> {
+  async sendTemplate(params: SendTemplateParams, options: SendOptions = {}): Promise<SendResult> {
     const result = await this.client.requestObject<SendResult>("POST", "/messages", {
+      idempotencyKey: options.idempotencyKey,
       body: {
         to: params.to,
         type: "template",
@@ -108,7 +115,7 @@ export class Messages {
   }
 
   /** Envia mídia por URL pública. */
-  async sendMedia(params: SendMediaParams): Promise<SendResult> {
+  async sendMedia(params: SendMediaParams, options: SendOptions = {}): Promise<SendResult> {
     const media: Record<string, unknown> = { link: params.link };
     if ("caption" in params && params.caption !== undefined) {
       media.caption = params.caption;
@@ -117,6 +124,7 @@ export class Messages {
       media.filename = params.filename;
     }
     const result = await this.client.requestObject<SendResult>("POST", "/messages", {
+      idempotencyKey: options.idempotencyKey,
       body: {
         to: params.to,
         from: params.from,

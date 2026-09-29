@@ -4,10 +4,12 @@ export const TOOL_ROUTES: Record<string, readonly string[]> = {};
 function routes(names: string[], ...required: string[]) {
   for (const name of names) TOOL_ROUTES[name] = required;
 }
+routes(["prepare_send_intent"], "POST /v1/messages");
 routes(["send_message", "send_media_message"], "POST /v1/messages");
 routes(["list_messages"], "GET /v1/messages");
 routes(["get_message"], "GET /v1/messages/:id");
 routes(["list_conversations"], "GET /v1/conversations");
+routes(["stage_review_reply"], "GET /v1/conversations/:id", "GET /v1/phone_numbers/:id");
 routes(["get_conversation"], "GET /v1/conversations/:id");
 routes(["reply_to_conversation"], "GET /v1/conversations/:id", "POST /v1/messages");
 routes(["update_conversation"], "PATCH /v1/conversations/:id");
@@ -17,7 +19,7 @@ routes(["get_contact"], "GET /v1/contacts/:id");
 routes(["create_contact"], "POST /v1/contacts");
 routes(["update_contact"], "PATCH /v1/contacts/:id");
 routes(["delete_contact"], "DELETE /v1/contacts/:id");
-routes(["list_customers"], "GET /v1/customers");
+routes(["open_review_panel", "list_customers"], "GET /v1/customers");
 routes(["get_customer"], "GET /v1/customers/:id");
 routes(["create_customer"], "POST /v1/customers");
 routes(["update_customer"], "PATCH /v1/customers/:id");

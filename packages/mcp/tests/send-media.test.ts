@@ -97,7 +97,7 @@ describe("MCP — send_media_message", () => {
     for (const args of calls) {
       const result = await client.callTool({
         name: "send_media_message",
-        arguments: { to: "+5511999999999", from: "1279498075235551", ...args },
+        arguments: { idempotency_key: "intent-fixture-0001", to: "+5511999999999", from: "1279498075235551", ...args },
       });
       expect(result.isError, args.type).toBeFalsy();
       expect(result.structuredContent, args.type).toMatchObject({
@@ -160,7 +160,7 @@ describe("MCP — send_media_message", () => {
 
     const audio = await client.callTool({
       name: "send_media_message",
-      arguments: {
+      arguments: { idempotency_key: "intent-fixture-0001",
         to: "5511999999999",
         type: "audio",
         link: "https://cdn.example.test/audio.ogg",
@@ -169,7 +169,7 @@ describe("MCP — send_media_message", () => {
     });
     const image = await client.callTool({
       name: "send_media_message",
-      arguments: {
+      arguments: { idempotency_key: "intent-fixture-0001",
         to: "5511999999999",
         type: "image",
         link: "https://cdn.example.test/foto.jpg",
@@ -240,7 +240,7 @@ describe("MCP — send_media_message", () => {
 
     const result = await client.callTool({
       name: "send_media_message",
-      arguments: {
+      arguments: { idempotency_key: "intent-fixture-0001",
         to: "5511999999999",
         type: "image",
         link: "https://cdn.example.test/foto.jpg",

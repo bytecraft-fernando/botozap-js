@@ -61,6 +61,7 @@ type ServerLifecycle = {
 };
 
 export interface StreamableHttpServerOptions {
+  uiEnabled?: boolean;
   baseUrl: string;
   /** Canonical OAuth resource/issuer; configure both to enable delegation. */
   oauthResourceUrl?: string;
@@ -459,6 +460,7 @@ async function handleRequest(
   try {
     server = await buildServer({
       apiKey,
+      uiEnabled: options.uiEnabled,
       baseUrl: options.baseUrl,
       fetch: options.fetch,
       eventPollIntervalMs: options.eventPollIntervalMs ?? 15_000,

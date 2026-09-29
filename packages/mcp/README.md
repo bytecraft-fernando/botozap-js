@@ -368,3 +368,28 @@ O endpoint publica metadados RFC 9728 em `/.well-known/oauth-protected-resource/
 Cada request, inclusive em sessões já abertas, valida a credencial em `/v1/me`. Uma sessão OAuth aceita o token renovado somente quando grant, usuário, cliente, Conta e ambiente permanecem iguais. Chaves de API continuam vinculadas ao fingerprint original. Tokens de requests simultâneos ficam isolados; chamadas de API usam a credencial do próprio request. A descoberta de ferramentas acompanha os scopes e as rotas efetivamente permitidas pelo app. Revogação e mudança de papel passam a valer na próxima requisição.
 
 O transporte stdio continua recebendo a credencial pelo ambiente `BOTOZAP_API_KEY`. O servidor MCP não realiza login nem armazena refresh tokens.
+
+
+## Intenção de envio e painel de revisão
+
+`send_message`, `send_media_message` e `reply_to_conversation` continuam aceitando
+as chamadas da versão 0.6.0. `idempotency_key` é opcional; omiti-la mantém o fluxo
+anterior, sem deduplicação por chave. Recomenda-se chamar `prepare_send_intent`
+antes de um novo envio e passar a chave retornada à tool. Em retry, preserve chave
+e conteúdo. Não crie outra chave para contornar timeout ou 409 pendente.
+
+O painel candidato de Plugin Extensions é habilitado com
+`BOTOZAP_MCP_UI_ENABLED=true` (HTTP ou stdio). `open_review_panel` abre a seleção de
+negócio e Radar; `stage_review_reply` prepara um rascunho sem enviar. O rascunho e
+a UI sempre preservam uma chave por intenção, com confirmação explícita e sem
+retry automático. Hosts sem UI continuam usando as tools.
+
+O build inclui `dist/ui/review.html`, sem assets externos nem credenciais.
+`pnpm preview:build` cria uma demonstração local em `web/.preview/demo.html`, com
+dados fictícios. O pacote de plugin candidato está em `plugins/botozap`; não é
+uma publicação no diretório.
+
+API `/v1/me` **e suporte a idempotência** devem estar disponíveis antes de publicar
+os pacotes novos. Resultados terminais por chave expiram após 24h; uma tentativa
+desconhecida permanece pendente até reconciliação. Ver
+`docs/chatgpt-phase1-release.md` para a ordem de release e compatibilidade.

@@ -37,6 +37,7 @@ function write(
 // Scope + sandbox flag follow the concrete withV1 endpoint declarations.
 write(["send_message", "send_media_message"], "messages:send", true,
   { destructiveHint: true, openWorldHint: true });
+read(["prepare_send_intent"], "messages:send", true);
 read(["list_messages", "get_message"], "messages:read", true);
 read(["list_conversations", "get_conversation"], "conversations:read", true);
 write(["reply_to_conversation"], ["conversations:read", "messages:send"], true,
@@ -44,6 +45,7 @@ write(["reply_to_conversation"], ["conversations:read", "messages:send"], true,
 // SDK reply() first GETs the conversation, so this tool needs both route scopes.
 write(["update_conversation"], "conversations:write", true,
   { destructiveHint: true, openWorldHint: false });
+registerPolicy("stage_review_reply", { requiredScopes: ["conversations:read", "numbers:read"], sandbox: false, readOnlyHint: true, destructiveHint: false, openWorldHint: false });
 read(["list_contacts"], "contacts:read", true);
 read(["get_contact"], "contacts:read", false);
 write(["create_contact"], "contacts:write", false,
@@ -52,7 +54,7 @@ write(["update_contact"], "contacts:write", false,
   { destructiveHint: true, openWorldHint: false });
 write(["delete_contact"], "contacts:write", false,
   { destructiveHint: true, openWorldHint: false });
-read(["list_customers", "get_customer", "list_setup_links"], "customers:read", false);
+read(["open_review_panel", "list_customers", "get_customer", "list_setup_links"], "customers:read", false);
 write(["create_customer", "create_setup_link"], "customers:write", false,
   { destructiveHint: false, openWorldHint: false });
 write(["update_customer", "update_setup_link"], "customers:write", false,

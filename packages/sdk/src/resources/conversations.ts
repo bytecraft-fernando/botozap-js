@@ -1,3 +1,4 @@
+import type { SendOptions } from "./messages.js";
 import type { BotoZap } from "../client.js";
 import { BotoZapError } from "../errors.js";
 import type {
@@ -87,6 +88,7 @@ export class Conversations {
   async reply(
     id: string,
     params: ReplyConversationParams,
+    options: SendOptions = {},
   ): Promise<SendResult> {
     const conversation = await this.get(id);
     const from = conversation.phone_number_id;
@@ -113,7 +115,7 @@ export class Conversations {
       );
     }
 
-    return this.client.messages.send({ to, text: params.text, from });
+    return this.client.messages.send({ to, text: params.text, from }, options);
   }
 
   update(id: string, params: Record<string, unknown>): Promise<Conversation> {

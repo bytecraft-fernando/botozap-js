@@ -456,7 +456,7 @@ function listItemProperties(tool: {
 const callsByTool = [
   [
     "send_message",
-    { to: "5511999999999", type: "text", text: { body: "olá" } },
+    { idempotency_key: "intent-fixture-0001", to: "5511999999999", type: "text", text: { body: "olá" } },
   ],
   ["list_messages", { limit: 20 }],
   ["get_message", { id: MESSAGE_ID }],
@@ -491,7 +491,7 @@ const contactCalls = [
 const conversationCalls = [
   [
     "reply_to_conversation",
-    {
+    { idempotency_key: "intent-fixture-0001",
       conversation_id: CONVERSATION_ID,
       text: { body: "Resposta do agente" },
     },
@@ -518,7 +518,7 @@ const customerCalls = [
 const utilityCalls = [
   [
     "send_media_message",
-    {
+    { idempotency_key: "intent-fixture-0001",
       to: "5511999999999",
       type: "image",
       link: "https://cdn.example.test/foto.png",

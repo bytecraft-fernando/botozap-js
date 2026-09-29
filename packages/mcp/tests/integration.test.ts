@@ -132,7 +132,7 @@ describe("servidor MCP — integração ponta a ponta (fetch stub)", () => {
     const client = await connect();
     const result = (await client.callTool({
       name: "send_message",
-      arguments: { to: "5511999999999", type: "text", text: { body: "olá" } },
+      arguments: { idempotency_key: "intent-fixture-0001", to: "5511999999999", type: "text", text: { body: "olá" } },
     })) as { content: Array<{ type: string; text?: string }>; isError?: boolean };
 
     expect(result.isError).toBeFalsy();
@@ -158,6 +158,7 @@ describe("servidor MCP — integração ponta a ponta (fetch stub)", () => {
       (tool) => tool.name === "reply_to_conversation",
     );
     expect(Object.keys(discovered?.inputSchema.properties ?? {})).toEqual([
+      "idempotency_key",
       "conversation_id",
       "text",
     ]);
@@ -165,7 +166,7 @@ describe("servidor MCP — integração ponta a ponta (fetch stub)", () => {
 
     const result = (await client.callTool({
       name: "reply_to_conversation",
-      arguments: {
+      arguments: { idempotency_key: "intent-fixture-0001",
         conversation_id: CONVERSATION_ID,
         text: { body: "Resposta do agente" },
       },

@@ -4,6 +4,7 @@ export { BotoZapError } from "./errors.js";
 export type { Me } from "./resources/me.js";
 
 export type {
+  SendOptions,
   SendTextParams,
   SendTemplateParams,
   SendImageParams,

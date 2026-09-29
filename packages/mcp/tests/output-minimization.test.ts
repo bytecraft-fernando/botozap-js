@@ -200,7 +200,7 @@ it("conserva campos públicos aditivos de identidade, diagnóstico e consentimen
   }
   const sent = { id: MESSAGE_ID, wamid: "wamid.ABC", to: "5511999999999", status: "sent", warnings: [{ code: "consent_missing", message: "Consentimento não registrado." }] };
   const client = await connect(async () => json({ ...sent, internal_debug: "strip" }));
-  const result = await client.callTool({ name: "send_message", arguments: { to: sent.to, type: "text", text: { body: "olá" } } });
+  const result = await client.callTool({ name: "send_message", arguments: { idempotency_key: "intent-fixture-0001", to: sent.to, type: "text", text: { body: "olá" } } });
   expect(result.isError).not.toBe(true);
   expect(result.structuredContent).toEqual(sent);
   expect(JSON.parse(textOf(result))).toEqual(sent);

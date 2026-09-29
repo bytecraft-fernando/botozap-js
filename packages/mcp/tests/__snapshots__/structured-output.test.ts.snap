@@ -1487,6 +1487,13 @@ exports[`MCP — output schemas e structured content > anuncia schemas não vazi
           "description": "ID Meta ou UUID interno do Número de origem (obrigatório se a conta tem >1 número).",
           "type": "string",
         },
+        "idempotency_key": {
+          "description": "Opcional para compatibilidade. Recomendado: chave obtida em prepare_send_intent ou stage_review_reply. Reutilize em retries da mesma intenção; nunca gere outra após timeout. Nova intenção explícita exige nova chave.",
+          "maxLength": 200,
+          "minLength": 8,
+          "pattern": "^[!-~]+$",
+          "type": "string",
+        },
         "template": {
           "additionalProperties": false,
           "description": "Objeto do template quando type='template'. Exige name e language.code.",

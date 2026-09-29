@@ -3,6 +3,7 @@
  * e registra todos os grupos de ferramentas. Extraído de `index.ts` para que o
  * smoke test possa montar o servidor sem abrir o transporte stdio.
  */
+import { registerReviewPanel } from "./resources/review-panel.js";
 import { requestAuthContext, type RequestAuthContext } from "./auth-context.js";
 import { createRequire } from "node:module";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -36,6 +37,8 @@ const { version: VERSION } = createRequire(import.meta.url)("../package.json") a
 
 export interface BuildServerOptions {
   apiKey: string;
+  /** Opt-in MCP Apps resource and conversation panel. */
+  uiEnabled?: boolean;
   baseUrl?: string;
   /** Injeta um fetch (testes de integração). Prod → global do SDK. */
   fetch?: typeof fetch;
@@ -133,7 +136,7 @@ export async function buildServer(
     { capabilities: canReadEvents ? { resources: { subscribe: true } } : {} },
   );
 
-  const register = createRegister(server, client, options.apiKey, identity);
+  const register = createRegister(server, client, options.apiKey, identity, { uiEnabled: options.uiEnabled });
   permissionRefreshers.set(server, register.updateIdentity);
 
   registerAttendanceTools(register);
@@ -151,6 +154,7 @@ export async function buildServer(
   registerWebhookTools(register);
   registerMiscTools(register);
   registerUsageTools(register);
+  if (options.uiEnabled) registerReviewPanel(server, register);
   const closeEventResources = canReadEvents
     ? registerEventResources(server, client, {
         maxSubscriptions: options.maxEventSubscriptions,
@@ -216,6 +220,7 @@ export function configFromEnv(): BuildServerOptions {
   }
   return {
     apiKey,
+    uiEnabled: process.env.BOTOZAP_MCP_UI_ENABLED === "true",
     baseUrl: process.env.BOTOZAP_API_URL?.trim() || DEFAULT_API_URL,
   };
 }

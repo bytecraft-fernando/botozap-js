@@ -62,6 +62,7 @@ async function startHttpFromEnv(): Promise<void> {
   let remote;
   try {
     remote = await startStreamableHttpServer({
+      uiEnabled: process.env.BOTOZAP_MCP_UI_ENABLED === "true",
       baseUrl: process.env.BOTOZAP_API_URL?.trim() || DEFAULT_API_URL,
       eventSignal,
       oauthResourceUrl: process.env.OAUTH_ENABLED === "true" ? process.env.OAUTH_RESOURCE_URL?.trim() : undefined,

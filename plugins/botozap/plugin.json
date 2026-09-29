@@ -1,0 +1,25 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "botozap",
+  "version": "0.1.0",
+  "description": "Consulte pendências comerciais, prepare respostas e acompanhe conversas da sua Conta BotoZap.",
+  "author": { "name": "Bytecraft", "url": "https://botozap.com.br" },
+  "homepage": "https://botozap.com.br",
+  "repository": "https://github.com/bytecraft-fernando/botozap-js",
+  "license": "MIT",
+  "keywords": ["crm", "whatsapp", "atendimento"],
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "BotoZap",
+        "shortDescription": "Revise pendências e prepare respostas.",
+        "longDescription": "Escolha um negócio da Conta conectada, consulte o Radar e o histórico das conversas e revise a resposta antes de enviar.",
+        "developerName": "Bytecraft",
+        "category": "Productivity",
+        "capabilities": ["Read", "Write"],
+        "websiteURL": "https://botozap.com.br",
+        "defaultPrompt": ["Quais pendências precisam de retorno hoje?", "Prepare uma resposta para esta conversa, sem enviar."]
+      }
+    }
+  }
+}

@@ -8,6 +8,7 @@
  *  5. converter `BotoZapError`/exceções em resultado `isError` com mensagem PT-BR.
  */
 
+import { reviewToolMetadata, REVIEW_RESOURCE_URI } from "./resources/review-panel.js";
 import { requestAuthContext } from "./auth-context.js";
 import type { ApiIdentity } from "./server.js";
 import type { McpServer, RegisteredTool } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -25,6 +26,7 @@ import { getToolPolicy, isToolAllowed } from "./permissions.js";
 export type ToolHandler<Args> = (
   client: Client,
   args: Args,
+  identity: ApiIdentity,
 ) => Promise<unknown>;
 
 const STRUCTURED_RESULT = Symbol("structured-result");
@@ -117,6 +119,7 @@ export function createRegister(
   client: Client,
   apiKey: string,
   identity: ApiIdentity,
+  options: { uiEnabled?: boolean } = {},
 ) {
   let currentIdentity = identity;
   const tools: Array<{ tool: RegisteredTool; policy: ReturnType<typeof getToolPolicy> }> = [];
@@ -136,6 +139,7 @@ export function createRegister(
       {
         description,
         inputSchema,
+        ...(options.uiEnabled ? { _meta: name === "open_review_panel" ? reviewToolMetadata : name === "stage_review_reply" ? { ui: { resourceUri: REVIEW_RESOURCE_URI, visibility: ["model", "app"] } } : { ui: { visibility: ["model", "app"] } } } : {}),
         annotations: {
           readOnlyHint: policy.readOnlyHint,
           destructiveHint: policy.destructiveHint,
@@ -154,6 +158,7 @@ export function createRegister(
           const handlerResult = await handler(
             client,
             (args ?? {}) as Record<string, unknown>,
+            authority,
           );
           const data = isStructuredToolResult(handlerResult)
             ? handlerResult.structuredContent
