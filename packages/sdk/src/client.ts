@@ -233,7 +233,7 @@ export class BotoZap {
     const data = raw ? safeJson(raw) : undefined;
 
     const envelope = data as
-      { error?: { code?: string; message?: string } } | undefined;
+      { error?: { code?: string; message?: string; outcome?: unknown; retry?: unknown } } | undefined;
     // Um corpo `{ error: {...} }` é um ERRO ainda que o status seja 2xx. A rota
     // `GET /v1/media/:id` usa exatamente isso: quando a mídia ainda está sendo
     // espelhada, responde 202 + `{error:{code:"media_not_ready"}}` + `Retry-After`
@@ -260,6 +260,10 @@ export class BotoZap {
         envelope?.error?.message ?? `HTTP ${res.status}`,
         res.status,
         headers,
+        {
+          outcome: envelope?.error?.outcome === "rejected" || envelope?.error?.outcome === "accepted" || envelope?.error?.outcome === "unknown" ? envelope.error.outcome : undefined,
+          retry: envelope?.error?.retry === "backoff" || envelope?.error?.retry === "after_correction" || envelope?.error?.retry === "reconcile_first" || envelope?.error?.retry === "unknown" ? envelope.error.retry : undefined,
+        },
       );
     }
 

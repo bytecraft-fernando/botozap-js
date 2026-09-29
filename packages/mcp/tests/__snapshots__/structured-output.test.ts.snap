@@ -158,6 +158,23 @@ exports[`MCP — output schemas e structured content > anuncia schemas não vazi
               "description": "Mensagem segura e acionável do erro.",
               "type": "string",
             },
+            "outcome": {
+              "enum": [
+                "rejected",
+                "accepted",
+                "unknown",
+              ],
+              "type": "string",
+            },
+            "retry": {
+              "enum": [
+                "backoff",
+                "after_correction",
+                "reconcile_first",
+                "unknown",
+              ],
+              "type": "string",
+            },
             "status": {
               "description": "Status HTTP; 0 quando não houve resposta HTTP.",
               "minimum": 0,
@@ -400,6 +417,23 @@ exports[`MCP — output schemas e structured content > anuncia schemas não vazi
               "description": "Mensagem segura e acionável do erro.",
               "type": "string",
             },
+            "outcome": {
+              "enum": [
+                "rejected",
+                "accepted",
+                "unknown",
+              ],
+              "type": "string",
+            },
+            "retry": {
+              "enum": [
+                "backoff",
+                "after_correction",
+                "reconcile_first",
+                "unknown",
+              ],
+              "type": "string",
+            },
             "status": {
               "description": "Status HTTP; 0 quando não houve resposta HTTP.",
               "minimum": 0,
@@ -540,6 +574,23 @@ exports[`MCP — output schemas e structured content > anuncia schemas não vazi
             },
             "message": {
               "description": "Mensagem segura e acionável do erro.",
+              "type": "string",
+            },
+            "outcome": {
+              "enum": [
+                "rejected",
+                "accepted",
+                "unknown",
+              ],
+              "type": "string",
+            },
+            "retry": {
+              "enum": [
+                "backoff",
+                "after_correction",
+                "reconcile_first",
+                "unknown",
+              ],
               "type": "string",
             },
             "status": {
@@ -687,6 +738,23 @@ exports[`MCP — output schemas e structured content > anuncia schemas não vazi
             },
             "message": {
               "description": "Mensagem segura e acionável do erro.",
+              "type": "string",
+            },
+            "outcome": {
+              "enum": [
+                "rejected",
+                "accepted",
+                "unknown",
+              ],
+              "type": "string",
+            },
+            "retry": {
+              "enum": [
+                "backoff",
+                "after_correction",
+                "reconcile_first",
+                "unknown",
+              ],
               "type": "string",
             },
             "status": {
@@ -967,6 +1035,23 @@ exports[`MCP — output schemas e structured content > anuncia schemas não vazi
               "description": "Mensagem segura e acionável do erro.",
               "type": "string",
             },
+            "outcome": {
+              "enum": [
+                "rejected",
+                "accepted",
+                "unknown",
+              ],
+              "type": "string",
+            },
+            "retry": {
+              "enum": [
+                "backoff",
+                "after_correction",
+                "reconcile_first",
+                "unknown",
+              ],
+              "type": "string",
+            },
             "status": {
               "description": "Status HTTP; 0 quando não houve resposta HTTP.",
               "minimum": 0,
@@ -1162,6 +1247,23 @@ exports[`MCP — output schemas e structured content > anuncia schemas não vazi
             },
             "message": {
               "description": "Mensagem segura e acionável do erro.",
+              "type": "string",
+            },
+            "outcome": {
+              "enum": [
+                "rejected",
+                "accepted",
+                "unknown",
+              ],
+              "type": "string",
+            },
+            "retry": {
+              "enum": [
+                "backoff",
+                "after_correction",
+                "reconcile_first",
+                "unknown",
+              ],
               "type": "string",
             },
             "status": {
@@ -1360,6 +1462,23 @@ exports[`MCP — output schemas e structured content > anuncia schemas não vazi
               "description": "Mensagem segura e acionável do erro.",
               "type": "string",
             },
+            "outcome": {
+              "enum": [
+                "rejected",
+                "accepted",
+                "unknown",
+              ],
+              "type": "string",
+            },
+            "retry": {
+              "enum": [
+                "backoff",
+                "after_correction",
+                "reconcile_first",
+                "unknown",
+              ],
+              "type": "string",
+            },
             "status": {
               "description": "Status HTTP; 0 quando não houve resposta HTTP.",
               "minimum": 0,
@@ -1461,6 +1580,23 @@ exports[`MCP — output schemas e structured content > anuncia schemas não vazi
               "description": "Mensagem segura e acionável do erro.",
               "type": "string",
             },
+            "outcome": {
+              "enum": [
+                "rejected",
+                "accepted",
+                "unknown",
+              ],
+              "type": "string",
+            },
+            "retry": {
+              "enum": [
+                "backoff",
+                "after_correction",
+                "reconcile_first",
+                "unknown",
+              ],
+              "type": "string",
+            },
             "status": {
               "description": "Status HTTP; 0 quando não houve resposta HTTP.",
               "minimum": 0,
@@ -1488,7 +1624,7 @@ exports[`MCP — output schemas e structured content > anuncia schemas não vazi
           "type": "string",
         },
         "idempotency_key": {
-          "description": "Opcional para compatibilidade. Recomendado: chave obtida em prepare_send_intent ou stage_review_reply. Reutilize em retries da mesma intenção; nunca gere outra após timeout. Nova intenção explícita exige nova chave.",
+          "description": "Opcional para compatibilidade. Recomendado: chave obtida em prepare_send_intent ou stage_review_reply. Reutilize em retries da mesma intenção; nunca gere outra após timeout. Recusa confirmada (outcome=rejected) libera a chave para repetir após backoff/correção. Nova intenção explícita recebe nova chave.",
           "maxLength": 200,
           "minLength": 8,
           "pattern": "^[!-~]+$",
@@ -1581,6 +1717,23 @@ exports[`MCP — output schemas e structured content > anuncia schemas não vazi
             },
             "message": {
               "description": "Mensagem segura e acionável do erro.",
+              "type": "string",
+            },
+            "outcome": {
+              "enum": [
+                "rejected",
+                "accepted",
+                "unknown",
+              ],
+              "type": "string",
+            },
+            "retry": {
+              "enum": [
+                "backoff",
+                "after_correction",
+                "reconcile_first",
+                "unknown",
+              ],
               "type": "string",
             },
             "status": {

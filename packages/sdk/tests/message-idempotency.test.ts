@@ -20,3 +20,15 @@ describe("send idempotency transport", () => {
     expect(calls.find(c => c.path.includes("conversations"))!.headers.has("Idempotency-Key")).toBe(false);
   });
 });
+
+
+it("preserves only validated send outcome and retry hints on SDK errors", async () => {
+  for (const [details, expected] of [
+    [{ outcome: "rejected", retry: "backoff" }, { outcome: "rejected", retry: "backoff" }],
+    [{ outcome: "unknown", retry: "reconcile_first" }, { outcome: "unknown", retry: "reconcile_first" }],
+    [{ outcome: "untrusted-string", retry: { private: "data" } }, { outcome: undefined, retry: undefined }],
+  ]) {
+    const sdk = new BotoZap({ apiKey: "bz_live_fixture", fetch: async () => Response.json({ error: { code: "dispatch_unavailable", message: "Retry later", ...details } }, { status: 503 }) });
+    await expect(sdk.messages.send({ to: "5511999999999", text: "oi" }, { idempotencyKey: "same-key" })).rejects.toMatchObject({ code: "dispatch_unavailable", status: 503, ...expected });
+  }
+});

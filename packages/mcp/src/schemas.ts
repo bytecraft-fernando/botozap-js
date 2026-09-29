@@ -37,6 +37,8 @@ export const metaPhoneNumberIdSchema = z.string().describe(
 
 export const structuredErrorSchema = z
   .object({
+    outcome: z.enum(["rejected", "accepted", "unknown"]).optional(),
+    retry: z.enum(["backoff", "after_correction", "reconcile_first", "unknown"]).optional(),
     code: z.string().describe("Código estável do erro da API BotoZap."),
     message: z.string().describe("Mensagem segura e acionável do erro."),
     status: z
@@ -56,8 +58,9 @@ export function structuredError(
   code: string,
   message: string,
   status: number,
+  details: Pick<StructuredError["error"], "outcome" | "retry"> = {},
 ): StructuredError {
-  return { error: { code, message, status } };
+  return { error: { code, message, status, ...details } };
 }
 
 /**

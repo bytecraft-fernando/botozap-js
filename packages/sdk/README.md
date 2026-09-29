@@ -427,3 +427,10 @@ tentativa pendente retornam 409. Resultados terminais ficam disponíveis por 24h
 Pendências desconhecidas não reabrem automaticamente. Depois de 24h, confira o
 histórico antes de reenviar; nunca troque a chave para contornar uma pendência.
 Requer a API com suporte a `Idempotency-Key` em `POST /v1/messages`.
+
+Recusas confirmadas (`outcome: rejected`) liberam a chave. Aguarde o backoff ou
+corrija a causa e repita com a mesma chave; após liberação, outro payload é uma
+nova intenção. `unknown` ou `accepted` exigem conciliação antes de considerar
+outro envio. SDK e MCP preservam `outcome` e `retry` da API. Resultados concluídos
+vencidos são removidos pelo cron a cada minuto; claims incertas não são removidas
+por tempo, conforme o runbook `botozap/docs/ops/message-send-receipts.md`.

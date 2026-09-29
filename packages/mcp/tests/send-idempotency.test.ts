@@ -27,3 +27,16 @@ it("prepares a key before dispatch and retains it when the host repeats after ti
     expect(sent).toHaveLength(3); expect(sent[2].key).toBeNull();
   } finally { await client.close(); await server.close(); }
 });
+
+
+it("forwards confirmed rejection hints through the SDK and MCP structured error", async () => {
+  const server = await buildServer({ apiKey: "bz_live_fixture", fetch: async () => Response.json({ error: { code: "dispatch_unavailable", message: "Retry later", outcome: "rejected", retry: "backoff", internal_debug: "omit" } }, { status: 503 }) }, fullAccessIdentity);
+  const client = new Client({ name: "rejected-send-test", version: "1" });
+  const [ct, st] = InMemoryTransport.createLinkedPair();
+  await Promise.all([server.connect(st), client.connect(ct)]);
+  try {
+    const result = await client.callTool({ name: "send_message", arguments: { to: "5511999999999", type: "text", text: { body: "oi" }, idempotency_key: "same-key" } });
+    expect(result.isError).toBe(true);
+    expect(result.structuredContent).toEqual({ error: { code: "dispatch_unavailable", message: "Retry later", status: 503, outcome: "rejected", retry: "backoff" } });
+  } finally { await client.close(); await server.close(); }
+});

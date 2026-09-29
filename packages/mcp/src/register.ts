@@ -89,8 +89,11 @@ function errorResult(err: unknown, apiKey?: string): {
   if (err instanceof BotoZapError) {
     const message = safeMessage(err.message, apiKey);
     return {
-      text: `Erro [${err.code}]: ${message}`,
-      structured: structuredError(err.code, message, err.status),
+      text: `Erro [${err.code}]: ${message}${err.outcome ? ` Resultado: ${err.outcome}.` : ""}${err.retry ? ` Retentativa: ${err.retry}.` : ""}`,
+      structured: structuredError(err.code, message, err.status, {
+        ...(err.outcome ? { outcome: err.outcome } : {}),
+        ...(err.retry ? { retry: err.retry } : {}),
+      }),
     };
   }
 

@@ -3,8 +3,15 @@ export interface Bridge {
   call(name: string, args: Record<string, unknown>): Promise<any>;
   context(value: unknown): Promise<unknown>;
 }
+class BridgeError extends Error {
+  constructor(message: string, readonly outcome?: 'rejected' | 'unknown', readonly retry?: string) { super(message); }
+}
 function decode(result: any): Row {
-  if (result.isError) throw new Error('Não foi possível acessar estes dados. Confira as permissões e reabra o painel.');
+  if (result.isError) {
+    const error = result.structuredContent?.error;
+    const outcome = error?.outcome === 'rejected' || error?.outcome === 'unknown' ? error.outcome : undefined;
+    throw new BridgeError(typeof error?.message === 'string' ? error.message : 'Não foi possível acessar estes dados. Confira as permissões e reabra o painel.', outcome, typeof error?.retry === 'string' ? error.retry : undefined);
+  }
   if (result.structuredContent) return result.structuredContent;
   for (const block of result.content ?? []) if (block.type === 'text') {
     try { return JSON.parse(block.text); } catch { /* A response must contain structured data. */ }
@@ -145,6 +152,7 @@ export function mountReview(root: HTMLElement, bridge: Bridge) {
     if (sending || locked || !conversation || !canAttempt() || reviewBody !== draft.value || !el<HTMLInputElement>('consent').checked) return;
     const id = conversation.id, intent = intents.get(conversation.id);
     if (!intent || intent.body !== reviewBody || intent.destination !== destination(conversation)) return;
+    let posted = false;
     sending = true; locked = true; business.disabled = true; draft.disabled = true; el<HTMLButtonElement>('send').disabled = true; el<HTMLButtonElement>('review').disabled = true; el('conversations').querySelectorAll('select').forEach(s => s.disabled = true); renderRadar(); notice('Enviando a resposta…');
     try {
       const fresh = (await call('get_conversation', { id })).data;
@@ -155,11 +163,23 @@ export function mountReview(root: HTMLElement, bridge: Bridge) {
       }
       if (expired(intent)) { expiredNotice(); return; }
       intent.firstAttemptAt ??= Date.now();
+      posted = true;
       const result = await call('reply_to_conversation', { conversation_id: id, text: { body: intent.body }, idempotency_key: intent.key });
       if (!text(result.id) && !text(result.wamid)) throw new Error('Resultado sem confirmação');
       notice(`Resposta aceita pelo BotoZap.${text(result.status) ? ` Status: ${text(result.status)}.` : ''} ID: ${text(result.id) || text(result.wamid)}`, 'success');
       intents.delete(id); locked = false; draft.value = ''; draft.disabled = !isOpen(); el('length').textContent = '0 / 4096'; el('confirmation').hidden = true; el('review').textContent = 'Revisar envio';
-    } catch { intent.uncertain = true; locked = false; el<HTMLInputElement>('consent').checked = false; el<HTMLButtonElement>('edit').disabled = true; el('send').textContent = 'Repetir a mesma tentativa'; notice('O resultado do envio está incerto. Confira a mensagem e marque a confirmação para repetir a mesma tentativa. O texto e a chave de envio serão preservados.', 'warning'); }
+    } catch (error) {
+      locked = false; el<HTMLInputElement>('consent').checked = false;
+      if ((posted && error instanceof BridgeError && error.outcome === 'rejected') || (!posted && !intent.uncertain)) {
+        intent.uncertain = false; intent.firstAttemptAt = undefined;
+        draft.disabled = !isOpen(); el<HTMLButtonElement>('review').disabled = !isOpen() || !draft.value.trim(); el<HTMLButtonElement>('edit').disabled = false; el('confirmation').hidden = true; el('review').textContent = 'Revisar envio'; el('send').textContent = 'Confirmar e enviar';
+        const message = error instanceof BridgeError ? error.message : 'Não foi possível consultar a conversa. Confira seu acesso e tente novamente.';
+        const next = error instanceof BridgeError && error.retry === 'backoff' ? 'Aguarde o prazo indicado antes de revisar novamente.' : 'Você pode corrigir a resposta e revisar novamente.';
+        notice(`${posted ? 'O envio foi recusado e não foi realizado.' : 'A resposta não foi enviada.'} ${message} ${next}`, 'error');
+      } else {
+        intent.uncertain = true; el<HTMLButtonElement>('edit').disabled = true; el('send').textContent = 'Repetir a mesma tentativa'; notice('O resultado do envio está incerto. Confira a mensagem e marque a confirmação para repetir a mesma tentativa. O texto e a chave de envio serão preservados.', 'warning');
+      }
+    }
     finally { sending = false; business.disabled = false; renderRadar(); }
   };
   el('more-radar').onclick = () => void loadRadar(true);

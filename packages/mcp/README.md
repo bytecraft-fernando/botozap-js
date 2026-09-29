@@ -393,3 +393,10 @@ API `/v1/me` **e suporte a idempotência** devem estar disponíveis antes de pub
 os pacotes novos. Resultados terminais por chave expiram após 24h; uma tentativa
 desconhecida permanece pendente até reconciliação. Ver
 `docs/chatgpt-phase1-release.md` para a ordem de release e compatibilidade.
+
+Recusas confirmadas (`outcome: rejected`) liberam a chave. Aguarde o backoff ou
+corrija a causa e repita com a mesma chave; após liberação, outro payload é uma
+nova intenção. `unknown` ou `accepted` exigem conciliação antes de considerar
+outro envio. SDK e MCP preservam `outcome` e `retry` da API. Resultados concluídos
+vencidos são removidos pelo cron a cada minuto; claims incertas não são removidas
+por tempo, conforme o runbook `botozap/docs/ops/message-send-receipts.md`.

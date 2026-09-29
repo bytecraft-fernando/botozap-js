@@ -4,7 +4,7 @@ import { z } from "zod";
 import type { Register } from "./register.js";
 
 export const sendIntentKey = z.string().min(8).max(200).regex(/^[!-~]+$/)
-  .describe("Opcional para compatibilidade. Recomendado: chave obtida em prepare_send_intent ou stage_review_reply. Reutilize em retries da mesma intenção; nunca gere outra após timeout. Nova intenção explícita exige nova chave.");
+  .describe("Opcional para compatibilidade. Recomendado: chave obtida em prepare_send_intent ou stage_review_reply. Reutilize em retries da mesma intenção; nunca gere outra após timeout. Recusa confirmada (outcome=rejected) libera a chave para repetir após backoff/correção. Nova intenção explícita recebe nova chave.");
 
 export function registerSendIntent(register: Register): void {
   register("prepare_send_intent",

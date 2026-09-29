@@ -32,6 +32,39 @@ function compose(body: string) { el<HTMLTextAreaElement>('draft').value = body; 
 function confirm() { el<HTMLInputElement>('consent').checked = true; change('consent'); }
 beforeEach(() => { document.body.innerHTML = ''; HTMLElement.prototype.scrollIntoView = vi.fn(); });
 describe('review idempotency intent', () => {
+  it('unlocks preparation when the preflight fails before any dispatch', async () => {
+    const h = setup(); await select(); compose('Texto revisado.'); const original = h.call.getMockImplementation()!;
+    h.call.mockImplementation(async (name, args) => name === 'get_conversation' ? { isError: true, structuredContent: { error: { message: 'Acesso revogado.', status: 403 } } } : original(name, args));
+    el('send').click(); await vi.waitFor(() => expect(el('notice').textContent).toContain('não foi enviada'));
+    expect(h.sends()).toHaveLength(0); expect(el<HTMLTextAreaElement>('draft').disabled).toBe(false);
+  });
+  it('unlocks a confirmed rejected response and preserves the key for an identical explicit retry', async () => {
+    const h = setup(); const original = h.call.getMockImplementation()!; let attempts = 0;
+    h.call.mockImplementation(async (name, args) => name === 'reply_to_conversation' && attempts++ === 0 ? { isError: true, structuredContent: { error: { outcome: 'rejected', message: 'Aguarde antes de tentar novamente.', status: 429 } } } : original(name, args));
+    await select(); compose('Confirmo o prazo.'); el('send').click();
+    await vi.waitFor(() => expect(el('notice').textContent).toContain('recusado'));
+    expect(el<HTMLTextAreaElement>('draft').disabled).toBe(false); expect(el<HTMLButtonElement>('review').disabled).toBe(false); expect(h.sends()).toHaveLength(1);
+    el('review').click(); confirm(); el('send').click();
+    await vi.waitFor(() => expect(h.sends()).toHaveLength(2));
+    expect(h.sends()[1][1]).toEqual(h.sends()[0][1]);
+  });
+  it('uses a new key when the user corrects a confirmed rejected response', async () => {
+    const h = setup(); const original = h.call.getMockImplementation()!; let attempts = 0;
+    h.call.mockImplementation(async (name, args) => name === 'reply_to_conversation' && attempts++ === 0 ? { isError: true, structuredContent: { error: { outcome: 'rejected', message: 'Conteúdo inválido.', status: 422 } } } : original(name, args));
+    await select(); compose('Texto original.'); el('send').click();
+    await vi.waitFor(() => expect(el('notice').textContent).toContain('recusado'));
+    compose('Texto corrigido.'); el('send').click();
+    await vi.waitFor(() => expect(h.sends()).toHaveLength(2));
+    expect(h.sends()[1][1].idempotency_key).not.toBe(h.sends()[0][1].idempotency_key);
+    expect(h.sends()[1][1].text).toEqual({ body: 'Texto corrigido.' });
+  });
+  it('keeps generic tool failures uncertain even when their message says rejected', async () => {
+    const h = setup(); const original = h.call.getMockImplementation()!;
+    h.call.mockImplementation(async (name, args) => name === 'reply_to_conversation' ? { isError: true, structuredContent: { error: { message: 'rejected', status: 422 } } } : original(name, args));
+    await select(); compose('Mesmo texto.'); el('send').click();
+    await vi.waitFor(() => expect(el('notice').textContent).toContain('incerto'));
+    expect(el<HTMLTextAreaElement>('draft').disabled).toBe(true); expect(h.sends()).toHaveLength(1);
+  });
   it('does not repeat an uncertain attempt after the 24 hour receipt lifetime', async () => {
     const firstAttemptAt = Date.now(); const now = vi.spyOn(Date, 'now').mockReturnValue(firstAttemptAt);
     try {

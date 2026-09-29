@@ -97,7 +97,7 @@ export const sendMediaSchema = z.discriminatedUnion("type", [
 export function registerMediaTools(register: Register): void {
   register(
     "send_media_message",
-    "Recomendado: use prepare_send_intent uma vez e reutilize idempotency_key em retries. Chamadas sem chave continuam aceitas, com o comportamento anterior sem deduplicação. Envia image, video, audio ou document por URL https pelo endpoint canônico de mensagens; isso pode entregar uma mensagem real ao destinatário. image/video/document aceitam caption; audio não. filename é exclusivo de document. O processo MCP não baixa o arquivo. Retorna `id` (UUID interno do BotoZap) e `wamid` (ID da Meta), além de `to` e `status`.",
+    "Recomendado: use prepare_send_intent uma vez e reutilize idempotency_key em retries. Recusas confirmadas liberam a chave; após aguardar/corrigir, repita com a mesma chave. Resultado desconhecido exige conferir o histórico. Chamadas sem chave continuam aceitas, com o comportamento anterior sem deduplicação. Envia image, video, audio ou document por URL https pelo endpoint canônico de mensagens; isso pode entregar uma mensagem real ao destinatário. image/video/document aceitam caption; audio não. filename é exclusivo de document. O processo MCP não baixa o arquivo. Retorna `id` (UUID interno do BotoZap) e `wamid` (ID da Meta), além de `to` e `status`.",
     sendMediaShape,
     sendMessageResultSchema,
     (client, args) => {

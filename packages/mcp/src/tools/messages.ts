@@ -113,7 +113,7 @@ export function registerMessageTools(register: Register): void {
   registerSendIntent(register);
   register(
     "send_message",
-    "Recomendado: use prepare_send_intent uma vez e reutilize idempotency_key em retries. Chamadas sem chave continuam aceitas, com o comportamento anterior sem deduplicação. Envia uma mensagem de WhatsApp (texto ou template) ao destinatário via API do BotoZap. `to` é o número E.164 ou wa_id. Para texto: type='text' e text={ body }. Para template: type='template' e template={ name, language, components? }. `from` aceita ID Meta ou UUID interno do Número e é obrigatório se a conta tem mais de um. O envio pode entregar uma mensagem real. Retorna `id` (UUID interno do BotoZap) e `wamid` (ID da mensagem na Meta), além de `to` e `status`.",
+    "Recomendado: use prepare_send_intent uma vez e reutilize idempotency_key em retries. Recusas confirmadas liberam a chave; após aguardar/corrigir, repita com a mesma chave. Resultado desconhecido exige conferir o histórico. Chamadas sem chave continuam aceitas, com o comportamento anterior sem deduplicação. Envia uma mensagem de WhatsApp (texto ou template) ao destinatário via API do BotoZap. `to` é o número E.164 ou wa_id. Para texto: type='text' e text={ body }. Para template: type='template' e template={ name, language, components? }. `from` aceita ID Meta ou UUID interno do Número e é obrigatório se a conta tem mais de um. O envio pode entregar uma mensagem real. Retorna `id` (UUID interno do BotoZap) e `wamid` (ID da mensagem na Meta), além de `to` e `status`.",
     sendMessageShape,
     sendMessageResultSchema,
     (client, args) => {
