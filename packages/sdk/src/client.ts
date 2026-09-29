@@ -32,8 +32,10 @@ import { Users, ApiLogs, WebhookDeliveries } from "./resources/read-only.js";
 import { MeResource } from "./resources/me.js";
 
 export interface BotoZapOptions {
-  /** Chave de API da conta (cabeçalho Authorization: Bearer). */
-  apiKey: string;
+  /** Chave de API da conta. Use apenas uma credencial: apiKey ou accessToken. */
+  apiKey?: string;
+  /** Token OAuth, ou provider chamado em cada requisição para usar o token atualizado. */
+  accessToken?: string | (() => string | Promise<string>);
   /** Sobrescreve a URL base. Padrão: https://botozap.com.br/api/v1 */
   baseUrl?: string;
   /** Injeta um fetch (testes, runtimes sem fetch global). */
@@ -87,15 +89,15 @@ export class BotoZap {
   readonly webhookDeliveries: WebhookDeliveries;
   readonly me: MeResource;
 
-  private readonly apiKey: string;
+  private readonly credential: string | (() => string | Promise<string>);
   private readonly baseUrl: string;
   private readonly fetchImpl: typeof fetch;
 
   constructor(options: BotoZapOptions) {
-    if (!options || !options.apiKey) {
-      throw new Error("BotoZap: apiKey é obrigatório.");
+    if (!options || Boolean(options.apiKey) === Boolean(options.accessToken)) {
+      throw new Error("BotoZap: informe apenas apiKey ou accessToken.");
     }
-    this.apiKey = options.apiKey;
+    this.credential = options.accessToken ?? options.apiKey!;
     this.baseUrl = (options.baseUrl ?? DEFAULT_BASE_URL).replace(/\/+$/, "");
 
     const resolvedFetch = options.fetch ?? globalThis.fetch;
@@ -184,12 +186,18 @@ export class BotoZap {
       }
     }
 
+    const credential = typeof this.credential === "function"
+      ? await this.credential() : this.credential;
+    if (!credential || /[\s,]/.test(credential)) {
+      throw new BotoZapError("invalid_credential", "Credencial Bearer inválida.", 401);
+    }
+
     let res: Awaited<ReturnType<typeof fetch>>;
     try {
       res = await this.fetchImpl(url.toString(), {
         method,
         headers: {
-          Authorization: `Bearer ${this.apiKey}`,
+          Authorization: `Bearer ${credential}`,
           ...(opts.body instanceof FormData
             ? {}
             : { "Content-Type": "application/json" }),
@@ -207,6 +215,7 @@ export class BotoZap {
         signal: opts.signal,
       });
     } catch (cause) {
+      if (cause instanceof BotoZapError) throw cause;
       // `fetch` REJEITA (DNS, conexão recusada, offline, abort) com um TypeError
       // — não é uma resposta HTTP. Se vazasse cru, o chamador teria dois tipos de
       // erro pra tratar (BotoZapError vs. TypeError). Embrulhamos num BotoZapError

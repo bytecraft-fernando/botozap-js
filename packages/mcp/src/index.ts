@@ -55,12 +55,17 @@ async function startHttpFromEnv(): Promise<void> {
     process.env.BOTOZAP_MCP_TRUSTED_PROXY_CIDRS,
   );
   assertSecureHttpBind(host, allowedHosts);
+  if (process.env.OAUTH_ENABLED === "true" && (!process.env.OAUTH_RESOURCE_URL?.trim() || !process.env.OAUTH_ISSUER_URL?.trim())) {
+    throw new Error("Configure OAUTH_RESOURCE_URL e OAUTH_ISSUER_URL para habilitar OAuth.");
+  }
   const eventSignal = await connectPostgresEventSignal(connectionString);
   let remote;
   try {
     remote = await startStreamableHttpServer({
       baseUrl: process.env.BOTOZAP_API_URL?.trim() || DEFAULT_API_URL,
       eventSignal,
+      oauthResourceUrl: process.env.OAUTH_ENABLED === "true" ? process.env.OAUTH_RESOURCE_URL?.trim() : undefined,
+      oauthIssuerUrl: process.env.OAUTH_ENABLED === "true" ? process.env.OAUTH_ISSUER_URL?.trim() : undefined,
       host,
       port,
       allowedHosts,

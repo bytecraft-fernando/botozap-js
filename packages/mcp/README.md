@@ -329,3 +329,19 @@ truncados. O segredo HMAC de webhook só é retornado na criação.
 Os payloads de negócio dinâmicos (IA, CRM/Agenda, conteúdo de mensagens,
 metadados de contato, diagnóstico de saúde e extensões de mídia) mantêm seu
 conteúdo. Reduções futuras nesses domínios precisam de contratos específicos.
+
+## OAuth no transporte remoto
+
+Configure as mesmas URLs canônicas usadas pelo app BotoZap:
+
+```sh
+OAUTH_ENABLED=true
+OAUTH_RESOURCE_URL=https://mcp.botozap.com.br/mcp
+OAUTH_ISSUER_URL=https://botozap.com.br
+```
+
+O endpoint publica metadados RFC 9728 em `/.well-known/oauth-protected-resource/mcp` e `/.well-known/oauth-protected-resource`. Respostas 401 incluem o endereço desses metadados em `WWW-Authenticate`. As URLs vêm da configuração do servidor.
+
+Cada request, inclusive em sessões já abertas, valida a credencial em `/v1/me`. Uma sessão OAuth aceita o token renovado somente quando grant, usuário, cliente, Conta e ambiente permanecem iguais. Chaves de API continuam vinculadas ao fingerprint original. Tokens de requests simultâneos ficam isolados; chamadas de API usam a credencial do próprio request. A descoberta de ferramentas acompanha os scopes e as rotas efetivamente permitidas pelo app. Revogação e mudança de papel passam a valer na próxima requisição.
+
+O transporte stdio continua recebendo a credencial pelo ambiente `BOTOZAP_API_KEY`. O servidor MCP não realiza login nem armazena refresh tokens.

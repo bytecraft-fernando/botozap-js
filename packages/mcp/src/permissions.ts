@@ -1,8 +1,12 @@
 import { AI_OPERATIONS } from "@botozap/sdk";
+import { TOOL_ROUTES } from "./tool-routes.js";
+import { routeAllowed } from "./auth-context.js";
+import type { ApiIdentity } from "./server.js";
 import { getAiToolEffects } from "./ai-tool-effects.js";
 
 export type ToolPolicy = {
   requiredScopes: readonly string[];
+  requiredRoutes?: readonly string[];
   sandbox: boolean;
   readOnlyHint: boolean;
   destructiveHint: boolean;
@@ -12,7 +16,7 @@ export type ToolPolicy = {
 const policies: Record<string, ToolPolicy> = {};
 function registerPolicy(name: string, policy: ToolPolicy): void {
   if (policies[name]) throw new Error(`Política MCP duplicada: ${name}`);
-  policies[name] = policy;
+  policies[name] = { ...policy, requiredRoutes: policy.requiredRoutes ?? TOOL_ROUTES[name] ?? [] };
 }
 function read(names: readonly string[], scope: string, sandbox: boolean): void {
   for (const name of names) registerPolicy(name, {
@@ -153,7 +157,7 @@ for (const op of AI_OPERATIONS) {
   const scope = op.scope ?? (op.method === "GET" ? "agents:read" : "agents:write");
   const effect = getAiToolEffects(`${op.group}.${op.name}`);
   registerPolicy(name, {
-    requiredScopes: [scope], sandbox: false,
+    requiredScopes: [scope], requiredRoutes: [`${op.method} /v1${op.path}`], sandbox: false,
     readOnlyHint: effect.readOnlyHint,
     destructiveHint: effect.destructiveHint,
     openWorldHint: effect.openWorldHint,
@@ -167,11 +171,16 @@ export function getToolPolicy(name: string): ToolPolicy {
 }
 
 export function isToolAllowed(
-  policy: Pick<ToolPolicy, "requiredScopes" | "sandbox">,
-  identity: { scopes: readonly string[]; environment: "live" | "sandbox" },
+  policy: Pick<ToolPolicy, "requiredScopes" | "sandbox" | "requiredRoutes">,
+  identity: Pick<ApiIdentity, "scopes" | "environment" | "auth_type" | "allowed_routes">,
 ): boolean {
   return policy.requiredScopes.every((scope) => identity.scopes.includes(scope)) &&
-    (identity.environment !== "sandbox" || policy.sandbox);
+    (identity.environment !== "sandbox" || policy.sandbox) &&
+    (identity.auth_type !== "oauth" || Boolean(policy.requiredRoutes?.length) &&
+      policy.requiredRoutes!.every((route) => {
+        const [method, path] = route.split(" ");
+        return Boolean(method && path && routeAllowed(identity as ApiIdentity, method, path));
+      }));
 }
 
 export const MCP_TOOL_POLICIES: Readonly<Record<string, ToolPolicy>> = policies;
@@ -179,5 +188,6 @@ export const MCP_TOOL_POLICIES: Readonly<Record<string, ToolPolicy>> = policies;
 /** /v1/events declares events:read and sandbox:true. */
 export const EVENT_RESOURCE_POLICY = {
   requiredScopes: ["events:read"],
+  requiredRoutes: ["GET /v1/events"],
   sandbox: true,
 } as const;

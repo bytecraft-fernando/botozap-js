@@ -273,8 +273,8 @@ describe("transporte MCP Streamable HTTP", () => {
     const holdRead = new Promise<void>((resolve) => {
       releaseRead = resolve;
     });
-    const baseUrl = await startApi(events, apiRequests, async (readNumber) => {
-      if (readNumber !== 2) return;
+    const baseUrl = await startApi(events, apiRequests, async (_readNumber, request) => {
+      if (request.url?.split("?")[0] !== "/events") return;
       markReadStarted?.();
       await holdRead;
     });
@@ -361,8 +361,8 @@ describe("transporte MCP Streamable HTTP", () => {
     const holdRead = new Promise<void>((resolve) => {
       releaseRead = resolve;
     });
-    const baseUrl = await startApi([], [], async (readNumber, request) => {
-      if (readNumber !== 2) return;
+    const baseUrl = await startApi([], [], async (_readNumber, request) => {
+      if (request.url?.split("?")[0] !== "/events") return;
       request.once("aborted", () => markReadAborted?.());
       markReadStarted?.();
       await holdRead;
@@ -439,8 +439,8 @@ describe("transporte MCP Streamable HTTP", () => {
     const holdRead = new Promise<void>((resolve) => {
       releaseRead = resolve;
     });
-    const baseUrl = await startApi([], [], async (readNumber) => {
-      if (readNumber !== 2) return;
+    const baseUrl = await startApi([], [], async (_readNumber, request) => {
+      if (request.url?.split("?")[0] !== "/events") return;
       markReadStarted?.();
       await holdRead;
     });

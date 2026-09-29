@@ -3,6 +3,7 @@
  * e registra todos os grupos de ferramentas. Extraído de `index.ts` para que o
  * smoke test possa montar o servidor sem abrir o transporte stdio.
  */
+import { requestAuthContext, type RequestAuthContext } from "./auth-context.js";
 import { createRequire } from "node:module";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
@@ -38,6 +39,7 @@ export interface BuildServerOptions {
   baseUrl?: string;
   /** Injeta um fetch (testes de integração). Prod → global do SDK. */
   fetch?: typeof fetch;
+  resolveRequestAuth?: () => Promise<RequestAuthContext>;
   /** Intervalo do tail enquanto há assinatura ativa. Padrão: 1,5 s. */
   eventPollIntervalMs?: number;
   /** Máximo de URIs de Eventos assinadas por sessão. */
@@ -47,7 +49,15 @@ export interface BuildServerOptions {
 }
 
 /** Snapshot from `/me`; pass only between internal HTTP bootstrap helpers. */
-export type ApiIdentity = { account_id: string; environment: "live" | "sandbox"; scopes: string[] };
+export type ApiIdentity = {
+  account_id: string; environment: "live" | "sandbox"; scopes: string[];
+  auth_type?: "api_key" | "oauth";
+  user_id?: string; client_id?: string; grant_id?: string; allowed_routes?: string[];
+};
+const permissionRefreshers = new WeakMap<McpServer, (identity: ApiIdentity) => void>();
+export function refreshServerIdentity(server: McpServer, identity: ApiIdentity): void {
+  permissionRefreshers.get(server)?.(identity);
+}
 
 export class IntrospectionError extends Error {
   constructor(readonly httpStatus: number, readonly code: string) {
@@ -56,7 +66,7 @@ export class IntrospectionError extends Error {
   }
 }
 
-function parseIdentity(value: unknown): ApiIdentity {
+export function parseIdentity(value: unknown): ApiIdentity {
   if (
     !value || typeof value !== "object" || Array.isArray(value) ||
     typeof (value as ApiIdentity).account_id !== "string" ||
@@ -66,7 +76,17 @@ function parseIdentity(value: unknown): ApiIdentity {
     !Array.isArray((value as ApiIdentity).scopes) ||
     (value as ApiIdentity).scopes.some((scope) => typeof scope !== "string")
   ) throw new IntrospectionError(502, "invalid_identity_response");
-  return value as ApiIdentity;
+  const identity = value as ApiIdentity;
+  if (identity.auth_type !== undefined && identity.auth_type !== "api_key" && identity.auth_type !== "oauth") {
+    throw new IntrospectionError(502, "invalid_identity_response");
+  }
+  if (identity.auth_type === "oauth" && (
+    identity.environment !== "live" ||
+    [identity.user_id, identity.client_id, identity.grant_id].some((id) => typeof id !== "string" || !id) ||
+    !Array.isArray(identity.allowed_routes) ||
+    identity.allowed_routes.some((route) => typeof route !== "string" || !/^(GET|POST|PUT|PATCH|DELETE|HEAD) \/v1\/[A-Za-z0-9_/:.-]+$/.test(route))
+  )) throw new IntrospectionError(502, "invalid_identity_response");
+  return identity;
 }
 
 async function introspect(client: ReturnType<typeof createClient>): Promise<ApiIdentity> {
@@ -98,6 +118,7 @@ export async function buildServer(
     apiKey: options.apiKey,
     baseUrl: options.baseUrl,
     fetch: options.fetch,
+    resolveRequestAuth: options.resolveRequestAuth,
   });
   // HTTP uses a preflight before reserving a session slot; only internal code
   // passes its result here. Direct consumers always resolve identity themselves.
@@ -113,6 +134,7 @@ export async function buildServer(
   );
 
   const register = createRegister(server, client, options.apiKey, identity);
+  permissionRefreshers.set(server, register.updateIdentity);
 
   registerAttendanceTools(register);
   registerAgendaTools(register);
@@ -139,7 +161,7 @@ export async function buildServer(
   server.registerTool(
     "get_profile",
     {
-      description: "Retorna a identidade da Conta BotoZap autorizada por esta chave.",
+      description: "Retorna a identidade da Conta BotoZap autorizada por esta credencial.",
       inputSchema: {},
       outputSchema: z.object({
         id: z.string(),
@@ -152,7 +174,7 @@ export async function buildServer(
     },
     async () => {
       try {
-        const current = await introspect(client);
+        const current = requestAuthContext.getStore()?.identity ?? await introspect(client);
         const profile = {
           id: `botozap:${current.account_id}:${current.environment}`,
           nickname: `Conta BotoZap — ${current.environment === "live" ? "produção" : "sandbox"}`,

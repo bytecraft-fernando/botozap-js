@@ -8,7 +8,9 @@
  *  5. converter `BotoZapError`/exceções em resultado `isError` com mensagem PT-BR.
  */
 
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { requestAuthContext } from "./auth-context.js";
+import type { ApiIdentity } from "./server.js";
+import type { McpServer, RegisteredTool } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import type { AnyZodObject, ZodRawShape } from "zod";
 import { BotoZapError, type Client } from "./client.js";
@@ -66,6 +68,7 @@ export interface Register {
 }
 
 const API_KEY_PATTERN = /\bbz_(?:live|sandbox)_[A-Za-z0-9._-]+\b/g;
+const JWT_PATTERN = /\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/g;
 const BEARER_PATTERN = /\bBearer\s+\S+/gi;
 
 function safeMessage(value: unknown, apiKey?: string): string {
@@ -74,7 +77,7 @@ function safeMessage(value: unknown, apiKey?: string): string {
     "Bearer [credencial removida]",
   );
   if (apiKey) message = message.split(apiKey).join("[credencial removida]");
-  return message.replace(API_KEY_PATTERN, "[credencial removida]");
+  return message.replace(API_KEY_PATTERN, "[credencial removida]").replace(JWT_PATTERN, "[credencial removida]");
 }
 
 function errorResult(err: unknown, apiKey?: string): {
@@ -113,8 +116,10 @@ export function createRegister(
   server: McpServer,
   client: Client,
   apiKey: string,
-  identity: { scopes: readonly string[]; environment: "live" | "sandbox" },
+  identity: ApiIdentity,
 ) {
+  let currentIdentity = identity;
+  const tools: Array<{ tool: RegisteredTool; policy: ReturnType<typeof getToolPolicy> }> = [];
   const register: Register = function register(
     name: string,
     description: string,
@@ -123,10 +128,10 @@ export function createRegister(
     maybeHandler?: ToolHandler<Record<string, unknown>>,
   ): void {
     const policy = getToolPolicy(name);
-    if (!isToolAllowed(policy, identity)) return;
+
     const outputSchema = maybeHandler ? (outputOrHandler as AnyZodObject) : undefined;
     const handler = maybeHandler ?? (outputOrHandler as ToolHandler<Record<string, unknown>>);
-    server.registerTool(
+    const tool = server.registerTool(
       name,
       {
         description,
@@ -142,6 +147,10 @@ export function createRegister(
       },
       async (args): Promise<CallToolResult> => {
         try {
+          const authority = requestAuthContext.getStore()?.identity ?? currentIdentity;
+          if (!isToolAllowed(policy, authority)) {
+            throw new BotoZapError("forbidden_scope", "Esta autorização não permite a ferramenta.", 403);
+          }
           const handlerResult = await handler(
             client,
             (args ?? {}) as Record<string, unknown>,
@@ -179,7 +188,7 @@ export function createRegister(
             structuredContent: parsed.data,
           };
         } catch (err) {
-          const result = errorResult(err, apiKey);
+          const result = errorResult(err, requestAuthContext.getStore()?.credential ?? apiKey);
           return {
             content: [{ type: "text", text: result.text }],
             ...(outputSchema ? { structuredContent: result.structured } : {}),
@@ -188,6 +197,16 @@ export function createRegister(
         }
       },
     );
+    tools.push({ tool, policy });
+    if (!isToolAllowed(policy, currentIdentity)) tool.disable();
   };
-  return register;
+  return Object.assign(register, {
+    updateIdentity(next: ApiIdentity) {
+      currentIdentity = next;
+      for (const { tool, policy } of tools) {
+        const allowed = isToolAllowed(policy, next);
+        if (tool.enabled !== allowed) allowed ? tool.enable() : tool.disable();
+      }
+    },
+  });
 }

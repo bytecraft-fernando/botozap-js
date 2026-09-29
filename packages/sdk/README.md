@@ -394,3 +394,16 @@ substitui snapshots nem transforma uma inferência incerta em custo zero.
 
 A CLI `ai usage save-rate` recebe o mesmo JSON por `--input-file`; o MCP expõe
 `audio_pricing` opcional e anulável na ferramenta `ai_usage_save_rate`.
+
+## Token OAuth
+
+Além de `apiKey`, o cliente aceita `accessToken`. Um provider permite usar o token renovado em cada requisição:
+
+```ts
+const boto = new BotoZap({
+  accessToken: async () => getCurrentOAuthAccessToken(),
+});
+await boto.contacts.list();
+```
+
+Informe uma única credencial. O SDK envia `Authorization: Bearer` e não realiza o fluxo de login ou a renovação; o aplicativo fornece o token atual. `boto.me.get()` devolve os scopes e, para OAuth, `auth_type`, `user_id`, `client_id`, `grant_id` e `allowed_routes`. A autorização sempre é revalidada pelo servidor.

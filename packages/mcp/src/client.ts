@@ -9,6 +9,7 @@
  *  - `BotoZapError` — re-exportado para o `register` adaptar o `isError`.
  */
 import { BotoZap, BotoZapError } from "@botozap/sdk";
+import { routeAllowed, type RequestAuthContext } from "./auth-context.js";
 
 export { BotoZapError };
 
@@ -26,6 +27,8 @@ export interface ClientOptions {
   baseUrl?: string;
   /** Injeta um fetch (usado pelos testes de integração). Prod → global do SDK. */
   fetch?: typeof fetch;
+  /** Remote requests supply isolated credentials and current API authority. */
+  resolveRequestAuth?: () => Promise<RequestAuthContext>;
 }
 
 /** Instancia o cliente do SDK. `baseUrl` indefinido → default do SDK. */
@@ -33,6 +36,25 @@ export function createClient(options: ClientOptions): Client {
   return new BotoZap({
     apiKey: options.apiKey,
     baseUrl: options.baseUrl,
-    fetch: options.fetch,
+    fetch: options.resolveRequestAuth ? async (input, init) => {
+      const url = new URL(String(input));
+      // SDK putArtifact sends only a signed storage URL, never our credential.
+      if (init?.method === "PUT" && init.credentials === "omit" &&
+          init.redirect === "error" && !new Headers(init.headers).has("Authorization")) {
+        return (options.fetch ?? globalThis.fetch)(input, init);
+      }
+      const auth = await options.resolveRequestAuth!();
+      const base = new URL(options.baseUrl ?? DEFAULT_API_URL);
+      if (url.origin !== base.origin || !url.pathname.startsWith(base.pathname.replace(/\/$/, "") + "/")) {
+        throw new BotoZapError("invalid_api_target", "Destino da API inválido.", 403);
+      }
+      const path = "/v1" + url.pathname.slice(base.pathname.replace(/\/$/, "").length);
+      if (!routeAllowed(auth.identity, init?.method ?? "GET", path)) {
+        throw new BotoZapError("forbidden_scope", "Esta autorização não permite a operação.", 403);
+      }
+      const headers = new Headers(init?.headers);
+      headers.set("Authorization", `Bearer ${auth.credential}`);
+      return (options.fetch ?? globalThis.fetch)(input, { ...init, headers, redirect: "error" });
+    } : options.fetch,
   });
 }
