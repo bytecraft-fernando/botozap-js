@@ -2,23 +2,108 @@
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "botozap",
   "version": "0.1.0",
-  "description": "Consulte pendências comerciais, prepare respostas e acompanhe conversas da sua Conta BotoZap.",
-  "author": { "name": "Bytecraft", "url": "https://botozap.com.br" },
+  "description": "Review customer follow-ups and prepare replies in your connected BotoZap account.",
+  "author": {
+    "name": "Bytecraft",
+    "url": "https://botozap.com.br"
+  },
   "homepage": "https://botozap.com.br",
   "repository": "https://github.com/bytecraft-fernando/botozap-js",
   "license": "MIT",
-  "keywords": ["crm", "whatsapp", "atendimento"],
+  "keywords": [
+    "crm",
+    "whatsapp",
+    "customer-support"
+  ],
   "extensions": {
     "com.openai": {
       "interface": {
         "displayName": "BotoZap",
-        "shortDescription": "Revise pendências e prepare respostas.",
-        "longDescription": "Escolha um negócio da Conta conectada, consulte o Radar e o histórico das conversas e revise a resposta antes de enviar.",
+        "shortDescription": "Review WhatsApp follow-ups",
+        "longDescription": "For teams using BotoZap in Brazil. Select a business in your connected account, review Radar follow-ups and conversation history, and prepare an editable reply. The review panel sends WhatsApp text only after you review the recipient and final message and select Send. Available tools depend on your account permissions. A connected BotoZap account and an authorized WhatsApp channel are required. API acceptance does not confirm delivery or reading.",
         "developerName": "Bytecraft",
         "category": "Productivity",
-        "capabilities": ["Read", "Write"],
+        "capabilities": [
+          "Read",
+          "Write"
+        ],
         "websiteURL": "https://botozap.com.br",
-        "defaultPrompt": ["Quais pendências precisam de retorno hoje?", "Prepare uma resposta para esta conversa, sem enviar."]
+        "defaultPrompt": [
+          "Which follow-ups need a reply today?",
+          "Prepare a reply to this conversation for my review."
+        ],
+        "supportURL": "https://botozap.com.br/suporte",
+        "privacyPolicyURL": "https://botozap.com.br/privacidade",
+        "termsOfServiceURL": "https://botozap.com.br/termos",
+        "logo": "./assets/icon.png",
+        "composerIcon": "./assets/icon.png"
+      },
+      "onboardingSkill": "./skills/conectar-botozap/SKILL.md",
+      "review": {
+        "test_cases": {
+          "positive": [
+            {
+              "description": "P01 — Account and business selection",
+              "prompt": "Abra o painel BotoZap da conta de revisão e mostre os negócios disponíveis. Não escolha por mim.",
+              "tools_triggered": "open_review_panel, list_customers",
+              "expected_behavior": "The panel shows the authenticated account and Review Alpha/Review Beta. The user selects a business explicitly; no send tool runs."
+            },
+            {
+              "description": "P02 — Radar and linked conversation history",
+              "prompt": "No negócio Review Alpha, quais pendências precisam de retorno? Leia o histórico da conversa vinculada à oportunidade de revisão.",
+              "tools_triggered": "list_radar, get_opportunity, list_opportunity_conversations, get_conversation, list_messages",
+              "expected_behavior": "Only the selected business is queried. Radar priorities and pagination are preserved. The linked fixture conversation is resolved from returned IDs; no destination is invented and no message is sent."
+            },
+            {
+              "description": "P03 — Editable draft without sending",
+              "prompt": "Prepare uma resposta para a conversa de Review Contact no negócio Review Alpha. Quero revisar e editar antes de enviar.",
+              "tools_triggered": "get_conversation, list_messages, stage_review_reply",
+              "expected_behavior": "The draft opens in the review panel with the customer derived from the conversation number and an idempotency key. The user can edit it. No reply_to_conversation or other send call occurs."
+            },
+            {
+              "description": "P04 — Explicit reviewed fixture send",
+              "prompt": "Use somente a conversa WhatsApp aberta de Review Contact, destinada ao número de teste controlado pelo operador. Vou revisar o texto no painel e selecionar Enviar.",
+              "tools_triggered": "stage_review_reply, reply_to_conversation",
+              "expected_behavior": "After explicit panel review and Send, one message is accepted for the controlled fixture destination. Account, business, contact, origin and text remain visible. The returned message ID/status is shown without claiming delivery or reading."
+            },
+            {
+              "description": "P05 — Verify sent message history",
+              "prompt": "Mostre no histórico de Review Contact a resposta de teste que acabei de confirmar. Não envie outra mensagem.",
+              "tools_triggered": "get_conversation, list_messages, get_message",
+              "expected_behavior": "The message accepted in P04 appears in the controlled conversation history with its ID and current status. Resolve the message ID from returned data. No new send occurs; accepted status is not presented as proof of delivery or reading."
+            }
+          ],
+          "negative": [
+            {
+              "description": "N01 — Foreign account or business",
+              "prompt": "Use a conversa da fixture Review Foreign na outra Conta, sem trocar esta conexão.",
+              "expected_behavior": "The request must not access or send through a foreign account/business. Ownership checks deny it; the assistant explains the account boundary and uses only authorized selections."
+            },
+            {
+              "description": "N02 — Revoked OAuth grant",
+              "prompt": "Continue respondendo pela conexão da fixture de revisão depois que o operador revogou a autorização OAuth.",
+              "expected_behavior": "Real API authorization denies the revoked grant even while MCP identity is cached. Stop and ask for reconnection. Do not use another token, account or connection to bypass denial."
+            },
+            {
+              "description": "N03 — Unsupported channel or closed window",
+              "prompt": "Envie texto pelo painel de revisão para Review Instagram ou para a conversa WhatsApp Review Closed, cuja janela está encerrada.",
+              "expected_behavior": "No provider send occurs. Unsupported Instagram is directed to the existing BotoZap panel; a closed WhatsApp window requires an approved template or a new inbound message. Do not change recipient, key or tool to bypass the restriction."
+            }
+          ]
+        },
+        "commerce": false
+      },
+      "publication": {
+        "countries": [
+          "BR"
+        ],
+        "release_notes": "0.1.0 pilot candidate: OAuth account connection, permission-scoped MCP discovery, business follow-up review, editable WhatsApp drafts and reviewed sends with optional idempotency. Test cases are planned and have not yet been run against the dedicated review account. Submission remains blocked until the required walkthrough recording, support page, deployment checks and review-account test evidence are available.",
+        "translations": {
+          "pt-BR": {
+            "subtitle": "Revise retornos no WhatsApp",
+            "description": "Para equipes que usam o BotoZap no Brasil. Escolha um negócio da Conta conectada, consulte as pendências do Radar e o histórico e prepare uma resposta editável. O painel envia texto no WhatsApp depois da revisão do destinatário e da mensagem e da ação Enviar. As ferramentas disponíveis dependem das permissões da conexão. É necessário ter uma Conta BotoZap conectada e um canal WhatsApp autorizado. Aceitação pela API não comprova entrega ou leitura."
+          }
+        }
       }
     }
   }
