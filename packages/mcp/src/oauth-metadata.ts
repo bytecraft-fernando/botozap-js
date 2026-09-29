@@ -1,4 +1,8 @@
-import type { ServerResponse } from "node:http";
+type MetadataResponse = {
+  setHeader(name: string, value: string): unknown;
+  writeHead(statusCode: number, headers: Record<string, string>): unknown;
+  end(body: string): unknown;
+};
 
 // OAuth request scopes accepted by the app's authorization server. BotoZap
 // permissions are selected during consent and returned separately by /v1/me.
@@ -26,13 +30,13 @@ export function protectedResourceConfig(resource?: string, issuer?: string): Pro
   return { resource: resourceUrl.href, issuer: issuerUrl.href.replace(/\/$/, ""), metadataPath, metadataUrl: `${resourceUrl.origin}${metadataPath}` };
 }
 
-export function bearerChallenge(response: ServerResponse, config?: ProtectedResourceConfig, invalid = false): void {
+export function bearerChallenge(response: MetadataResponse, config?: ProtectedResourceConfig, invalid = false): void {
   response.setHeader("WWW-Authenticate", config
     ? `Bearer resource_metadata="${config.metadataUrl}"${invalid ? ', error="invalid_token"' : ''}`
     : "Bearer");
 }
 
-export function writeProtectedResourceMetadata(response: ServerResponse, config: ProtectedResourceConfig): void {
+export function writeProtectedResourceMetadata(response: MetadataResponse, config: ProtectedResourceConfig): void {
   response.writeHead(200, { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "public, max-age=300" });
   response.end(JSON.stringify({
     resource: config.resource,
