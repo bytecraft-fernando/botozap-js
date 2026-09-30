@@ -87,6 +87,29 @@ describe("filtro de permissões MCP", () => {
     expect(fetch).toHaveBeenCalledTimes(2); // boot and fresh profile read
   });
 
+  it("usa account_name da Conta no nickname quando a API o devolve (#629)", async () => {
+    const fetch = vi.fn(async (input: RequestInfo | URL) => {
+      const url = new URL(String(input));
+      if (url.pathname.endsWith("/me")) {
+        return Response.json({
+          data: { account_id: ACCOUNT_ID, account_name: "Padaria da Maria", environment: "live", scopes: [] },
+        });
+      }
+      throw new Error(`Rota inesperada na descoberta: ${url.pathname}`);
+    });
+    const server = await buildServer({ apiKey: "bz_live_account_name_test", baseUrl: "https://api.test/v1", fetch });
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+    const client = new Client({ name: "account-name-test", version: "1" });
+    await Promise.all([server.connect(serverTransport), client.connect(clientTransport)]);
+    clients.push(client);
+
+    const result = await client.callTool({ name: "get_profile", arguments: {} });
+    expect(result.structuredContent).toEqual({
+      id: `botozap:${ACCOUNT_ID}:live`,
+      nickname: "Padaria da Maria — produção",
+    });
+  });
+
   it("returns a schema-compatible error after profile revocation without leaking upstream details", async () => {
     const { client, fetch } = await connect([]);
     await client.listTools();

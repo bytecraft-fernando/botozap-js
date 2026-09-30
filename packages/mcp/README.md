@@ -316,6 +316,23 @@ contrato; a 0.2.6 corrige a instalação. Após publicar, instale a versão exat
 um projeto vazio **sem overrides** e repita o cliente MCP real. O gate com
 override serve para candidatos cujo SDK ainda não está no registry.
 
+**2FA exige terminal interativo.** `npm publish` pede o código do autenticador
+na hora; rodar `pnpm release:mcp` fora de um terminal interativo (CI, script
+não-interativo, agente sem TTY) não tem como responder esse prompt. Publique a
+partir de um terminal interativo de verdade.
+
+**Depois do `npm publish`, o npm pode levar alguns minutos para listar a versão
+nova** (janela de processamento). `pnpm release:mcp` espera essa janela com um
+poll em `npm view @botozap/mcp@<versão> version` (~20 min de timeout, 15 s de
+intervalo) antes de instalar a versão publicada na prova pós-registry; o
+timeout imprime como conferir manualmente. Se a publicação ficar presa nessa
+janela sem 2FA (terminal não-interativo) ou a versão demorar mais que o
+timeout, **não rode `pnpm release:mcp` de novo**: publicar de novo com a
+versão anterior ainda na janela de processamento falha com `409 "Cannot
+publish over previously staged version"`, e essa versão fica presa até a
+janela passar sozinha. Espere a versão aparecer (`npm view` acima) e, só então,
+rode a prova pós-registry manualmente se quiser confirmar sem esperar o script.
+
 ## Atendimento, CRM e Agenda
 
 O catálogo inclui respostas compartilhadas, notas/retornos/arquivo/adiamento,

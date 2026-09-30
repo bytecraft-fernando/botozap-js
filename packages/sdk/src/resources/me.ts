@@ -4,6 +4,9 @@ import type { BotoZap } from "../client.js";
 export interface Me {
   /** UUID da Conta derivado pela API a partir da chave autenticada. */
   account_id: string;
+  /** Nome da Conta (#629). Ausente em versões anteriores da API — opcional
+   * para continuar compatível com um servidor sem o campo. */
+  account_name?: string;
   /** Ambiente ao qual a chave pertence. */
   environment: "live" | "sandbox";
   /** Scopes efetivos concedidos à chave. */

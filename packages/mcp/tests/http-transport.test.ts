@@ -468,6 +468,13 @@ describe("transporte MCP Streamable HTTP", () => {
   });
 
   it("reserva o limite antes de inicializações concorrentes", async () => {
+    // Credenciais distintas por tentativa: o cache de identidade compartilhado
+    // (#629) deduplica introspecções concorrentes da MESMA credencial, então
+    // 10 conexões com a mesma chave não bateriam mais 10 leituras de /me. Aqui
+    // o alvo é o teto GLOBAL de sessões (`maxSessions`), não o de uma chave —
+    // por isso cada tentativa usa sua própria credencial (introspecção própria,
+    // nunca deduplicada entre credenciais diferentes).
+    const concurrentApiKeys = Array.from({ length: 10 }, (_, i) => `${API_KEY}-${i}`);
     let releaseAuthentication: (() => void) | undefined;
     const authenticationBarrier = new Promise<void>((resolve) => {
       releaseAuthentication = resolve;
@@ -476,7 +483,7 @@ describe("transporte MCP Streamable HTTP", () => {
       if (readNumber > 10) return;
       if (readNumber === 10) releaseAuthentication?.();
       await authenticationBarrier;
-    });
+    }, new Set(concurrentApiKeys));
     const remote = await startStreamableHttpServer({
       baseUrl,
       eventSignal: new TestEventSignal(),
@@ -487,7 +494,7 @@ describe("transporte MCP Streamable HTTP", () => {
     openServers.push(remote);
 
     const attempts = await Promise.allSettled(
-      Array.from({ length: 10 }, () => connect(remote.url)),
+      concurrentApiKeys.map((apiKey) => connect(remote.url, apiKey)),
     );
 
     expect(attempts.filter((attempt) => attempt.status === "fulfilled")).toHaveLength(1);
