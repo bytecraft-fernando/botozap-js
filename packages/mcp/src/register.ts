@@ -1,3 +1,6 @@
+import { globalToolMetadata } from './resources/global-panel.js';
+import { getUiCapability, RESOURCE_MIME_TYPE } from "@modelcontextprotocol/ext-apps/server";
+import { screenMetadata } from "./resources/screen-resource.js";
 /**
  * Helper de registro de ferramentas: encapsula o padrão comum de
  *  1. validar args (zod, feito pelo SDK a partir do `inputSchema`),
@@ -8,7 +11,7 @@
  *  5. converter `BotoZapError`/exceções em resultado `isError` com mensagem PT-BR.
  */
 
-import { reviewToolMetadata, REVIEW_RESOURCE_URI } from "./resources/review-panel.js";
+import { reviewToolMetadata, replyToolMetadata, radarToolMetadata } from "./resources/review-panel.js";
 import { requestAuthContext } from "./auth-context.js";
 import type { ApiIdentity } from "./server.js";
 import type { McpServer, RegisteredTool } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -54,6 +57,8 @@ export function emptyOperationResult(): StructuredToolResult {
 }
 
 export interface Register {
+  readonly uiEnabled?: boolean;
+  onUiChange?(listener: (enabled: boolean) => void): void;
   (
     name: string,
     description: string,
@@ -125,7 +130,26 @@ export function createRegister(
   options: { uiEnabled?: boolean } = {},
 ) {
   let currentIdentity = identity;
-  const tools: Array<{ tool: RegisteredTool; policy: ReturnType<typeof getToolPolicy> }> = [];
+  const accounts = process.env.BOTOZAP_MCP_UI_ACCOUNTS;
+  const allowedAccounts = accounts === undefined
+    ? null
+    : new Set(accounts.split(",").map(id => id.trim()).filter(Boolean));
+  const supportsUi = () => { const mimeTypes = getUiCapability(server.server.getClientCapabilities())?.mimeTypes; return Array.isArray(mimeTypes) && mimeTypes.includes(RESOURCE_MIME_TYPE); };
+  const uiAllowed = (value: ApiIdentity) => !!options.uiEnabled && supportsUi() && (allowedAccounts === null || allowedAccounts.has(value.account_id));
+  const uiTools = new Set(["open_review_panel", "stage_review_reply", "stage_review_template", "review_template_variables", "open_agent_cases", "stage_appointment_booking", "open_live_conversation", "open_botozap"]);
+  const listeners: Array<(enabled: boolean) => void> = [];
+  const metadata = (name: string) => {
+    if (name === "open_review_panel") return reviewToolMetadata;
+    if (name === "stage_review_reply") return replyToolMetadata;
+    if (name === "list_radar") return radarToolMetadata;
+    if (name === "stage_review_template") return screenMetadata("template");
+    if (name === "open_agent_cases") return screenMetadata("cases");
+    if (name === "open_live_conversation") return screenMetadata("live");
+    if (name === "open_botozap") return globalToolMetadata;
+    if (name === "stage_appointment_booking") return screenMetadata("booking");
+    return { ui: { visibility: ["model", "app"] } };
+  };
+  const tools: Array<{ name: string; tool: RegisteredTool; policy: ReturnType<typeof getToolPolicy> }> = [];
   const register: Register = function register(
     name: string,
     description: string,
@@ -141,8 +165,9 @@ export function createRegister(
       name,
       {
         description,
+        ...(name === "open_botozap" ? { title: "Pendências", icons: [{ src: "data:image/svg+xml," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><path d="M4 4h12v9H9l-5 3V4Z" fill="none" stroke="currentColor" stroke-width="1.33"/></svg>'), mimeType:"image/svg+xml", sizes:["20x20"] }] } : {}),
         inputSchema,
-        ...(options.uiEnabled ? { _meta: name === "open_review_panel" ? reviewToolMetadata : name === "stage_review_reply" ? { ui: { resourceUri: REVIEW_RESOURCE_URI, visibility: ["model", "app"] } } : { ui: { visibility: ["model", "app"] } } } : {}),
+        ...(uiAllowed(currentIdentity) ? { _meta: metadata(name) } : {}),
         annotations: {
           readOnlyHint: policy.readOnlyHint,
           destructiveHint: policy.destructiveHint,
@@ -155,7 +180,7 @@ export function createRegister(
       async (args): Promise<CallToolResult> => {
         try {
           const authority = requestAuthContext.getStore()?.identity ?? currentIdentity;
-          if (!isToolAllowed(policy, authority)) {
+          if (!isToolAllowed(policy, authority) || (uiTools.has(name) && !uiAllowed(authority))) {
             throw new BotoZapError("forbidden_scope", "Esta autorização não permite a ferramenta.", 403);
           }
           const handlerResult = await handler(
@@ -205,16 +230,26 @@ export function createRegister(
         }
       },
     );
-    tools.push({ tool, policy });
-    if (!isToolAllowed(policy, currentIdentity)) tool.disable();
+    tools.push({ name, tool, policy });
+    if (!isToolAllowed(policy, currentIdentity) || (uiTools.has(name) && !uiAllowed(currentIdentity))) tool.disable();
   };
-  return Object.assign(register, {
+  Object.defineProperty(register, "uiEnabled", { get: () => uiAllowed(currentIdentity) });
+  const previousInitialized = server.server.oninitialized;
+  const configured = Object.assign(register, {
+    onUiChange(listener: (enabled: boolean) => void) {
+      listeners.push(listener);
+      listener(uiAllowed(currentIdentity));
+    },
     updateIdentity(next: ApiIdentity) {
       currentIdentity = next;
-      for (const { tool, policy } of tools) {
-        const allowed = isToolAllowed(policy, next);
+      for (const { name, tool, policy } of tools) {
+        tool._meta = uiAllowed(next) ? metadata(name) : undefined;
+        const allowed = isToolAllowed(policy, next) && (!uiTools.has(name) || uiAllowed(next));
         if (tool.enabled !== allowed) allowed ? tool.enable() : tool.disable();
       }
+      for (const listener of listeners) listener(uiAllowed(next));
     },
   });
+  server.server.oninitialized = () => { previousInitialized?.(); configured.updateIdentity(currentIdentity); };
+  return configured;
 }

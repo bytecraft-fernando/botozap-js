@@ -17,7 +17,7 @@ function harness(reply = vi.fn(async () => data({ id: null, wamid: "wamid.accept
     if (name === "reply_to_conversation") return reply();
     throw new Error(`Unexpected ${name}`);
   });
-  const context = vi.fn(async () => {});
+  const context = vi.fn(async (_value: unknown) => {});
   const panel = mountReview(document.body, { call, context }); panel.bootstrap(bootstrap);
   return { call, context, panel, reply };
 }
@@ -33,6 +33,25 @@ function review() {
 }
 beforeEach(() => { document.body.innerHTML = ""; HTMLElement.prototype.scrollIntoView = vi.fn(); });
 describe("review UI safety", () => {
+  it("omits the account slug, accepts a display name and tracks selection for the shared footer", async () => {
+    const h = harness();
+    expect($("identity").hidden).toBe(true); expect($("identity").textContent).toBe("");
+    expect(document.body.dataset.conversationOpen).toBe("false");
+    h.panel.bootstrap(data({ ...bootstrap.structuredContent, account_name: "Operação Fernando" }));
+    expect($("identity").textContent).toBe("Operação Fernando"); expect($("identity").hidden).toBe(false);
+    await select(); expect(document.body.dataset.conversationOpen).toBe("true");
+    $<HTMLSelectElement>("business").value = "other"; event("business", "change");
+    expect(document.body.dataset.conversationOpen).toBe("false");
+  });
+  it("enriches Radar contact names as text without treating titles as names", async () => {
+    const h = harness(); const original=h.call.getMockImplementation()!;
+    h.call.mockImplementation(async name => name === "get_contact" ? data({data:{display_name:"Marina <img src=x>"}}) : original(name));
+    $<HTMLSelectElement>("business").value = "business"; event("business", "change");
+    await vi.waitFor(()=>expect(document.querySelector(".radar-item strong")?.textContent).toBe("Marina <img src=x>"));
+    expect(document.querySelector(".radar-item img")).toBeNull();
+    expect(document.querySelector(".radar-item")?.textContent).toContain("Retornar orçamento");
+  });
+
   it("renders contact content as text and never sends during preparation or cancel", async () => {
     const h = harness(); await select(); review(); $("edit").click();
     expect($("history").querySelector("img")).toBeNull(); expect($("history").textContent).toContain("<img");
@@ -66,4 +85,20 @@ describe("review UI safety", () => {
     expect($<HTMLTextAreaElement>("draft").disabled).toBe(true); expect($("notice").textContent).toContain("conta mudou");
     expect(h.reply).not.toHaveBeenCalled();
   });
+  it("only upgrades delivery status from a matching outbound receipt and never regresses read", async () => {
+    const h = harness(); await select(); review(); $("send").click();
+    await vi.waitFor(() => expect(document.body.dataset.state).toBe("accepted"));
+    const receipt = { id: "receipt", wamid: "wamid.accepted", conversation_id: "conversation", direction: "outbound", status: "delivered" };
+    const notify = (row: Record<string, unknown>) => h.panel.bootstrap(data({ data: [row], paging: { next: null } }));
+    notify({ ...receipt, conversation_id: "other" });
+    notify({ ...receipt, direction: "inbound" });
+    notify({ ...receipt, wamid: "unrelated" });
+    expect(document.body.dataset.state).toBe("accepted");
+    notify(receipt); expect(document.body.dataset.state).toBe("delivered");
+    notify({ ...receipt, status: "read" }); expect(document.body.dataset.state).toBe("read");
+    notify(receipt); expect(document.body.dataset.state).toBe("read");
+    expect(h.reply).toHaveBeenCalledTimes(1);
+    expect(h.context.mock.calls.at(-1)?.[0]).toMatchObject({ review_state: "read" });
+  });
+
 });

@@ -42,6 +42,10 @@ read(["list_messages", "get_message"], "messages:read", true);
 read(["list_conversations", "get_conversation"], "conversations:read", true);
 write(["reply_to_conversation"], ["conversations:read", "messages:send"], true,
   { destructiveHint: true, openWorldHint: true });
+registerPolicy("stage_review_template", { requiredScopes: ["conversations:read", "numbers:read"], sandbox: false, readOnlyHint: true, destructiveHint: false, openWorldHint: false });
+read(["review_template_variables"], "templates:read", false);
+read(["open_agent_cases"], "agents:read", false);
+registerPolicy("stage_appointment_booking", { requiredScopes: ["conversations:read", "numbers:read", "appointments:read"], sandbox: false, readOnlyHint: true, destructiveHint: false, openWorldHint: false });
 // SDK reply() first GETs the conversation, so this tool needs both route scopes.
 write(["update_conversation"], "conversations:write", true,
   { destructiveHint: true, openWorldHint: false });
@@ -193,3 +197,6 @@ export const EVENT_RESOURCE_POLICY = {
   requiredRoutes: ["GET /v1/events"],
   sandbox: true,
 } as const;
+
+registerPolicy("open_live_conversation", { requiredScopes:["conversations:read","messages:read","events:read"], sandbox:true, readOnlyHint:true, destructiveHint:false, openWorldHint:false });
+read(["open_botozap"], "customers:read", false);

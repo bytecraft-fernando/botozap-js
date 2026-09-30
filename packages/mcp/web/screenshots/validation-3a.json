@@ -1,0 +1,705 @@
+{
+  "scenarios": 100,
+  "results": [
+    {
+      "route": "template",
+      "step": "janela-fechada",
+      "device": "desktop",
+      "theme": "light",
+      "axeViolations": 0
+    },
+    {
+      "route": "template",
+      "step": "previa",
+      "device": "desktop",
+      "theme": "light",
+      "axeViolations": 0
+    },
+    {
+      "route": "template",
+      "step": "confirmacao",
+      "device": "desktop",
+      "theme": "light",
+      "axeViolations": 0
+    },
+    {
+      "route": "template",
+      "step": "aceito",
+      "device": "desktop",
+      "theme": "light",
+      "axeViolations": 0
+    },
+    {
+      "route": "template",
+      "step": "empty",
+      "device": "desktop",
+      "theme": "light",
+      "axeViolations": 0
+    },
+    {
+      "route": "template",
+      "step": "loading",
+      "device": "desktop",
+      "theme": "light",
+      "axeViolations": 0
+    },
+    {
+      "route": "template",
+      "step": "error",
+      "device": "desktop",
+      "theme": "light",
+      "axeViolations": 0
+    },
+    {
+      "route": "template",
+      "step": "rejected",
+      "device": "desktop",
+      "theme": "light",
+      "axeViolations": 0
+    },
+    {
+      "route": "template",
+      "step": "uncertain",
+      "device": "desktop",
+      "theme": "light",
+      "axeViolations": 0
+    },
+    {
+      "route": "cases",
+      "step": "escalado",
+      "device": "desktop",
+      "theme": "light",
+      "axeViolations": 0
+    },
+    {
+      "route": "cases",
+      "step": "confirmacao",
+      "device": "desktop",
+      "theme": "light",
+      "axeViolations": 0
+    },
+    {
+      "route": "cases",
+      "step": "assumido",
+      "device": "desktop",
+      "theme": "light",
+      "axeViolations": 0
+    },
+    {
+      "route": "cases",
+      "step": "devolvido",
+      "device": "desktop",
+      "theme": "light",
+      "axeViolations": 0
+    },
+    {
+      "route": "cases",
+      "step": "empty",
+      "device": "desktop",
+      "theme": "light",
+      "axeViolations": 0
+    },
+    {
+      "route": "cases",
+      "step": "loading",
+      "device": "desktop",
+      "theme": "light",
+      "axeViolations": 0
+    },
+    {
+      "route": "cases",
+      "step": "error",
+      "device": "desktop",
+      "theme": "light",
+      "axeViolations": 0
+    },
+    {
+      "route": "cases",
+      "step": "permission",
+      "device": "desktop",
+      "theme": "light",
+      "axeViolations": 0
+    },
+    {
+      "route": "booking",
+      "step": "horarios",
+      "device": "desktop",
+      "theme": "light",
+      "axeViolations": 0
+    },
+    {
+      "route": "booking",
+      "step": "confirmacao",
+      "device": "desktop",
+      "theme": "light",
+      "axeViolations": 0
+    },
+    {
+      "route": "booking",
+      "step": "marcado",
+      "device": "desktop",
+      "theme": "light",
+      "axeViolations": 0
+    },
+    {
+      "route": "booking",
+      "step": "empty",
+      "device": "desktop",
+      "theme": "light",
+      "axeViolations": 0
+    },
+    {
+      "route": "booking",
+      "step": "loading",
+      "device": "desktop",
+      "theme": "light",
+      "axeViolations": 0
+    },
+    {
+      "route": "booking",
+      "step": "error",
+      "device": "desktop",
+      "theme": "light",
+      "axeViolations": 0
+    },
+    {
+      "route": "booking",
+      "step": "rejected",
+      "device": "desktop",
+      "theme": "light",
+      "axeViolations": 0
+    },
+    {
+      "route": "booking",
+      "step": "uncertain",
+      "device": "desktop",
+      "theme": "light",
+      "axeViolations": 0
+    },
+    {
+      "route": "template",
+      "step": "janela-fechada",
+      "device": "mobile",
+      "theme": "light",
+      "axeViolations": 0
+    },
+    {
+      "route": "template",
+      "step": "previa",
+      "device": "mobile",
+      "theme": "light",
+      "axeViolations": 0
+    },
+    {
+      "route": "template",
+      "step": "confirmacao",
+      "device": "mobile",
+      "theme": "light",
+      "axeViolations": 0
+    },
+    {
+      "route": "template",
+      "step": "aceito",
+      "device": "mobile",
+      "theme": "light",
+      "axeViolations": 0
+    },
+    {
+      "route": "template",
+      "step": "empty",
+      "device": "mobile",
+      "theme": "light",
+      "axeViolations": 0
+    },
+    {
+      "route": "template",
+      "step": "loading",
+      "device": "mobile",
+      "theme": "light",
+      "axeViolations": 0
+    },
+    {
+      "route": "template",
+      "step": "error",
+      "device": "mobile",
+      "theme": "light",
+      "axeViolations": 0
+    },
+    {
+      "route": "template",
+      "step": "rejected",
+      "device": "mobile",
+      "theme": "light",
+      "axeViolations": 0
+    },
+    {
+      "route": "template",
+      "step": "uncertain",
+      "device": "mobile",
+      "theme": "light",
+      "axeViolations": 0
+    },
+    {
+      "route": "cases",
+      "step": "escalado",
+      "device": "mobile",
+      "theme": "light",
+      "axeViolations": 0
+    },
+    {
+      "route": "cases",
+      "step": "confirmacao",
+      "device": "mobile",
+      "theme": "light",
+      "axeViolations": 0
+    },
+    {
+      "route": "cases",
+      "step": "assumido",
+      "device": "mobile",
+      "theme": "light",
+      "axeViolations": 0
+    },
+    {
+      "route": "cases",
+      "step": "devolvido",
+      "device": "mobile",
+      "theme": "light",
+      "axeViolations": 0
+    },
+    {
+      "route": "cases",
+      "step": "empty",
+      "device": "mobile",
+      "theme": "light",
+      "axeViolations": 0
+    },
+    {
+      "route": "cases",
+      "step": "loading",
+      "device": "mobile",
+      "theme": "light",
+      "axeViolations": 0
+    },
+    {
+      "route": "cases",
+      "step": "error",
+      "device": "mobile",
+      "theme": "light",
+      "axeViolations": 0
+    },
+    {
+      "route": "cases",
+      "step": "permission",
+      "device": "mobile",
+      "theme": "light",
+      "axeViolations": 0
+    },
+    {
+      "route": "booking",
+      "step": "horarios",
+      "device": "mobile",
+      "theme": "light",
+      "axeViolations": 0
+    },
+    {
+      "route": "booking",
+      "step": "confirmacao",
+      "device": "mobile",
+      "theme": "light",
+      "axeViolations": 0
+    },
+    {
+      "route": "booking",
+      "step": "marcado",
+      "device": "mobile",
+      "theme": "light",
+      "axeViolations": 0
+    },
+    {
+      "route": "booking",
+      "step": "empty",
+      "device": "mobile",
+      "theme": "light",
+      "axeViolations": 0
+    },
+    {
+      "route": "booking",
+      "step": "loading",
+      "device": "mobile",
+      "theme": "light",
+      "axeViolations": 0
+    },
+    {
+      "route": "booking",
+      "step": "error",
+      "device": "mobile",
+      "theme": "light",
+      "axeViolations": 0
+    },
+    {
+      "route": "booking",
+      "step": "rejected",
+      "device": "mobile",
+      "theme": "light",
+      "axeViolations": 0
+    },
+    {
+      "route": "booking",
+      "step": "uncertain",
+      "device": "mobile",
+      "theme": "light",
+      "axeViolations": 0
+    },
+    {
+      "route": "template",
+      "step": "janela-fechada",
+      "device": "desktop",
+      "theme": "dark",
+      "axeViolations": 0
+    },
+    {
+      "route": "template",
+      "step": "previa",
+      "device": "desktop",
+      "theme": "dark",
+      "axeViolations": 0
+    },
+    {
+      "route": "template",
+      "step": "confirmacao",
+      "device": "desktop",
+      "theme": "dark",
+      "axeViolations": 0
+    },
+    {
+      "route": "template",
+      "step": "aceito",
+      "device": "desktop",
+      "theme": "dark",
+      "axeViolations": 0
+    },
+    {
+      "route": "template",
+      "step": "empty",
+      "device": "desktop",
+      "theme": "dark",
+      "axeViolations": 0
+    },
+    {
+      "route": "template",
+      "step": "loading",
+      "device": "desktop",
+      "theme": "dark",
+      "axeViolations": 0
+    },
+    {
+      "route": "template",
+      "step": "error",
+      "device": "desktop",
+      "theme": "dark",
+      "axeViolations": 0
+    },
+    {
+      "route": "template",
+      "step": "rejected",
+      "device": "desktop",
+      "theme": "dark",
+      "axeViolations": 0
+    },
+    {
+      "route": "template",
+      "step": "uncertain",
+      "device": "desktop",
+      "theme": "dark",
+      "axeViolations": 0
+    },
+    {
+      "route": "cases",
+      "step": "escalado",
+      "device": "desktop",
+      "theme": "dark",
+      "axeViolations": 0
+    },
+    {
+      "route": "cases",
+      "step": "confirmacao",
+      "device": "desktop",
+      "theme": "dark",
+      "axeViolations": 0
+    },
+    {
+      "route": "cases",
+      "step": "assumido",
+      "device": "desktop",
+      "theme": "dark",
+      "axeViolations": 0
+    },
+    {
+      "route": "cases",
+      "step": "devolvido",
+      "device": "desktop",
+      "theme": "dark",
+      "axeViolations": 0
+    },
+    {
+      "route": "cases",
+      "step": "empty",
+      "device": "desktop",
+      "theme": "dark",
+      "axeViolations": 0
+    },
+    {
+      "route": "cases",
+      "step": "loading",
+      "device": "desktop",
+      "theme": "dark",
+      "axeViolations": 0
+    },
+    {
+      "route": "cases",
+      "step": "error",
+      "device": "desktop",
+      "theme": "dark",
+      "axeViolations": 0
+    },
+    {
+      "route": "cases",
+      "step": "permission",
+      "device": "desktop",
+      "theme": "dark",
+      "axeViolations": 0
+    },
+    {
+      "route": "booking",
+      "step": "horarios",
+      "device": "desktop",
+      "theme": "dark",
+      "axeViolations": 0
+    },
+    {
+      "route": "booking",
+      "step": "confirmacao",
+      "device": "desktop",
+      "theme": "dark",
+      "axeViolations": 0
+    },
+    {
+      "route": "booking",
+      "step": "marcado",
+      "device": "desktop",
+      "theme": "dark",
+      "axeViolations": 0
+    },
+    {
+      "route": "booking",
+      "step": "empty",
+      "device": "desktop",
+      "theme": "dark",
+      "axeViolations": 0
+    },
+    {
+      "route": "booking",
+      "step": "loading",
+      "device": "desktop",
+      "theme": "dark",
+      "axeViolations": 0
+    },
+    {
+      "route": "booking",
+      "step": "error",
+      "device": "desktop",
+      "theme": "dark",
+      "axeViolations": 0
+    },
+    {
+      "route": "booking",
+      "step": "rejected",
+      "device": "desktop",
+      "theme": "dark",
+      "axeViolations": 0
+    },
+    {
+      "route": "booking",
+      "step": "uncertain",
+      "device": "desktop",
+      "theme": "dark",
+      "axeViolations": 0
+    },
+    {
+      "route": "template",
+      "step": "janela-fechada",
+      "device": "mobile",
+      "theme": "dark",
+      "axeViolations": 0
+    },
+    {
+      "route": "template",
+      "step": "previa",
+      "device": "mobile",
+      "theme": "dark",
+      "axeViolations": 0
+    },
+    {
+      "route": "template",
+      "step": "confirmacao",
+      "device": "mobile",
+      "theme": "dark",
+      "axeViolations": 0
+    },
+    {
+      "route": "template",
+      "step": "aceito",
+      "device": "mobile",
+      "theme": "dark",
+      "axeViolations": 0
+    },
+    {
+      "route": "template",
+      "step": "empty",
+      "device": "mobile",
+      "theme": "dark",
+      "axeViolations": 0
+    },
+    {
+      "route": "template",
+      "step": "loading",
+      "device": "mobile",
+      "theme": "dark",
+      "axeViolations": 0
+    },
+    {
+      "route": "template",
+      "step": "error",
+      "device": "mobile",
+      "theme": "dark",
+      "axeViolations": 0
+    },
+    {
+      "route": "template",
+      "step": "rejected",
+      "device": "mobile",
+      "theme": "dark",
+      "axeViolations": 0
+    },
+    {
+      "route": "template",
+      "step": "uncertain",
+      "device": "mobile",
+      "theme": "dark",
+      "axeViolations": 0
+    },
+    {
+      "route": "cases",
+      "step": "escalado",
+      "device": "mobile",
+      "theme": "dark",
+      "axeViolations": 0
+    },
+    {
+      "route": "cases",
+      "step": "confirmacao",
+      "device": "mobile",
+      "theme": "dark",
+      "axeViolations": 0
+    },
+    {
+      "route": "cases",
+      "step": "assumido",
+      "device": "mobile",
+      "theme": "dark",
+      "axeViolations": 0
+    },
+    {
+      "route": "cases",
+      "step": "devolvido",
+      "device": "mobile",
+      "theme": "dark",
+      "axeViolations": 0
+    },
+    {
+      "route": "cases",
+      "step": "empty",
+      "device": "mobile",
+      "theme": "dark",
+      "axeViolations": 0
+    },
+    {
+      "route": "cases",
+      "step": "loading",
+      "device": "mobile",
+      "theme": "dark",
+      "axeViolations": 0
+    },
+    {
+      "route": "cases",
+      "step": "error",
+      "device": "mobile",
+      "theme": "dark",
+      "axeViolations": 0
+    },
+    {
+      "route": "cases",
+      "step": "permission",
+      "device": "mobile",
+      "theme": "dark",
+      "axeViolations": 0
+    },
+    {
+      "route": "booking",
+      "step": "horarios",
+      "device": "mobile",
+      "theme": "dark",
+      "axeViolations": 0
+    },
+    {
+      "route": "booking",
+      "step": "confirmacao",
+      "device": "mobile",
+      "theme": "dark",
+      "axeViolations": 0
+    },
+    {
+      "route": "booking",
+      "step": "marcado",
+      "device": "mobile",
+      "theme": "dark",
+      "axeViolations": 0
+    },
+    {
+      "route": "booking",
+      "step": "empty",
+      "device": "mobile",
+      "theme": "dark",
+      "axeViolations": 0
+    },
+    {
+      "route": "booking",
+      "step": "loading",
+      "device": "mobile",
+      "theme": "dark",
+      "axeViolations": 0
+    },
+    {
+      "route": "booking",
+      "step": "error",
+      "device": "mobile",
+      "theme": "dark",
+      "axeViolations": 0
+    },
+    {
+      "route": "booking",
+      "step": "rejected",
+      "device": "mobile",
+      "theme": "dark",
+      "axeViolations": 0
+    },
+    {
+      "route": "booking",
+      "step": "uncertain",
+      "device": "mobile",
+      "theme": "dark",
+      "axeViolations": 0
+    }
+  ]
+}

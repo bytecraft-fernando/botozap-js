@@ -1,3 +1,8 @@
+import { registerLivePanel } from './live-panel.js';
+import { registerGlobalPanel } from './global-panel.js';
+import { registerTemplatePanel } from "./template-panel.js";
+import { registerCasesPanel } from "./cases-panel.js";
+import { registerBookingPanel } from "./booking-panel.js";
 import { randomUUID } from "node:crypto";
 /** Optional conversation review panel. No credential is embedded in its resource. */
 import { readFile } from "node:fs/promises";
@@ -10,22 +15,38 @@ import type { Register } from "../register.js";
 import { conversationSchema, listCustomersResultSchema } from "../schemas.js";
 
 export const REVIEW_RESOURCE_URI = "ui://botozap/review/v1.html";
+export const RADAR_RESOURCE_URI = "ui://botozap/radar-cards/v1.html";
+export const radarToolMetadata = { ui: { resourceUri: RADAR_RESOURCE_URI, visibility: ["model", "app"] } };
+export const REPLY_RESOURCE_URI = "ui://botozap/reply/v1.html";
+export const replyToolMetadata = { ui: { resourceUri: REPLY_RESOURCE_URI, visibility: ["model", "app"] } };
 export const reviewToolMetadata = {
   ui: { resourceUri: REVIEW_RESOURCE_URI, visibility: ["model", "app"] },
   "openai/ui": { entrypoints: [{ type: "thread" }] } satisfies OpenAIUiToolMetadata,
 };
 
 export function registerReviewPanel(server: McpServer, register: Register): void {
-  registerAppResource(server, "botozap-review", REVIEW_RESOURCE_URI, {}, async () => ({
-    contents: [{
-      uri: REVIEW_RESOURCE_URI,
-      mimeType: RESOURCE_MIME_TYPE,
-      text: await readFile(new URL("../ui/review.html", import.meta.url), "utf8"),
-      _meta: { ui: { prefersBorder: true, csp: {
-        connectDomains: [], resourceDomains: [], frameDomains: [],
-      } } },
-    }],
-  }));
+  registerTemplatePanel(server, register);
+  registerCasesPanel(server, register);
+  registerBookingPanel(server, register);
+  registerLivePanel(server, register);
+  registerGlobalPanel(server, register);
+  for (const [uri, mode] of [[REVIEW_RESOURCE_URI, "fullscreen"], [REPLY_RESOURCE_URI, "inline"], [RADAR_RESOURCE_URI, "inline"]] as const) {
+    const resource = registerAppResource(server, `botozap-${uri === RADAR_RESOURCE_URI ? "cards" : mode}`, uri, {}, async () => {
+      if (!register.uiEnabled) throw new BotoZapError("ui_not_allowed", "UI não habilitada para esta conta.", 403);
+      return {
+        contents: [{ uri, mimeType: RESOURCE_MIME_TYPE,
+          text: (await readFile(new URL("../ui/review.html", import.meta.url), "utf8")).replace('id="app"', `id="app" data-initial-mode="${mode}" data-view="${uri === RADAR_RESOURCE_URI ? "carousel" : "review"}"`),
+          _meta: {
+            "openai/ui": { availableDisplayModes: ["inline", "fullscreen"], preferredDisplayMode: mode },
+            ui: { prefersBorder: mode === "inline", csp: { connectDomains: [], resourceDomains: [], frameDomains: [] } },
+          },
+        }],
+      };
+    });
+    register.onUiChange?.(enabled => {
+      if (resource.enabled !== enabled) enabled ? resource.enable() : resource.disable();
+    });
+  }
   register(
     "stage_review_reply",
     "Prepara um rascunho editável no painel de revisão após confirmar acesso à conversa. Não envia mensagem.",

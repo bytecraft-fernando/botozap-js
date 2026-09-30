@@ -148,6 +148,27 @@ describe('review idempotency intent', () => {
     await vi.waitFor(() => expect(h.sends()).toHaveLength(1));
     expect(h.sends()[0][1].idempotency_key).toBe(key);
   });
+  it('freezes an uncertain inline card even with explicit repeat confirmation', async () => {
+    const h = setup(true); const key = 'cfc52d7a-e463-4a2c-b9de-121716c544dc';
+    h.panel.bootstrap(result({ customer_id: 'business', conversation, draft: { text: 'Resposta preparada.', idempotency_key: key } }));
+    await vi.waitFor(() => expect(el<HTMLTextAreaElement>('draft').value).toBe('Resposta preparada.'));
+    expect(document.body.dataset.mode).toBe('inline');
+    el('review').click(); confirm(); el('send').click();
+    await vi.waitFor(() => expect(document.body.dataset.state).toBe('uncertain'));
+    confirm(); el('send').click(); el('review').click();
+    expect(h.sends()).toHaveLength(1); expect(h.sends()[0][1].idempotency_key).toBe(key);
+    expect(el<HTMLTextAreaElement>('draft').disabled).toBe(true);
+    expect(el('notice').textContent).toContain('histórico');
+  });
+  it('shows a closed-window prepared card without dispatching a text reply', async () => {
+    const h = setup(); const original = h.call.getMockImplementation()!;
+    h.call.mockImplementation(async (name, args) => name === 'get_conversation' ? result({ data: { ...conversation, window_expires_at: '2020-01-01T00:00:00Z' } }) : original(name, args));
+    h.panel.bootstrap(result({ customer_id: 'business', conversation, draft: { text: 'Texto preparado.', idempotency_key: 'cfc52d7a-e463-4a2c-b9de-121716c544dc' } }));
+    await vi.waitFor(() => expect(el('card-preview').textContent).toBe('Texto preparado.'));
+    expect(document.body.dataset.state).toBe('closed');
+    el('review').click(); confirm(); el('send').click();
+    expect(h.sends()).toHaveLength(0); expect(el('notice').textContent).toContain('template');
+  });
   it('uses a new key for a new edited message after acceptance', async () => {
     const h = setup(); await select(); compose('Primeira resposta.'); el('send').click();
     await vi.waitFor(() => expect(el('notice').textContent).toContain('aceita'));

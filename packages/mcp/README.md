@@ -399,7 +399,10 @@ O painel candidato de Plugin Extensions é habilitado com
 `BOTOZAP_MCP_UI_ENABLED=true` (HTTP ou stdio). `open_review_panel` abre a seleção de
 negócio e Radar; `stage_review_reply` prepara um rascunho sem enviar. O rascunho e
 a UI sempre preservam uma chave por intenção, com confirmação explícita e sem
-retry automático. Hosts sem UI continuam usando as tools.
+retry automático. A UI só aparece após o cliente negociar MCP Apps:
+`capabilities.extensions["io.modelcontextprotocol/ui"].mimeTypes` deve incluir
+`text/html;profile=mcp-app`. Sem essa capacidade, mesmo com as flags, o catálogo
+é tools-only, igual ao catálogo sem UI.
 
 O build inclui `dist/ui/review.html`, sem assets externos nem credenciais.
 `pnpm preview:build` cria uma demonstração local em `web/.preview/demo.html`, com
@@ -417,3 +420,80 @@ nova intenção. `unknown` ou `accepted` exigem conciliação antes de considera
 outro envio. SDK e MCP preservam `outcome` e `retry` da API. Resultados concluídos
 vencidos são removidos pelo cron a cada minuto; claims incertas não são removidas
 por tempo, conforme o runbook `botozap/docs/ops/message-send-receipts.md`.
+
+### Piloto da UI por conta
+
+Com `BOTOZAP_MCP_UI_ENABLED=true`, a variável opcional
+`BOTOZAP_MCP_UI_ACCOUNTS=account_id_1,account_id_2` restringe as tools de revisão,
+recursos e metadados de UI às Contas selecionadas, usando a identidade autenticada
+já resolvida da sessão. Conta fora da lista recebe o catálogo tools-only habitual
+(fixture 0.6.0 mais `get_profile` e `prepare_send_intent`). Lista definida mas vazia
+não libera nenhuma conta; espaços são ignorados. Sem essa variável, a flag mantém
+a regra de contas da flag, sempre condicionada à capacidade MCP Apps. Sem a flag,
+a lista não ativa UI. Nenhuma configuração
+foi habilitada em produção por este protótipo.
+
+### Simulador de hosts MCP Apps
+
+```sh
+pnpm --filter @botozap/mcp demo:ui
+# Abra http://127.0.0.1:4173/chat
+```
+
+A página hospeda os iframes reais de produção via `AppBridge` / MCP Apps. Dados,
+modelo, envio e eventos de entregue/lido são simulados exclusivamente no host.
+Use o compositor ou os controles do roteiro para explorar carrossel, rascunho,
+conversa fullscreen e os estados alternativos. Consulte `web/DESIGN.md`.
+
+
+O seletor também inclui **4 · Template aprovado**, **6 · O agente precisa de
+você** e **7 · Marcar horário**, com carregamento, vazio, erro, recusa/incerteza
+quando há envio, e ausência de permissão no atendimento. A janela fechada abre
+um editor de templates aprovados com prévia renderizada. Quando o cliente anuncia
+`extensions["openai/elicitation"].form`, as variáveis usam o formulário nativo
+com `x-openai-suggestions`; nos demais hosts ficam no formulário acessível da UI.
+Nenhum formulário envia sem a confirmação final.
+
+As auxiliares `stage_review_template`, `review_template_variables`,
+`open_agent_cases` e `stage_appointment_booking` só aparecem no piloto da UI,
+respeitam `allowed_routes`, não aceitam `account_id` e apenas consultam/preparam.
+Envio, atribuição de caso e compromisso usam as tools existentes. Um resultado
+incerto bloqueia repetição; compromisso criado com aviso incerto continua criado
+sem tentar marcar novamente. Casos usam `expected_revision` e a identidade do
+operador; devolver ao agente exige confirmação da retomada automática.
+
+```sh
+# Com a demo em execução, gerar as capturas e vídeos da rodada 3A:
+node packages/mcp/scripts/screenshot-3a.mjs
+```
+
+O seletor **Host** alterna ChatGPT, Genérico MCP Apps (variáveis de estilo próprias,
+sem elicitation OpenAI) e Sem UI (dados e rascunho em texto, sem iframe).
+Templates aprovados incluem cabeçalho texto/imagem/vídeo/documento/localização,
+corpo posicional/nomeado, moeda/data com fallback, rodapé, respostas rápidas,
+URL dinâmica, telefone, cupom, autenticação e carrossel. Oferta limitada e botões
+de catálogo já sincronizados têm prévia e parâmetros; isso não cria templates
+que o builder do app hoje não aceita. Consulte `web/RELATORIO-4A.md` para limites.
+A mídia usa somente placeholders locais: não baixa arquivos, resolve URLs ou
+valida existência de media_id. Nome/tamanho são exibidos quando informados no contexto.
+Códigos de autenticação devem ser emitidos pelo sistema do negócio.
+
+`stage_review_template` aceita campos opcionais `template_id`, `suggested_values`
+(por ID de template) e `media_metadata` (por slot `header`/`card_0_header`, com
+`filename` e `file_size` em bytes); nada muda nos parâmetros obrigatórios das tools.
+
+A tela de escalação lê `usage.unique_contacts_today` e `usage.timezone` (também
+aceita ambos em `usage.handoff`). Contagem inteira não negativa + fuso IANA válido
+mostram **clientes hoje** no fuso do negócio. Sem ambos, mantém a métrica real
+`usage.handoff.conversations` com o rótulo **conversas hoje (UTC)**. Não deduz pessoas
+a partir de conversas. A API dessa contagem é trabalho separado.
+
+```sh
+node packages/mcp/scripts/screenshot-4a.mjs
+```
+
+Capturas/vídeos e validação axe A/AA ficam em `web/screenshots/`.
+
+### Templates: prévia primeiro
+
+Na revisão de templates, peça ajustes na conversa ou abra **Editar campos**. Referências de mídia e outros detalhes técnicos ficam em **Avançado**; o código de autenticação vem do sistema do negócio e permanece visível. O staging existente atualiza a prévia, sem enviar. Veja [o roteiro e as capturas da rodada 4A.2](web/RELATORIO-4A2.md).

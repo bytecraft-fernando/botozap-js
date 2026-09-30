@@ -1,0 +1,664 @@
+{
+  "screenshots": 140,
+  "results": [
+    {
+      "file": "4a-template-previa-desktop-light.png",
+      "axeViolations": 0,
+      "externalRequests": 0
+    },
+    {
+      "file": "4a-template-confirmacao-desktop-light.png",
+      "axeViolations": 0,
+      "externalRequests": 0
+    },
+    {
+      "file": "4a-template-image-previa-desktop-light.png",
+      "axeViolations": 0,
+      "externalRequests": 0
+    },
+    {
+      "file": "4a-template-image-confirmacao-desktop-light.png",
+      "axeViolations": 0,
+      "externalRequests": 0
+    },
+    {
+      "file": "4a-template-document-previa-desktop-light.png",
+      "axeViolations": 0,
+      "externalRequests": 0
+    },
+    {
+      "file": "4a-template-document-confirmacao-desktop-light.png",
+      "axeViolations": 0,
+      "externalRequests": 0
+    },
+    {
+      "file": "4a-template-video-previa-desktop-light.png",
+      "axeViolations": 0,
+      "externalRequests": 0
+    },
+    {
+      "file": "4a-template-video-confirmacao-desktop-light.png",
+      "axeViolations": 0,
+      "externalRequests": 0
+    },
+    {
+      "file": "4a-template-location-previa-desktop-light.png",
+      "axeViolations": 0,
+      "externalRequests": 0
+    },
+    {
+      "file": "4a-template-location-confirmacao-desktop-light.png",
+      "axeViolations": 0,
+      "externalRequests": 0
+    },
+    {
+      "file": "4a-template-auth-previa-desktop-light.png",
+      "axeViolations": 0,
+      "externalRequests": 0
+    },
+    {
+      "file": "4a-template-auth-confirmacao-desktop-light.png",
+      "axeViolations": 0,
+      "externalRequests": 0
+    },
+    {
+      "file": "4a-template-one-tap-previa-desktop-light.png",
+      "axeViolations": 0,
+      "externalRequests": 0
+    },
+    {
+      "file": "4a-template-one-tap-confirmacao-desktop-light.png",
+      "axeViolations": 0,
+      "externalRequests": 0
+    },
+    {
+      "file": "4a-template-carousel-previa-desktop-light.png",
+      "axeViolations": 0,
+      "externalRequests": 0
+    },
+    {
+      "file": "4a-template-carousel-confirmacao-desktop-light.png",
+      "axeViolations": 0,
+      "externalRequests": 0
+    },
+    {
+      "file": "4a-template-offer-previa-desktop-light.png",
+      "axeViolations": 0,
+      "externalRequests": 0
+    },
+    {
+      "file": "4a-template-offer-confirmacao-desktop-light.png",
+      "axeViolations": 0,
+      "externalRequests": 0
+    },
+    {
+      "file": "4a-template-catalog-previa-desktop-light.png",
+      "axeViolations": 0,
+      "externalRequests": 0
+    },
+    {
+      "file": "4a-template-catalog-confirmacao-desktop-light.png",
+      "axeViolations": 0,
+      "externalRequests": 0
+    },
+    {
+      "file": "4a-template-named-previa-desktop-light.png",
+      "axeViolations": 0,
+      "externalRequests": 0
+    },
+    {
+      "file": "4a-template-named-confirmacao-desktop-light.png",
+      "axeViolations": 0,
+      "externalRequests": 0
+    },
+    {
+      "file": "4a-template-nao-suportado-desktop-light.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a-booking-agrupado-desktop-light.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a-cases-agrupado-desktop-light.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a-cases-unique-agrupado-desktop-light.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a-host-chatgpt-card-desktop-light.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a-host-chatgpt-radar-desktop-light.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a-host-generic-card-desktop-light.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a-host-generic-radar-desktop-light.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a-host-none-card-desktop-light.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a-host-none-radar-desktop-light.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a-template-previa-mobile-light.png",
+      "axeViolations": 0,
+      "externalRequests": 0
+    },
+    {
+      "file": "4a-template-confirmacao-mobile-light.png",
+      "axeViolations": 0,
+      "externalRequests": 0
+    },
+    {
+      "file": "4a-template-image-previa-mobile-light.png",
+      "axeViolations": 0,
+      "externalRequests": 0
+    },
+    {
+      "file": "4a-template-image-confirmacao-mobile-light.png",
+      "axeViolations": 0,
+      "externalRequests": 0
+    },
+    {
+      "file": "4a-template-document-previa-mobile-light.png",
+      "axeViolations": 0,
+      "externalRequests": 0
+    },
+    {
+      "file": "4a-template-document-confirmacao-mobile-light.png",
+      "axeViolations": 0,
+      "externalRequests": 0
+    },
+    {
+      "file": "4a-template-video-previa-mobile-light.png",
+      "axeViolations": 0,
+      "externalRequests": 0
+    },
+    {
+      "file": "4a-template-video-confirmacao-mobile-light.png",
+      "axeViolations": 0,
+      "externalRequests": 0
+    },
+    {
+      "file": "4a-template-location-previa-mobile-light.png",
+      "axeViolations": 0,
+      "externalRequests": 0
+    },
+    {
+      "file": "4a-template-location-confirmacao-mobile-light.png",
+      "axeViolations": 0,
+      "externalRequests": 0
+    },
+    {
+      "file": "4a-template-auth-previa-mobile-light.png",
+      "axeViolations": 0,
+      "externalRequests": 0
+    },
+    {
+      "file": "4a-template-auth-confirmacao-mobile-light.png",
+      "axeViolations": 0,
+      "externalRequests": 0
+    },
+    {
+      "file": "4a-template-one-tap-previa-mobile-light.png",
+      "axeViolations": 0,
+      "externalRequests": 0
+    },
+    {
+      "file": "4a-template-one-tap-confirmacao-mobile-light.png",
+      "axeViolations": 0,
+      "externalRequests": 0
+    },
+    {
+      "file": "4a-template-carousel-previa-mobile-light.png",
+      "axeViolations": 0,
+      "externalRequests": 0
+    },
+    {
+      "file": "4a-template-carousel-confirmacao-mobile-light.png",
+      "axeViolations": 0,
+      "externalRequests": 0
+    },
+    {
+      "file": "4a-template-offer-previa-mobile-light.png",
+      "axeViolations": 0,
+      "externalRequests": 0
+    },
+    {
+      "file": "4a-template-offer-confirmacao-mobile-light.png",
+      "axeViolations": 0,
+      "externalRequests": 0
+    },
+    {
+      "file": "4a-template-catalog-previa-mobile-light.png",
+      "axeViolations": 0,
+      "externalRequests": 0
+    },
+    {
+      "file": "4a-template-catalog-confirmacao-mobile-light.png",
+      "axeViolations": 0,
+      "externalRequests": 0
+    },
+    {
+      "file": "4a-template-named-previa-mobile-light.png",
+      "axeViolations": 0,
+      "externalRequests": 0
+    },
+    {
+      "file": "4a-template-named-confirmacao-mobile-light.png",
+      "axeViolations": 0,
+      "externalRequests": 0
+    },
+    {
+      "file": "4a-template-nao-suportado-mobile-light.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a-booking-agrupado-mobile-light.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a-cases-agrupado-mobile-light.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a-cases-unique-agrupado-mobile-light.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a-host-chatgpt-card-mobile-light.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a-host-chatgpt-radar-mobile-light.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a-host-generic-card-mobile-light.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a-host-generic-radar-mobile-light.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a-host-none-card-mobile-light.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a-host-none-radar-mobile-light.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a-template-previa-desktop-dark.png",
+      "axeViolations": 0,
+      "externalRequests": 0
+    },
+    {
+      "file": "4a-template-confirmacao-desktop-dark.png",
+      "axeViolations": 0,
+      "externalRequests": 0
+    },
+    {
+      "file": "4a-template-aceito-desktop-dark.png",
+      "axeViolations": 0,
+      "externalRequests": 0
+    },
+    {
+      "file": "4a-template-image-previa-desktop-dark.png",
+      "axeViolations": 0,
+      "externalRequests": 0
+    },
+    {
+      "file": "4a-template-image-confirmacao-desktop-dark.png",
+      "axeViolations": 0,
+      "externalRequests": 0
+    },
+    {
+      "file": "4a-template-image-aceito-desktop-dark.png",
+      "axeViolations": 0,
+      "externalRequests": 0
+    },
+    {
+      "file": "4a-template-document-previa-desktop-dark.png",
+      "axeViolations": 0,
+      "externalRequests": 0
+    },
+    {
+      "file": "4a-template-document-confirmacao-desktop-dark.png",
+      "axeViolations": 0,
+      "externalRequests": 0
+    },
+    {
+      "file": "4a-template-document-aceito-desktop-dark.png",
+      "axeViolations": 0,
+      "externalRequests": 0
+    },
+    {
+      "file": "4a-template-video-previa-desktop-dark.png",
+      "axeViolations": 0,
+      "externalRequests": 0
+    },
+    {
+      "file": "4a-template-video-confirmacao-desktop-dark.png",
+      "axeViolations": 0,
+      "externalRequests": 0
+    },
+    {
+      "file": "4a-template-video-aceito-desktop-dark.png",
+      "axeViolations": 0,
+      "externalRequests": 0
+    },
+    {
+      "file": "4a-template-location-previa-desktop-dark.png",
+      "axeViolations": 0,
+      "externalRequests": 0
+    },
+    {
+      "file": "4a-template-location-confirmacao-desktop-dark.png",
+      "axeViolations": 0,
+      "externalRequests": 0
+    },
+    {
+      "file": "4a-template-location-aceito-desktop-dark.png",
+      "axeViolations": 0,
+      "externalRequests": 0
+    },
+    {
+      "file": "4a-template-auth-previa-desktop-dark.png",
+      "axeViolations": 0,
+      "externalRequests": 0
+    },
+    {
+      "file": "4a-template-auth-confirmacao-desktop-dark.png",
+      "axeViolations": 0,
+      "externalRequests": 0
+    },
+    {
+      "file": "4a-template-auth-aceito-desktop-dark.png",
+      "axeViolations": 0,
+      "externalRequests": 0
+    },
+    {
+      "file": "4a-template-one-tap-previa-desktop-dark.png",
+      "axeViolations": 0,
+      "externalRequests": 0
+    },
+    {
+      "file": "4a-template-one-tap-confirmacao-desktop-dark.png",
+      "axeViolations": 0,
+      "externalRequests": 0
+    },
+    {
+      "file": "4a-template-one-tap-aceito-desktop-dark.png",
+      "axeViolations": 0,
+      "externalRequests": 0
+    },
+    {
+      "file": "4a-template-carousel-previa-desktop-dark.png",
+      "axeViolations": 0,
+      "externalRequests": 0
+    },
+    {
+      "file": "4a-template-carousel-confirmacao-desktop-dark.png",
+      "axeViolations": 0,
+      "externalRequests": 0
+    },
+    {
+      "file": "4a-template-carousel-aceito-desktop-dark.png",
+      "axeViolations": 0,
+      "externalRequests": 0
+    },
+    {
+      "file": "4a-template-offer-previa-desktop-dark.png",
+      "axeViolations": 0,
+      "externalRequests": 0
+    },
+    {
+      "file": "4a-template-offer-confirmacao-desktop-dark.png",
+      "axeViolations": 0,
+      "externalRequests": 0
+    },
+    {
+      "file": "4a-template-offer-aceito-desktop-dark.png",
+      "axeViolations": 0,
+      "externalRequests": 0
+    },
+    {
+      "file": "4a-template-catalog-previa-desktop-dark.png",
+      "axeViolations": 0,
+      "externalRequests": 0
+    },
+    {
+      "file": "4a-template-catalog-confirmacao-desktop-dark.png",
+      "axeViolations": 0,
+      "externalRequests": 0
+    },
+    {
+      "file": "4a-template-catalog-aceito-desktop-dark.png",
+      "axeViolations": 0,
+      "externalRequests": 0
+    },
+    {
+      "file": "4a-template-named-previa-desktop-dark.png",
+      "axeViolations": 0,
+      "externalRequests": 0
+    },
+    {
+      "file": "4a-template-named-confirmacao-desktop-dark.png",
+      "axeViolations": 0,
+      "externalRequests": 0
+    },
+    {
+      "file": "4a-template-named-aceito-desktop-dark.png",
+      "axeViolations": 0,
+      "externalRequests": 0
+    },
+    {
+      "file": "4a-template-nao-suportado-desktop-dark.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a-booking-agrupado-desktop-dark.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a-booking-confirmacao-desktop-dark.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a-cases-agrupado-desktop-dark.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a-cases-unique-agrupado-desktop-dark.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a-host-chatgpt-card-desktop-dark.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a-host-chatgpt-radar-desktop-dark.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a-host-generic-card-desktop-dark.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a-host-generic-radar-desktop-dark.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a-host-none-card-desktop-dark.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a-host-none-radar-desktop-dark.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a-template-previa-mobile-dark.png",
+      "axeViolations": 0,
+      "externalRequests": 0
+    },
+    {
+      "file": "4a-template-confirmacao-mobile-dark.png",
+      "axeViolations": 0,
+      "externalRequests": 0
+    },
+    {
+      "file": "4a-template-image-previa-mobile-dark.png",
+      "axeViolations": 0,
+      "externalRequests": 0
+    },
+    {
+      "file": "4a-template-image-confirmacao-mobile-dark.png",
+      "axeViolations": 0,
+      "externalRequests": 0
+    },
+    {
+      "file": "4a-template-document-previa-mobile-dark.png",
+      "axeViolations": 0,
+      "externalRequests": 0
+    },
+    {
+      "file": "4a-template-document-confirmacao-mobile-dark.png",
+      "axeViolations": 0,
+      "externalRequests": 0
+    },
+    {
+      "file": "4a-template-video-previa-mobile-dark.png",
+      "axeViolations": 0,
+      "externalRequests": 0
+    },
+    {
+      "file": "4a-template-video-confirmacao-mobile-dark.png",
+      "axeViolations": 0,
+      "externalRequests": 0
+    },
+    {
+      "file": "4a-template-location-previa-mobile-dark.png",
+      "axeViolations": 0,
+      "externalRequests": 0
+    },
+    {
+      "file": "4a-template-location-confirmacao-mobile-dark.png",
+      "axeViolations": 0,
+      "externalRequests": 0
+    },
+    {
+      "file": "4a-template-auth-previa-mobile-dark.png",
+      "axeViolations": 0,
+      "externalRequests": 0
+    },
+    {
+      "file": "4a-template-auth-confirmacao-mobile-dark.png",
+      "axeViolations": 0,
+      "externalRequests": 0
+    },
+    {
+      "file": "4a-template-one-tap-previa-mobile-dark.png",
+      "axeViolations": 0,
+      "externalRequests": 0
+    },
+    {
+      "file": "4a-template-one-tap-confirmacao-mobile-dark.png",
+      "axeViolations": 0,
+      "externalRequests": 0
+    },
+    {
+      "file": "4a-template-carousel-previa-mobile-dark.png",
+      "axeViolations": 0,
+      "externalRequests": 0
+    },
+    {
+      "file": "4a-template-carousel-confirmacao-mobile-dark.png",
+      "axeViolations": 0,
+      "externalRequests": 0
+    },
+    {
+      "file": "4a-template-offer-previa-mobile-dark.png",
+      "axeViolations": 0,
+      "externalRequests": 0
+    },
+    {
+      "file": "4a-template-offer-confirmacao-mobile-dark.png",
+      "axeViolations": 0,
+      "externalRequests": 0
+    },
+    {
+      "file": "4a-template-catalog-previa-mobile-dark.png",
+      "axeViolations": 0,
+      "externalRequests": 0
+    },
+    {
+      "file": "4a-template-catalog-confirmacao-mobile-dark.png",
+      "axeViolations": 0,
+      "externalRequests": 0
+    },
+    {
+      "file": "4a-template-named-previa-mobile-dark.png",
+      "axeViolations": 0,
+      "externalRequests": 0
+    },
+    {
+      "file": "4a-template-named-confirmacao-mobile-dark.png",
+      "axeViolations": 0,
+      "externalRequests": 0
+    },
+    {
+      "file": "4a-template-nao-suportado-mobile-dark.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a-booking-agrupado-mobile-dark.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a-cases-agrupado-mobile-dark.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a-cases-unique-agrupado-mobile-dark.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a-host-chatgpt-card-mobile-dark.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a-host-chatgpt-radar-mobile-dark.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a-host-generic-card-mobile-dark.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a-host-generic-radar-mobile-dark.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a-host-none-card-mobile-dark.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a-host-none-radar-mobile-dark.png",
+      "axeViolations": 0
+    }
+  ]
+}
