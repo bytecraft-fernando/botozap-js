@@ -10,7 +10,7 @@ function media(format: string, values: Record<string, string>, p: string, metada
     const bytes = Number(metadata.file_size ?? metadata.size);
     const size = Number.isFinite(bytes) && bytes > 0 ? `${(bytes / 1024 / 1024).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} MB` : '';
     slot.setAttribute('aria-label', [label, name, size, 'Prévia sem carregar arquivo'].filter(Boolean).join(' · '));
-    slot.append(node('span', format === 'VIDEO' ? '▷' : format === 'DOCUMENT' ? '▤' : '▧', 'media-symbol'), node('strong', label), node('span', [name, size].filter(Boolean).join(' · ') || 'Arquivo do cabeçalho', 'muted'), node('small', values[p + 'header_media_id'] ? 'media_id selecionado' : values[p + 'header_media'] ? 'URL protegida · arquivo não carregado' : 'Escolha URL pública ou media_id', 'muted'));
+    slot.append(node('span', format === 'VIDEO' ? '▷' : format === 'DOCUMENT' ? '▤' : '▧', 'media-symbol'), node('strong', label), node('span', [name, size].filter(Boolean).join(' · ') || 'Arquivo do cabeçalho', 'muted'), node('small', values[p + 'header_media_id'] ? 'Arquivo selecionado' : values[p + 'header_media'] ? 'Arquivo selecionado · prévia sem download' : 'Falta selecionar o arquivo', 'muted'));
     return slot;
 }
 /** Semantic local preview. No img/src, anchors, video/source or external URL. */

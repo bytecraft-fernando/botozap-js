@@ -1,5 +1,7 @@
 # UI BotoZap · rodada 4A
 
+> Atualização visual: a [rodada 4A.2](RELATORIO-4A2.md) substitui o formulário aberto pela prévia protagonista, com edição progressiva e ajustes pela conversa. As capturas `4a2-template-*` representam a experiência atual.
+
 PR draft: https://github.com/bytecraft-fernando/botozap-js/pull/14
 Branch: `feat/mcp-ui-chatgpt`, a partir de `a883687`.
 

@@ -1,5 +1,7 @@
+import './template.css';
+import { templateFieldName, technicalTemplateField, templateModelSummary } from './template-language.js';
 import type { Bridge } from '../panel.js';
-import { templateFields, templateParameters, validateTemplateValues, isAuthentication, templateUnsupportedReason } from '../../src/template-preview.js';
+import { templateFields, templateParameters, validateTemplateValues, templateUnsupportedReason } from '../../src/template-preview.js';
 import { renderTemplatePreview } from './template-renderer.js';
 import { shell, node, button, field, call, ScreenError, skeleton, type Row } from './screen-kit.js';
 export function mountTemplate(root: HTMLElement, bridge: Bridge, initial?: Row) {
@@ -14,22 +16,26 @@ export function mountTemplate(root: HTMLElement, bridge: Bridge, initial?: Row) 
     const label = node('label', 'Template aprovado');
     label.setAttribute('for', selector.id);
     const fields = node('div', '', 'template-fields');
+    const edit = document.createElement('details'); edit.className = 'template-edit'; edit.append(node('summary', 'Editar campos'), fields);
+    const notices = node('div', '', 'template-missing'); notices.setAttribute('aria-live','polite');
+    function modelContext() { if (selected && !templateUnsupportedReason(selected)) void bridge.context({ ...templateModelSummary(selected, values, context.conversation.id, context.media_metadata), preview: preview.textContent, review_state: frozen ? root.dataset.state : mode }).catch(() => {}); }
     const metadata = node('dl', '', 'screen-metadata');
     const validation = node('p', '', 'template-validation');
     validation.setAttribute('role', 'status');
     validation.setAttribute('aria-live', 'polite');
     function renderPreview() { preview.replaceChildren(renderTemplatePreview(selected, values, context.media_metadata ?? {})); }
     function canSend() { return !frozen && !Object.keys(validateTemplateValues(selected, values)).length; }
-    function validate() { const errors = validateTemplateValues(selected, values); validation.textContent = Object.values(errors)[0] ?? ''; for (const f of templateFields(selected)) {
-        const input = fields.querySelector<HTMLInputElement>(`#variable-${f.key}`);
+    function validate() { const errors = validateTemplateValues(selected, values); validation.textContent = ''; notices.replaceChildren(); for (const k of Object.keys(errors)) { const f = templateFields(selected).find(f => f.key === k || k === f.key.replace(/media(_id)?$/, 'media')); const text = f ? `${values[f.key]?.trim() ? 'Confira' : 'Falta'} ${templateFieldName(selected,f).toLowerCase()}${f.card === undefined ? '' : ` do card ${f.card+1}`}` : 'Confira os dados da mensagem'; const shortcut = button(text, () => { edit.open = true; const input = root.querySelector<HTMLInputElement>(`#variable-${f?.key ?? k}`); for (let parent = input?.parentElement; parent; parent = parent.parentElement) if (parent.tagName === 'DETAILS') parent.setAttribute('open',''); input?.focus(); }); shortcut.title = text; notices.append(shortcut); } for (const f of templateFields(selected)) {
+        const input = root.querySelector<HTMLInputElement>(`#variable-${f.key}`);
         if (input) {
             input.setAttribute('aria-invalid', String(!!errors[f.key]));
             input.setAttribute('aria-describedby', `error-${f.key}`);
-            fields.querySelector(`#error-${f.key}`)!.textContent = errors[f.key] ?? '';
+            root.querySelector(`#error-${f.key}`)!.textContent = errors[f.key] ? (values[f.key]?.trim() ? errors[f.key]!.replace(f.label.toLowerCase(), templateFieldName(selected,f).toLowerCase()) : `Preencha ${templateFieldName(selected,f).toLowerCase()}.`) : '';
         }
     } }
     function renderActions() {
         ui.actions.replaceChildren();
+        modelContext();
         if (frozen)
             return;
         if (mode === 'confirming') {
@@ -37,13 +43,13 @@ export function mountTemplate(root: HTMLElement, bridge: Bridge, initial?: Row) 
         }
         else {
             const review = button('Revisar envio', () => { if (!canSend())
-                return; mode = 'confirming'; fields.querySelectorAll<HTMLInputElement | HTMLSelectElement>('input, select').forEach(i => i.disabled = true); selector.disabled = true; ui.state('Confirmando', 'Confira De, Para e a prévia; Enviar template enviará esta mensagem ao cliente.'); renderActions(); if (root.dataset.mode === 'fullscreen')
+                return; mode = 'confirming'; root.querySelectorAll<HTMLInputElement | HTMLSelectElement>('input, select[id^=variable-]').forEach(i => i.disabled = true); selector.disabled = true; ui.state('Confirmando', 'Confira De, Para e a prévia; Enviar template enviará esta mensagem ao cliente.'); renderActions(); if (root.dataset.mode === 'fullscreen')
                 ui.actions.scrollIntoView({ block: 'center' }); }, true);
             review.disabled = !canSend();
             ui.actions.append(review);
         }
         if (mode === 'draft') {
-            fields.querySelectorAll<HTMLInputElement | HTMLSelectElement>('input, select').forEach(i => i.disabled = false);
+            root.querySelectorAll<HTMLInputElement | HTMLSelectElement>('input, select[id^=variable-]').forEach(i => i.disabled = false);
             selector.disabled = false;
         }
     }
@@ -55,13 +61,20 @@ export function mountTemplate(root: HTMLElement, bridge: Bridge, initial?: Row) 
         mode = 'draft';
         definition = JSON.stringify([selected.name, selected.language, selected.components]);
         values = {};
-        fields.replaceChildren();
+        fields.replaceChildren(); edit.open = false;
+        root.querySelector('.template-auth-code')?.remove();
         const reason = templateUnsupportedReason(selected);
-        if (reason) { preview.replaceChildren(); ui.actions.replaceChildren(); ui.state('Não suportado', reason); return; }
+        if (reason) { preview.replaceChildren(); notices.replaceChildren(); edit.hidden = true; ui.actions.replaceChildren(); ui.state('Não suportado', reason); return; }
         const name = context.conversation.contact?.name?.split(' ')[0] ?? '';
+        const groups = new Map<string, { simple: HTMLElement; advanced: HTMLDetailsElement }>();
         for (const f of templateFields(selected)) {
+            const groupId = f.card === undefined ? 'Mensagem' : `Card ${f.card + 1}`;
+            if (!groups.has(groupId)) { const simple = node('section', '', 'template-field-group'); const advanced = document.createElement('details'); advanced.className = 'template-advanced'; advanced.append(node('summary','Avançado')); simple.append(node('h2', groupId), advanced); fields.append(simple); groups.set(groupId,{simple,advanced}); }
+            const group = groups.get(groupId)!;
             values[f.key] = context.suggested_values?.[selected.id]?.[f.key] ?? (f.section === 'body' && f.kind === 'text' && ['1', 'name', 'nome', 'customer_name'].includes(f.variable) && f.card === undefined ? name : f.kind === 'otp' || f.kind === 'media' || f.kind === 'media_id' ? '' : String(f.example ?? ''));
-            const input = field(`${f.label}${f.required ? '' : ' (opcional)'}`, values[f.key], `variable-${f.key}`);
+            const human = templateFieldName(selected, f);
+            const title = f.kind === 'media_id' ? 'Identificador do arquivo existente' : f.kind === 'media' ? 'Endereço HTTPS público do arquivo' : human;
+            const input = field(`${title}${f.required ? '' : ' (opcional)'}`, values[f.key], `variable-${f.key}`);
             input.input.maxLength = f.max;
             input.input.required = f.required;
             input.input.autocomplete = 'off';
@@ -77,8 +90,9 @@ export function mountTemplate(root: HTMLElement, bridge: Bridge, initial?: Row) 
             error.id = `error-${f.key}`;
             input.wrapper.append(error);
             input.input.oninput = () => { if (frozen)
-                return; values[f.key] = input.input.value; key = ''; renderPreview(); validate(); renderActions(); };
-            fields.append(input.wrapper);
+                return; values[f.key] = input.input.value; key = ''; renderPreview(); validate(); renderActions(); modelContext(); };
+            if (f.kind === 'otp') { const auth = node('section','','template-auth-code'); auth.append(node('p','Use um código emitido pelo sistema do negócio. O BotoZap não gera nem valida esse código.','template-help'),input.wrapper); preview.after(auth); }
+            else if (technicalTemplateField(f)) group.advanced.append(input.wrapper); else group.simple.insertBefore(input.wrapper,group.advanced);
             if (f.kind === 'text' && f.section === 'body') {
                 const advanced = node('details', '', 'template-parameter-format');
                 advanced.append(node('summary', 'Tipo do parâmetro (opcional)'));
@@ -108,42 +122,29 @@ export function mountTemplate(root: HTMLElement, bridge: Bridge, initial?: Row) 
                             values[valueKey] ??= initial;
                             const control = field(title, values[valueKey], `variable-${valueKey}`);
                             control.input.inputMode = suffix === 'amount' ? 'numeric' : 'text';
-                            control.input.oninput = () => { values[valueKey] = control.input.value; key = ''; renderPreview(); validate(); renderActions(); };
+                            control.input.oninput = () => { values[valueKey] = control.input.value; key = ''; renderPreview(); validate(); renderActions(); modelContext(); };
                             extra.append(control.wrapper);
                         }
                     key = '';
                     renderPreview();
                     validate();
-                    renderActions();
+                    renderActions(); modelContext();
                 };
-                fields.append(advanced);
+                group.advanced.append(advanced);
             }
         }
+        for (const group of groups.values()) if (group.simple.children.length === 2 && group.advanced.children.length === 1) group.simple.remove();
+        edit.hidden = !fields.children.length;
         fields.append(validation);
-        if (isAuthentication(selected))
-            fields.prepend(node('p', 'Use um código emitido pelo seu sistema. O BotoZap não gera nem valida o código de autenticação.', 'template-help'));
+
         if (templateFields(selected).some(f => f.kind === 'media'))
             fields.append(node('p', 'Mídia: informe URL HTTPS pública ou media_id de upload existente. A prévia não baixa arquivos; URLs ficam protegidas.', 'template-help'));
         renderPreview();
         validate();
         renderActions();
+        modelContext();
         ui.state('Rascunho', 'Valores sugeridos. Confira antes de enviar; template aprovado não elimina a necessidade de revisar o conteúdo.');
-        const selectedId = selected.id;
-        const suggested = JSON.stringify(values);
-        try {
-            const result = await call(bridge, 'review_template_variables', { template_id: selectedId, variables: values });
-            if (selected.id !== selectedId || mode !== 'draft' || frozen || JSON.stringify(values) !== suggested)
-                return;
-            if (result.supported && result.action === 'accept') {
-                values = { ...values, ...result.variables };
-                fields.querySelectorAll<HTMLInputElement | HTMLSelectElement>('input, select').forEach(input => input.value = values[input.id.replace('variable-', '')] ?? (input.tagName === 'SELECT' ? 'text' : ''));
-                renderPreview();
-                validate();
-                renderActions();
-                ui.state('Rascunho', 'Valores revisados no formulário do ChatGPT. Confira a prévia antes do envio.');
-            }
-        }
-        catch { /* Own accessible form remains available when native elicitation is unsupported. */ }
+
     }
     async function send() {
         if (sending || frozen || mode !== 'confirming' || !canSend())
@@ -213,10 +214,11 @@ export function mountTemplate(root: HTMLElement, bridge: Bridge, initial?: Row) 
             selector.replaceChildren(...templates.map(t => { const o = document.createElement('option'); o.value = t.id; o.textContent = `${t.name} · ${t.language}${templateUnsupportedReason(t) ? ' · Não suportado' : ''}`; return o; }));
             selector.value = templates.some(t => t.id === data.preferred_template_id) ? data.preferred_template_id : templates[0]?.id;
             selector.onchange = () => void selectTemplate();
+            metadata.replaceChildren();
             for (const [name, value] of [['De', data.number?.display_phone_number || data.conversation.display_phone_number || 'Número de origem'], ['Para', `${data.conversation.contact?.name ?? 'Contato'} · ${data.conversation.contact?.phone ?? data.conversation.contact?.wa_id ?? ''}`]])
                 metadata.append(node('dt', name), node('dd', value));
             const editor = node('div', '', 'template-editor');
-            editor.append(fields, preview);
+            editor.append(preview, notices, node('p','Peça ajustes na conversa ou edite os campos.','template-help'), edit);
             ui.content.replaceChildren(metadata, label, selector, editor);
             await selectTemplate();
         }
@@ -227,7 +229,16 @@ export function mountTemplate(root: HTMLElement, bridge: Bridge, initial?: Row) 
     }
     if (initial)
         void load(initial);
-    return { ...ui, bootstrap(result: Row) { if (result.isError) {
+    return { ...ui, bootstrap(result: Row) {
+        const incoming = result.structuredContent;
+        if (context && incoming?.conversation?.id === context.conversation.id && incoming.suggested_values && selected) {
+            if (frozen || mode !== 'draft' || templateUnsupportedReason(selected)) return;
+            if (incoming.preferred_template_id && incoming.preferred_template_id !== selected.id) { void load(incoming); return; }
+            values = { ...values, ...incoming.suggested_values[selected.id] }; key = '';
+            context.media_metadata = incoming.media_metadata ?? context.media_metadata;
+            root.querySelectorAll<HTMLInputElement | HTMLSelectElement>('input, select[id^=variable-]').forEach(input => { input.value = values[input.id.replace('variable-','')] ?? ''; });
+            renderPreview(); validate(); renderActions(); modelContext(); ui.state('Rascunho','Prévia atualizada. Confira antes de enviar.'); return;
+        } if (result.isError) {
             ui.state('Erro', 'Não foi possível abrir os templates. Confira seu acesso.');
             return;
         } void load(result.structuredContent); } };

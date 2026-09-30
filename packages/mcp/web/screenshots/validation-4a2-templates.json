@@ -1,0 +1,405 @@
+{
+  "screenshots": 100,
+  "results": [
+    {
+      "file": "4a2-template-previa-desktop-light.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a2-template-campos-desktop-light.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a2-template-image-previa-desktop-light.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a2-template-image-campos-desktop-light.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a2-template-image-avancado-desktop-light.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a2-template-document-previa-desktop-light.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a2-template-document-campos-desktop-light.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a2-template-document-avancado-desktop-light.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a2-template-video-previa-desktop-light.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a2-template-video-campos-desktop-light.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a2-template-location-previa-desktop-light.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a2-template-location-campos-desktop-light.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a2-template-auth-previa-desktop-light.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a2-template-one-tap-previa-desktop-light.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a2-template-carousel-previa-desktop-light.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a2-template-carousel-conversa-desktop-light.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a2-template-carousel-campos-desktop-light.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a2-template-carousel-avancado-desktop-light.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a2-template-offer-previa-desktop-light.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a2-template-offer-campos-desktop-light.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a2-template-catalog-previa-desktop-light.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a2-template-catalog-campos-desktop-light.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a2-template-named-previa-desktop-light.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a2-template-named-campos-desktop-light.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a2-template-named-avancado-desktop-light.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a2-template-previa-mobile-light.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a2-template-campos-mobile-light.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a2-template-image-previa-mobile-light.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a2-template-image-campos-mobile-light.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a2-template-image-avancado-mobile-light.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a2-template-document-previa-mobile-light.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a2-template-document-campos-mobile-light.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a2-template-document-avancado-mobile-light.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a2-template-video-previa-mobile-light.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a2-template-video-campos-mobile-light.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a2-template-location-previa-mobile-light.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a2-template-location-campos-mobile-light.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a2-template-auth-previa-mobile-light.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a2-template-one-tap-previa-mobile-light.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a2-template-carousel-previa-mobile-light.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a2-template-carousel-conversa-mobile-light.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a2-template-carousel-campos-mobile-light.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a2-template-carousel-avancado-mobile-light.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a2-template-offer-previa-mobile-light.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a2-template-offer-campos-mobile-light.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a2-template-catalog-previa-mobile-light.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a2-template-catalog-campos-mobile-light.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a2-template-named-previa-mobile-light.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a2-template-named-campos-mobile-light.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a2-template-named-avancado-mobile-light.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a2-template-previa-desktop-dark.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a2-template-campos-desktop-dark.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a2-template-image-previa-desktop-dark.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a2-template-image-campos-desktop-dark.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a2-template-image-avancado-desktop-dark.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a2-template-document-previa-desktop-dark.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a2-template-document-campos-desktop-dark.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a2-template-document-avancado-desktop-dark.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a2-template-video-previa-desktop-dark.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a2-template-video-campos-desktop-dark.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a2-template-location-previa-desktop-dark.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a2-template-location-campos-desktop-dark.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a2-template-auth-previa-desktop-dark.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a2-template-one-tap-previa-desktop-dark.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a2-template-carousel-previa-desktop-dark.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a2-template-carousel-conversa-desktop-dark.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a2-template-carousel-campos-desktop-dark.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a2-template-carousel-avancado-desktop-dark.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a2-template-offer-previa-desktop-dark.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a2-template-offer-campos-desktop-dark.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a2-template-catalog-previa-desktop-dark.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a2-template-catalog-campos-desktop-dark.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a2-template-named-previa-desktop-dark.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a2-template-named-campos-desktop-dark.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a2-template-named-avancado-desktop-dark.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a2-template-previa-mobile-dark.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a2-template-campos-mobile-dark.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a2-template-image-previa-mobile-dark.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a2-template-image-campos-mobile-dark.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a2-template-image-avancado-mobile-dark.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a2-template-document-previa-mobile-dark.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a2-template-document-campos-mobile-dark.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a2-template-document-avancado-mobile-dark.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a2-template-video-previa-mobile-dark.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a2-template-video-campos-mobile-dark.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a2-template-location-previa-mobile-dark.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a2-template-location-campos-mobile-dark.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a2-template-auth-previa-mobile-dark.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a2-template-one-tap-previa-mobile-dark.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a2-template-carousel-previa-mobile-dark.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a2-template-carousel-conversa-mobile-dark.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a2-template-carousel-campos-mobile-dark.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a2-template-carousel-avancado-mobile-dark.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a2-template-offer-previa-mobile-dark.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a2-template-offer-campos-mobile-dark.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a2-template-catalog-previa-mobile-dark.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a2-template-catalog-campos-mobile-dark.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a2-template-named-previa-mobile-dark.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a2-template-named-campos-mobile-dark.png",
+      "axeViolations": 0
+    },
+    {
+      "file": "4a2-template-named-avancado-mobile-dark.png",
+      "axeViolations": 0
+    }
+  ]
+}

@@ -171,3 +171,19 @@ O aviso de dependência da conexão fica na confirmação/erro. A escalação ac
 usa `handoff.conversations` e informa **conversas hoje (UTC)**, sem inferir pessoas.
 O produtor da API deve calcular clientes únicos no dia civil do fuso do negócio,
 independentemente do intervalo UTC usado pela métrica antiga.
+
+### 4A.2 — prévia primeiro, edição progressiva
+
+Direção travada no feedback aprovado do Fernando: a bolha e os cards são a superfície principal (Resend para prévia/composição, Poppy para contexto, já pesquisados acima). O formulário fica abaixo, recolhido em **Editar campos**, com **Avançado** também recolhido por grupo. A marca mantém seu papel no botão primário; cores, tipografia e foco vêm do host.
+
+| Decisão | Fonte | Aplicação |
+|---|---|---|
+| Prévia preenchida antes dos controles | Fernando + Resend | Uma coluna, prévia em cima em desktop/mobile |
+| Ajustes pela conversa | Fernando + MCP Apps | `updateModelContext` legível + `stage_review_template` existente |
+| Edição progressiva e linguagem humana | Fernando | Nome do cliente, quantidade, imagem do card; transporte técnico no Avançado |
+| Código de autenticação visível | Fernando | Código do sistema do negócio, fora da expansão |
+| Erro obrigatório próximo da mensagem | Fernando + acessibilidade | Aviso humano com atalho que expande e foca o campo |
+
+O contexto envia nome, prévia, variáveis com nomes humanos e chaves necessárias para staging. URLs de mídia são protegidas e omitidas do mapa copiado ao modelo; o assistente deve preservar os demais campos. Staging atualiza o mesmo card e invalida a chave da intenção quando há ajuste; confirmação/envio/incerto bloqueiam alterações. A prévia não abre elicitação automaticamente. A tool nativa `review_template_variables` continua disponível ao modelo quando pedida explicitamente; abrir uma prévia não força um segundo formulário sobre a conversa.
+
+O simulador de ajustes fica exclusivamente em `web/scenarios/template.ts`, no host, e usa notificações MCP Apps. Exemplo: **“Muda o nome para Mariana e troca a imagem do segundo card pela coleção Floresta”**. A UI real só recebe o resultado de staging, sem reconhecer pedidos ou inventar dados.

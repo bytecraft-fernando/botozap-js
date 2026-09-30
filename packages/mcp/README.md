@@ -476,3 +476,7 @@ node packages/mcp/scripts/screenshot-4a.mjs
 ```
 
 Capturas/vídeos e validação axe A/AA ficam em `web/screenshots/`.
+
+### Templates: prévia primeiro
+
+Na revisão de templates, peça ajustes na conversa ou abra **Editar campos**. Referências de mídia e outros detalhes técnicos ficam em **Avançado**; o código de autenticação vem do sistema do negócio e permanece visível. O staging existente atualiza a prévia, sem enviar. Veja [o roteiro e as capturas da rodada 4A.2](web/RELATORIO-4A2.md).
