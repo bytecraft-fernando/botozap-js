@@ -14,6 +14,7 @@ const root = document.getElementById('app') ?? document.body;
 const modes: ('inline' | 'fullscreen' | 'pip')[] = ['inline', 'fullscreen', 'pip'];
 const app = new App({ name: 'BotoZap · Revisão', version: '1.0.0' }, { availableDisplayModes: modes });
 const bridge = {
+  openExternal: (url: string) => app.openLink({url}),
   async liveDisplayMode(mode: 'pip'|'inline') {
     if(app.getHostContext()?.availableDisplayModes?.includes(mode)) try{return await app.requestDisplayMode({mode});}catch{}
     return {mode:'inline'};

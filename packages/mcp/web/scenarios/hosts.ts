@@ -1,3 +1,4 @@
+import { quantity } from '../ui-helpers.js';
 import type { McpUiHostContext } from '@modelcontextprotocol/ext-apps';
 export type DemoHost = 'chatgpt' | 'generic' | 'none';
 export const hostLabel = (host: DemoHost) => host === 'chatgpt' ? 'ChatGPT' : host === 'generic' ? 'MCP Apps' : 'Assistente · sem UI';
@@ -12,7 +13,7 @@ export function plainToolResponse(kind: string, result: Record<string, any>, too
         return `Não foi possível consultar ${tool}. Peça uma nova consulta ao assistente.`;
     const data = result.structuredContent;
     if (kind === 'carousel')
-        return `${data?.data?.length ?? 0} pendências no Ateliê das Águas.\n` + (data?.data ?? []).map((row: any) => `${row.title}: ${row.next_step ?? row.reason_label ?? 'Confira a conversa.'}`).join('\n');
+        return `${quantity(data?.data?.length ?? 0, 'pendência', 'pendências')} no Ateliê das Águas.\n` + (data?.data ?? []).map((row: any) => `${row.title}: ${row.next_step ?? row.reason_label ?? 'Confira a conversa.'}`).join('\n');
     if (tool === 'stage_review_reply')
         return `get_conversation: ${data?.conversation?.contact?.name ?? 'Contato'} · WhatsApp\nNúmero de origem: ${data?.conversation?.display_phone_number ?? 'não informado'}\n\nRascunho do assistente (sem UI):\n${data?.draft?.text ?? ''}\n\nRevise o destinatário e confirme o envio com o assistente; nada foi enviado.`;
     const baseTool = tool === 'open_review_panel' ? 'list_radar' : tool === 'open_agent_cases' ? 'ai_cases_list' : tool === 'stage_appointment_booking' ? 'get_appointment_availability' : tool === 'stage_review_template' ? 'list_templates' : tool;

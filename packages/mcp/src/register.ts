@@ -1,3 +1,4 @@
+import { uiDescription, uiInvocation } from './ui-routing.js';
 import { globalToolMetadata } from './resources/global-panel.js';
 import { getUiCapability, RESOURCE_MIME_TYPE } from "@modelcontextprotocol/ext-apps/server";
 import { screenMetadata } from "./resources/screen-resource.js";
@@ -138,7 +139,7 @@ export function createRegister(
   const uiAllowed = (value: ApiIdentity) => !!options.uiEnabled && supportsUi() && (allowedAccounts === null || allowedAccounts.has(value.account_id));
   const uiTools = new Set(["open_review_panel", "stage_review_reply", "stage_review_template", "review_template_variables", "open_agent_cases", "stage_appointment_booking", "open_live_conversation", "open_botozap"]);
   const listeners: Array<(enabled: boolean) => void> = [];
-  const metadata = (name: string) => {
+  const screenMeta = (name: string) => {
     if (name === "open_review_panel") return reviewToolMetadata;
     if (name === "stage_review_reply") return replyToolMetadata;
     if (name === "list_radar") return radarToolMetadata;
@@ -149,7 +150,8 @@ export function createRegister(
     if (name === "stage_appointment_booking") return screenMetadata("booking");
     return { ui: { visibility: ["model", "app"] } };
   };
-  const tools: Array<{ name: string; tool: RegisteredTool; policy: ReturnType<typeof getToolPolicy> }> = [];
+  const metadata = (name: string) => ({...screenMeta(name), ...uiInvocation(name)});
+  const tools: Array<{ name: string; description: string; tool: RegisteredTool; policy: ReturnType<typeof getToolPolicy> }> = [];
   const register: Register = function register(
     name: string,
     description: string,
@@ -164,7 +166,7 @@ export function createRegister(
     const tool = server.registerTool(
       name,
       {
-        description,
+        description: uiDescription(name, description, uiAllowed(currentIdentity)),
         ...(name === "open_botozap" ? { title: "Pendências", icons: [{ src: "data:image/svg+xml," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><path d="M4 4h12v9H9l-5 3V4Z" fill="none" stroke="currentColor" stroke-width="1.33"/></svg>'), mimeType:"image/svg+xml", sizes:["20x20"] }] } : {}),
         inputSchema,
         ...(uiAllowed(currentIdentity) ? { _meta: metadata(name) } : {}),
@@ -230,7 +232,7 @@ export function createRegister(
         }
       },
     );
-    tools.push({ name, tool, policy });
+    tools.push({ name, description, tool, policy });
     if (!isToolAllowed(policy, currentIdentity) || (uiTools.has(name) && !uiAllowed(currentIdentity))) tool.disable();
   };
   Object.defineProperty(register, "uiEnabled", { get: () => uiAllowed(currentIdentity) });
@@ -242,7 +244,8 @@ export function createRegister(
     },
     updateIdentity(next: ApiIdentity) {
       currentIdentity = next;
-      for (const { name, tool, policy } of tools) {
+      for (const { name, description, tool, policy } of tools) {
+        tool.description = uiDescription(name, description, uiAllowed(next));
         tool._meta = uiAllowed(next) ? metadata(name) : undefined;
         const allowed = isToolAllowed(policy, next) && (!uiTools.has(name) || uiAllowed(next));
         if (tool.enabled !== allowed) allowed ? tool.enable() : tool.disable();

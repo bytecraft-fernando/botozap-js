@@ -186,3 +186,32 @@ html{scroll-padding-bottom:var(--host-safe-bottom,0px)}
 [data-focus=conversation] .message:first-child{margin-top:4px}
 
 @media(max-width:650px){[data-mode=fullscreen][data-item-selected=false] .workspace{padding:16px 16px 32px!important}[data-mode=fullscreen][data-item-selected=false] .toolbar{margin:16px 0}[data-mode=fullscreen][data-item-selected=false] .radar{padding:16px}}
+
+/* Inline is hosted inside prefersBorder: one outer frame, consistent inner padding. */
+[data-mode=inline] .workspace{max-width:none;margin:0;padding:20px}
+[data-mode=inline] .panel,[data-mode=inline] .screen-card,[data-mode=inline] .pending-card{border:0;box-shadow:none;border-radius:0}
+[data-mode=inline] .detail{padding:0}
+[data-mode=inline] .screen-card{max-width:none;width:100%;margin:0;padding:20px}
+[data-mode=inline] .carousel-workspace{padding:20px}
+[data-mode=inline][data-conversation-open=false] .detail{display:none}
+[data-mode=inline][data-conversation-open=false] header,[data-mode=inline][data-conversation-open=false] .toolbar,[data-mode=inline][data-conversation-open=false] .radar{display:block}
+[data-mode=inline][data-conversation-open=false] header .muted,[data-mode=inline][data-conversation-open=false] #environment{display:none}
+[data-mode=inline][data-conversation-open=false] .radar{padding:0}
+[data-mode=inline][data-conversation-open=false] .toolbar{margin:16px 0}
+[data-mode=inline][data-conversation-open=false] .columns{display:block}
+[data-mode=inline][data-conversation-open=false] #radar-list .radar-item:nth-child(n+4){display:none}
+#expand-pendings{margin-top:16px}
+[data-mode=fullscreen] #expand-pendings{display:none}
+[data-unlinked=true] .detail>*:not(#pending-detail):not(#notice){display:none!important}
+[data-unlinked=true] .detail #pending-detail{display:block}
+[data-mode=inline][data-unlinked=true] .detail{display:block;margin-top:20px}
+#pending-detail h2{margin-bottom:12px}
+.external-action{display:inline-flex;align-items:center;min-height:44px;padding:9px 16px;border:1px solid var(--border);border-radius:var(--radius-full);color:var(--foreground);text-decoration:none;overflow-wrap:anywhere}
+.external-action:focus-visible{outline:2px solid var(--ring);outline-offset:3px}
+#app[data-mode=inline] .screen-card{max-width:none;margin-inline:0}
+.case-choices{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0}
+.case-detail{margin-top:16px}
+[data-mode=inline][data-conversation-open=false] header{display:none}
+[data-unlinked=true] header,[data-unlinked=true] .toolbar,[data-unlinked=true] .radar{display:none!important}
+[data-unlinked=true] .columns{grid-template-columns:minmax(0,1fr)}
+@media(max-width:650px){[data-mode=inline][data-conversation-open=false] #radar-list .radar-item:nth-child(n+3){display:none}}

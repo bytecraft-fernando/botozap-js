@@ -6,3 +6,7 @@ body{height:100dvh;overflow:hidden}.host-shell{display:flex;height:100dvh}.host-
 
 @media(max-width:650px){.host-header{left:0;right:0;width:auto}.host-controls select{min-width:0;width:0}.host-controls #host{flex:0 1 130px}.host-controls #scenario{flex:1 1 160px}}
 @media(max-width:650px){.host-header{justify-content:flex-start}.host-name{margin-left:8px}}
+
+.host-app-frame:not(.is-fullscreen){border:1px solid var(--border);border-radius:16px;overflow:hidden}
+.host-app-frame:not(.is-fullscreen){scroll-margin-top:90px}
+@media(max-width:650px){.host-app-frame:not(.is-fullscreen){scroll-margin-top:128px}}

@@ -1,3 +1,4 @@
+import { uiResourceMetadata } from './ui-metadata.js';
 import { registerLivePanel } from './live-panel.js';
 import { registerGlobalPanel } from './global-panel.js';
 import { registerTemplatePanel } from "./template-panel.js";
@@ -38,7 +39,7 @@ export function registerReviewPanel(server: McpServer, register: Register): void
           text: (await readFile(new URL("../ui/review.html", import.meta.url), "utf8")).replace('id="app"', `id="app" data-initial-mode="${mode}" data-view="${uri === RADAR_RESOURCE_URI ? "carousel" : "review"}"`),
           _meta: {
             "openai/ui": { availableDisplayModes: ["inline", "fullscreen"], preferredDisplayMode: mode },
-            ui: { prefersBorder: mode === "inline", csp: { connectDomains: [], resourceDomains: [], frameDomains: [] } },
+            ...uiResourceMetadata(mode === "inline"),
           },
         }],
       };
