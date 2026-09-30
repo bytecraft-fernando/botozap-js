@@ -1,68 +1,29 @@
-# BotoZap — candidato de piloto e submissão
+# BotoZap — pacote candidato 0.2.0
 
-Pacote portátil `0.1.0`, ainda sem upload, submissão ou publicação. O ZIP é um
-candidato revisável; a validação local não comprova prontidão no portal. O endpoint
-em `mcp.json` é o destino planejado e pode não conter este stack implantado.
+Pacote portátil atualizado para as oito telas: pendências/carrossel, resposta pronta, Radar/conversa, template aprovado, plantão ao vivo, casos da IA, agendamento e entrada global. A identidade, endpoint OAuth e ícone existentes foram preservados. Base em inglês, tradução pt-BR e targeting BR mantidos.
 
-A listagem base está em inglês, com tradução `pt-BR` e disponibilidade `BR`.
-O manifesto inclui exatamente cinco casos positivos e três negativos no formato
-importável. São cenários planejados, **ainda não executados**. O ícone 1024×1024
-reutiliza `public/brand/v2/app-icon-1024.png` do aplicativo BotoZap, inspecionado
-visualmente; o arquivo está incluído em `assets/icon.png`.
+As skills só chamam tools descobertas na conexão. Os PRs #14/#15/#17 estão integrados em main; UI depende da versão implantada do servidor, capacidades do host, permissões e habilitação da Conta. O ZIP não habilita UI nem registra entrypoints: thread/global/display modes são metadados das tools/recursos MCP. Pedidos completos e explícitos usam tools diretas com permissão do ChatGPT. Pedidos vagos, escolhas e preparação/revisão usam UI e confirmação nela. Criar definição de template usa create_template diretamente; a UI de template só envia aprovado. Sem UI, revisão no painel; pedidos completos mantêm a rota direta; administração, credenciais de IA e webhooks ficam no painel web.
 
-A UI do servidor candidato exige `BOTOZAP_MCP_UI_ENABLED=true`. Os nomes usados
-nos casos são verificados contra o catálogo local e a referência publicada das
-tools. Somente `open_review_panel` fornece o entrypoint de conversa;
-`stage_review_reply` apresenta rascunho e não envia.
+## Validar e empacotar
 
-## Validar e gerar o ZIP local
-
-Na raiz do repositório, com Python 3.9 ou superior:
+Na raiz do repositório, Python 3.9+ (sem instalar dependências):
 
 ```sh
 python3 plugins/botozap/scripts/package.py
-python3 plugins/botozap/scripts/package.py --zip /tmp/botozap-pilot-candidate.zip
-unzip -l /tmp/botozap-pilot-candidate.zip
+python3 plugins/botozap/scripts/package.py --zip /tmp/botozap-plugin-0.2.0.zip
+python3 plugins/botozap/scripts/test_package.py
+unzip -l /tmp/botozap-plugin-0.2.0.zip
+shasum -a 256 /tmp/botozap-plugin-0.2.0.zip
 ```
 
-A validação verifica campos, limites, caminhos, dimensões do ícone, casos,
-nomes de tools, proibição de campos privados e o conteúdo exato do ZIP. O arquivo
-é criado com uma lista explícita: `plugin.json`, `mcp.json`, `assets/icon.png` e
-as skills. README, scripts e materiais operacionais não entram no ZIP.
+A validação lê o catálogo real no código integrado de main, incluindo a fixture 0.6.0 e as declarações de tools. Falha se qualquer tool de UI estiver ausente; não acrescenta contratos planejados ao catálogo. `ui-contracts.json` registra a base integrada `f586343`. Isso valida código local, não disponibilidade remota no ChatGPT.
 
-```sh
-python3 plugins/botozap/scripts/package.py --submission-ready
-```
+O ZIP reproduzível contém somente os dois manifests, ícone e seis SKILL.md: 9 arquivos, ordem/timestamp/permissões fixos. `.env`, segredos, credenciais/instruções privadas, scripts, docs, contratos, vídeos e screenshots não entram. Links simbólicos nos caminhos selecionados e padrões conhecidos de tokens são rejeitados; isso não substitui revisão humana de dados privados.
 
-Esse último comando **sempre falha nesta versão**, por bloqueio estático
-intencional. Os gates externos não são medidos automaticamente: o script não
-verifica deploy, publicação de páginas, execução dos casos ou estado do portal.
-Não foi executada nenhuma chamada a uma conta real para alegar sucesso dos casos.
-Validação estrutural local não substitui scans de metadata, skills, tools ou
-revisão do portal.
+## Estado de submissão
 
-## Gates antes de submissão
+Os cinco positivos e três negativos estão em inglês no manifest e traduzidos em [pilot-materials.md](pilot-materials.md), ainda **não executados**. `--submission-ready` continua falhando de propósito: pacote estrutural válido não é pronto para submissão.
 
-- O vídeo é obrigatório e **não existe URL de gravação neste candidato**.
-  Gravar o fluxo real e disponibilizar a URL aos revisores; preencher
-  `extensions.com.openai.review.demo_recording_url` somente com a gravação válida.
-- `supportURL` aponta para `https://botozap.com.br/suporte`, destino planejado;
-  publicar e verificar essa página antes de submeter. Privacidade e termos usam
-  as rotas existentes `/privacidade` e `/termos`; revisar o texto para o tratamento
-  de dados desta integração e verificar sua disponibilidade pública.
-- Implantar API `/v1/me`, OAuth e MCP candidato, habilitar UI e verificar conexão,
-  domínio e descoberta do catálogo no ambiente autorizado.
-- Provisionar a fixture controlada e executar P01–P05/N01–N03. Registrar evidência
-  real separadamente. Não usar conta ou destinatário de cliente real na revisão.
-- Verificar identidade de publicação e completar os scans e atestações exigidos
-  no portal. Upload, submissão e publicação exigem a autorização correspondente.
+Faltam execução na Conta dedicada com as versões UI integradas, gravação real pública, verificação de publisher/scans/atestações e acesso seguro do revisor. Os quatro links públicos existem; a cobertura específica de dados compartilhados com ChatGPT ainda precisa de revisão pelo responsável. Suporte foi conferido por conteúdo em 30/09/2026, não só por HTTP 200.
 
-Credenciais e instruções de acesso dos revisores são preenchidas **somente no
-formulário seguro do portal**. Não incluir `test_credentials`,
-`reviewer_instructions`, senhas, chaves ou tokens no manifesto, nas skills ou no
-ZIP. O material operacional [pilot-materials.md](./pilot-materials.md) também fica
-fora do ZIP e não contém credenciais.
-
-Formato conferido em 29/09/2026 na documentação oficial:
-[Upload and submit your plugin](https://developers.openai.com/plugins/deploy/submission),
-[Package your plugin](https://developers.openai.com/plugins/build/plugins).
+Veja a auditoria da documentação oficial, dependências, hash e inventário no [RELATORIO.md](RELATORIO.md). Este trabalho não faz npm, deploy, troca de flags ou operações no portal.

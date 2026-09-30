@@ -1,9 +1,9 @@
 ---
-name: revisar-pendencias
-description: Revise pendências, histórico e respostas WhatsApp da Conta BotoZap conectada. Use para o que tenho hoje, retornos, Radar e preparação ou edição de uma resposta.
+name: marcar-horario
+description: Encontre horários e prepare agendamento para um contato do negócio BotoZap conectado. Use para disponibilidade, reunião, serviço e escolha de responsável.
 ---
 
-# Pendências e resposta pronta
+# Marcar horário
 
 ## Escolher tool direta ou UI
 
@@ -13,12 +13,10 @@ description: Revise pendências, histórico e respostas WhatsApp da Conta BotoZa
 - Sem UI, continue com consultas; para preparar/revisar, apresente o rascunho e encaminhe a revisão ao painel web. Pedidos completos continuam na rota direta com permissão do ChatGPT. Incerto não autoriza repetir nem gerar outra chave; confira histórico/agenda. Use `prepare_send_intent` para envio direto e preserve a chave por intenção; agenda usa `idempotency_key`.
 
 
-1. Identifique a Conta com `get_profile`; escolha o negócio retornado por `list_customers`. Se a escolha não for inequívoca, peça ao usuário.
-2. Para “o que tenho hoje”, chame `list_radar` com `customer_id`: a tool pode exibir o carrossel inline. Preserve criticidade/paginação. Para Radar completo, use `open_review_panel` e a seleção explícita de negócio na UI; não confunda negócio com Conta.
-3. Resolva conversa por IDs retornados; oportunidade/demanda usam `list_opportunity_conversations`/`list_demand_conversations`. Leia `get_conversation` e `list_messages`, só o necessário.
-4. Prepare texto com fatos do histórico em `stage_review_reply` (`conversation_id`, `text`). A UI mostra contato, origem, negócio, última mensagem e prévia. Para “deixa mais curto”, use o contexto da UI e a mesma tool para atualizar o rascunho; isso não envia.
-5. Editar amplia a conversa quando o host suporta fullscreen. O usuário revisa e confirma o envio na UI; mantenha a idempotência do fluxo existente, sem segunda chamada de envio pelo modelo.
-6. Janela de 24h fechada: siga `preparar-template`. Canal não suportado: painel web. Após aceite, para acompanhar status, siga `plantao-ao-vivo`.
+1. Resolva conversa, negócio, serviço ativo e responsável a partir de `get_conversation`, `list_appointment_services` e `list_users`; confirme qualquer ambiguidade. Nunca invente IDs ou disponibilidade.
+2. Chame `stage_appointment_booking` com `conversation_id`, `service_id`, `owner_user_id`, `from`, `to` e `meeting_requested` quando solicitado. Datas devem respeitar o fuso retornado do negócio; a tool consulta disponibilidade, não cria compromisso nem envia aviso.
+3. A UI agrupa horários por dia. Ao escolher Marcar, mostra contato, serviço, horário, responsável e prévia do aviso. Confirmar na UI autoriza o compromisso e o aviso exibidos; não chame `create_appointment` ou envio em paralelo.
+4. Meet depende da conexão do responsável; não prometa link antes do resultado. A UI revalida disponibilidade e usa idempotência. Se o compromisso existe mas o aviso falhou/incerto, conferir histórico sem criar outro compromisso.
 
 ## Limites comuns
 

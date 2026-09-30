@@ -1,9 +1,9 @@
 ---
-name: revisar-pendencias
-description: Revise pendências, histórico e respostas WhatsApp da Conta BotoZap conectada. Use para o que tenho hoje, retornos, Radar e preparação ou edição de uma resposta.
+name: plantao-ao-vivo
+description: Acompanhe uma conversa BotoZap depois de um envio aceito, com status, resposta e digitação quando retornados. Use para plantão ao vivo ou continuar vendo a conversa.
 ---
 
-# Pendências e resposta pronta
+# Plantão ao vivo e entrada global
 
 ## Escolher tool direta ou UI
 
@@ -13,12 +13,10 @@ description: Revise pendências, histórico e respostas WhatsApp da Conta BotoZa
 - Sem UI, continue com consultas; para preparar/revisar, apresente o rascunho e encaminhe a revisão ao painel web. Pedidos completos continuam na rota direta com permissão do ChatGPT. Incerto não autoriza repetir nem gerar outra chave; confira histórico/agenda. Use `prepare_send_intent` para envio direto e preserve a chave por intenção; agenda usa `idempotency_key`.
 
 
-1. Identifique a Conta com `get_profile`; escolha o negócio retornado por `list_customers`. Se a escolha não for inequívoca, peça ao usuário.
-2. Para “o que tenho hoje”, chame `list_radar` com `customer_id`: a tool pode exibir o carrossel inline. Preserve criticidade/paginação. Para Radar completo, use `open_review_panel` e a seleção explícita de negócio na UI; não confunda negócio com Conta.
-3. Resolva conversa por IDs retornados; oportunidade/demanda usam `list_opportunity_conversations`/`list_demand_conversations`. Leia `get_conversation` e `list_messages`, só o necessário.
-4. Prepare texto com fatos do histórico em `stage_review_reply` (`conversation_id`, `text`). A UI mostra contato, origem, negócio, última mensagem e prévia. Para “deixa mais curto”, use o contexto da UI e a mesma tool para atualizar o rascunho; isso não envia.
-5. Editar amplia a conversa quando o host suporta fullscreen. O usuário revisa e confirma o envio na UI; mantenha a idempotência do fluxo existente, sem segunda chamada de envio pelo modelo.
-6. Janela de 24h fechada: siga `preparar-template`. Canal não suportado: painel web. Após aceite, para acompanhar status, siga `plantao-ao-vivo`.
+- Após um recibo aceito e pedido do usuário para acompanhar, chame `open_live_conversation` com `conversation_id` e `message_id` retornados. `after` é cursor decimal retornado (inicial 0), nunca timestamp. Essa tool só lê.
+- Diferencie aceite, envio, entrega e leitura conforme evidência do canal. Mostre digitação/resposta só quando retornadas para a conversa autorizada; não invente eventos ou prometa recebimento futuro.
+- PiP depende da capacidade do host. Se indisponível, continue no modo permitido ou no painel web; não simule uma janela flutuante inexistente. Não envie novamente para atualizar status.
+- Para abrir o BotoZap fora de uma conversa, use `open_botozap` sem parâmetros quando disponível (entrada global/fullscreen). Selecione o negócio na UI e resolva links profundos só contra objetos autorizados. Não invente URI de deep link nem IDs; um link não concede acesso.
 
 ## Limites comuns
 

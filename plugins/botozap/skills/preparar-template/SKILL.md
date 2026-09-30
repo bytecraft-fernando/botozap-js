@@ -1,9 +1,9 @@
 ---
-name: revisar-pendencias
-description: Revise pendências, histórico e respostas WhatsApp da Conta BotoZap conectada. Use para o que tenho hoje, retornos, Radar e preparação ou edição de uma resposta.
+name: preparar-template
+description: Prepare e ajuste a prévia de uma mensagem com template WhatsApp aprovado, especialmente fora da janela de 24 horas. Use para imagem, documento, vídeo, autenticação, carrossel e variáveis.
 ---
 
-# Pendências e resposta pronta
+# Template aprovado: prévia primeiro
 
 ## Escolher tool direta ou UI
 
@@ -13,12 +13,13 @@ description: Revise pendências, histórico e respostas WhatsApp da Conta BotoZa
 - Sem UI, continue com consultas; para preparar/revisar, apresente o rascunho e encaminhe a revisão ao painel web. Pedidos completos continuam na rota direta com permissão do ChatGPT. Incerto não autoriza repetir nem gerar outra chave; confira histórico/agenda. Use `prepare_send_intent` para envio direto e preserve a chave por intenção; agenda usa `idempotency_key`.
 
 
-1. Identifique a Conta com `get_profile`; escolha o negócio retornado por `list_customers`. Se a escolha não for inequívoca, peça ao usuário.
-2. Para “o que tenho hoje”, chame `list_radar` com `customer_id`: a tool pode exibir o carrossel inline. Preserve criticidade/paginação. Para Radar completo, use `open_review_panel` e a seleção explícita de negócio na UI; não confunda negócio com Conta.
-3. Resolva conversa por IDs retornados; oportunidade/demanda usam `list_opportunity_conversations`/`list_demand_conversations`. Leia `get_conversation` e `list_messages`, só o necessário.
-4. Prepare texto com fatos do histórico em `stage_review_reply` (`conversation_id`, `text`). A UI mostra contato, origem, negócio, última mensagem e prévia. Para “deixa mais curto”, use o contexto da UI e a mesma tool para atualizar o rascunho; isso não envia.
-5. Editar amplia a conversa quando o host suporta fullscreen. O usuário revisa e confirma o envio na UI; mantenha a idempotência do fluxo existente, sem segunda chamada de envio pelo modelo.
-6. Janela de 24h fechada: siga `preparar-template`. Canal não suportado: painel web. Após aceite, para acompanhar status, siga `plantao-ao-vivo`.
+1. Leia a conversa/origem autorizada. Consulte `list_templates` com status APPROVED e número de origem; use `get_template` para a definição escolhida. Para criar uma definição, use `create_template` com permissão do ChatGPT; criação não significa aprovação pela Meta. Esta UI é somente para enviar um template aprovado.
+2. Chame `stage_review_template` com `conversation_id` e, se conhecido, `template_id`. Preencha `suggested_values` por ID do template com chaves reais do contexto da UI; mídia pode usar `media_metadata` de nome/tamanho conhecido.
+3. A prévia é protagonista. Para “muda o nome para Mariana” ou “troca a imagem do segundo card”, use os nomes humanos/chaves do contexto da UI e reaplique `stage_review_template`, preservando os demais valores. Não altere texto estático/botões da definição aprovada.
+4. A UI mantém Editar campos e Avançado fechados. Não abra `review_template_variables` automaticamente; use o formulário nativo somente quando a pessoa pedir revisão de campos e o host suportar.
+5. Mídia: referência pública HTTPS ou identificador de upload existente, sem baixar terceiros ou expor URL sensível. Não invente arquivo, URL ou ID. Autenticação: código vem do sistema do negócio, nunca gere um OTP. Sem dados obrigatórios, peça ao usuário.
+6. Ofereça somente componentes suportados e aprovados para essa origem. Template sincronizado com botão FLOW é bloqueado: “Este template usa WhatsApp Flows, que não fazem parte do BotoZap. Use outro template aprovado.” Não mostre prévia nem tente enviá-lo.
+7. Revisar envio/Enviar template e a idempotência pertencem à UI. Na rota UI, nunca chame `send_message` para pular confirmação ou contornar template bloqueado. Um pedido completo de envio direto respeita a permissão do ChatGPT e as mesmas validações.
 
 ## Limites comuns
 

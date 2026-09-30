@@ -1,0 +1,72 @@
+{
+  "verified_from_git": {
+    "main": "f586343fd1ea82b7e4f2328486e6b01ba2fcfad7"
+  },
+  "runtime_verified": false,
+  "tools": {
+    "list_radar": {
+      "screen": 1,
+      "required": [
+        "customer_id"
+      ],
+      "source": "main"
+    },
+    "stage_review_reply": {
+      "screen": 2,
+      "required": [
+        "conversation_id",
+        "text"
+      ],
+      "source": "main"
+    },
+    "open_review_panel": {
+      "screen": 3,
+      "required": [],
+      "source": "main"
+    },
+    "stage_review_template": {
+      "screen": 4,
+      "required": [
+        "conversation_id"
+      ],
+      "source": "main"
+    },
+    "open_live_conversation": {
+      "screen": 5,
+      "required": [
+        "conversation_id"
+      ],
+      "source": "main"
+    },
+    "open_agent_cases": {
+      "screen": 6,
+      "required": [
+        "customer_id"
+      ],
+      "source": "main"
+    },
+    "stage_appointment_booking": {
+      "screen": 7,
+      "required": [
+        "conversation_id",
+        "service_id",
+        "owner_user_id",
+        "from",
+        "to"
+      ],
+      "source": "main"
+    },
+    "open_botozap": {
+      "screen": 8,
+      "required": [],
+      "source": "main"
+    },
+    "review_template_variables": {
+      "helper": true,
+      "required": [
+        "template_id"
+      ],
+      "source": "main"
+    }
+  }
+}

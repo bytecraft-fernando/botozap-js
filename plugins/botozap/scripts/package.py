@@ -14,10 +14,13 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--zip", type=Path, help="Write candidate ZIP outside plugin source")
 parser.add_argument("--submission-ready", action="store_true", help="Fail on outstanding portal/release gates")
 args = parser.parse_args()
+assert not (root / ".app.json").exists(), "Private app binding forbidden"
 manifest = json.loads((root / "plugin.json").read_text())
 mcp = json.loads((root / "mcp.json").read_text())
 metadata = manifest["extensions"]["com.openai"]
 listing = metadata["interface"]
+assert manifest.get("apps") is None and metadata.get("apps") is None, "Private app binding forbidden"
+assert re.fullmatch(r"\d+\.\d+\.\d+", manifest["version"]), "Explicit semantic version required"
 assert len(mcp["mcpServers"]) == 1, "Review cases require exactly one MCP server"
 assert mcp["mcpServers"]["botozap"]["type"] == "streamable-http"
 for field, limit in [("displayName", 30), ("shortDescription", 30), ("longDescription", 4000), ("developerName", 80)]:
@@ -26,8 +29,10 @@ for field, limit in [("displayName", 30), ("shortDescription", 30), ("longDescri
 for field in ["websiteURL", "supportURL", "privacyPolicyURL", "termsOfServiceURL"]:
     url = urlsplit(listing[field])
     assert url.scheme == "https" and url.hostname and not url.username and not url.password, field
-assert len(listing["defaultPrompt"]) <= 3
-assert all(len(prompt) <= 128 for prompt in listing["defaultPrompt"])
+prompts = listing["defaultPrompt"]
+assert 1 <= len(prompts) <= 3
+assert all(isinstance(p,str) and p.strip() and len(p) <= 128 and not re.search(r"[\r\n@]",p) for p in prompts)
+assert len({" ".join(p.split()) for p in prompts}) == len(prompts)
 assert metadata["publication"]["countries"] == ["BR"]
 translation = metadata["publication"]["translations"]["pt-BR"]
 assert 0 < len(translation["subtitle"]) <= 30 and "\n" not in translation["subtitle"]
@@ -41,10 +46,16 @@ repository = root.parents[1]
 fixture = json.loads((repository / "packages/mcp/tests/fixtures/release-0.6.0-tools.json").read_text())
 tools = {tool["name"] for tool in fixture["tools"]}
 for source in (repository / "packages/mcp/src").rglob("*.ts"):
-    tools.update(re.findall(r'register\(\s*"([a-z_]+)"', source.read_text()))
-assert {"open_review_panel", "stage_review_reply", "prepare_send_intent"}.issubset(tools)
-server_source = (repository / "packages/mcp/src/server.ts").read_text()
-assert 'BOTOZAP_MCP_UI_ENABLED === "true"' in server_source
+    tools.update(re.findall(r"(?:register|registerTool)\(\s*[\"']([a-z_]+)[\"']", source.read_text()))
+contracts = json.loads((root / "ui-contracts.json").read_text())
+ui_tools = set(contracts["tools"])
+assert {c["screen"] for c in contracts["tools"].values() if "screen" in c} == set(range(1,9))
+assert all(re.fullmatch(r"[0-9a-f]{40}",ref) for ref in contracts["verified_from_git"].values())
+# All UI contracts must now exist in the integrated checked-out source.
+missing_on_main = sorted(ui_tools - tools)
+assert not missing_on_main, f"UI tools missing in local catalogue: {missing_on_main}"
+assert "create_template" in tools
+assert "prepare_send_intent" in tools
 for kind in ["positive", "negative"]:
     for case in cases[kind]:
         for field in ["description", "prompt"]:
@@ -57,15 +68,21 @@ for kind in ["positive", "negative"]:
 # Build only portable manifests, referenced icon and skills. Operational materials,
 # validation scripts, evidence and credentials cannot enter this archive.
 files = [root / "plugin.json", root / "mcp.json", root / "assets/icon.png"]
-files.extend(sorted((root / "skills").rglob("*")))
-files = [path for path in files if path.is_file()]
+skill_names = ["conectar-botozap", "revisar-pendencias", "preparar-template", "casos-da-ia", "marcar-horario", "plantao-ao-vivo"]
+files.extend(root / "skills" / name / "SKILL.md" for name in skill_names)
+assert all(path.is_file() for path in files)
+skill_text = "\n".join(path.read_text() for path in files if path.suffix == ".md")
+assert all(f"`{name}`" in skill_text for name in ui_tools), "UI tool missing from skills"
+files = sorted(files, key=lambda p: p.relative_to(root).as_posix())
 for path in files:
+    assert path.resolve().is_relative_to(root), f"Path outside package: {path}"
+    assert not any(parent.is_symlink() for parent in [path,*path.parents] if parent.is_relative_to(root)), f"Symlink path forbidden: {path}"
     assert not path.is_symlink(), f"Symlink forbidden: {path}"
     if path.suffix == ".png":
         data = path.read_bytes()
         assert data[:8] == b"\x89PNG\r\n\x1a\n"
         width, height = struct.unpack(">II", data[16:24])
-        assert width == height and 48 <= width <= 4096 and len(data) <= 5 * 1024 * 1024
+        assert width == height and 256 <= width <= 4096 and len(data) <= 5 * 1024 * 1024
     else:
         text = path.read_text()
         assert not re.search(r'"(?:test_credentials|reviewer_instructions)"\s*:', text), path
@@ -74,8 +91,8 @@ for path in files:
 
 video = metadata["review"].get("demo_recording_url")
 gates = [
-    "Publish and verify planned supportURL /suporte and privacy text covering this integration.",
-    "Deploy candidate API/OAuth/MCP and enable BOTOZAP_MCP_UI_ENABLED=true; verify domain and connection in portal.",
+    "Review published privacy/terms coverage for this ChatGPT integration; reverify all listing URLs before submission.",
+    "Confirm deployment of integrated main server support and permitted host/account UI availability in an authorized test environment; this script changes no flags.",
     "Provision the dedicated controlled review fixture and run all 5 positive/3 negative cases; record actual evidence.",
     "Enter reviewer account credentials and access instructions only in the secure portal form.",
     "Complete publisher verification, successful metadata/skill/tool scans and policy attestations.",
@@ -85,7 +102,7 @@ if not video:
 else:
     parsed = urlsplit(video)
     assert parsed.scheme == "https" and parsed.hostname and not parsed.username and not parsed.password
-print(json.dumps({"candidate_valid": True, "files": [str(path.relative_to(root)) for path in files], "review_cases_executed": False, "submission_ready": False, "gates": gates}, ensure_ascii=False, indent=2))
+print(json.dumps({"candidate_valid": True, "files": [str(path.relative_to(root)) for path in files], "required_ui_tools": sorted(ui_tools), "ui_tools_missing_in_local_main": missing_on_main, "review_cases_executed": False, "submission_ready": False, "gates": gates}, ensure_ascii=False, indent=2))
 if args.submission_ready:
     raise SystemExit("Submission blocked: candidate validation is not portal readiness; gates above remain open.")
 if args.zip:
@@ -97,8 +114,9 @@ if args.zip:
             info = zipfile.ZipInfo(str(path.relative_to(root)), date_time=(2026, 9, 29, 0, 0, 0))
             info.compress_type = zipfile.ZIP_DEFLATED
             info.external_attr = 0o100644 << 16
-            archive.writestr(info, path.read_bytes())
+            info.create_system = 3
+            archive.writestr(info, path.read_bytes(), compresslevel=9)
     with zipfile.ZipFile(destination) as archive:
         assert archive.testzip() is None
         assert set(archive.namelist()) == {str(path.relative_to(root)) for path in files}
-    print(json.dumps({"zip": str(destination), "sha256": hashlib.sha256(destination.read_bytes()).hexdigest()}))
+    print(json.dumps({"zip": str(destination), "bytes": destination.stat().st_size, "files": archive.namelist(), "sha256": hashlib.sha256(destination.read_bytes()).hexdigest()}))
