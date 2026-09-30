@@ -53,7 +53,7 @@ async function main(): Promise<void> {
   // chave trocada por "***" antes de tocar o console.
   const redact = (s: string): string => s.split(apiKey).join("***");
 
-  const server = buildServer({ apiKey, baseUrl }); // fetch global real
+  const server = await buildServer({ apiKey, baseUrl }); // fetch global real
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
   const client = new Client({ name: "sandbox-smoke", version: "0.0.0" });
 

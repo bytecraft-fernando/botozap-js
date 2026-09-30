@@ -1,3 +1,4 @@
+import { withoutRequestAuth } from "../auth-context.js";
 import {
   ErrorCode,
   McpError,
@@ -99,10 +100,10 @@ class EventSubscriptions {
       clearTimeout(this.timer);
       this.timer = undefined;
     }
-    this.timer = setTimeout(() => {
+    this.timer = withoutRequestAuth(() => setTimeout(() => {
       this.timer = undefined;
       void this.poll();
-    }, delayMs);
+    }, delayMs));
     this.timer.unref?.();
   }
 

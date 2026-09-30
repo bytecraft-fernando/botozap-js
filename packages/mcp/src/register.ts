@@ -2,13 +2,16 @@
  * Helper de registro de ferramentas: encapsula o padrão comum de
  *  1. validar args (zod, feito pelo SDK a partir do `inputSchema`),
  *  2. chamar a API via cliente do `@botozap/sdk`,
- *  3. devolver o JSON cru como conteúdo de texto (JSON pretty),
+ *  3. devolver JSON compacto como conteúdo de texto,
  *  4. nas tools migradas, validar a saída forte e devolvê-la também como
  *     `structuredContent`, com `outputSchema` compatível com MCP SDK 1.29,
  *  5. converter `BotoZapError`/exceções em resultado `isError` com mensagem PT-BR.
  */
 
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { reviewToolMetadata, REVIEW_RESOURCE_URI } from "./resources/review-panel.js";
+import { requestAuthContext } from "./auth-context.js";
+import type { ApiIdentity } from "./server.js";
+import type { McpServer, RegisteredTool } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import type { AnyZodObject, ZodRawShape } from "zod";
 import { BotoZapError, type Client } from "./client.js";
@@ -17,11 +20,13 @@ import {
   structuredError,
   type StructuredError,
 } from "./schemas.js";
+import { getToolPolicy, isToolAllowed } from "./permissions.js";
 
 /** Assinatura do handler de uma ferramenta: recebe o client + args validados. */
 export type ToolHandler<Args> = (
   client: Client,
   args: Args,
+  identity: ApiIdentity,
 ) => Promise<unknown>;
 
 const STRUCTURED_RESULT = Symbol("structured-result");
@@ -65,6 +70,7 @@ export interface Register {
 }
 
 const API_KEY_PATTERN = /\bbz_(?:live|sandbox)_[A-Za-z0-9._-]+\b/g;
+const JWT_PATTERN = /\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/g;
 const BEARER_PATTERN = /\bBearer\s+\S+/gi;
 
 function safeMessage(value: unknown, apiKey?: string): string {
@@ -73,7 +79,7 @@ function safeMessage(value: unknown, apiKey?: string): string {
     "Bearer [credencial removida]",
   );
   if (apiKey) message = message.split(apiKey).join("[credencial removida]");
-  return message.replace(API_KEY_PATTERN, "[credencial removida]");
+  return message.replace(API_KEY_PATTERN, "[credencial removida]").replace(JWT_PATTERN, "[credencial removida]");
 }
 
 function errorResult(err: unknown, apiKey?: string): {
@@ -83,8 +89,11 @@ function errorResult(err: unknown, apiKey?: string): {
   if (err instanceof BotoZapError) {
     const message = safeMessage(err.message, apiKey);
     return {
-      text: `Erro [${err.code}]: ${message}`,
-      structured: structuredError(err.code, message, err.status),
+      text: `Erro [${err.code}]: ${message}${err.outcome ? ` Resultado: ${err.outcome}.` : ""}${err.retry ? ` Retentativa: ${err.retry}.` : ""}`,
+      structured: structuredError(err.code, message, err.status, {
+        ...(err.outcome ? { outcome: err.outcome } : {}),
+        ...(err.retry ? { retry: err.retry } : {}),
+      }),
     };
   }
 
@@ -111,8 +120,12 @@ function isStructuredToolResult(value: unknown): value is StructuredToolResult {
 export function createRegister(
   server: McpServer,
   client: Client,
-  apiKey?: string,
+  apiKey: string,
+  identity: ApiIdentity,
+  options: { uiEnabled?: boolean } = {},
 ) {
+  let currentIdentity = identity;
+  const tools: Array<{ tool: RegisteredTool; policy: ReturnType<typeof getToolPolicy> }> = [];
   const register: Register = function register(
     name: string,
     description: string,
@@ -120,22 +133,35 @@ export function createRegister(
     outputOrHandler: AnyZodObject | ToolHandler<Record<string, unknown>>,
     maybeHandler?: ToolHandler<Record<string, unknown>>,
   ): void {
+    const policy = getToolPolicy(name);
+
     const outputSchema = maybeHandler ? (outputOrHandler as AnyZodObject) : undefined;
     const handler = maybeHandler ?? (outputOrHandler as ToolHandler<Record<string, unknown>>);
-    server.registerTool(
+    const tool = server.registerTool(
       name,
       {
         description,
         inputSchema,
+        ...(options.uiEnabled ? { _meta: name === "open_review_panel" ? reviewToolMetadata : name === "stage_review_reply" ? { ui: { resourceUri: REVIEW_RESOURCE_URI, visibility: ["model", "app"] } } : { ui: { visibility: ["model", "app"] } } } : {}),
+        annotations: {
+          readOnlyHint: policy.readOnlyHint,
+          destructiveHint: policy.destructiveHint,
+          openWorldHint: policy.openWorldHint,
+        },
         ...(outputSchema
           ? { outputSchema: compatibleOutputSchema(outputSchema) }
           : {}),
       },
       async (args): Promise<CallToolResult> => {
         try {
+          const authority = requestAuthContext.getStore()?.identity ?? currentIdentity;
+          if (!isToolAllowed(policy, authority)) {
+            throw new BotoZapError("forbidden_scope", "Esta autorização não permite a ferramenta.", 403);
+          }
           const handlerResult = await handler(
             client,
             (args ?? {}) as Record<string, unknown>,
+            authority,
           );
           const data = isStructuredToolResult(handlerResult)
             ? handlerResult.structuredContent
@@ -143,10 +169,9 @@ export function createRegister(
           const textFallback = isStructuredToolResult(handlerResult)
             ? handlerResult.textFallback
             : handlerResult;
-          const content = [
-            { type: "text" as const, text: JSON.stringify(textFallback, null, 2) },
-          ];
-          if (!outputSchema) return { content };
+          if (!outputSchema) return {
+            content: [{ type: "text", text: JSON.stringify(textFallback) }],
+          };
 
           if (!isObject(data)) {
             throw new Error(
@@ -162,12 +187,16 @@ export function createRegister(
             );
           }
 
+          // Publish only the validated projection. Keep the historical null
+          // fallback for 204 responses; all other text mirrors structured data.
           return {
-            content,
-            structuredContent: data,
+            content: [{ type: "text", text: JSON.stringify(
+              isStructuredToolResult(handlerResult) ? textFallback : parsed.data,
+            ) }],
+            structuredContent: parsed.data,
           };
         } catch (err) {
-          const result = errorResult(err, apiKey);
+          const result = errorResult(err, requestAuthContext.getStore()?.credential ?? apiKey);
           return {
             content: [{ type: "text", text: result.text }],
             ...(outputSchema ? { structuredContent: result.structured } : {}),
@@ -176,6 +205,16 @@ export function createRegister(
         }
       },
     );
+    tools.push({ tool, policy });
+    if (!isToolAllowed(policy, currentIdentity)) tool.disable();
   };
-  return register;
+  return Object.assign(register, {
+    updateIdentity(next: ApiIdentity) {
+      currentIdentity = next;
+      for (const { tool, policy } of tools) {
+        const allowed = isToolAllowed(policy, next);
+        if (tool.enabled !== allowed) allowed ? tool.enable() : tool.disable();
+      }
+    },
+  });
 }

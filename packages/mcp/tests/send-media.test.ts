@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { buildServer } from "../src/server.js";
+import { fullAccessIdentity } from "./helpers/identity.js";
 
 const API_KEY = "bz_live_media_mcp_secreta";
 const BASE_URL = "https://api.test/v1";
@@ -12,7 +13,7 @@ afterEach(async () => {
 });
 
 async function connect(fetchImpl: typeof fetch): Promise<Client> {
-  const server = buildServer({ apiKey: API_KEY, baseUrl: BASE_URL, fetch: fetchImpl });
+  const server = await buildServer({ apiKey: API_KEY, baseUrl: BASE_URL, fetch: fetchImpl }, fullAccessIdentity);
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
   const client = new Client({ name: "send-media-test", version: "0.0.0" });
   await Promise.all([server.connect(serverTransport), client.connect(clientTransport)]);
@@ -96,7 +97,7 @@ describe("MCP — send_media_message", () => {
     for (const args of calls) {
       const result = await client.callTool({
         name: "send_media_message",
-        arguments: { to: "+5511999999999", from: "1279498075235551", ...args },
+        arguments: { idempotency_key: "intent-fixture-0001", to: "+5511999999999", from: "1279498075235551", ...args },
       });
       expect(result.isError, args.type).toBeFalsy();
       expect(result.structuredContent, args.type).toMatchObject({
@@ -159,7 +160,7 @@ describe("MCP — send_media_message", () => {
 
     const audio = await client.callTool({
       name: "send_media_message",
-      arguments: {
+      arguments: { idempotency_key: "intent-fixture-0001",
         to: "5511999999999",
         type: "audio",
         link: "https://cdn.example.test/audio.ogg",
@@ -168,7 +169,7 @@ describe("MCP — send_media_message", () => {
     });
     const image = await client.callTool({
       name: "send_media_message",
-      arguments: {
+      arguments: { idempotency_key: "intent-fixture-0001",
         to: "5511999999999",
         type: "image",
         link: "https://cdn.example.test/foto.jpg",
@@ -239,7 +240,7 @@ describe("MCP — send_media_message", () => {
 
     const result = await client.callTool({
       name: "send_media_message",
-      arguments: {
+      arguments: { idempotency_key: "intent-fixture-0001",
         to: "5511999999999",
         type: "image",
         link: "https://cdn.example.test/foto.jpg",

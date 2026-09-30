@@ -226,6 +226,7 @@ exports[`MCP Atendimento: schemas, domínio e transporte real em memória > cat�
   "create_contact_field",
   "update_contact_field",
   "delete_contact_field",
+  "prepare_send_intent",
   "send_message",
   "list_messages",
   "get_message",
@@ -265,5 +266,6 @@ exports[`MCP Atendimento: schemas, domínio e transporte real em memória > cat�
   "list_api_logs",
   "list_users",
   "get_meta_costs",
+  "get_profile",
 ]
 `;

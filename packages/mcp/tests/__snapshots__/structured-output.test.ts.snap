@@ -45,10 +45,10 @@ exports[`MCP — output schemas e structured content > anuncia schemas não vazi
     },
     "outputSchema": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "additionalProperties": true,
+      "additionalProperties": false,
       "properties": {
         "data": {
-          "additionalProperties": true,
+          "additionalProperties": false,
           "properties": {
             "category": {
               "type": [
@@ -117,6 +117,12 @@ exports[`MCP — output schemas e structured content > anuncia schemas não vazi
             "name": {
               "type": "string",
             },
+            "rejection_reason": {
+              "type": [
+                "string",
+                "null",
+              ],
+            },
             "status": {
               "type": "string",
             },
@@ -152,6 +158,23 @@ exports[`MCP — output schemas e structured content > anuncia schemas não vazi
               "description": "Mensagem segura e acionável do erro.",
               "type": "string",
             },
+            "outcome": {
+              "enum": [
+                "rejected",
+                "accepted",
+                "unknown",
+              ],
+              "type": "string",
+            },
+            "retry": {
+              "enum": [
+                "backoff",
+                "after_correction",
+                "reconcile_first",
+                "unknown",
+              ],
+              "type": "string",
+            },
             "status": {
               "description": "Status HTTP; 0 quando não houve resposta HTTP.",
               "minimum": 0,
@@ -175,7 +198,7 @@ exports[`MCP — output schemas e structured content > anuncia schemas não vazi
       "additionalProperties": false,
       "properties": {
         "id": {
-          "description": "ID da mensagem (uuid interno).",
+          "description": "UUID interno da mensagem ou \`wamid\` da Meta.",
           "type": "string",
         },
       },
@@ -186,15 +209,50 @@ exports[`MCP — output schemas e structured content > anuncia schemas não vazi
     },
     "outputSchema": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "additionalProperties": true,
+      "additionalProperties": false,
       "properties": {
         "data": {
-          "additionalProperties": true,
+          "additionalProperties": false,
           "properties": {
+            "channel": {
+              "type": "string",
+            },
+            "channel_account": {
+              "anyOf": [
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "channel": {
+                      "type": "string",
+                    },
+                    "display": {
+                      "type": [
+                        "string",
+                        "null",
+                      ],
+                    },
+                    "id": {
+                      "description": "UUID interno do recurso no BotoZap.",
+                      "format": "uuid",
+                      "type": "string",
+                    },
+                  },
+                  "required": [
+                    "id",
+                    "channel",
+                    "display",
+                  ],
+                  "type": "object",
+                },
+                {
+                  "type": "null",
+                },
+              ],
+            },
             "contact_id": {
               "anyOf": [
                 {
-                  "$ref": "#/properties/data/properties/conversation_id/anyOf/0",
+                  "$ref": "#/properties/data/properties/channel_account/anyOf/0/properties/id",
                 },
                 {
                   "type": "null",
@@ -243,9 +301,7 @@ exports[`MCP — output schemas e structured content > anuncia schemas não vazi
             "conversation_id": {
               "anyOf": [
                 {
-                  "description": "UUID interno do recurso no BotoZap.",
-                  "format": "uuid",
-                  "type": "string",
+                  "$ref": "#/properties/data/properties/channel_account/anyOf/0/properties/id",
                 },
                 {
                   "type": "null",
@@ -274,6 +330,12 @@ exports[`MCP — output schemas e structured content > anuncia schemas não vazi
               ],
             },
             "event_at": {
+              "type": [
+                "string",
+                "null",
+              ],
+            },
+            "external_id": {
               "type": [
                 "string",
                 "null",
@@ -355,6 +417,23 @@ exports[`MCP — output schemas e structured content > anuncia schemas não vazi
               "description": "Mensagem segura e acionável do erro.",
               "type": "string",
             },
+            "outcome": {
+              "enum": [
+                "rejected",
+                "accepted",
+                "unknown",
+              ],
+              "type": "string",
+            },
+            "retry": {
+              "enum": [
+                "backoff",
+                "after_correction",
+                "reconcile_first",
+                "unknown",
+              ],
+              "type": "string",
+            },
             "status": {
               "description": "Status HTTP; 0 quando não houve resposta HTTP.",
               "minimum": 0,
@@ -378,7 +457,7 @@ exports[`MCP — output schemas e structured content > anuncia schemas não vazi
       "additionalProperties": false,
       "properties": {
         "id": {
-          "description": "ID do número (uuid interno).",
+          "description": "UUID interno do número ou \`phone_number_id\` da Meta.",
           "type": "string",
         },
       },
@@ -389,10 +468,10 @@ exports[`MCP — output schemas e structured content > anuncia schemas não vazi
     },
     "outputSchema": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "additionalProperties": true,
+      "additionalProperties": false,
       "properties": {
         "data": {
-          "additionalProperties": true,
+          "additionalProperties": false,
           "properties": {
             "connection_status": {
               "type": [
@@ -497,6 +576,23 @@ exports[`MCP — output schemas e structured content > anuncia schemas não vazi
               "description": "Mensagem segura e acionável do erro.",
               "type": "string",
             },
+            "outcome": {
+              "enum": [
+                "rejected",
+                "accepted",
+                "unknown",
+              ],
+              "type": "string",
+            },
+            "retry": {
+              "enum": [
+                "backoff",
+                "after_correction",
+                "reconcile_first",
+                "unknown",
+              ],
+              "type": "string",
+            },
             "status": {
               "description": "Status HTTP; 0 quando não houve resposta HTTP.",
               "minimum": 0,
@@ -531,10 +627,10 @@ exports[`MCP — output schemas e structured content > anuncia schemas não vazi
     },
     "outputSchema": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "additionalProperties": true,
+      "additionalProperties": false,
       "properties": {
         "data": {
-          "additionalProperties": true,
+          "additionalProperties": false,
           "properties": {
             "category": {
               "type": [
@@ -603,6 +699,12 @@ exports[`MCP — output schemas e structured content > anuncia schemas não vazi
             "name": {
               "type": "string",
             },
+            "rejection_reason": {
+              "type": [
+                "string",
+                "null",
+              ],
+            },
             "status": {
               "type": "string",
             },
@@ -636,6 +738,23 @@ exports[`MCP — output schemas e structured content > anuncia schemas não vazi
             },
             "message": {
               "description": "Mensagem segura e acionável do erro.",
+              "type": "string",
+            },
+            "outcome": {
+              "enum": [
+                "rejected",
+                "accepted",
+                "unknown",
+              ],
+              "type": "string",
+            },
+            "retry": {
+              "enum": [
+                "backoff",
+                "after_correction",
+                "reconcile_first",
+                "unknown",
+              ],
               "type": "string",
             },
             "status": {
@@ -693,7 +812,7 @@ exports[`MCP — output schemas e structured content > anuncia schemas não vazi
           "type": "string",
         },
         "phone_number_id": {
-          "description": "Filtra pelo phone_number_id (Meta).",
+          "description": "Filtra pelo ID Meta ou UUID interno do número.",
           "type": "string",
         },
         "status": {
@@ -705,16 +824,51 @@ exports[`MCP — output schemas e structured content > anuncia schemas não vazi
     },
     "outputSchema": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "additionalProperties": true,
+      "additionalProperties": false,
       "properties": {
         "data": {
           "items": {
-            "additionalProperties": true,
+            "additionalProperties": false,
             "properties": {
+              "channel": {
+                "type": "string",
+              },
+              "channel_account": {
+                "anyOf": [
+                  {
+                    "additionalProperties": false,
+                    "properties": {
+                      "channel": {
+                        "type": "string",
+                      },
+                      "display": {
+                        "type": [
+                          "string",
+                          "null",
+                        ],
+                      },
+                      "id": {
+                        "description": "UUID interno do recurso no BotoZap.",
+                        "format": "uuid",
+                        "type": "string",
+                      },
+                    },
+                    "required": [
+                      "id",
+                      "channel",
+                      "display",
+                    ],
+                    "type": "object",
+                  },
+                  {
+                    "type": "null",
+                  },
+                ],
+              },
               "contact_id": {
                 "anyOf": [
                   {
-                    "$ref": "#/properties/data/items/properties/conversation_id/anyOf/0",
+                    "$ref": "#/properties/data/items/properties/channel_account/anyOf/0/properties/id",
                   },
                   {
                     "type": "null",
@@ -763,9 +917,7 @@ exports[`MCP — output schemas e structured content > anuncia schemas não vazi
               "conversation_id": {
                 "anyOf": [
                   {
-                    "description": "UUID interno do recurso no BotoZap.",
-                    "format": "uuid",
-                    "type": "string",
+                    "$ref": "#/properties/data/items/properties/channel_account/anyOf/0/properties/id",
                   },
                   {
                     "type": "null",
@@ -794,6 +946,12 @@ exports[`MCP — output schemas e structured content > anuncia schemas não vazi
                 ],
               },
               "event_at": {
+                "type": [
+                  "string",
+                  "null",
+                ],
+              },
+              "external_id": {
                 "type": [
                   "string",
                   "null",
@@ -875,6 +1033,23 @@ exports[`MCP — output schemas e structured content > anuncia schemas não vazi
             },
             "message": {
               "description": "Mensagem segura e acionável do erro.",
+              "type": "string",
+            },
+            "outcome": {
+              "enum": [
+                "rejected",
+                "accepted",
+                "unknown",
+              ],
+              "type": "string",
+            },
+            "retry": {
+              "enum": [
+                "backoff",
+                "after_correction",
+                "reconcile_first",
+                "unknown",
+              ],
               "type": "string",
             },
             "status": {
@@ -963,11 +1138,11 @@ exports[`MCP — output schemas e structured content > anuncia schemas não vazi
     },
     "outputSchema": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "additionalProperties": true,
+      "additionalProperties": false,
       "properties": {
         "data": {
           "items": {
-            "additionalProperties": true,
+            "additionalProperties": false,
             "properties": {
               "connection_status": {
                 "type": [
@@ -1074,6 +1249,23 @@ exports[`MCP — output schemas e structured content > anuncia schemas não vazi
               "description": "Mensagem segura e acionável do erro.",
               "type": "string",
             },
+            "outcome": {
+              "enum": [
+                "rejected",
+                "accepted",
+                "unknown",
+              ],
+              "type": "string",
+            },
+            "retry": {
+              "enum": [
+                "backoff",
+                "after_correction",
+                "reconcile_first",
+                "unknown",
+              ],
+              "type": "string",
+            },
             "status": {
               "description": "Status HTTP; 0 quando não houve resposta HTTP.",
               "minimum": 0,
@@ -1154,11 +1346,11 @@ exports[`MCP — output schemas e structured content > anuncia schemas não vazi
     },
     "outputSchema": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "additionalProperties": true,
+      "additionalProperties": false,
       "properties": {
         "data": {
           "items": {
-            "additionalProperties": true,
+            "additionalProperties": false,
             "properties": {
               "category": {
                 "type": [
@@ -1227,6 +1419,12 @@ exports[`MCP — output schemas e structured content > anuncia schemas não vazi
               "name": {
                 "type": "string",
               },
+              "rejection_reason": {
+                "type": [
+                  "string",
+                  "null",
+                ],
+              },
               "status": {
                 "type": "string",
               },
@@ -1262,6 +1460,23 @@ exports[`MCP — output schemas e structured content > anuncia schemas não vazi
             },
             "message": {
               "description": "Mensagem segura e acionável do erro.",
+              "type": "string",
+            },
+            "outcome": {
+              "enum": [
+                "rejected",
+                "accepted",
+                "unknown",
+              ],
+              "type": "string",
+            },
+            "retry": {
+              "enum": [
+                "backoff",
+                "after_correction",
+                "reconcile_first",
+                "unknown",
+              ],
               "type": "string",
             },
             "status": {
@@ -1315,7 +1530,7 @@ exports[`MCP — output schemas e structured content > anuncia schemas não vazi
       "additionalProperties": false,
       "properties": {
         "id": {
-          "description": "ID do número (uuid interno).",
+          "description": "UUID interno do número ou \`phone_number_id\` da Meta.",
           "type": "string",
         },
       },
@@ -1326,7 +1541,7 @@ exports[`MCP — output schemas e structured content > anuncia schemas não vazi
     },
     "outputSchema": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "additionalProperties": true,
+      "additionalProperties": false,
       "properties": {
         "data": {
           "additionalProperties": true,
@@ -1365,6 +1580,23 @@ exports[`MCP — output schemas e structured content > anuncia schemas não vazi
               "description": "Mensagem segura e acionável do erro.",
               "type": "string",
             },
+            "outcome": {
+              "enum": [
+                "rejected",
+                "accepted",
+                "unknown",
+              ],
+              "type": "string",
+            },
+            "retry": {
+              "enum": [
+                "backoff",
+                "after_correction",
+                "reconcile_first",
+                "unknown",
+              ],
+              "type": "string",
+            },
             "status": {
               "description": "Status HTTP; 0 quando não houve resposta HTTP.",
               "minimum": 0,
@@ -1389,6 +1621,13 @@ exports[`MCP — output schemas e structured content > anuncia schemas não vazi
       "properties": {
         "from": {
           "description": "ID Meta ou UUID interno do Número de origem (obrigatório se a conta tem >1 número).",
+          "type": "string",
+        },
+        "idempotency_key": {
+          "description": "Opcional para compatibilidade. Recomendado: chave obtida em prepare_send_intent ou stage_review_reply. Reutilize em retries da mesma intenção; nunca gere outra após timeout. Recusa confirmada (outcome=rejected) libera a chave para repetir após backoff/correção. Nova intenção explícita recebe nova chave.",
+          "maxLength": 200,
+          "minLength": 8,
+          "pattern": "^[!-~]+$",
           "type": "string",
         },
         "template": {
@@ -1466,7 +1705,7 @@ exports[`MCP — output schemas e structured content > anuncia schemas não vazi
     },
     "outputSchema": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "additionalProperties": true,
+      "additionalProperties": false,
       "properties": {
         "error": {
           "additionalProperties": false,
@@ -1478,6 +1717,23 @@ exports[`MCP — output schemas e structured content > anuncia schemas não vazi
             },
             "message": {
               "description": "Mensagem segura e acionável do erro.",
+              "type": "string",
+            },
+            "outcome": {
+              "enum": [
+                "rejected",
+                "accepted",
+                "unknown",
+              ],
+              "type": "string",
+            },
+            "retry": {
+              "enum": [
+                "backoff",
+                "after_correction",
+                "reconcile_first",
+                "unknown",
+              ],
               "type": "string",
             },
             "status": {
@@ -1524,6 +1780,25 @@ exports[`MCP — output schemas e structured content > anuncia schemas não vazi
         "wamid": {
           "description": "ID da Mensagem atribuído pelo WhatsApp/Meta.",
           "type": "string",
+        },
+        "warnings": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "code": {
+                "type": "string",
+              },
+              "message": {
+                "type": "string",
+              },
+            },
+            "required": [
+              "code",
+              "message",
+            ],
+            "type": "object",
+          },
+          "type": "array",
         },
       },
       "type": "object",

@@ -1,3 +1,4 @@
+import { sendIntentKey } from "../send-intent.js";
 /** Ferramentas de conversas: listar, ler e atualizar status. */
 import { z } from "zod";
 import type { ListConversationsParams } from "@botozap/sdk";
@@ -11,8 +12,9 @@ import {
 export function registerConversationTools(register: Register): void {
   register(
     "reply_to_conversation",
-    "Responde uma Conversa com texto. Informe somente o UUID da Conversa e o corpo; o BotoZap resolve Contato e Número, e a API revalida Conta, ambiente, janela de 24h, quota e billing. Exige scopes conversations:read e messages:send.",
+    "Recomendado: use prepare_send_intent uma vez e reutilize idempotency_key em retries. Recusas confirmadas liberam a chave; após aguardar/corrigir, repita com a mesma chave. Resultado desconhecido exige conferir o histórico. Chamadas sem chave continuam aceitas, com o comportamento anterior sem deduplicação. Responde uma Conversa com texto. Informe o UUID da Conversa e o corpo; o BotoZap resolve Contato e Número, e a API revalida Conta, ambiente, janela de 24h, quota e billing. Exige scopes conversations:read e messages:send.",
     {
+      idempotency_key: sendIntentKey.optional(),
       conversation_id: z
         .string()
         .uuid()
@@ -27,14 +29,14 @@ export function registerConversationTools(register: Register): void {
     (client, args) =>
       client.conversations.reply(String(args.conversation_id), {
         text: (args.text as { body: string }).body,
-      }),
+      }, { idempotencyKey: args.idempotency_key as string | undefined }),
   );
 
   register(
     "list_conversations",
-    "Lista conversas da conta (paginação por cursor: { data, paging }). Filtros opcionais por número e por busca textual de contato.",
+    "Lista conversas da conta (paginação por cursor: { data, paging }). Filtros opcionais por número (ID Meta ou UUID interno), status e busca textual de contato.",
     {
-      phone_number_id: z.string().optional().describe("Filtra pelo phone_number_id (Meta)."),
+      phone_number_id: z.string().optional().describe("Filtra pelo ID Meta ou UUID interno do número."),
       status: z.string().optional().describe("Filtra por status (active|ended)."),
       // A rota (/v1/conversations) casa por `contact`/`phone_number` (busca parcial
       // em nome/username/telefone/wa_id, INNER join em contacts). Não existe filtro

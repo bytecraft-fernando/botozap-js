@@ -7,3 +7,6 @@ packages:
 # aborta o install com ERR_PNPM_IGNORED_BUILDS (strictDepBuilds).
 allowBuilds:
   esbuild: true
+
+minimumReleaseAgeExclude:
+  - '@openai/mcp-extensions@0.1.0'

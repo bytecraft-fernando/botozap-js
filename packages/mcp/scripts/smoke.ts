@@ -8,9 +8,16 @@
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { buildServer } from "../dist/server.js";
+import { fullAccessIdentity } from "../tests/helpers/identity.ts";
 
 async function main(): Promise<void> {
-  const server = buildServer({ apiKey: "bz_live_smoke_test_key" });
+  const server = await buildServer({
+    apiKey: "bz_live_smoke_test_key",
+    fetch: async (url) => {
+      if (!String(url).endsWith("/me")) throw new Error("Requisição inesperada no smoke");
+      return Response.json({ data: fullAccessIdentity });
+    },
+  });
 
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
   const client = new Client({ name: "smoke-client", version: "0.0.0" });

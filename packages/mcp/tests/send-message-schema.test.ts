@@ -15,12 +15,14 @@ import { describe, it, expect } from "vitest";
 import { sendMessageSchema } from "../src/tools/messages.js";
 
 const textoValido = {
+  idempotency_key: "intent-fixture-0001",
   to: "5511999999999",
   type: "text" as const,
   text: { body: "olá" },
 };
 
 const templateValido = {
+  idempotency_key: "intent-fixture-0001",
   to: "5511999999999",
   type: "template" as const,
   template: { name: "hello_world", language: { code: "pt_BR" } },
@@ -36,7 +38,7 @@ describe("send_message schema — type ↔ payload", () => {
   });
 
   it("rejeita type='text' sem text", () => {
-    const r = sendMessageSchema.safeParse({ to: "5511999999999", type: "text" });
+    const r = sendMessageSchema.safeParse({ idempotency_key: "intent-fixture-0001", to: "5511999999999", type: "text" });
     expect(r.success).toBe(false);
     if (!r.success) {
       expect(r.error.issues.some((i) => i.path.includes("text"))).toBe(true);
@@ -44,7 +46,7 @@ describe("send_message schema — type ↔ payload", () => {
   });
 
   it("rejeita type='template' sem template", () => {
-    const r = sendMessageSchema.safeParse({ to: "5511999999999", type: "template" });
+    const r = sendMessageSchema.safeParse({ idempotency_key: "intent-fixture-0001", to: "5511999999999", type: "template" });
     expect(r.success).toBe(false);
     if (!r.success) {
       expect(r.error.issues.some((i) => i.path.includes("template"))).toBe(true);
@@ -75,7 +77,8 @@ describe("send_message schema — type ↔ payload", () => {
 
   it("rejeita template com language sem code", () => {
     const r = sendMessageSchema.safeParse({
-      to: "5511999999999",
+      idempotency_key: "intent-fixture-0001",
+  to: "5511999999999",
       type: "template",
       template: { name: "hello_world", language: {} },
     });

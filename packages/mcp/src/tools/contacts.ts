@@ -43,15 +43,15 @@ export function registerContactTools(register: Register): void {
 
   register(
     "get_contact",
-    "Busca um contato pelo id (uuid interno). Retorna { data }.",
-    { id: z.string().describe("ID do contato (uuid interno).") },
+    "Busca um contato pelo UUID interno ou pela identidade WhatsApp (wa_id/telefone E.164). Prefira o UUID interno para selecionar um registro exato; uma identidade pode corresponder a mais de um registro. Retorna { data }.",
+    { id: z.string().describe("UUID interno do contato ou wa_id/telefone E.164.") },
     contactResultSchema,
     async (client, args) => ({ data: await client.contacts.get(String(args.id)) }),
   );
 
   register(
     "create_contact",
-    "Cria um contato. O contato é sempre atado a um phone_number e único por (phone_number_id, wa_id). `wa_id` (BSUID ou E.164) é a chave canônica. Informe phone_number_id (Meta) OU customer_id para resolver o número.",
+    "Cria um contato. O contato é sempre atado a um número e único por (número, wa_id). `wa_id` (BSUID ou E.164) é a chave canônica. Informe `phone_number_id` (ID Meta) ou `customer_id` para resolver o número.",
     {
       wa_id: z.string().describe("Identidade canônica: BSUID (BR.1A2B...) ou dígitos E.164."),
       phone_number_id: z.string().optional().describe("phone_number_id (Meta) ao qual atar."),
@@ -74,9 +74,9 @@ export function registerContactTools(register: Register): void {
 
   register(
     "update_contact",
-    "Atualiza um contato (campos editáveis: profile_name, display_name, username, tags). `display_name: null` limpa o nome dado pela empresa. `tags` substitui a lista inteira; `add_tags`/`remove_tags` alteram a lista atual. Não combine `tags` com `add_tags`/`remove_tags`. Retorna { data }.",
+    "Atualiza um contato selecionado pelo UUID interno ou pela identidade WhatsApp (wa_id/telefone E.164; prefira o UUID para selecionar um registro exato). Campos editáveis: profile_name, display_name, username e tags. `display_name: null` limpa o nome dado pela empresa. `tags` substitui a lista inteira; `add_tags`/`remove_tags` alteram a lista atual. Não combine `tags` com `add_tags`/`remove_tags`. Retorna { data }.",
     {
-      id: z.string().describe("ID do contato (uuid interno)."),
+      id: z.string().describe("UUID interno do contato ou wa_id/telefone E.164."),
       profile_name: z.string().optional(),
       display_name: displayName.optional(),
       username: z.string().optional(),
@@ -93,8 +93,8 @@ export function registerContactTools(register: Register): void {
 
   register(
     "delete_contact",
-    "Exclui um contato pelo id (uuid interno).",
-    { id: z.string().describe("ID do contato (uuid interno).") },
+    "Apaga o contato e os dados relacionados em cascata, incluindo conversas, mensagens/eventos, registros de CRM, compromissos e consentimentos. Selecione pelo UUID interno ou identidade WhatsApp (wa_id/telefone E.164); prefira o UUID para evitar atingir um registro ambíguo.",
+    { id: z.string().describe("UUID interno do contato ou wa_id/telefone E.164.") },
     emptyOperationResultSchema,
     async (client, args) => {
       // A rota responde 204 (sem corpo); preservamos o retorno `null` do MCP

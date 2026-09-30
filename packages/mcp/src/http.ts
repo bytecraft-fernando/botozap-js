@@ -9,9 +9,10 @@ import { BlockList, isIP } from "node:net";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { createClient } from "./client.js";
 import type { EventSignalSource } from "./resources/events.js";
-import { buildServer } from "./server.js";
+import { requestAuthContext, sameOAuthBinding, type RequestAuthContext } from "./auth-context.js";
+import { bearerChallenge, protectedResourceConfig, writeProtectedResourceMetadata, type ProtectedResourceConfig } from "./oauth-metadata.js";
+import { buildServer, getApiIdentity, IntrospectionError, refreshServerIdentity, type ApiIdentity } from "./server.js";
 
 export type { EventSignalSource } from "./resources/events.js";
 
@@ -37,6 +38,13 @@ type Session = {
   activeForegroundRequests: number;
   activeRequests: number;
   apiKeyFingerprint: Buffer;
+  identity: ApiIdentity;
+  identityFingerprint: Buffer;
+  identityValidatedAt: number;
+  identityRefresh?: Promise<ApiIdentity>;
+  identityRefreshFingerprint?: Buffer;
+  reservationKey: string;
+  backgroundCredential: string;
   closing?: Promise<void>;
   lastActivityAt: number;
   server: McpServer;
@@ -53,7 +61,11 @@ type ServerLifecycle = {
 };
 
 export interface StreamableHttpServerOptions {
+  uiEnabled?: boolean;
   baseUrl: string;
+  /** Canonical OAuth resource/issuer; configure both to enable delegation. */
+  oauthResourceUrl?: string;
+  oauthIssuerUrl?: string;
   eventSignal: EventSignalSource;
   /** Reconciliação periódica que cobre sinais perdidos/indisponibilidade do bus. */
   eventPollIntervalMs?: number;
@@ -187,13 +199,15 @@ export function buildTrustedProxyList(
 
 /**
  * Inicia um endpoint MCP remoto stateful. Cada sessão é criada a partir da
- * chave Bearer do initialize e fica presa ao mesmo fingerprint nos requests
- * seguintes; a autoridade da Conta continua sendo derivada pela API BotoZap.
+ * credencial Bearer do initialize. Chaves ficam presas ao fingerprint; OAuth
+ * aceita refresh apenas com o mesmo grant, usuário, cliente e Conta. Cada
+ * autoridade é atualizada no refresh ou após 60 s; a API autoriza cada operação.
  */
 export async function startStreamableHttpServer(
   options: StreamableHttpServerOptions,
 ): Promise<RunningStreamableHttpServer> {
   const host = options.host ?? "127.0.0.1";
+  const oauth = protectedResourceConfig(options.oauthResourceUrl, options.oauthIssuerUrl);
   const allowedHosts = sanitizeAllowlist(options.allowedHosts ?? []);
   const allowedOrigins = sanitizeAllowlist(options.allowedOrigins ?? []);
   assertSecureHttpBind(host, allowedHosts);
@@ -234,6 +248,7 @@ export async function startStreamableHttpServer(
       headerGate,
       rateLimiter,
       trustedProxyList,
+      oauth,
     ).catch(() => {
       if (!response.headersSent) {
         jsonRpcError(response, 500, -32603, "Erro interno do servidor MCP.");
@@ -291,10 +306,17 @@ async function handleRequest(
   headerGate: HeaderGate,
   rateLimiter: HttpRateLimiter,
   trustedProxyList: BlockList | undefined,
+  oauth: ProtectedResourceConfig | undefined,
 ): Promise<void> {
   const url = new URL(request.url ?? "/", "http://mcp.invalid");
   if (url.pathname === "/healthz" && request.method === "GET") {
     writeHealthz(response);
+    return;
+  }
+  if (oauth && request.method === "GET" &&
+      [oauth.metadataPath, "/.well-known/oauth-protected-resource"].includes(url.pathname)) {
+    if (!acceptTrustedProxy(request, response, trustedProxyList) || !acceptMcpHttpHeaders(request, response, headerGate)) return;
+    writeProtectedResourceMetadata(response, oauth);
     return;
   }
   if (url.pathname !== "/mcp") {
@@ -319,7 +341,7 @@ async function handleRequest(
 
   const apiKey = bearerToken(request);
   if (!apiKey) {
-    response.setHeader("WWW-Authenticate", "Bearer");
+    bearerChallenge(response, oauth);
     jsonRpcError(response, 401, -32001, "Autenticação Bearer obrigatória.");
     return;
   }
@@ -327,12 +349,23 @@ async function handleRequest(
   const sessionId = singleHeader(request, "mcp-session-id");
   if (sessionId) {
     const session = sessions.get(sessionId);
-    if (!session || !sameFingerprint(session.apiKeyFingerprint, apiKey)) {
+    if (!session || (session.identity.auth_type !== "oauth" && !sameFingerprint(session.apiKeyFingerprint, apiKey))) {
       jsonRpcError(response, 404, -32001, "Sessão MCP inválida.");
       return;
     }
+    const identity = await authenticateCurrentCredential(apiKey, options, response, oauth, session);
+    if (!identity) return;
+    const compatible = session.identity.auth_type === "oauth"
+      ? sameOAuthBinding(session.identity, identity)
+      : identity.auth_type !== "oauth" && identity.account_id === session.identity.account_id && identity.environment === session.identity.environment;
+    if (!compatible) {
+      jsonRpcError(response, 404, -32001, "Sessão MCP inválida.");
+      return;
+    }
+    session.backgroundCredential = apiKey;
+    refreshServerIdentity(session.server, identity);
     const body = request.method === "POST" ? await readJsonBody(request) : undefined;
-    await handleSessionRequest(session, request, response, body);
+    await requestAuthContext.run({ credential: apiKey, identity }, () => handleSessionRequest(session, request, response, body));
     return;
   }
 
@@ -347,20 +380,22 @@ async function handleRequest(
     return;
   }
 
-  if (!(await authenticatesForEvents(apiKey, options))) {
-    response.setHeader("WWW-Authenticate", "Bearer");
-    jsonRpcError(response, 401, -32001, "Credencial inválida ou sem events:read.");
-    return;
-  }
+  const identity = await authenticateCurrentCredential(apiKey, options, response, oauth);
+  if (!identity) return;
+
   if (lifecycle.closing) {
     jsonRpcError(response, 503, -32000, "Servidor MCP em encerramento.");
     return;
   }
   const apiKeyFingerprint = fingerprint(apiKey);
-  const apiKeyReservationKey = apiKeyFingerprint.toString("base64url");
+  const apiKeyReservationKey = identity.auth_type === "oauth"
+    ? "oauth:" + createHash("sha256").update(JSON.stringify([
+        identity.grant_id, identity.user_id, identity.client_id, identity.account_id, identity.environment,
+      ])).digest("base64url")
+    : apiKeyFingerprint.toString("base64url");
   const maxSessions = options.maxSessions ?? 1_000;
   const maxSessionsPerApiKey = options.maxSessionsPerApiKey ?? 5;
-  let sessionsForApiKey = countSessionsForApiKey(sessions, apiKey);
+  let sessionsForApiKey = countSessionsForBinding(sessions, apiKeyReservationKey);
   let reservedForApiKey = reservations.byApiKey.get(apiKeyReservationKey) ?? 0;
 
   // Alguns hosts criam uma sessão por tool e não enviam DELETE /mcp. Eles podem
@@ -373,13 +408,13 @@ async function handleRequest(
     sessions.size + reservations.total >= maxSessions ||
     sessionsForApiKey + reservedForApiKey >= maxSessionsPerApiKey
   ) {
-    const reclaimed = await reclaimOldestReplaceableSession(sessions, apiKey);
+    const reclaimed = await reclaimOldestReplaceableSession(sessions, apiKeyReservationKey);
     if (!reclaimed) break;
     if (lifecycle.closing) {
       jsonRpcError(response, 503, -32000, "Servidor MCP em encerramento.");
       return;
     }
-    sessionsForApiKey = countSessionsForApiKey(sessions, apiKey);
+    sessionsForApiKey = countSessionsForBinding(sessions, apiKeyReservationKey);
     reservedForApiKey = reservations.byApiKey.get(apiKeyReservationKey) ?? 0;
   }
 
@@ -421,39 +456,132 @@ async function handleRequest(
       if (closed) await closeSession(sessions, closedSessionId, closed);
     },
   });
-  const server = buildServer({
-    apiKey,
-    baseUrl: options.baseUrl,
-    fetch: options.fetch,
-    eventPollIntervalMs: options.eventPollIntervalMs ?? 15_000,
-    eventSignal: options.eventSignal,
-    maxEventSubscriptions: options.maxEventSubscriptions,
-  });
-  session = {
-    activeForegroundRequests: 0,
-    activeRequests: 0,
-    apiKeyFingerprint,
-    lastActivityAt: Date.now(),
-    server,
-    transport,
-  };
+  let server: McpServer | undefined;
   try {
+    server = await buildServer({
+      apiKey,
+      uiEnabled: options.uiEnabled,
+      baseUrl: options.baseUrl,
+      fetch: options.fetch,
+      eventPollIntervalMs: options.eventPollIntervalMs ?? 15_000,
+      eventSignal: options.eventSignal,
+      maxEventSubscriptions: options.maxEventSubscriptions,
+      resolveRequestAuth: async (): Promise<RequestAuthContext> => {
+        const foreground = requestAuthContext.getStore();
+        if (foreground) {
+          const compatible = identity.auth_type === "oauth"
+            ? sameOAuthBinding(identity, foreground.identity)
+            : sameFingerprint(apiKeyFingerprint, foreground.credential);
+          if (!compatible) throw new IntrospectionError(401, "invalid_session_binding");
+          return foreground;
+        }
+        // Polls share the session cache and use the latest accepted token.
+        const credential = session?.backgroundCredential ?? apiKey;
+        const current = session
+          ? await resolveSessionIdentity(session, credential, options)
+          : identity;
+        return { credential, identity: current };
+      },
+    }, identity);
+    session = {
+      activeForegroundRequests: 0,
+      activeRequests: 0,
+      apiKeyFingerprint,
+      identity,
+      identityFingerprint: apiKeyFingerprint,
+      identityValidatedAt: Date.now(),
+      reservationKey: apiKeyReservationKey,
+      backgroundCredential: apiKey,
+      lastActivityAt: Date.now(),
+      server,
+      transport,
+    };
     await server.connect(transport);
     if (lifecycle.closing) {
       await server.close().catch(() => {});
       jsonRpcError(response, 503, -32000, "Servidor MCP em encerramento.");
       return;
     }
-    await handleSessionRequest(session, request, response, body);
+    await requestAuthContext.run({ credential: apiKey, identity }, () => handleSessionRequest(session!, request, response, body));
   } catch (error) {
-    if (initializedSessionId) {
+    if (initializedSessionId && session) {
       await closeSession(sessions, initializedSessionId, session);
     } else {
-      await server.close().catch(() => {});
+      await server?.close().catch(() => {});
+      releaseReservation();
     }
     throw error;
   } finally {
     releaseReservation();
+  }
+}
+
+const IDENTITY_CACHE_TTL_MS = 60_000;
+
+/** One refresh at a time per session, shared by foreground requests and polls.
+ * An incompatible bearer never updates the cache or the background credential. */
+async function resolveSessionIdentity(
+  session: Session, credential: string, options: StreamableHttpServerOptions,
+): Promise<ApiIdentity> {
+  for (;;) {
+    if (sameFingerprint(session.identityFingerprint, credential) &&
+        Date.now() - session.identityValidatedAt < IDENTITY_CACHE_TTL_MS) {
+      return session.identity;
+    }
+    if (session.identityRefresh) {
+      if (session.identityRefreshFingerprint && sameFingerprint(session.identityRefreshFingerprint, credential)) {
+        return await session.identityRefresh;
+      }
+      // A different bearer must perform its own validation after this refresh.
+      // Failure belongs to that request and does not poison another credential.
+      await session.identityRefresh.catch(() => {});
+      continue;
+    }
+    const refresh = (async () => {
+      const current = await getApiIdentity({ apiKey: credential, baseUrl: options.baseUrl, fetch: options.fetch });
+      const compatible = session.identity.auth_type === "oauth"
+        ? sameOAuthBinding(session.identity, current)
+        : current.auth_type !== "oauth" && sameFingerprint(session.apiKeyFingerprint, credential) &&
+          current.account_id === session.identity.account_id && current.environment === session.identity.environment;
+      if (!compatible) throw new IntrospectionError(404, "invalid_session_binding");
+      session.identity = current;
+      session.identityFingerprint = fingerprint(credential);
+      session.identityValidatedAt = Date.now();
+      refreshServerIdentity(session.server, current);
+      return current;
+    })();
+    session.identityRefresh = refresh;
+    session.identityRefreshFingerprint = fingerprint(credential);
+    try { return await refresh; }
+    finally {
+      if (session.identityRefresh === refresh) {
+        session.identityRefresh = undefined;
+        session.identityRefreshFingerprint = undefined;
+      }
+    }
+  }
+}
+
+async function authenticateCurrentCredential(
+  credential: string, options: StreamableHttpServerOptions,
+  response: ServerResponse, oauth?: ProtectedResourceConfig, session?: Session,
+): Promise<ApiIdentity | undefined> {
+  try {
+    const identity = session ? await resolveSessionIdentity(session, credential, options)
+      : await getApiIdentity({ apiKey: credential, baseUrl: options.baseUrl, fetch: options.fetch });
+    if (identity.auth_type === "oauth" && !oauth) throw new IntrospectionError(401, "oauth_disabled");
+    return identity;
+  } catch (error) {
+    const failure = error instanceof IntrospectionError ? error : new IntrospectionError(503, "introspection_unavailable");
+    if (failure.httpStatus === 401) bearerChallenge(response, oauth, true);
+    if (failure.httpStatus === 429) response.setHeader("Retry-After", "60");
+    const message = failure.httpStatus === 401 ? "Credencial BotoZap inválida ou expirada."
+      : failure.httpStatus === 403 ? "A conta ou credencial não tem acesso à API BotoZap."
+      : failure.httpStatus === 429 ? "Limite de introspecção atingido."
+      : failure.httpStatus === 502 ? "A API retornou uma identidade inválida."
+      : "A API BotoZap está indisponível para validar a credencial.";
+    jsonRpcError(response, failure.httpStatus, -32001, message);
+    return undefined;
   }
 }
 
@@ -495,25 +623,25 @@ function closeSession(
   return session.closing;
 }
 
-function countSessionsForApiKey(
+function countSessionsForBinding(
   sessions: Map<string, Session>,
-  apiKey: string,
+  binding: string,
 ): number {
   return [...sessions.values()].filter((candidate) =>
-    sameFingerprint(candidate.apiKeyFingerprint, apiKey),
+    candidate.reservationKey === binding,
   ).length;
 }
 
 async function reclaimOldestReplaceableSession(
   sessions: Map<string, Session>,
-  apiKey: string,
+  binding: string,
 ): Promise<boolean> {
   let oldest: [string, Session] | undefined;
   for (const candidate of sessions) {
     const [, session] = candidate;
     if (
       session.activeForegroundRequests !== 0 ||
-      !sameFingerprint(session.apiKeyFingerprint, apiKey)
+      session.reservationKey !== binding
     ) {
       continue;
     }
@@ -524,22 +652,6 @@ async function reclaimOldestReplaceableSession(
   if (!oldest) return false;
   await closeSession(sessions, oldest[0], oldest[1]);
   return true;
-}
-
-async function authenticatesForEvents(
-  apiKey: string,
-  options: Pick<StreamableHttpServerOptions, "baseUrl" | "fetch">,
-): Promise<boolean> {
-  try {
-    await createClient({
-      apiKey,
-      baseUrl: options.baseUrl,
-      fetch: options.fetch,
-    }).events.list({ after: "0", limit: 1 });
-    return true;
-  } catch {
-    return false;
-  }
 }
 
 function writeHealthz(response: ServerResponse): void {

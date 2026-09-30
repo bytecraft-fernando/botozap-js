@@ -31,6 +31,52 @@ credenciais.
 - Uma chave de API do BotoZap (gere em **/chaves** no painel).
 - **pnpm** (este monorepo usa pnpm exclusivamente).
 
+## Descoberta por permissão (próxima versão)
+
+A inicialização consulta `GET /v1/me` pelo SDK e anuncia somente as ferramentas
+permitidas pelos escopos e pelo ambiente da credencial. A API precisa oferecer
+esse endpoint antes de publicar o SDK e o MCP; erro de introspecção impede iniciar a
+sessão, sem fallback para o catálogo completo. Essa consulta não exige
+`events:read`: o escopo só é necessário para o resource de Eventos.
+
+No stdio, o catálogo reflete a inicialização; reconecte após alterar escopos.
+No Streamable HTTP, a identidade da sessão é reutilizada por até 60 segundos,
+inclusive nas consultas periódicas de Eventos. Após esse prazo, uma introspecção
+compartilhada entre requests e polls atualiza as permissões. A chave de API precisa
+manter o fingerprint original. Um bearer OAuth novo exige introspecção imediata e
+só é aceito para a mesma Conta, ambiente, usuário, cliente e grant. A descoberta
+OAuth também exige as rotas concretas usadas pela ferramenta.
+
+A API continua autorizando cada chamada, inclusive após revogação da credencial;
+esconder uma ferramenta e reutilizar a identidade não substituem essa verificação.
+`reply_to_conversation` exige `conversations:read` e `messages:send`, pois o SDK
+resolve a conversa antes de enviar. `get_profile` identifica a Conta e o ambiente
+autorizados e revalida a credencial a cada consulta; não representa uma pessoa.
+
+Todas as ferramentas declaram `readOnlyHint`, `destructiveHint` e `openWorldHint`
+conforme seus efeitos. Operações compostas consideram também efeitos indiretos.
+As anotações orientam o host; não implementam autorização nem comprovam que uma
+pessoa confirmou a ação. OAuth e a publicação no diretório ChatGPT são etapas
+separadas.
+
+Para desenvolvimento: `buildServer` é assíncrono. Aguarde sua conclusão antes de
+conectar o transporte. Os testes de operação usam identidade previamente validada;
+os testes de descoberta exercitam o contrato real de introspecção com HTTP simulado.
+
+## Compatibilidade das respostas e ordem de publicação
+
+Respostas tipadas publicam somente os campos declarados pelo schema, tanto no
+JSON textual quanto em `structuredContent`. `list_users.data[].id` e o alias
+`data[].user_id` continuam disponíveis. A auditoria dos endpoints revisados não
+identificou remoção de campo público na projeção final. O segredo HMAC de webhook
+continua disponível apenas em `create_webhook`. Conteúdo dinâmico de mensagens,
+metadados de contatos e payloads de IA preservam seus objetos de negócio.
+
+**Publique primeiro a API com `GET /v1/me` validado; só depois publique SDK e MCP.**
+Clientes que usam `npx @botozap/mcp` ou `pnpm dlx @botozap/mcp` sem versão podem
+receber a atualização imediatamente. Veja o [plano de release](../../docs/chatgpt-phase1-release.md)
+para a auditoria dos campos e as verificações por ambiente.
+
 ## Instalação
 
 O pacote pode ser executado diretamente do npm:
@@ -293,3 +339,64 @@ inferências, promessas do operador, catálogo de modelos, execuções e uso. Sc
 `agents:read/write`; aprovação exige chave criada por
 owner/admin ainda autorizado. Prévia não envia WhatsApp. Não há carteira, créditos
 ou compra de vagas de IA. [Contratos e exemplos IA](https://github.com/bytecraft-fernando/botozap-js/blob/main/docs/ai.md).
+
+### Tamanho e contrato dos retornos
+
+O texto de cada resposta usa JSON compacto. Nas entidades com schema tipado,
+campos fora do contrato são removidos antes de gerar texto e `structuredContent`.
+IDs, cursores e metadados de paginação são preservados; textos e listas não são
+truncados. O segredo HMAC de webhook só é retornado na criação.
+
+Os payloads de negócio dinâmicos (IA, CRM/Agenda, conteúdo de mensagens,
+metadados de contato, diagnóstico de saúde e extensões de mídia) mantêm seu
+conteúdo. Reduções futuras nesses domínios precisam de contratos específicos.
+
+## OAuth no transporte remoto
+
+Configure as mesmas URLs canônicas usadas pelo app BotoZap:
+
+```sh
+OAUTH_ENABLED=true
+OAUTH_RESOURCE_URL=https://mcp.botozap.com.br/mcp
+OAUTH_ISSUER_URL=https://botozap.com.br
+```
+
+O endpoint publica metadados RFC 9728 em `/.well-known/oauth-protected-resource/mcp` e `/.well-known/oauth-protected-resource`. Respostas 401 incluem o endereço desses metadados em `WWW-Authenticate`. As URLs vêm da configuração do servidor.
+
+`scopes_supported` anuncia `openid`, `profile`, `email` e `phone`, aceitos pelo servidor de autorização do app. As permissões BotoZap, como `contacts:read` e `messages:send`, são escolhidas no consentimento e retornadas por `/v1/me`; não devem ser enviadas no parâmetro OAuth `scope`. O parâmetro OAuth `resource` deve usar a URL canônica `https://mcp.botozap.com.br/mcp` em autorização e troca de token.
+
+Cada request, inclusive em sessões já abertas, valida a credencial em `/v1/me`. Uma sessão OAuth aceita o token renovado somente quando grant, usuário, cliente, Conta e ambiente permanecem iguais. Chaves de API continuam vinculadas ao fingerprint original. Tokens de requests simultâneos ficam isolados; chamadas de API usam a credencial do próprio request. A descoberta de ferramentas acompanha os scopes e as rotas efetivamente permitidas pelo app. Revogação e mudança de papel passam a valer na próxima requisição.
+
+O transporte stdio continua recebendo a credencial pelo ambiente `BOTOZAP_API_KEY`. O servidor MCP não realiza login nem armazena refresh tokens.
+
+
+## Intenção de envio e painel de revisão
+
+`send_message`, `send_media_message` e `reply_to_conversation` continuam aceitando
+as chamadas da versão 0.6.0. `idempotency_key` é opcional; omiti-la mantém o fluxo
+anterior, sem deduplicação por chave. Recomenda-se chamar `prepare_send_intent`
+antes de um novo envio e passar a chave retornada à tool. Em retry, preserve chave
+e conteúdo. Não crie outra chave para contornar timeout ou 409 pendente.
+
+O painel candidato de Plugin Extensions é habilitado com
+`BOTOZAP_MCP_UI_ENABLED=true` (HTTP ou stdio). `open_review_panel` abre a seleção de
+negócio e Radar; `stage_review_reply` prepara um rascunho sem enviar. O rascunho e
+a UI sempre preservam uma chave por intenção, com confirmação explícita e sem
+retry automático. Hosts sem UI continuam usando as tools.
+
+O build inclui `dist/ui/review.html`, sem assets externos nem credenciais.
+`pnpm preview:build` cria uma demonstração local em `web/.preview/demo.html`, com
+dados fictícios. O pacote de plugin candidato está em `plugins/botozap`; não é
+uma publicação no diretório.
+
+API `/v1/me` **e suporte a idempotência** devem estar disponíveis antes de publicar
+os pacotes novos. Resultados terminais por chave expiram após 24h; uma tentativa
+desconhecida permanece pendente até reconciliação. Ver
+`docs/chatgpt-phase1-release.md` para a ordem de release e compatibilidade.
+
+Recusas confirmadas (`outcome: rejected`) liberam a chave. Aguarde o backoff ou
+corrija a causa e repita com a mesma chave; após liberação, outro payload é uma
+nova intenção. `unknown` ou `accepted` exigem conciliação antes de considerar
+outro envio. SDK e MCP preservam `outcome` e `retry` da API. Resultados concluídos
+vencidos são removidos pelo cron a cada minuto; claims incertas não são removidas
+por tempo, conforme o runbook `botozap/docs/ops/message-send-receipts.md`.

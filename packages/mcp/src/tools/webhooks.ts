@@ -10,6 +10,7 @@ import {
   emptyOperationResultSchema,
   listWebhookDeliveriesResultSchema,
   listWebhooksResultSchema,
+  webhookCreationResultSchema,
   webhookResultSchema,
   webhookTestResultSchema,
 } from "../schemas.js";
@@ -37,7 +38,7 @@ export function registerWebhookTools(register: Register): void {
 
   register(
     "create_webhook",
-    "Cria um endpoint de webhook. `url` precisa ser https. `events` é a lista de categorias assinadas (messages, statuses, crm, account; ao menos uma). `customer_id` opcional limita as entregas a um Cliente da conta. `headers.Authorization` é opcional (ex.: Bearer …) e nunca é devolvido. Retorna { data }.",
+    "Cria um endpoint de webhook. `url` precisa ser https. `events` é a lista de categorias assinadas (messages, statuses, crm, account; ao menos uma). `customer_id` opcional limita as entregas a um Cliente da conta. `headers.Authorization` é opcional (ex.: Bearer …) e nunca é devolvido. A resposta inclui o segredo HMAC em `data.secret` uma única vez: armazene-o com segurança; ele não volta a ser exibido. Retorna { data }.",
     {
       url: z.string().describe("URL https do endpoint."),
       events: z.array(z.string()).describe("Tipos de evento assinados."),
@@ -62,7 +63,7 @@ export function registerWebhookTools(register: Register): void {
           "UUID de um Cliente da conta: limita as entregas a ele. Omitido = entregas de toda a conta.",
         ),
     },
-    webhookResultSchema,
+    webhookCreationResultSchema,
     async (client, args) => {
       const params: CreateWebhookParams = {
         url: String(args.url),
@@ -125,7 +126,7 @@ export function registerWebhookTools(register: Register): void {
 
   register(
     "test_webhook",
-    "Dispara um evento de teste assinado para o endpoint de webhook informado. Retorna { data }.",
+    "Verifica o endpoint enviando um evento de teste assinado por uma requisição HTTP real. Em sucesso, registra a entrega e ativa o webhook; a resposta informa o status HTTP recebido. Retorna { data }.",
     { id: z.string().describe("ID do webhook (uuid interno).") },
     webhookTestResultSchema,
     async (client, args) => ({ data: await client.webhooks.test(String(args.id)) }),

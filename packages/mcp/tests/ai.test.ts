@@ -3,6 +3,7 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { AI_OPERATIONS } from "@botozap/sdk";
 import { buildServer } from "../src/server.js";
+import { fullAccessIdentity } from "./helpers/identity.js";
 const id = "11111111-1111-4111-8111-111111111111",
   revision = "9007199254740993",
   clients: Client[] = [];
@@ -25,11 +26,11 @@ async function connect(payload: unknown = { data: { id } }, status = 200) {
       ? new Response(null, { status })
       : Response.json(payload, { status });
   });
-  const server = buildServer({
+  const server = await buildServer({
     apiKey: "bz_live_fake",
     baseUrl: "https://example.test/v1",
     fetch,
-  });
+  }, fullAccessIdentity);
   const [a, b] = InMemoryTransport.createLinkedPair();
   const client = new Client({ name: "ai-test", version: "1" });
   await Promise.all([server.connect(b), client.connect(a)]);

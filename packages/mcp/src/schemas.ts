@@ -37,6 +37,8 @@ export const metaPhoneNumberIdSchema = z.string().describe(
 
 export const structuredErrorSchema = z
   .object({
+    outcome: z.enum(["rejected", "accepted", "unknown"]).optional(),
+    retry: z.enum(["backoff", "after_correction", "reconcile_first", "unknown"]).optional(),
     code: z.string().describe("Código estável do erro da API BotoZap."),
     message: z.string().describe("Mensagem segura e acionável do erro."),
     status: z
@@ -56,8 +58,9 @@ export function structuredError(
   code: string,
   message: string,
   status: number,
+  details: Pick<StructuredError["error"], "outcome" | "retry"> = {},
 ): StructuredError {
-  return { error: { code, message, status } };
+  return { error: { code, message, status, ...details } };
 }
 
 /**
@@ -108,19 +111,19 @@ export const offsetMetaSchema = z
   .strict() satisfies z.ZodType<OffsetMeta>;
 
 function itemResultSchemaFor<Item extends z.ZodTypeAny>(itemSchema: Item) {
-  return z.object({ data: itemSchema }).passthrough();
+  return z.object({ data: itemSchema }).strip();
 }
 
 function cursorListResultSchemaFor<Item extends z.ZodTypeAny>(itemSchema: Item) {
   return z
     .object({ data: z.array(itemSchema), paging: cursorPagingSchema })
-    .passthrough();
+    .strip();
 }
 
 function offsetListResultSchemaFor<Item extends z.ZodTypeAny>(itemSchema: Item) {
   return z
     .object({ data: z.array(itemSchema), meta: offsetMetaSchema })
-    .passthrough();
+    .strip();
 }
 
 export const sendMessageResultSchema = z
@@ -136,11 +139,24 @@ export const sendMessageResultSchema = z
       .describe("Destinatário efetivamente usado após normalização de identidade."),
     status: z.string().describe("Status inicial do envio."),
     sandbox: z.boolean().optional(),
+    warnings: z.array(z.object({ code: z.string(), message: z.string() }).strip()).optional(),
   })
-  .passthrough() satisfies z.ZodType<SendResult>;
+  .strip() satisfies z.ZodType<SendResult>;
+
+/** Public multi-channel identity, additive on older API versions. */
+const channelShape = {
+  channel: z.string().optional(),
+  channel_account: z.object({
+    id: internalUuidSchema,
+    channel: z.string(),
+    display: z.string().nullable(),
+  }).strip().nullable().optional(),
+};
 
 export const messageSchema = z
   .object({
+    ...channelShape,
+    external_id: z.string().nullable().optional(),
     id: internalUuidSchema.describe("UUID interno da Mensagem no BotoZap."),
     wamid: z.string().nullable().describe("ID da Mensagem na Meta, quando disponível."),
     conversation_id: internalUuidSchema.nullable(),
@@ -159,7 +175,7 @@ export const messageSchema = z
     wa_timestamp: z.string().nullable(),
     created_at: z.string(),
   })
-  .passthrough() satisfies z.ZodType<Message>;
+  .strip() satisfies z.ZodType<Message>;
 
 export const listMessagesResultSchema = cursorListResultSchemaFor(messageSchema);
 
@@ -167,6 +183,9 @@ export const getMessageResultSchema = itemResultSchemaFor(messageSchema);
 
 export const contactSchema = z
   .object({
+    ...channelShape,
+    external_id: z.string().optional(),
+    profile_picture_url: z.string().nullable().optional(),
     id: internalUuidSchema.describe("UUID interno do Contato no BotoZap."),
     wa_id: z.string().describe("Identidade canônica do Contato: telefone ou BSUID."),
     profile_name: z.string().nullable(),
@@ -196,7 +215,7 @@ export const contactSchema = z
       })
       .nullable(),
   })
-  .passthrough() satisfies z.ZodType<Contact>;
+  .strip() satisfies z.ZodType<Contact>;
 
 export const listContactsResultSchema = cursorListResultSchemaFor(contactSchema);
 
@@ -209,6 +228,12 @@ export const emptyOperationResultSchema = z
 
 export const conversationSchema = z
   .object({
+    ...channelShape,
+    closed_at: z.string().nullable().optional(),
+    last_message: messageSchema.pick({
+      id: true, wamid: true, direction: true, type: true, status: true,
+      content: true, event_at: true, wa_timestamp: true, created_at: true,
+    }).nullable().optional(),
     id: internalUuidSchema.describe("UUID interno da Conversa no BotoZap."),
     phone_number_id: internalPhoneNumberIdSchema,
     phone_number_meta_id: metaPhoneNumberIdSchema.nullable(),
@@ -241,7 +266,7 @@ export const conversationSchema = z
         ctwa_clid: z.string().nullable(),
         received_at: z.string().nullable(),
       })
-      .passthrough()
+      .strip()
       .nullable()
       .optional()
       .describe("Último clique em anúncio Click-to-WhatsApp; null se a Conversa nunca veio de anúncio."),
@@ -259,7 +284,7 @@ export const conversationSchema = z
     last_read_at: z.string().nullable(),
     created_at: z.string(),
   })
-  .passthrough() satisfies z.ZodType<Conversation>;
+  .strip() satisfies z.ZodType<Conversation>;
 
 export const listConversationsResultSchema =
   cursorListResultSchemaFor(conversationSchema);
@@ -268,13 +293,14 @@ export const conversationResultSchema = itemResultSchemaFor(conversationSchema);
 
 export const customerSchema = z
   .object({
+    is_self: z.boolean().optional(),
     id: internalUuidSchema.describe("UUID interno do Cliente no BotoZap."),
     name: z.string(),
     external_customer_id: z.string().nullable(),
     created_at: z.string(),
     updated_at: z.string(),
   })
-  .passthrough() satisfies z.ZodType<Customer>;
+  .strip() satisfies z.ZodType<Customer>;
 
 export const listCustomersResultSchema = offsetListResultSchemaFor(customerSchema);
 
@@ -310,7 +336,7 @@ export const setupLinkSchema = z
     created_at: z.string(),
     updated_at: z.string(),
   })
-  .passthrough() satisfies z.ZodType<SetupLink>;
+  .strip() satisfies z.ZodType<SetupLink>;
 
 export const listSetupLinksResultSchema = offsetListResultSchemaFor(setupLinkSchema);
 
@@ -336,12 +362,16 @@ export const mediaUploadSchema = z
       })
       .passthrough(),
   })
-  .passthrough() satisfies z.ZodType<MediaUploadResult>;
+  .strip() satisfies z.ZodType<MediaUploadResult>;
 
 export const mediaUploadResultSchema = itemResultSchemaFor(mediaUploadSchema);
 
 export const apiLogSchema = z
   .object({
+    meta_error_code: z.number().nullable().optional(),
+    send_outcome: z.string().nullable().optional(),
+    phone_number_id: internalUuidSchema.nullable().optional(),
+    environment: z.enum(["live", "sandbox"]).nullable().optional(),
     id: internalUuidSchema,
     source: z.string(),
     method: z.string(),
@@ -352,7 +382,7 @@ export const apiLogSchema = z
     duration_ms: z.number().int().nonnegative().nullable(),
     created_at: z.string(),
   })
-  .passthrough() satisfies z.ZodType<ApiLog>;
+  .strip() satisfies z.ZodType<ApiLog>;
 
 export const listApiLogsResultSchema = cursorListResultSchemaFor(apiLogSchema);
 
@@ -364,7 +394,7 @@ export const userSchema = z
     name: z.string().nullable(),
     role: z.enum(["owner", "admin", "member"]),
   })
-  .passthrough() satisfies z.ZodType<User>;
+  .strip() satisfies z.ZodType<User>;
 
 export const listUsersResultSchema = offsetListResultSchemaFor(userSchema);
 
@@ -384,27 +414,42 @@ export const webhookSchema = z
       .describe(
         "True quando o endpoint tem header Authorization configurado. O valor nunca é devolvido.",
       ),
-    secret: z
-      .string()
-      .optional()
-      .describe("Segredo HMAC; presente somente na resposta de criação."),
+    health_status: z.string().optional(),
+    failure_streak: z.number().int().nonnegative().optional(),
+    verified_at: z.string().nullable().optional(),
+    last_success_at: z.string().nullable().optional(),
+    last_failure_at: z.string().nullable().optional(),
+    last_response_code: z.number().int().nullable().optional(),
+    next_attempt_at: z.string().nullable().optional(),
+    paused_at: z.string().nullable().optional(),
     created_at: z.string(),
     updated_at: z.string(),
   })
-  .passthrough() satisfies z.ZodType<Webhook>;
+  .strip() satisfies z.ZodType<Webhook>;
 
 export const listWebhooksResultSchema = cursorListResultSchemaFor(webhookSchema);
 
 export const webhookResultSchema = itemResultSchemaFor(webhookSchema);
 
+/** Only creation discloses the signing secret, once, for endpoint setup. */
+export const webhookCreationResultSchema = itemResultSchemaFor(webhookSchema.extend({
+  secret: z.string().optional().describe("Segredo HMAC devolvido uma única vez na criação."),
+}));
+
 export const webhookTestResultSchema = z
   .object({
-    data: z.object({ success: z.boolean() }).strict(),
+    data: z.object({
+      success: z.boolean(),
+      response_code: z.number().int().nullable().optional(),
+      health_status: z.string().optional(),
+      active: z.boolean().optional(),
+    }).strip(),
   })
-  .passthrough();
+  .strip();
 
 export const webhookDeliverySchema = z
   .object({
+    customer_id: internalUuidSchema.nullable().optional(),
     id: internalUuidSchema,
     endpoint_id: internalUuidSchema,
     event_type: z.string(),
@@ -415,7 +460,7 @@ export const webhookDeliverySchema = z
     next_retry_at: z.string().nullable(),
     created_at: z.string(),
   })
-  .passthrough() satisfies z.ZodType<WebhookDelivery>;
+  .strip() satisfies z.ZodType<WebhookDelivery>;
 
 export const listWebhookDeliveriesResultSchema =
   cursorListResultSchemaFor(webhookDeliverySchema);
@@ -440,7 +485,7 @@ export const phoneNumberSchema = z
     token_status: z.string().nullable(),
     created_at: z.string(),
   })
-  .passthrough() satisfies z.ZodType<PhoneNumber>;
+  .strip() satisfies z.ZodType<PhoneNumber>;
 
 export const listPhoneNumbersResultSchema =
   offsetListResultSchemaFor(phoneNumberSchema);
@@ -454,6 +499,7 @@ export const phoneNumberHealthSchema = z
     error: z.string().optional(),
     checks: z.record(z.string(), z.string()).optional(),
   })
+  // Health is an intentionally open diagnostic contract in the SDK.
   .passthrough() satisfies z.ZodType<Record<string, unknown>>;
 
 export const phoneNumberHealthResultSchema = itemResultSchemaFor(
@@ -462,6 +508,7 @@ export const phoneNumberHealthResultSchema = itemResultSchemaFor(
 
 export const templateSchema = z
   .object({
+    rejection_reason: z.string().nullable().optional(),
     id: internalUuidSchema.describe("UUID interno do Template no BotoZap."),
     name: z.string(),
     language: z.string(),
@@ -473,7 +520,7 @@ export const templateSchema = z
     created_at: z.string(),
     last_synced_at: z.string().nullable(),
   })
-  .passthrough() satisfies z.ZodType<Template>;
+  .strip() satisfies z.ZodType<Template>;
 
 export const listTemplatesResultSchema = offsetListResultSchemaFor(templateSchema);
 
@@ -504,8 +551,8 @@ export const metaCostReportSchema = z
     to: z.string(),
     unavailable: z.boolean(),
     unavailable_reason: z.enum(["not_synced", "cost_not_returned"]).nullable(),
-    totals: z.array(z.object(metaCostGroupShape).passthrough()),
-    by_day: z.array(z.object({ day: z.string(), ...metaCostGroupShape }).passthrough()),
+    totals: z.array(z.object(metaCostGroupShape).strip()),
+    by_day: z.array(z.object({ day: z.string(), ...metaCostGroupShape }).strip()),
     by_category: z.array(
       z
         .object({
@@ -513,7 +560,7 @@ export const metaCostReportSchema = z
           pricing_type: z.string(),
           ...metaCostGroupShape,
         })
-        .passthrough(),
+        .strip(),
     ),
     estimate: z
       .object({
@@ -525,7 +572,7 @@ export const metaCostReportSchema = z
         source_url: z.string(),
         excludes: z.array(z.string()),
       })
-      .passthrough(),
+      .strip(),
     sync: z
       .object({
         connections: z.number().int().nonnegative(),
@@ -533,8 +580,8 @@ export const metaCostReportSchema = z
         last_synced_at: z.string().nullable(),
         covered_from: z.string().nullable(),
       })
-      .passthrough(),
+      .strip(),
   })
-  .passthrough() satisfies z.ZodType<MetaCostReport>;
+  .strip() satisfies z.ZodType<MetaCostReport>;
 
 export const metaCostsResultSchema = itemResultSchemaFor(metaCostReportSchema);

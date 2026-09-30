@@ -1,8 +1,11 @@
 export { BotoZap } from "./client.js";
 export type { BotoZapOptions, RequestOptions } from "./client.js";
 export { BotoZapError } from "./errors.js";
+export type { SendFailureDetails } from "./errors.js";
+export type { Me } from "./resources/me.js";
 
 export type {
+  SendOptions,
   SendTextParams,
   SendTemplateParams,
   SendImageParams,

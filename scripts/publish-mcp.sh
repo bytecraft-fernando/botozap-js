@@ -33,5 +33,6 @@ if [[ $# -eq 0 ]]; then
   pnpm add "@botozap/sdk@$SDK_VERSION" --ignore-scripts
   pnpm add -D @modelcontextprotocol/sdk@1.29.0 --ignore-scripts
   cp "$RELEASE_ROOT/scripts/packed-tools-only.mjs" ./packed-tools-only.mjs
+  cp "$RELEASE_ROOT/packages/mcp/tests/fixtures/release-0.6.0-tools.json" ./release-0.6.0-tools.json
   node ./packed-tools-only.mjs
 fi

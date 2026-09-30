@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { buildServer } from "../src/server.js";
+import { fullAccessIdentity } from "./helpers/identity.js";
 const id = "11111111-1111-4111-8111-111111111111",
   other = "22222222-2222-4222-8222-222222222222",
   stamp = "2026-09-22T03:05:06.123456+00:00";
@@ -10,11 +11,11 @@ async function connect(payload: unknown = { data: { id } }, status = 200) {
   const fetch = vi.fn(
     async () => new Response(JSON.stringify(payload), { status }),
   );
-  const server = buildServer({
+  const server = await buildServer({
     apiKey: "bz_live_PRIVATE",
     baseUrl: "https://api.test/v1",
     fetch,
-  });
+  }, fullAccessIdentity);
   const [c, s] = InMemoryTransport.createLinkedPair();
   const client = new Client({ name: "attendance-test", version: "1" });
   await Promise.all([server.connect(s), client.connect(c)]);

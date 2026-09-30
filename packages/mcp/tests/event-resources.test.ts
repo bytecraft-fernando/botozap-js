@@ -9,6 +9,7 @@ import {
 import { ResourceUpdatedNotificationSchema } from "@modelcontextprotocol/sdk/types.js";
 import type { BotoZapEvent } from "@botozap/sdk";
 import { waitUntil, withTimeout } from "./helpers/async.js";
+import { fullAccessIdentity } from "./helpers/identity.js";
 
 const API_KEY = "bz_live_event_resource_test";
 const EVENTS_URI = "botozap://events?after=0&limit=100";
@@ -49,6 +50,10 @@ function event(cursor: number, body: string): BotoZapEvent {
 async function startApi(events: BotoZapEvent[], eventReads: URL[]): Promise<string> {
   const api = createServer((request, response) => {
     const url = new URL(request.url ?? "/", "http://127.0.0.1");
+    if (url.pathname === "/me") {
+      jsonResponse(response, { data: fullAccessIdentity });
+      return;
+    }
     if (url.pathname === "/events") {
       eventReads.push(url);
       const after = Number(url.searchParams.get("after") ?? "0");

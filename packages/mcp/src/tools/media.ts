@@ -1,3 +1,4 @@
+import { sendIntentKey } from "../send-intent.js";
 /** Ferramentas de envio e ingest de mídia a partir de uma URL. */
 import { z } from "zod";
 import type { UploadMediaParams } from "@botozap/sdk";
@@ -12,6 +13,7 @@ const MEDIA_CAPTION_MAX = 1024;
 const MEDIA_FILENAME_MAX = 240;
 
 const sendMediaShape = {
+  idempotency_key: sendIntentKey.optional(),
   to: z
     .string()
     .describe("Destinatário: telefone E.164 (ex.: 5511999999999) ou wa_id."),
@@ -44,6 +46,7 @@ const sendMediaShape = {
 } as const;
 
 const commonMediaShape = {
+  idempotency_key: sendIntentKey.optional(),
   to: sendMediaShape.to,
   from: sendMediaShape.from,
   link: sendMediaShape.link,
@@ -94,7 +97,7 @@ export const sendMediaSchema = z.discriminatedUnion("type", [
 export function registerMediaTools(register: Register): void {
   register(
     "send_media_message",
-    "Envia image, video, audio ou document por URL https pelo endpoint canônico de mensagens. image/video/document aceitam caption; audio não. filename é exclusivo de document. O processo MCP não baixa o arquivo. Retorna { id, wamid, to, status }.",
+    "Recomendado: use prepare_send_intent uma vez e reutilize idempotency_key em retries. Recusas confirmadas liberam a chave; após aguardar/corrigir, repita com a mesma chave. Resultado desconhecido exige conferir o histórico. Chamadas sem chave continuam aceitas, com o comportamento anterior sem deduplicação. Envia image, video, audio ou document por URL https pelo endpoint canônico de mensagens; isso pode entregar uma mensagem real ao destinatário. image/video/document aceitam caption; audio não. filename é exclusivo de document. O processo MCP não baixa o arquivo. Retorna `id` (UUID interno do BotoZap) e `wamid` (ID da Meta), além de `to` e `status`.",
     sendMediaShape,
     sendMessageResultSchema,
     (client, args) => {
@@ -102,13 +105,14 @@ export function registerMediaTools(register: Register): void {
       if (!parsed.success) {
         throw new Error(parsed.error.issues.map((issue) => issue.message).join(" "));
       }
-      return client.messages.sendMedia(parsed.data);
+      const { idempotency_key, ...payload } = parsed.data;
+      return client.messages.sendMedia(payload, { idempotencyKey: idempotency_key });
     },
   );
 
   register(
     "ingest_media",
-    "Faz o ingest de uma mídia a partir de uma URL para a Meta. delivery='meta_media' (default) retorna um media_id usável em mensagens; delivery='meta_resumable_asset' retorna um handle reutilizável (ex.: header de template). Retorna { data }.",
+    "Busca a mídia na URL HTTPS informada e faz upload para a Meta (a URL será acessada pelo servidor BotoZap). Não envia mensagem. `phone_number_id` deve ser o identificador Meta do número. `delivery='meta_media'` (padrão) retorna um `media_id` para mensagens; `delivery='meta_resumable_asset'` retorna um handle reutilizável, por exemplo em cabeçalho de template. Retorna { data }.",
     {
       phone_number_id: z.string().describe("phone_number_id (Meta) dono da mídia."),
       source: z.string().describe("URL de origem da mídia (https)."),

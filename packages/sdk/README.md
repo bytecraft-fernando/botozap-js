@@ -238,7 +238,16 @@ O SDK cobre os recursos da API `/v1`:
 - `media` — subir arquivo (obter um media_id) e **buscar metadados + URL de download** de uma mídia recebida
 - `events` — reler inbound e mudanças de status pelo cursor durável da Conta/ambiente
 - `usage` — `metaCosts`: custo aproximado da Meta por dia, categoria e moeda (Pricing Analytics), com estimativa por tarifa publicada onde a Meta não devolveu custo
+- `me` — `get`: Conta, ambiente (`live` ou `sandbox`) e scopes efetivos da chave autenticada; não retorna a chave nem uma identidade pessoal
 - `users`, `apiLogs`, `webhookDeliveries` — leitura
+
+`me.get()` é útil para conferir a identidade configurada antes de executar
+operações em uma integração:
+
+```ts
+const identity = await boto.me.get();
+// { account_id: "…", environment: "live", scopes: ["messages:write"] }
+```
 
 Inbound e mudanças de status compartilham um stream crescente. Guarde
 `paging.cursor` e use-o como `after` na leitura seguinte; após uma desconexão,
@@ -385,3 +394,43 @@ substitui snapshots nem transforma uma inferência incerta em custo zero.
 
 A CLI `ai usage save-rate` recebe o mesmo JSON por `--input-file`; o MCP expõe
 `audio_pricing` opcional e anulável na ferramenta `ai_usage_save_rate`.
+
+## Token OAuth
+
+Além de `apiKey`, o cliente aceita `accessToken`. Um provider permite usar o token renovado em cada requisição:
+
+```ts
+const boto = new BotoZap({
+  accessToken: async () => getCurrentOAuthAccessToken(),
+});
+await boto.contacts.list();
+```
+
+Informe uma única credencial. O SDK envia `Authorization: Bearer` e não realiza o fluxo de login ou a renovação; o aplicativo fornece o token atual. `boto.me.get()` devolve os scopes e, para OAuth, `auth_type`, `user_id`, `client_id`, `grant_id` e `allowed_routes`. A autorização sempre é revalidada pelo servidor.
+
+
+### Repetir um envio sem duplicar a intenção
+
+A opção `idempotencyKey` é opcional. Crie uma chave antes da primeira tentativa
+e preserve-a se perder a resposta; o corpo e a credencial também devem ser os
+mesmos. Sem a opção, o SDK mantém o comportamento anterior.
+
+```ts
+const options = { idempotencyKey: crypto.randomUUID() };
+await boto.messages.send({ to: "5511999999999", text: "Seu pedido está pronto." }, options);
+// Retry da mesma intenção: use novamente o mesmo payload e options.
+```
+
+`sendTemplate`, `sendMedia` e `conversations.reply` aceitam a mesma opção como
+último argumento. O servidor retorna a resposta original; payload diferente ou
+tentativa pendente retornam 409. Resultados terminais ficam disponíveis por 24h.
+Pendências desconhecidas não reabrem automaticamente. Depois de 24h, confira o
+histórico antes de reenviar; nunca troque a chave para contornar uma pendência.
+Requer a API com suporte a `Idempotency-Key` em `POST /v1/messages`.
+
+Recusas confirmadas (`outcome: rejected`) liberam a chave. Aguarde o backoff ou
+corrija a causa e repita com a mesma chave; após liberação, outro payload é uma
+nova intenção. `unknown` ou `accepted` exigem conciliação antes de considerar
+outro envio. SDK e MCP preservam `outcome` e `retry` da API. Resultados concluídos
+vencidos são removidos pelo cron a cada minuto; claims incertas não são removidas
+por tempo, conforme o runbook `botozap/docs/ops/message-send-receipts.md`.

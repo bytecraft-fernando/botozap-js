@@ -92,7 +92,7 @@ const exception = {
 export function registerAgendaTools(register: Register) {
   register(
     "list_appointments",
-    "Lista Agenda por período/Cliente/responsável; date é dia UTC. appointments:read.",
+    "Lista compromissos por Cliente, contato, responsável, serviço, status ou período. Todos os IDs são UUIDs internos do BotoZap; `date` é um dia UTC e `from`/`to` são instantes ISO 8601 com fuso. Paginação offset: `page` começa em 1, `per_page` aceita até 100; consulte `meta` para totais. appointments:read.",
     {
       customer_id: uuid.optional(),
       contact_id: uuid.optional(),
@@ -117,7 +117,7 @@ export function registerAgendaTools(register: Register) {
   );
   register(
     "create_appointment",
-    "Cria compromisso com vínculos CRM. meeting_requested pode criar link Meet via conexão configurada. appointments:write.",
+    "Cria compromisso com vínculos CRM (IDs internos UUID). `meeting_requested` pode criar um link Google Meet pela conexão configurada. `idempotency_key` opcional (8–200 caracteres) retorna o mesmo compromisso se repetido com o mesmo conteúdo; reutilizá-la com conteúdo diferente causa conflito. appointments:write.",
     { ...fields, contact_id: uuid, idempotency_key },
     item,
     async (c, a) => {
@@ -157,7 +157,7 @@ export function registerAgendaTools(register: Register) {
   );
   register(
     "list_appointment_history",
-    "Histórico do compromisso, 20 por página. appointments:read.",
+    "Lista o histórico de alterações do compromisso (ID UUID interno), 20 registros por página. `page` começa em 1. appointments:read.",
     { id: uuid, page: z.number().int().positive().optional() },
     page,
     (c, a) =>
@@ -167,7 +167,7 @@ export function registerAgendaTools(register: Register) {
   );
   register(
     "get_appointment_availability",
-    "Horários livres com jornada, exceções, buffers e calendários. appointments:read.",
+    "Calcula horários livres usando jornada, exceções, buffers e calendários conectados. Cliente, responsável, serviço e `exclude_id` são UUIDs internos; `from`/`to` são instantes ISO 8601 com fuso. appointments:read.",
     {
       customer_id: uuid,
       owner_user_id: uuid,

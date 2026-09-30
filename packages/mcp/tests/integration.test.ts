@@ -11,6 +11,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { buildServer } from "../src/server.js";
+import { fullAccessIdentity } from "./helpers/identity.js";
 import {
   CONVERSATION_ID,
   CUSTOMER_ID,
@@ -106,7 +107,7 @@ function jsonResponse(status: number, payload: unknown): Response {
 }
 
 async function connect(): Promise<Client> {
-  const server = buildServer({ apiKey: API_KEY, baseUrl: BASE_URL, fetch: fetchStub });
+  const server = await buildServer({ apiKey: API_KEY, baseUrl: BASE_URL, fetch: fetchStub }, fullAccessIdentity);
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
   const client = new Client({ name: "test-client", version: "0.0.0" });
   await Promise.all([
@@ -131,7 +132,7 @@ describe("servidor MCP — integração ponta a ponta (fetch stub)", () => {
     const client = await connect();
     const result = (await client.callTool({
       name: "send_message",
-      arguments: { to: "5511999999999", type: "text", text: { body: "olá" } },
+      arguments: { idempotency_key: "intent-fixture-0001", to: "5511999999999", type: "text", text: { body: "olá" } },
     })) as { content: Array<{ type: string; text?: string }>; isError?: boolean };
 
     expect(result.isError).toBeFalsy();
@@ -157,6 +158,7 @@ describe("servidor MCP — integração ponta a ponta (fetch stub)", () => {
       (tool) => tool.name === "reply_to_conversation",
     );
     expect(Object.keys(discovered?.inputSchema.properties ?? {})).toEqual([
+      "idempotency_key",
       "conversation_id",
       "text",
     ]);
@@ -164,7 +166,7 @@ describe("servidor MCP — integração ponta a ponta (fetch stub)", () => {
 
     const result = (await client.callTool({
       name: "reply_to_conversation",
-      arguments: {
+      arguments: { idempotency_key: "intent-fixture-0001",
         conversation_id: CONVERSATION_ID,
         text: { body: "Resposta do agente" },
       },

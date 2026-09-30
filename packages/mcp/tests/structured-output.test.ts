@@ -9,6 +9,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { buildServer } from "../src/server.js";
+import { fullAccessIdentity } from "./helpers/identity.js";
 import {
   CONNECTION_ID,
   CONTACT_ID,
@@ -391,11 +392,11 @@ function jsonResponse(status: number, payload: unknown): Response {
 }
 
 async function connect(fetchImpl: typeof fetch = fetchStub): Promise<Client> {
-  const server = buildServer({
+  const server = await buildServer({
     apiKey: API_KEY,
     baseUrl: BASE_URL,
     fetch: fetchImpl,
-  });
+  }, fullAccessIdentity);
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
   const client = new Client({ name: "structured-output-test", version: "0.0.0" });
   await Promise.all([
@@ -455,7 +456,7 @@ function listItemProperties(tool: {
 const callsByTool = [
   [
     "send_message",
-    { to: "5511999999999", type: "text", text: { body: "olá" } },
+    { idempotency_key: "intent-fixture-0001", to: "5511999999999", type: "text", text: { body: "olá" } },
   ],
   ["list_messages", { limit: 20 }],
   ["get_message", { id: MESSAGE_ID }],
@@ -490,7 +491,7 @@ const contactCalls = [
 const conversationCalls = [
   [
     "reply_to_conversation",
-    {
+    { idempotency_key: "intent-fixture-0001",
       conversation_id: CONVERSATION_ID,
       text: { body: "Resposta do agente" },
     },
@@ -517,7 +518,7 @@ const customerCalls = [
 const utilityCalls = [
   [
     "send_media_message",
-    {
+    { idempotency_key: "intent-fixture-0001",
       to: "5511999999999",
       type: "image",
       link: "https://cdn.example.test/foto.png",
