@@ -26,7 +26,7 @@ if (typeof window !== 'undefined' && window === window.top && window.location.pa
     try { const next = JSON.parse(event.data.params.content?.[0]?.text ?? '{}'); if (next.screen === 'template') { snapshot = next; appWindow = event.source as Window; } else if (next.conversation_id) snapshot = undefined; } catch { /* Ignore unrelated host context. */ }
   });
   document.addEventListener('submit', event => {
-    if ((event.target as HTMLElement)?.id !== 'composer' || !snapshot || !appWindow || [...document.querySelectorAll('iframe')].at(-1)?.contentWindow !== appWindow) return;
+    if ((event.target as HTMLElement)?.id !== 'composer' || !snapshot || !appWindow || Array.from(document.querySelectorAll('iframe')).at(-1)?.contentWindow !== appWindow) return;
     const prompt = document.querySelector<HTMLTextAreaElement>('#prompt'); const text = prompt?.value.trim() ?? '';
     if (snapshot.review_state !== 'draft') return;
     if (!text || !/nome|mariana|imagem|coleção|colecao|quantidade/i.test(text)) return;
