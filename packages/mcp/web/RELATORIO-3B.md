@@ -1,5 +1,7 @@
 # Relatório — rodada 3B
 
+PR draft: https://github.com/bytecraft-fernando/botozap-js/pull/17. SHA de implementação: `0c48b70ec44d83fef82432b78afb8e84b3210803`.
+
 Branch `mcp-ui-live`, empilhada sobre `feat/mcp-ui-chatgpt` no SHA `498277f87e6384cc429b7679e6c2033f7d10f0b9`. A entrega compreende as telas 5 (Plantão ao vivo) e 8 (Pendências pela entrada global e deep links), com arquivos próprios e registros aditivos. Card, carrossel, telas 4/6/7, app, http.ts e get_profile/`/v1/me` não foram editados.
 
 ## Comportamento
