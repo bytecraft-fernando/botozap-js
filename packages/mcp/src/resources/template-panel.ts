@@ -3,7 +3,7 @@ import { createElicitInput } from "@openai/mcp-extensions/server";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { Register } from "../register.js";
 import { BotoZapError } from "../client.js";
-import { templateFields, supportedTemplate } from "../template-preview.js";
+import { templateFields, templateUnsupportedReason } from "../template-preview.js";
 import { registerScreenResource } from "./screen-resource.js";
 export function registerTemplatePanel(server: McpServer, register: Register) {
   registerScreenResource(server, register, "template");
@@ -21,7 +21,8 @@ export function registerTemplatePanel(server: McpServer, register: Register) {
     z.object({ supported: z.boolean(), action: z.string(), variables: z.record(z.string()) }),
     async (client, args) => {
       const template = await client.templates.get(String(args.template_id));
-      if (!supportedTemplate(template)) throw new BotoZapError("template_not_supported", "Use um template aprovado com componentes reconhecidos.", 422);
+      const reason = templateUnsupportedReason(template);
+      if (reason) throw new BotoZapError("template_not_supported", reason, 422);
       const values = args.variables as Record<string,string> ?? {};
       const fields = templateFields(template).filter(f => f.required);
       const variables = Object.fromEntries(fields.map(f => [f.key, values[f.key] ?? '']));

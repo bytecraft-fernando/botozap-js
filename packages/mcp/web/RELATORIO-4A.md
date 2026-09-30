@@ -19,7 +19,7 @@ resultados textuais e o rascunho do assistente, sem criar iframe nem usar UI too
 
 Roteiros: `template` (texto + botões), `template-image`, `template-document`,
 `template-video`, `template-location`, `template-auth`, `template-one-tap`,
-`template-carousel`, `template-offer`, `template-flow`, `template-catalog`,
+`template-carousel`, `template-offer`, `template-catalog`,
 `template-named`, `booking`, `cases`, `cases-unique`. Exemplo:
 `/chat?scenario=template-document&theme=dark&host=generic`.
 Para o Radar, escreva “Abra o Radar”; para o card, “Prepare uma resposta para Marina”.
@@ -45,13 +45,10 @@ aceitação estrutural na API não prova aprovação/elegibilidade no provedor.
 | Carrossel | Bolhas/card com mídia, texto e botões; `card_index` e valores independentes | 2–10 cards, imagem/vídeo por card, rolagem somente horizontal |
 | Oferta limitada | Texto da oferta, expiração e cupom/URL; `expiration_time_ms` | Só catálogo já aprovado/sincronizado; builder do app não preserva LIMITED_TIME_OFFER; snapshot do app precisa renderizar oferta/expiração para histórico fiel |
 | Catálogo / ações JSON | CTA visual; `action` JSON para catálogo e tipos reconhecidos | JSON precisa ser objeto; regras comerciais/produtos e elegibilidade são do provedor. A UI não reproduz a interação após o clique do cliente |
-| Flow legado sincronizado | CTA visual e `flow_token` / `flow_action_data` do catálogo aprovado | O builder rejeita Flow explicitamente desde 25/09; não cria nem reintroduz o produto. Roteiro apenas demonstra envio estrutural de definição já sincronizada |
 | Schema desconhecido | Não habilita envio pela UI | Tool bruta continua com seu contrato; precisa de schema/renderer conhecido antes de oferecer na UI |
 
-Criar ofertas limitadas, expor `parameter_format: NAMED`/preservar exemplos
-nomeados e restaurar criação de Flow
-exigem mudanças separadas no app (normalizer/validação/builder/snapshot), com decisão
-de produto no último caso. Esses recursos não foram inventados na API nem ligados
+Criar ofertas limitadas e expor `parameter_format: NAMED`/preservar exemplos
+nomeados exigem mudanças separadas no app (normalizer/validação/builder/snapshot). Esses recursos não foram inventados na API nem ligados
 em produção. A prévia de mídia não valida conteúdo remoto, e o tamanho mostrado é
 metadado de contexto, não tamanho aferido. O app não oferece tool de leitura de
 metadados de mídia; adicionar isso seria trabalho separado.
@@ -95,13 +92,13 @@ contagem de pessoas únicas no dia civil do negócio pertence ao agente da API.
 ## Validação
 
 - `pnpm build`, `pnpm typecheck`, `pnpm test` e `pnpm gate:tarballs` passaram.
-- Testes: SDK 173, CLI 105, MCP 246 (524 no total), incluindo renderizadores,
+- Testes: SDK 173, CLI 105, MCP 249 (527 no total), incluindo renderizadores,
   parâmetros por tipo, tamanhos/UTF-8, URLs/mídia, localização, OTP, carrossel,
   moeda/data, catálogo desconhecido, métrica, agrupamento e negociação de UI.
 - Guarda HTTP do CI passou: nenhum cliente/fetch novo fora do SDK.
-- Capturas 4A: 145 PNGs, axe WCAG A/AA sem violações; sem overflow horizontal do
+- Capturas 4A: 140 PNGs, axe WCAG A/AA sem violações; sem overflow horizontal do
   documento/iframe nos templates; nenhuma requisição externa nos roteiros de mídia.
-- 13 vídeos de 8,2–8,8 s (desktop escuro), gravados em browser; não são renderizações
+- 12 vídeos de 8,2–9,0 s (desktop escuro), gravados em browser; não são renderizações
   artificiais. Capturas das rodadas anteriores também foram atualizadas.
 - CSP com domínios vazios, JS/CSS empacotados, sem credenciais nem fontes externas.
 - `http.ts`, get_profile/`/v1/me`, app, PiP/eventos/entrada global e produção intactos.
@@ -111,8 +108,7 @@ contagem de pessoas únicas no dia civil do negócio pertence ao agente da API.
 Fernando: escolher as contas do piloto e validar uma sessão real nos hosts usados;
 a UI continua desligada em produção. API: fechar o nome/localização do campo de
 clientes únicos + timezone e seu cálculo por dia civil. App: priorizar criação de
-oferta limitada/exemplos nomeados/snapshot fiel; Flow permanece decisão separada
-porque o produto removeu sua criação. Mídia/OTP continuam recebendo dados existentes,
+oferta limitada, `parameter_format: NAMED`/exemplos nomeados e snapshot de oferta. Mídia/OTP continuam recebendo dados existentes,
 sem upload ou emissão de código neste escopo. Telas 5/8 são a branch paralela.
 
 ## Arquivos de evidência
@@ -201,15 +197,6 @@ registram os roteiros anteriores reexecutados.
 - [`4a-template-document-previa-desktop-light.png`](./screenshots/4a-template-document-previa-desktop-light.png)
 - [`4a-template-document-previa-mobile-dark.png`](./screenshots/4a-template-document-previa-mobile-dark.png)
 - [`4a-template-document-previa-mobile-light.png`](./screenshots/4a-template-document-previa-mobile-light.png)
-- [`4a-template-flow-aceito-desktop-dark.png`](./screenshots/4a-template-flow-aceito-desktop-dark.png)
-- [`4a-template-flow-confirmacao-desktop-dark.png`](./screenshots/4a-template-flow-confirmacao-desktop-dark.png)
-- [`4a-template-flow-confirmacao-desktop-light.png`](./screenshots/4a-template-flow-confirmacao-desktop-light.png)
-- [`4a-template-flow-confirmacao-mobile-dark.png`](./screenshots/4a-template-flow-confirmacao-mobile-dark.png)
-- [`4a-template-flow-confirmacao-mobile-light.png`](./screenshots/4a-template-flow-confirmacao-mobile-light.png)
-- [`4a-template-flow-previa-desktop-dark.png`](./screenshots/4a-template-flow-previa-desktop-dark.png)
-- [`4a-template-flow-previa-desktop-light.png`](./screenshots/4a-template-flow-previa-desktop-light.png)
-- [`4a-template-flow-previa-mobile-dark.png`](./screenshots/4a-template-flow-previa-mobile-dark.png)
-- [`4a-template-flow-previa-mobile-light.png`](./screenshots/4a-template-flow-previa-mobile-light.png)
 - [`4a-template-image-aceito-desktop-dark.png`](./screenshots/4a-template-image-aceito-desktop-dark.png)
 - [`4a-template-image-confirmacao-desktop-dark.png`](./screenshots/4a-template-image-confirmacao-desktop-dark.png)
 - [`4a-template-image-confirmacao-desktop-light.png`](./screenshots/4a-template-image-confirmacao-desktop-light.png)
@@ -237,6 +224,10 @@ registram os roteiros anteriores reexecutados.
 - [`4a-template-named-previa-desktop-light.png`](./screenshots/4a-template-named-previa-desktop-light.png)
 - [`4a-template-named-previa-mobile-dark.png`](./screenshots/4a-template-named-previa-mobile-dark.png)
 - [`4a-template-named-previa-mobile-light.png`](./screenshots/4a-template-named-previa-mobile-light.png)
+- [`4a-template-nao-suportado-desktop-dark.png`](./screenshots/4a-template-nao-suportado-desktop-dark.png)
+- [`4a-template-nao-suportado-desktop-light.png`](./screenshots/4a-template-nao-suportado-desktop-light.png)
+- [`4a-template-nao-suportado-mobile-dark.png`](./screenshots/4a-template-nao-suportado-mobile-dark.png)
+- [`4a-template-nao-suportado-mobile-light.png`](./screenshots/4a-template-nao-suportado-mobile-light.png)
 - [`4a-template-offer-aceito-desktop-dark.png`](./screenshots/4a-template-offer-aceito-desktop-dark.png)
 - [`4a-template-offer-confirmacao-desktop-dark.png`](./screenshots/4a-template-offer-confirmacao-desktop-dark.png)
 - [`4a-template-offer-confirmacao-desktop-light.png`](./screenshots/4a-template-offer-confirmacao-desktop-light.png)
@@ -271,16 +262,35 @@ registram os roteiros anteriores reexecutados.
 
 ### Vídeos 4A
 
-- [`roteiro-4a-booking-desktop-dark.webm`](./screenshots/roteiro-4a-booking-desktop-dark.webm) · 8.2 s
-- [`roteiro-4a-template-auth-desktop-dark.webm`](./screenshots/roteiro-4a-template-auth-desktop-dark.webm) · 8.68 s
-- [`roteiro-4a-template-carousel-desktop-dark.webm`](./screenshots/roteiro-4a-template-carousel-desktop-dark.webm) · 8.8 s
+- [`roteiro-4a-booking-desktop-dark.webm`](./screenshots/roteiro-4a-booking-desktop-dark.webm) · 8.24 s
+- [`roteiro-4a-template-auth-desktop-dark.webm`](./screenshots/roteiro-4a-template-auth-desktop-dark.webm) · 8.72 s
+- [`roteiro-4a-template-carousel-desktop-dark.webm`](./screenshots/roteiro-4a-template-carousel-desktop-dark.webm) · 8.96 s
 - [`roteiro-4a-template-catalog-desktop-dark.webm`](./screenshots/roteiro-4a-template-catalog-desktop-dark.webm) · 8.72 s
-- [`roteiro-4a-template-desktop-dark.webm`](./screenshots/roteiro-4a-template-desktop-dark.webm) · 8.76 s
-- [`roteiro-4a-template-document-desktop-dark.webm`](./screenshots/roteiro-4a-template-document-desktop-dark.webm) · 8.72 s
-- [`roteiro-4a-template-flow-desktop-dark.webm`](./screenshots/roteiro-4a-template-flow-desktop-dark.webm) · 8.72 s
-- [`roteiro-4a-template-image-desktop-dark.webm`](./screenshots/roteiro-4a-template-image-desktop-dark.webm) · 8.64 s
-- [`roteiro-4a-template-location-desktop-dark.webm`](./screenshots/roteiro-4a-template-location-desktop-dark.webm) · 8.72 s
-- [`roteiro-4a-template-named-desktop-dark.webm`](./screenshots/roteiro-4a-template-named-desktop-dark.webm) · 8.72 s
+- [`roteiro-4a-template-desktop-dark.webm`](./screenshots/roteiro-4a-template-desktop-dark.webm) · 8.8 s
+- [`roteiro-4a-template-document-desktop-dark.webm`](./screenshots/roteiro-4a-template-document-desktop-dark.webm) · 8.84 s
+- [`roteiro-4a-template-image-desktop-dark.webm`](./screenshots/roteiro-4a-template-image-desktop-dark.webm) · 8.8 s
+- [`roteiro-4a-template-location-desktop-dark.webm`](./screenshots/roteiro-4a-template-location-desktop-dark.webm) · 8.8 s
+- [`roteiro-4a-template-named-desktop-dark.webm`](./screenshots/roteiro-4a-template-named-desktop-dark.webm) · 8.8 s
 - [`roteiro-4a-template-offer-desktop-dark.webm`](./screenshots/roteiro-4a-template-offer-desktop-dark.webm) · 8.8 s
-- [`roteiro-4a-template-one-tap-desktop-dark.webm`](./screenshots/roteiro-4a-template-one-tap-desktop-dark.webm) · 8.76 s
-- [`roteiro-4a-template-video-desktop-dark.webm`](./screenshots/roteiro-4a-template-video-desktop-dark.webm) · 8.8 s
+- [`roteiro-4a-template-one-tap-desktop-dark.webm`](./screenshots/roteiro-4a-template-one-tap-desktop-dark.webm) · 8.72 s
+- [`roteiro-4a-template-video-desktop-dark.webm`](./screenshots/roteiro-4a-template-video-desktop-dark.webm) · 8.84 s
+
+## Correção: tipos removidos do produto
+
+O botão removido não tem campos, parser de envio, prévia, roteiro nem mídia na UI.
+Um template sincronizado com esse botão permanece visível no catálogo como
+**Não suportado**, com a razão exigida; não abre elicitation, não prepara intenção
+nem envia. A mesma guarda vale para carrossel e para alteração detectada no preflight.
+Escolher outro template aprovado permite continuar a revisão.
+
+Auditoria do restante do repositório: não há suporte explícito ativo a WhatsApp
+Flows no SDK/CLI/MCP, endpoints `/v1/flows` ou escopos `flows:*`. Foram encontradas
+somente referências históricas **anteriores a esta rodada**, preservadas:
+
+- `packages/sdk/CHANGELOG.md:72`: registra a remoção de client/types/endpoints na versão anterior.
+- `packages/cli/CHANGELOG.md:55`: registra que a documentação já deixou de mencionar o produto removido.
+
+`ai/followup-flows`, `ai.followupFlows`, suas tools/rotas e tipos são réguas da IA,
+não são o produto removido e permanecem intactos. O contrato preexistente de
+`components: unknown[]` no SDK/tool bruta também permanece; não foi alterado fora
+do escopo da UI desta branch. Novos testes cobrem a guarda específica de template.

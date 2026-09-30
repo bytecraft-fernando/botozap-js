@@ -147,11 +147,10 @@ e relê aprovação/definição/destinatário antes de enviar. Conhece header te
 imagem, vídeo, documento e localização; body posicional/nomeado e parâmetros
 texto/moeda/data com fallback; footer; quick reply, URL dinâmica, telefone,
 copiar código, OTP copiar/one-tap, carrossel 2–10 cards e oferta limitada.
-Botões de catálogo e Flow já sincronizados podem fornecer action JSON; a prévia
+Botões de catálogo já sincronizados podem fornecer action JSON; a prévia
 exibe o CTA, não tenta reproduzir a interação externa do cliente.
 
-Isso não significa que o builder de criação aceite todos esses tipos: ele rejeita
-Flow (removido do produto em 25/09), não preserva LIMITED_TIME_OFFER e não preserva
+Isso não significa que o builder de criação aceite todos esses tipos: ele não preserva LIMITED_TIME_OFFER e não preserva
 exemplos nomeados. São lacunas do app para criar novos templates; precisam de uma
 mudança separada antes de serem oferecidos como criação no BotoZap. Envio de um
 template já aprovado/sincronizado é distinto. Schemas desconhecidos são bloqueados

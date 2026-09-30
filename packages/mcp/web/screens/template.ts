@@ -1,5 +1,5 @@
 import type { Bridge } from '../panel.js';
-import { templateFields, supportedTemplate, templateParameters, validateTemplateValues, isAuthentication } from '../../src/template-preview.js';
+import { templateFields, templateParameters, validateTemplateValues, isAuthentication, templateUnsupportedReason } from '../../src/template-preview.js';
 import { renderTemplatePreview } from './template-renderer.js';
 import { shell, node, button, field, call, ScreenError, skeleton, type Row } from './screen-kit.js';
 export function mountTemplate(root: HTMLElement, bridge: Bridge, initial?: Row) {
@@ -56,6 +56,8 @@ export function mountTemplate(root: HTMLElement, bridge: Bridge, initial?: Row) 
         definition = JSON.stringify([selected.name, selected.language, selected.components]);
         values = {};
         fields.replaceChildren();
+        const reason = templateUnsupportedReason(selected);
+        if (reason) { preview.replaceChildren(); ui.actions.replaceChildren(); ui.state('Não suportado', reason); return; }
         const name = context.conversation.contact?.name?.split(' ')[0] ?? '';
         for (const f of templateFields(selected)) {
             values[f.key] = context.suggested_values?.[selected.id]?.[f.key] ?? (f.section === 'body' && f.kind === 'text' && ['1', 'name', 'nome', 'customer_name'].includes(f.variable) && f.card === undefined ? name : f.kind === 'otp' || f.kind === 'media' || f.kind === 'media_id' ? '' : String(f.example ?? ''));
@@ -63,7 +65,7 @@ export function mountTemplate(root: HTMLElement, bridge: Bridge, initial?: Row) 
             input.input.maxLength = f.max;
             input.input.required = f.required;
             input.input.autocomplete = 'off';
-            if (f.kind === 'media' || f.kind === 'token')
+            if (f.kind === 'media')
                 input.input.type = 'password';
             if (['latitude', 'longitude'].includes(f.kind))
                 input.input.inputMode = 'decimal';
@@ -156,7 +158,9 @@ export function mountTemplate(root: HTMLElement, bridge: Bridge, initial?: Row) 
             if (JSON.stringify([current.id, current.contact_id, current.phone_number_id, current.contact?.wa_id, current.contact?.phone]) !== destination)
                 throw new ScreenError('O destinatário ou a origem mudou. Reabra a revisão.', 'rejected');
             const fresh = (await call(bridge, 'get_template', { id: selected.id })).data;
-            if (!supportedTemplate(fresh) || JSON.stringify([fresh.name, fresh.language, fresh.components]) !== definition || context.number?.waba_connection_id && fresh.waba_connection_id !== context.number.waba_connection_id)
+            const freshReason = templateUnsupportedReason(fresh);
+            if (freshReason) throw new ScreenError(freshReason, 'rejected');
+            if (JSON.stringify([fresh.name, fresh.language, fresh.components]) !== definition || context.number?.waba_connection_id && fresh.waba_connection_id !== context.number.waba_connection_id)
                 throw new ScreenError('O template mudou ou não está aprovado para este número. Reabra a revisão.', 'rejected');
             if (!key)
                 key = (await call(bridge, 'prepare_send_intent', {})).idempotency_key;
@@ -197,7 +201,7 @@ export function mountTemplate(root: HTMLElement, bridge: Bridge, initial?: Row) 
             let page = 1, total = 1;
             do {
                 const result = await call(bridge, 'list_templates', { status: 'APPROVED', phone_number_id: data.conversation.phone_number_id, per_page: 100, page });
-                templates.push(...result.data.filter(supportedTemplate));
+                templates.push(...result.data.filter((t: Row) => String(t.status).toUpperCase() === 'APPROVED'));
                 total = result.meta.total_pages;
                 page++;
             } while (page <= total && page <= 10);
@@ -206,7 +210,7 @@ export function mountTemplate(root: HTMLElement, bridge: Bridge, initial?: Row) 
                 ui.content.replaceChildren();
                 return;
             }
-            selector.replaceChildren(...templates.map(t => { const o = document.createElement('option'); o.value = t.id; o.textContent = `${t.name} · ${t.language}`; return o; }));
+            selector.replaceChildren(...templates.map(t => { const o = document.createElement('option'); o.value = t.id; o.textContent = `${t.name} · ${t.language}${templateUnsupportedReason(t) ? ' · Não suportado' : ''}`; return o; }));
             selector.value = templates.some(t => t.id === data.preferred_template_id) ? data.preferred_template_id : templates[0]?.id;
             selector.onchange = () => void selectTemplate();
             for (const [name, value] of [['De', data.number?.display_phone_number || data.conversation.display_phone_number || 'Número de origem'], ['Para', `${data.conversation.contact?.name ?? 'Contato'} · ${data.conversation.contact?.phone ?? data.conversation.contact?.wa_id ?? ''}`]])

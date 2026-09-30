@@ -4,6 +4,8 @@ import { templateFields, templateParameters, validateTemplateValues, templateUns
 import { renderTemplatePreview } from '../web/screens/template-renderer.js';
 import { completeTemplates, completeTemplateContext, completeTemplateOptions } from '../web/scenarios/template-complete.js';
 import { approvedTemplates } from '../web/scenarios/template.js';
+import { mountTemplate } from '../web/screens/template.js';
+import { templateStage, templateTool } from '../web/scenarios/template.js';
 import { mountCases } from '../web/screens/cases.js';
 import { mountBooking } from '../web/screens/booking.js';
 import { casesStage, casesTool } from '../web/scenarios/cases.js';
@@ -67,10 +69,8 @@ describe('templates completos, catálogo aprovado → parâmetros e bolha local'
         expect(p.find(c => c.type === 'limited_time_offer')?.parameters[0].limited_time_offer.expiration_time_ms).toBe(Date.parse(v.limited_time_offer_expiration!));
         expect(validateTemplateValues(completeTemplates[7]!, { ...v, limited_time_offer_expiration: '2000-01-01T00:00:00Z' }).limited_time_offer_expiration).toBeTruthy();
     });
-    it('Flow e catálogo preservam action JSON; telefone estático não vira parâmetro', () => {
-        expect(templateParameters(completeTemplates[8]!, values(8))[0]).toMatchObject({ sub_type: 'flow', parameters: [{ type: 'action', action: { flow_token: 'pedido-marina-40', flow_action_data: { contato: 'Marina' } } }] });
-        expect(templateParameters(completeTemplates[9]!, values(9))[0]).toMatchObject({ sub_type: 'catalog', parameters: [{ type: 'action' }] });
-        expect(validateTemplateValues(completeTemplates[8]!, { ...values(8), button_0_data: '[]' }).button_0_data).toBeTruthy();
+    it('catálogo preserva action JSON; telefone estático não vira parâmetro', () => {
+        expect(templateParameters(completeTemplates[8]!, values(8))[0]).toMatchObject({ sub_type: 'catalog', parameters: [{ type: 'action' }] });
         expect(templateParameters(completeTemplates[0]!, values(0)).some(p => p.index === '1')).toBe(false);
     });
     it('corpo aceita texto/moeda/data com fallback fiel e nomes preservados', () => {
@@ -86,7 +86,7 @@ describe('templates completos, catálogo aprovado → parâmetros e bolha local'
         expect(validateTemplateValues(approvedTemplates[0]!, { body_1: 'x'.repeat(4097), body_2: '40' }).body_1).toBeTruthy();
         expect(templateUnsupportedReason({ status: 'APPROVED', components: [{ type: 'FUTURE_COMPONENT' }] })).toContain('sem schema');
         expect(templateUnsupportedReason({ ...completeTemplates[0], status: 'PAUSED' })).toContain('não aprovado');
-        expect(templateFields(completeTemplates[10]!).map(f => f.key)).toContain('body_nome');
+        expect(templateFields(completeTemplates[9]!).map(f => f.key)).toContain('body_nome');
     });
 });
 it('agenda agrupa os dias; Com Meet não repete o aviso em cada card', async () => {
@@ -104,9 +104,46 @@ it.each([['cases', '24 conversas hoje (UTC)'], ['cases-unique', '17 clientes hoj
     if (scenario === 'cases-unique')
         expect(document.body.textContent).toContain('America/Manaus');
 });
-
-it('códigos seguem tamanho aceito, sem inventar mínimo OTP ou restringir cupom a ASCII',()=>{
-    expect(validateTemplateValues(completeTemplates[4]!,{body_1:'1'})).toEqual({});
-    expect(validateTemplateValues(completeTemplates[10]!,{...values(10),button_0_code:'ÁGUAS 2026'})).toEqual({});
-    expect(validateTemplateValues(completeTemplates[10]!,{...values(10),button_0_code:'AGUAS\n2026'}).button_0_code).toBeTruthy();
+it('códigos seguem tamanho aceito, sem inventar mínimo OTP ou restringir cupom a ASCII', () => {
+    expect(validateTemplateValues(completeTemplates[4]!, { body_1: '1' })).toEqual({});
+    expect(validateTemplateValues(completeTemplates[9]!, { ...values(9), button_0_code: 'ÁGUAS 2026' })).toEqual({});
+    expect(validateTemplateValues(completeTemplates[9]!, { ...values(9), button_0_code: 'AGUAS\n2026' }).button_0_code).toBeTruthy();
+});
+const removedReason = 'Este template usa WhatsApp Flows, que não fazem parte do BotoZap. Use outro template aprovado.';
+const removedTemplate = { ...approvedTemplates[0], id: '00000000-0000-4000-8000-000000000099', name: 'template_removido', components: [{ type: 'BODY', text: 'Não exibir esta mensagem' }, { type: 'BUTTONS', buttons: [{ type: 'FLOW', text: 'Não exibir este botão' }] }] };
+it('WhatsApp Flows sincronizado é bloqueado sem campos, prévia ou parâmetros, também em carrossel', () => {
+    const carousel = { ...completeTemplates[6], components: [{ type: 'CAROUSEL', cards: [{ components: [{ type: 'HEADER', format: 'IMAGE' }, ...removedTemplate.components] }, { components: [{ type: 'HEADER', format: 'IMAGE' }] }] }] };
+    for (const t of [removedTemplate, carousel, { ...removedTemplate, status: 'PAUSED' }, { ...removedTemplate, components: [{ type: 'HEADER', format: 'UNKNOWN' }, ...removedTemplate.components] }]) {
+        expect(templateUnsupportedReason(t)).toBe(removedReason);
+        expect(templateFields(t)).toEqual([]);
+        expect(() => templateParameters(t, {})).toThrow(removedReason);
+        const preview = renderTemplatePreview(t, {});
+        expect(preview.querySelectorAll('.template-bubble,.template-client-button')).toHaveLength(0);
+        expect(preview.textContent).not.toContain('Não exibir');
+    }
+});
+it('template removido aparece não suportado no catálogo e escolher outro libera a revisão', async () => {
+    const call = vi.fn(async (n: string, a: any) => n === 'list_templates' ? { structuredContent: { data: [removedTemplate, approvedTemplates[0]], meta: { total_pages: 1 } } } : templateTool(n, a, 'template'));
+    const bridge = { call, context: vi.fn(async () => { }) };
+    mountTemplate(document.body, bridge as any, { ...templateStage(), preferred_template_id: removedTemplate.id });
+    await vi.waitFor(() => expect(document.body.dataset.state).toBe('Não suportado'));
+    expect(document.body.textContent).toContain(removedReason);
+    expect(document.querySelector('option')?.textContent).toContain('Não suportado');
+    expect(document.querySelectorAll('button,input,.template-bubble')).toHaveLength(0);
+    expect(call.mock.calls.some(([n]) => n === 'review_template_variables' || n === 'send_message' || n === 'prepare_send_intent')).toBe(false);
+    const selector = document.querySelector('select')!;
+    selector.value = approvedTemplates[0]!.id;
+    selector.dispatchEvent(new Event('change'));
+    await vi.waitFor(() => expect(document.body.dataset.state).toBe('Rascunho'));
+    expect(document.querySelector('button')?.disabled).toBe(false);
+});
+it('preflight bloqueia a substituição tardia por WhatsApp Flows antes de preparar ou enviar', async () => {
+    const bridge = { call: vi.fn(async (n: string, a: any) => n === 'get_template' ? { structuredContent: { data: removedTemplate } } : n === 'get_conversation' ? { structuredContent: { data: templateStage().conversation } } : templateTool(n, a, 'template')), context: vi.fn(async () => { }) };
+    mountTemplate(document.body, bridge as any, templateStage());
+    await vi.waitFor(() => expect(document.body.dataset.state).toBe('Rascunho'));
+    document.querySelector<HTMLButtonElement>('button')!.click();
+    [...document.querySelectorAll('button')].find(b => b.textContent === 'Enviar template')!.click();
+    await vi.waitFor(() => expect(document.body.dataset.state).toBe('Recusado'));
+    expect(document.body.textContent).toContain(removedReason);
+    expect(bridge.call.mock.calls.some(([n]) => n === 'send_message' || n === 'prepare_send_intent')).toBe(false);
 });

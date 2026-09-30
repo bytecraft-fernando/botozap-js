@@ -1,5 +1,5 @@
 {
-  "screenshots": 145,
+  "screenshots": 140,
   "results": [
     {
       "file": "4a-template-previa-desktop-light.png",
@@ -92,16 +92,6 @@
       "externalRequests": 0
     },
     {
-      "file": "4a-template-flow-previa-desktop-light.png",
-      "axeViolations": 0,
-      "externalRequests": 0
-    },
-    {
-      "file": "4a-template-flow-confirmacao-desktop-light.png",
-      "axeViolations": 0,
-      "externalRequests": 0
-    },
-    {
       "file": "4a-template-catalog-previa-desktop-light.png",
       "axeViolations": 0,
       "externalRequests": 0
@@ -120,6 +110,10 @@
       "file": "4a-template-named-confirmacao-desktop-light.png",
       "axeViolations": 0,
       "externalRequests": 0
+    },
+    {
+      "file": "4a-template-nao-suportado-desktop-light.png",
+      "axeViolations": 0
     },
     {
       "file": "4a-booking-agrupado-desktop-light.png",
@@ -248,16 +242,6 @@
       "externalRequests": 0
     },
     {
-      "file": "4a-template-flow-previa-mobile-light.png",
-      "axeViolations": 0,
-      "externalRequests": 0
-    },
-    {
-      "file": "4a-template-flow-confirmacao-mobile-light.png",
-      "axeViolations": 0,
-      "externalRequests": 0
-    },
-    {
       "file": "4a-template-catalog-previa-mobile-light.png",
       "axeViolations": 0,
       "externalRequests": 0
@@ -276,6 +260,10 @@
       "file": "4a-template-named-confirmacao-mobile-light.png",
       "axeViolations": 0,
       "externalRequests": 0
+    },
+    {
+      "file": "4a-template-nao-suportado-mobile-light.png",
+      "axeViolations": 0
     },
     {
       "file": "4a-booking-agrupado-mobile-light.png",
@@ -449,21 +437,6 @@
       "externalRequests": 0
     },
     {
-      "file": "4a-template-flow-previa-desktop-dark.png",
-      "axeViolations": 0,
-      "externalRequests": 0
-    },
-    {
-      "file": "4a-template-flow-confirmacao-desktop-dark.png",
-      "axeViolations": 0,
-      "externalRequests": 0
-    },
-    {
-      "file": "4a-template-flow-aceito-desktop-dark.png",
-      "axeViolations": 0,
-      "externalRequests": 0
-    },
-    {
       "file": "4a-template-catalog-previa-desktop-dark.png",
       "axeViolations": 0,
       "externalRequests": 0
@@ -492,6 +465,10 @@
       "file": "4a-template-named-aceito-desktop-dark.png",
       "axeViolations": 0,
       "externalRequests": 0
+    },
+    {
+      "file": "4a-template-nao-suportado-desktop-dark.png",
+      "axeViolations": 0
     },
     {
       "file": "4a-booking-agrupado-desktop-dark.png",
@@ -624,16 +601,6 @@
       "externalRequests": 0
     },
     {
-      "file": "4a-template-flow-previa-mobile-dark.png",
-      "axeViolations": 0,
-      "externalRequests": 0
-    },
-    {
-      "file": "4a-template-flow-confirmacao-mobile-dark.png",
-      "axeViolations": 0,
-      "externalRequests": 0
-    },
-    {
       "file": "4a-template-catalog-previa-mobile-dark.png",
       "axeViolations": 0,
       "externalRequests": 0
@@ -652,6 +619,10 @@
       "file": "4a-template-named-confirmacao-mobile-dark.png",
       "axeViolations": 0,
       "externalRequests": 0
+    },
+    {
+      "file": "4a-template-nao-suportado-mobile-dark.png",
+      "axeViolations": 0
     },
     {
       "file": "4a-booking-agrupado-mobile-dark.png",

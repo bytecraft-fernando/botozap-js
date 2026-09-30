@@ -6,7 +6,7 @@ export type TemplateField = {
     variable: string;
     index?: number;
     card?: number;
-    kind: 'text' | 'media' | 'media_id' | 'filename' | 'latitude' | 'longitude' | 'coupon' | 'otp' | 'payload' | 'expiry' | 'json' | 'token';
+    kind: 'text' | 'media' | 'media_id' | 'filename' | 'latitude' | 'longitude' | 'coupon' | 'otp' | 'payload' | 'expiry' | 'json';
     required: boolean;
     label: string;
     max: number;
@@ -20,10 +20,12 @@ export const isOtp = (b: TemplateRow, t: TemplateRow) => upper(b.type) === 'OTP'
 function variables(text: string) { return [...new Set([...text.matchAll(/\{\{\s*(\w+)\s*\}\}/g)].map(m => m[1]!))].sort((a, b) => /^\d+$/.test(a) && /^\d+$/.test(b) ? Number(a) - Number(b) : 0); }
 function example(c: TemplateRow, section: string, variable: string) { const named = c.example?.[`${section}_text_named_params`]?.find((p: TemplateRow) => p.param_name === variable); return named?.example ?? (section === 'body' ? c.example?.body_text?.[0] : c.example?.header_text)?.[Number(variable) - 1]; }
 export function templateFields(template: TemplateRow): TemplateField[] {
+    if (templateUnsupportedReason(template))
+        return [];
     const fields: TemplateField[] = [];
     function walk(components: TemplateRow[], card?: number) {
         const p = prefix(card), where = card === undefined ? '' : `Card ${card + 1} · `;
-        const add = (section: string, variable: string, kind: TemplateField['kind'], label: string, required = true, max = 1024, index?: number, ex?: string) => fields.push({ key: `${p}${section}_${index === undefined ? '' : `${index}_`}${variable}`, section, variable, kind, required, label: where + label, max, index, card, example: ex, secret: ['media', 'otp', 'token'].includes(kind) });
+        const add = (section: string, variable: string, kind: TemplateField['kind'], label: string, required = true, max = 1024, index?: number, ex?: string) => fields.push({ key: `${p}${section}_${index === undefined ? '' : `${index}_`}${variable}`, section, variable, kind, required, label: where + label, max, index, card, example: ex, secret: ['media', 'otp'].includes(kind) });
         for (const c of components ?? []) {
             const type = upper(c.type), section = type.toLowerCase();
             if (type === 'HEADER' && ['IMAGE', 'VIDEO', 'DOCUMENT'].includes(upper(c.format))) {
@@ -57,10 +59,6 @@ export function templateFields(template: TemplateRow): TemplateField[] {
                         add('button', 'code', 'coupon', 'Código para copiar', true, 15, i);
                     if (bt === 'QUICK_REPLY')
                         add('button', 'payload', 'payload', `Resposta de “${b.text}”`, card !== undefined, 256, i, card !== undefined ? b.text : undefined);
-                    if (bt === 'FLOW') {
-                        add('button', 'token', 'token', 'Referência do formulário', false, 1024, i);
-                        add('button', 'data', 'json', 'Dados iniciais do formulário (JSON)', false, 4096, i);
-                    }
                     if (['CATALOG', 'MPM', 'SPM'].includes(bt))
                         add('button', 'action', 'json', 'Seleção do catálogo (JSON)', bt !== 'CATALOG', 4096, i);
                 }
@@ -76,6 +74,10 @@ export function templateFields(template: TemplateRow): TemplateField[] {
 }
 /** Unknown catalogue shapes fail closed; the tools-only API remains unconstrained. */
 export function templateUnsupportedReason(template: TemplateRow): string | null {
+    const containsRemovedButton = (components: TemplateRow[]): boolean => components.some(c => (Array.isArray(c?.buttons) && c.buttons.some((b: TemplateRow) => upper(b?.type) === 'FLOW')) ||
+        (Array.isArray(c?.cards) && c.cards.some((card: TemplateRow) => containsRemovedButton(Array.isArray(card?.components) ? card.components : []))));
+    if (Array.isArray(template.components) && containsRemovedButton(template.components))
+        return 'Este template usa WhatsApp Flows, que não fazem parte do BotoZap. Use outro template aprovado.';
     if (upper(template.status) !== 'APPROVED')
         return 'Template não aprovado.';
     if (!Array.isArray(template.components) || !template.components.length)
@@ -87,7 +89,7 @@ export function templateUnsupportedReason(template: TemplateRow): string | null 
                 return `Cabeçalho ${c.format ?? 'desconhecido'} sem schema conhecido.`;
             if (type === 'BUTTONS')
                 for (const b of c.buttons ?? []) {
-                    if (!['QUICK_REPLY', 'URL', 'PHONE_NUMBER', 'COPY_CODE', 'OTP', 'FLOW', 'CATALOG', 'MPM', 'SPM', 'VOICE_CALL'].includes(upper(b.type)))
+                    if (!['QUICK_REPLY', 'URL', 'PHONE_NUMBER', 'COPY_CODE', 'OTP', 'CATALOG', 'MPM', 'SPM', 'VOICE_CALL'].includes(upper(b.type)))
                         return `Botão ${b.type} sem schema conhecido.`;
                 }
             if (type === 'CAROUSEL') {
@@ -111,21 +113,25 @@ export function templateUnsupportedReason(template: TemplateRow): string | null 
 }
 export const supportedTemplate = (template: TemplateRow) => !templateUnsupportedReason(template);
 export function fillTemplate(source: string, values: Record<string, string>, section: string, index?: number, card?: number) { return source.replace(/\{\{\s*(\w+)\s*\}\}/g, (_, key) => values[`${prefix(card)}${section}_${index === undefined ? '' : `${index}_`}${key}`] || `{{${key}}}`); }
-function publicHttps(value: string) { try {
-    const u = new URL(value), h = u.hostname.toLowerCase();
-    return u.protocol === 'https:' && !u.username && !u.password && h.includes('.') && !h.endsWith('.local') && !h.endsWith('.localhost') && !h.endsWith('.internal') && !/\.(test|invalid|onion)$/.test(h) && !h.startsWith('[') && !/^\d+(\.\d+){3}$/.test(h) && h !== 'localhost';
+function publicHttps(value: string) {
+    try {
+        const u = new URL(value), h = u.hostname.toLowerCase();
+        return u.protocol === 'https:' && !u.username && !u.password && h.includes('.') && !h.endsWith('.local') && !h.endsWith('.localhost') && !h.endsWith('.internal') && !/\.(test|invalid|onion)$/.test(h) && !h.startsWith('[') && !/^\d+(\.\d+){3}$/.test(h) && h !== 'localhost';
+    }
+    catch {
+        return false;
+    }
 }
-catch {
-    return false;
-} }
 function coordinate(v: string, min: number, max: number) { const raw = v.trim().replace(',', '.'); const n = Number(raw); return /^-?\d+(\.\d+)?$/.test(raw) && Number.isFinite(n) && n >= min && n <= max; }
-function objectJson(v: string) { try {
-    const data = JSON.parse(v);
-    return data && typeof data === 'object' && !Array.isArray(data) ? data : null;
+function objectJson(v: string) {
+    try {
+        const data = JSON.parse(v);
+        return data && typeof data === 'object' && !Array.isArray(data) ? data : null;
+    }
+    catch {
+        return null;
+    }
 }
-catch {
-    return null;
-} }
 export function validateTemplateValues(t: TemplateRow, values: Record<string, string>, now = Date.now()): Record<string, string> {
     const errors: Record<string, string> = {}, reason = templateUnsupportedReason(t);
     if (reason)
@@ -235,8 +241,6 @@ function buildParameters(t: TemplateRow, values: Record<string, string>): Templa
                         out.push({ ...base, sub_type: 'copy_code', parameters: [{ type: 'coupon_code', coupon_code: values[key + 'code']?.trim() }] });
                     else if (bt === 'QUICK_REPLY' && values[key + 'payload']?.trim())
                         out.push({ ...base, sub_type: 'quick_reply', parameters: [{ type: 'payload', payload: values[key + 'payload'] }] });
-                    else if (bt === 'FLOW' && (values[key + 'token'] || values[key + 'data']))
-                        out.push({ ...base, sub_type: 'flow', parameters: [{ type: 'action', action: { ...(values[key + 'token'] ? { flow_token: values[key + 'token'] } : {}), ...(values[key + 'data'] ? { flow_action_data: objectJson(values[key + 'data'] ?? '') } : {}) } }] });
                     else if (['CATALOG', 'MPM', 'SPM'].includes(bt) && values[key + 'action'])
                         out.push({ ...base, sub_type: bt.toLowerCase(), parameters: [{ type: 'action', action: objectJson(values[key + 'action'] ?? '') }] });
                 }
@@ -249,10 +253,21 @@ function buildParameters(t: TemplateRow, values: Record<string, string>): Templa
     }
     return walk(t.components);
 }
-function parameter(f: TemplateField, values: Record<string, string>) { const format = values[f.key + '__format']; if (format === 'currency')
-    return { type: 'currency', currency: { fallback_value: values[f.key], code: values[f.key + '__code'], amount_1000: Number(values[f.key + '__amount']) } }; if (format === 'date_time')
-    return { type: 'date_time', date_time: { fallback_value: values[f.key] } }; return { type: 'text', text: values[f.key] }; }
-function validateBudget(out: TemplateRow[]) { if (out.length > 20 || new TextEncoder().encode(JSON.stringify(out)).length > 32 * 1024)
-    throw new Error('Componentes excedem o limite da API: 20 itens / 32 KB.'); }
-export function templateParameters(t: TemplateRow, values: Record<string, string>): TemplateRow[] { const errors = validateTemplateValues(t, values); if (Object.keys(errors).length)
-    throw new Error(Object.values(errors)[0]); return buildParameters(t, values); }
+function parameter(f: TemplateField, values: Record<string, string>) {
+    const format = values[f.key + '__format'];
+    if (format === 'currency')
+        return { type: 'currency', currency: { fallback_value: values[f.key], code: values[f.key + '__code'], amount_1000: Number(values[f.key + '__amount']) } };
+    if (format === 'date_time')
+        return { type: 'date_time', date_time: { fallback_value: values[f.key] } };
+    return { type: 'text', text: values[f.key] };
+}
+function validateBudget(out: TemplateRow[]) {
+    if (out.length > 20 || new TextEncoder().encode(JSON.stringify(out)).length > 32 * 1024)
+        throw new Error('Componentes excedem o limite da API: 20 itens / 32 KB.');
+}
+export function templateParameters(t: TemplateRow, values: Record<string, string>): TemplateRow[] {
+    const errors = validateTemplateValues(t, values);
+    if (Object.keys(errors).length)
+        throw new Error(Object.values(errors)[0]);
+    return buildParameters(t, values);
+}

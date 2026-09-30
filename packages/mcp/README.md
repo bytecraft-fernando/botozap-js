@@ -455,7 +455,7 @@ sem elicitation OpenAI) e Sem UI (dados e rascunho em texto, sem iframe).
 Templates aprovados incluem cabeçalho texto/imagem/vídeo/documento/localização,
 corpo posicional/nomeado, moeda/data com fallback, rodapé, respostas rápidas,
 URL dinâmica, telefone, cupom, autenticação e carrossel. Oferta limitada e botões
-de catálogo/Flow já sincronizados têm prévia e parâmetros; isso não cria templates
+de catálogo já sincronizados têm prévia e parâmetros; isso não cria templates
 que o builder do app hoje não aceita. Consulte `web/RELATORIO-4A.md` para limites.
 A mídia usa somente placeholders locais: não baixa arquivos, resolve URLs ou
 valida existência de media_id. Nome/tamanho são exibidos quando informados no contexto.

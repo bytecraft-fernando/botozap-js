@@ -1,4 +1,4 @@
-import { fillTemplate, isAuthentication, isOtp, type TemplateRow } from '../../src/template-preview.js';
+import { fillTemplate, isAuthentication, isOtp, templateUnsupportedReason, type TemplateRow } from '../../src/template-preview.js';
 import { node } from './screen-kit.js';
 const type = (v: unknown) => String(v ?? '').toUpperCase();
 function media(format: string, values: Record<string, string>, p: string, metadata: TemplateRow = {}) {
@@ -16,6 +16,8 @@ function media(format: string, values: Record<string, string>, p: string, metada
 /** Semantic local preview. No img/src, anchors, video/source or external URL. */
 export function renderTemplatePreview(template: TemplateRow, values: Record<string, string>, metadata: Record<string, TemplateRow> = {}) {
     const outer = node('div', '', 'template-message');
+    const reason = templateUnsupportedReason(template);
+    if (reason) { outer.append(node('p', reason)); return outer; }
     function bubble(components: TemplateRow[], card?: number) {
         const p = card === undefined ? '' : `card_${card}_`;
         const item = node('article', '', 'template-bubble');
