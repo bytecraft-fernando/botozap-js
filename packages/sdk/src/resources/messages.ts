@@ -224,7 +224,8 @@ export class Messages {
     params: SendInteractiveParams,
     options: SendOptions = {},
   ): Promise<SendResult> {
-    return this.post(
+    return postMessage(
+      this.client,
       { to: params.to, from: params.from, type: "interactive", interactive: params.interactive },
       options,
     );
@@ -238,7 +239,8 @@ export class Messages {
     };
     if (params.name !== undefined) location.name = params.name;
     if (params.address !== undefined) location.address = params.address;
-    return this.post(
+    return postMessage(
+      this.client,
       { to: params.to, from: params.from, type: "location", location },
       options,
     );
@@ -249,7 +251,8 @@ export class Messages {
    * O retorno traz `reaction` com o alvo e a ação.
    */
   async sendReaction(params: SendReactionParams, options: SendOptions = {}): Promise<SendResult> {
-    return this.post(
+    return postMessage(
+      this.client,
       {
         to: params.to,
         from: params.from,
@@ -258,14 +261,6 @@ export class Messages {
       },
       options,
     );
-  }
-
-  private async post(body: Record<string, unknown>, options: SendOptions): Promise<SendResult> {
-    const result = await this.client.requestObject<SendResult>("POST", "/messages", {
-      idempotencyKey: options.idempotencyKey,
-      body,
-    });
-    return assertSendResult(result);
   }
 
   /** Lista as mensagens da conta (paginação por cursor). */
@@ -294,6 +289,18 @@ export class Messages {
       `/messages/${encodeURIComponent(id)}`,
     );
   }
+}
+
+async function postMessage(
+  client: BotoZap,
+  body: Record<string, unknown>,
+  options: SendOptions,
+): Promise<SendResult> {
+  const result = await client.requestObject<SendResult>("POST", "/messages", {
+    idempotencyKey: options.idempotencyKey,
+    body,
+  });
+  return assertSendResult(result);
 }
 
 function assertSendResult(value: SendResult): SendResult {
