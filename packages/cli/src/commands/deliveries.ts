@@ -12,7 +12,7 @@ export function registerDeliveries(program: Command): void {
     .description("Lista entregas de webhook (paginação por cursor)")
     .option("--endpoint-id <id>", "filtra por endpoint")
     .option("--webhook-id <id>", "alias de --endpoint-id")
-    .option("--status <status>", "filtra por status")
+    .option("--status <status>", "filtra por status (pending|success|failed|exhausted|limited)")
     .option("--event-type <tipo>", "filtra por tipo de evento")
     .option("--limit <n>", "quantidade por página")
     .option("--after <cursor>", "cursor da próxima página")

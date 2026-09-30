@@ -1,6 +1,7 @@
 import type { BotoZap } from "../client.js";
 import type {
   ApiLog,
+  WebhookDeliveryStatus,
   CursorList,
   CursorParams,
   OffsetList,
@@ -51,8 +52,8 @@ export class ApiLogs {
 export interface ListWebhookDeliveriesParams extends CursorParams {
   /** Alias de `endpoint_id` na rota — entregas de um endpoint específico. */
   webhook_id?: string;
-  /** delivery_status (pending|success|failed|exhausted). */
-  status?: string;
+  /** delivery_status (pending|success|failed|exhausted|limited). */
+  status?: WebhookDeliveryStatus | (string & {});
   /** Tipo do evento (ex.: "webhook.test", "messages"). */
   event_type?: string;
 }

@@ -1,7 +1,8 @@
 export { BotoZap } from "./client.js";
 export type { BotoZapOptions, RequestOptions } from "./client.js";
-export { BotoZapError } from "./errors.js";
-export type { SendFailureDetails } from "./errors.js";
+export { BotoZapError, PLAN_ERROR_CODES, isPlanError } from "./errors.js";
+export type { SendFailureDetails, BotoZapErrorCode } from "./errors.js";
+export { WEBHOOK_CATEGORIES } from "./types.js";
 export type { Me } from "./resources/me.js";
 
 export type {
@@ -13,6 +14,15 @@ export type {
   SendAudioParams,
   SendDocumentParams,
   SendMediaParams,
+  SendInteractiveParams,
+  InteractivePayload,
+  InteractiveButtonPayload,
+  InteractiveListPayload,
+  InteractiveCtaUrlPayload,
+  InteractiveHeader,
+  SendLocationParams,
+  SendReactionParams,
+  MessageSort,
   ListMessagesParams,
 } from "./resources/messages.js";
 export type {
@@ -97,6 +107,10 @@ export type {
   User,
   ApiLog,
   WebhookDelivery,
+  WebhookDeliveryStatus,
+  WebhookCategory,
+  MessageSource,
+  SendReactionResult,
   MediaUploadResult,
   MediaAsset,
   SetupLink,

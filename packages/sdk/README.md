@@ -95,7 +95,48 @@ await boto.messages.send({
 await boto.conversations.reply("uuid-da-conversa", {
   text: "Resposta do agente",
 });
+
+// Botões de resposta, lista ou botão de link (objeto interactive da Cloud API)
+await boto.messages.sendInteractive({
+  to: "+5531988887777",
+  interactive: {
+    type: "button",
+    body: { text: "Confirma o horário?" },
+    action: {
+      buttons: [
+        { type: "reply", reply: { id: "sim", title: "Sim" } },
+        { type: "reply", reply: { id: "nao", title: "Não" } },
+      ],
+    },
+  },
+});
+
+// Localização
+await boto.messages.sendLocation({
+  to: "+5531988887777",
+  latitude: -3.119,
+  longitude: -60.0217,
+  name: "Loja Centro",
+});
+
+// Reação a uma mensagem RECEBIDA (UUID interno ou wamid, até 30 dias); "" retira
+const r = await boto.messages.sendReaction({
+  to: "+5531988887777",
+  message_id: "wamid.HBgM...",
+  emoji: "👍",
+});
+r.reaction?.action; // "react" | "unreact"
+
+// Listar na ordem real das mensagens (histórico importado incluído)
+const page = await boto.messages.list({ sort: "event_at", limit: 50 });
+page.data[0]?.source; // "api" | "app" | "history" | "broadcast"
 ```
+
+Interactive, localização e reação são mensagens livres: exigem a janela de 24h
+aberta. A API valida o `interactive` (limites da Cloud API) e recusa com `422
+invalid_request`; reação recusa com `invalid_reaction`, `missing_reaction_target`,
+`reaction_target_not_found`, `reaction_target_invalid` ou `reaction_target_expired`.
+O cursor de `messages.list` vale só para o `sort` que o gerou.
 
 ## Clientes e templates
 
@@ -208,6 +249,33 @@ catch (err) {
 ```
 
 `err.headers` traz só os headers da resposta — nenhuma credencial de request entra nele.
+
+### Recusas de plano
+
+`isPlanError(err)` reconhece recusas que só um upgrade resolve (retry não):
+`403 plan_restricted` nas escritas de IA, Agenda, Calendário, Jornadas e execuções
+(`422 plan_restricted` em funil, aquecimento e regras de comentário),
+`429 free_form_limit_reached` (limite de mensagens 1:1 do Free) e
+`402 free_number_cap` no setup além do teto de Números do Free. Credencial de IA
+nova só para `openai`/`anthropic` (`AI_CREDENTIAL_PROVIDERS`; os demais respondem
+`422 provider_not_enabled`); `ai.providers.get()` traz `accepts_new_credentials`
+por provedor.
+
+```ts
+import { isPlanError } from "@botozap/sdk";
+
+catch (err) {
+  if (isPlanError(err)) mostrarUpgrade(err.code);
+}
+```
+
+### Webhooks
+
+`WEBHOOK_CATEGORIES` lista as categorias de `webhooks.create({ events })`:
+`messages`, `statuses`, `crm`, `account` (inclui `whatsapp.phone_number.connected`)
+e `app_messages`, opt-in, com `whatsapp.message.echo`, `.edited` e `.revoked` do
+app WhatsApp Business em coexistência. Em `webhookDeliveries.list`, o status
+`limited` marca a entrega cortada pelo limite de repasse do Free (sem retry).
 
 ## Configuração
 

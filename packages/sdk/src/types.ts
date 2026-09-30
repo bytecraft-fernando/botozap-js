@@ -15,6 +15,20 @@ export interface SendResult {
   status: MessageStatus;
   /** Presente apenas quando a chave é do ambiente sandbox. */
   sandbox?: boolean;
+  /** Só em `type: "reaction"`: alvo e ação (`react`/`unreact`). */
+  type?: "reaction";
+  reaction?: SendReactionResult;
+}
+
+/** Eco de `POST /v1/messages` com `type: "reaction"`. */
+export interface SendReactionResult {
+  /** UUID interno da mensagem alvo. */
+  message_id: string;
+  /** wamid da mensagem alvo. */
+  wamid: string;
+  /** `""` quando a reação foi retirada. */
+  emoji: string;
+  action: "react" | "unreact";
 }
 
 /** Componente de template do WhatsApp (header, body, button…). */
@@ -85,8 +99,21 @@ export interface Customer {
   [key: string]: unknown;
 }
 
+/**
+ * Origem da mensagem: `api` (esta API), `app` (Painel ou app WhatsApp Business
+ * em coexistência), `history` (histórico importado), `broadcast` (Transmissão).
+ * Valores novos podem surgir.
+ */
+export type MessageSource = "api" | "app" | "history" | "broadcast" | (string & {});
+
 export interface Message {
   id: string;
+  /** Origem da mensagem (ver `MessageSource`). */
+  source?: MessageSource;
+  /** Chegada à BotoZap (ISO 8601); chave de `sort=created_at`. */
+  created_at?: string;
+  /** Data real da mensagem no canal; `null` quando desconhecida. Chave de `sort=event_at`. */
+  event_at?: string | null;
   [key: string]: unknown;
 }
 
@@ -157,6 +184,8 @@ export interface Conversation {
    * + 24h); `null` sem clique recente. Não altera a regra da janela de 24h.
    */
   fep_reply_by?: string | null;
+  /** Última mensagem da Conversa (inclui `source`); `null` sem mensagens. */
+  last_message?: (Partial<Message> & { source?: MessageSource }) | null;
   [key: string]: unknown;
 }
 
@@ -170,7 +199,7 @@ export interface Webhook {
   /** Cliente cujas entregas o endpoint recebe; `null` = todos os da Conta. */
   customer_id?: string | null;
   url: string;
-  events?: string[];
+  events?: (WebhookCategory | (string & {}))[];
   active?: boolean;
   /** True quando o endpoint tem Authorization no Vault. O valor nunca é devolvido. */
   has_authorization?: boolean;
@@ -196,10 +225,37 @@ export interface ApiLog {
   [key: string]: unknown;
 }
 
+/**
+ * Status de uma entrega de webhook. `limited`: recebida cortada pelo limite de
+ * repasse do plano Free; não será tentada.
+ */
+export type WebhookDeliveryStatus =
+  | "pending"
+  | "success"
+  | "failed"
+  | "exhausted"
+  | "limited";
+
 export interface WebhookDelivery {
   id: string;
+  status?: WebhookDeliveryStatus;
   [key: string]: unknown;
 }
+
+/**
+ * Categorias aceitas em `webhooks.create({ events })`. `app_messages` é opt-in
+ * (coexistência: `whatsapp.message.echo`, `.edited`, `.revoked`) e só chega a
+ * Endpoints que a assinaram explicitamente; `events` vazio não a recebe.
+ * `account` inclui `whatsapp.phone_number.connected`.
+ */
+export const WEBHOOK_CATEGORIES = [
+  "messages",
+  "statuses",
+  "crm",
+  "account",
+  "app_messages",
+] as const;
+export type WebhookCategory = (typeof WEBHOOK_CATEGORIES)[number];
 
 /** Evento autoritativo do stream durável da Conta e ambiente autenticados. */
 export interface BotoZapEvent {

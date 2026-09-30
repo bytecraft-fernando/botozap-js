@@ -1,6 +1,18 @@
 /** Public /api/v1/ai contracts. Revisions are opaque strings unless the endpoint explicitly uses a number. */
 export type AiProvider =
   "anthropic" | "openai" | "google" | "openrouter" | "deepseek" | "xai";
+/** Provedores que aceitam credencial NOVA hoje; os demais respondem 422 `provider_not_enabled`. */
+export const AI_CREDENTIAL_PROVIDERS = ["openai", "anthropic"] as const;
+/** Item de `ai.providers.get().providers`. */
+export type AiProviderInfo = {
+  id: AiProvider;
+  label: string;
+  key_url: string | null;
+  description: string | null;
+  /** false: criar credencial desse provedor responde 422 `provider_not_enabled`. */
+  accepts_new_credentials: boolean;
+  [key: string]: unknown;
+};
 /** Every BYOK purpose. #498 added granular purposes; without their own binding they inherit the Customer default. */
 export const AI_PURPOSES = [
   "default",

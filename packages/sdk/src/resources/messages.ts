@@ -8,8 +8,16 @@ import type {
   TemplatePayload,
 } from "../types.js";
 
+/**
+ * Ordem de `messages.list`: `created_at` (padrão, chegada à BotoZap) ou
+ * `event_at` (data real da mensagem; útil com histórico importado). O cursor é
+ * da ordem que o gerou: reuse-o com o mesmo `sort`.
+ */
+export type MessageSort = "created_at" | "event_at";
+
 /** Filtros de `messages.list` (paginação por cursor). Ver GET /v1/messages. */
 export interface ListMessagesParams extends CursorParams {
+  sort?: MessageSort;
   /** id da Meta OU uuid interno do número. */
   phone_number_id?: string;
   /** uuid interno da conversa (o `id` de /v1/conversations). */
@@ -77,6 +85,79 @@ export type SendMediaParams =
   | SendAudioParams
   | SendDocumentParams;
 
+/** Header de `interactive` (texto; mídia só em button e cta_url). */
+export type InteractiveHeader =
+  | { type: "text"; text: string }
+  | { type: "image"; image: { link: string } }
+  | { type: "video"; video: { link: string } }
+  | { type: "document"; document: { link: string; filename?: string } };
+
+interface InteractiveBase {
+  header?: InteractiveHeader;
+  body: { text: string };
+  footer?: { text: string };
+}
+
+/** Até 3 botões de resposta (título até 20 caracteres, ids únicos). */
+export interface InteractiveButtonPayload extends InteractiveBase {
+  type: "button";
+  action: {
+    buttons: { type?: "reply"; reply: { id: string; title: string } }[];
+  };
+}
+
+/** Lista: até 10 seções e 10 opções no total; `title` da seção obrigatório com mais de uma. */
+export interface InteractiveListPayload extends InteractiveBase {
+  type: "list";
+  header?: { type: "text"; text: string };
+  action: {
+    button: string;
+    sections: {
+      title?: string;
+      rows: { id: string; title: string; description?: string }[];
+    }[];
+  };
+}
+
+/** Botão de link (URL https pública). */
+export interface InteractiveCtaUrlPayload extends InteractiveBase {
+  type: "cta_url";
+  action: {
+    name: "cta_url";
+    parameters: { display_text: string; url: string };
+  };
+}
+
+/** Objeto `interactive` no formato da Cloud API (validado pela API). */
+export type InteractivePayload =
+  | InteractiveButtonPayload
+  | InteractiveListPayload
+  | InteractiveCtaUrlPayload;
+
+export interface SendInteractiveParams {
+  to: string;
+  interactive: InteractivePayload;
+  from?: string;
+}
+
+export interface SendLocationParams {
+  to: string;
+  latitude: number;
+  longitude: number;
+  name?: string;
+  address?: string;
+  from?: string;
+}
+
+export interface SendReactionParams {
+  to: string;
+  /** UUID interno ou wamid da mensagem RECEBIDA do contato (até 30 dias). */
+  message_id: string;
+  /** Emoji da reação; `""` retira a reação. */
+  emoji: string;
+  from?: string;
+}
+
 export interface SendOptions {
   /** Reuse for retries of the same send; a different payload conflicts. */
   idempotencyKey?: string;
@@ -135,6 +216,58 @@ export class Messages {
     return assertSendResult(result);
   }
 
+  /**
+   * Envia botões de resposta, lista ou botão de link (WhatsApp; mensagem livre,
+   * exige janela de 24h aberta).
+   */
+  async sendInteractive(
+    params: SendInteractiveParams,
+    options: SendOptions = {},
+  ): Promise<SendResult> {
+    return this.post(
+      { to: params.to, from: params.from, type: "interactive", interactive: params.interactive },
+      options,
+    );
+  }
+
+  /** Envia uma localização (WhatsApp; mensagem livre). */
+  async sendLocation(params: SendLocationParams, options: SendOptions = {}): Promise<SendResult> {
+    const location: Record<string, unknown> = {
+      latitude: params.latitude,
+      longitude: params.longitude,
+    };
+    if (params.name !== undefined) location.name = params.name;
+    if (params.address !== undefined) location.address = params.address;
+    return this.post(
+      { to: params.to, from: params.from, type: "location", location },
+      options,
+    );
+  }
+
+  /**
+   * Reage a uma mensagem recebida (WhatsApp). `emoji: ""` retira a reação.
+   * O retorno traz `reaction` com o alvo e a ação.
+   */
+  async sendReaction(params: SendReactionParams, options: SendOptions = {}): Promise<SendResult> {
+    return this.post(
+      {
+        to: params.to,
+        from: params.from,
+        type: "reaction",
+        reaction: { message_id: params.message_id, emoji: params.emoji },
+      },
+      options,
+    );
+  }
+
+  private async post(body: Record<string, unknown>, options: SendOptions): Promise<SendResult> {
+    const result = await this.client.requestObject<SendResult>("POST", "/messages", {
+      idempotencyKey: options.idempotencyKey,
+      body,
+    });
+    return assertSendResult(result);
+  }
+
   /** Lista as mensagens da conta (paginação por cursor). */
   list(params: ListMessagesParams = {}): Promise<CursorList<Message>> {
     return this.client.requestCursorList<CursorList<Message>>("GET", "/messages", {
@@ -142,6 +275,7 @@ export class Messages {
         limit: params.limit,
         after: params.after,
         before: params.before,
+        sort: params.sort,
         phone_number_id: params.phone_number_id,
         conversation_id: params.conversation_id,
         direction: params.direction,
