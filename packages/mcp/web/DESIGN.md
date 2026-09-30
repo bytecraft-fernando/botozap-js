@@ -187,3 +187,7 @@ Direção travada no feedback aprovado do Fernando: a bolha e os cards são a su
 O contexto envia nome, prévia, variáveis com nomes humanos e chaves necessárias para staging. URLs de mídia são protegidas e omitidas do mapa copiado ao modelo; o assistente deve preservar os demais campos. Staging atualiza o mesmo card e invalida a chave da intenção quando há ajuste; confirmação/envio/incerto bloqueiam alterações. A prévia não abre elicitação automaticamente. A tool nativa `review_template_variables` continua disponível ao modelo quando pedida explicitamente; abrir uma prévia não força um segundo formulário sobre a conversa.
 
 O simulador de ajustes fica exclusivamente em `web/scenarios/template.ts`, no host, e usa notificações MCP Apps. Exemplo: **“Muda o nome para Mariana e troca a imagem do segundo card pela coleção Floresta”**. A UI real só recebe o resultado de staging, sem reconhecer pedidos ou inventar dados.
+
+### 4A.3 — rodapé fullscreen centralizado
+
+A área rolável termina antes do compositor e da barra fixa de ações, com a altura da barra medida e a safe area informada pelo host (mínimo/fallback 160 px). Screen-kit e Radar/conversa compartilham o mesmo controlador; não há padding manual por tela para corrigir esse caso. Os testes percorrem topo/meio/fim, confirmação e compositor expandido em todas as telas fullscreen. Veja [o relatório e as capturas](RELATORIO-4A3.md).

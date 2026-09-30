@@ -1,3 +1,4 @@
+import { installFullscreenLayout } from './fullscreen-layout.js';
 import type { Bridge } from '../panel.js';
 import './screens.css';
 export type Row = Record<string, any>;
@@ -16,7 +17,7 @@ export function shell(root: HTMLElement, eyebrow: string, heading: string) {
   const main = node('main','','screen-card'); const top = node('div','','screen-top'); const title = node('div'); title.append(node('p',eyebrow,'eyebrow'),node('h1',heading));
   const chip=node('span','Carregando','badge'); chip.setAttribute('role','status'); top.append(title,chip);
   const content=node('div','','screen-content'); const status=node('p','Carregando…','screen-status');status.setAttribute('role','status');status.setAttribute('aria-live','polite');
-  const actions=node('div','','actions');main.append(top,content,status,actions); root.append(main);
+  const actions=node('div','','actions');main.append(top,content,status,actions); root.append(main); installFullscreenLayout(root);
   return { main, content, actions, chip, status, state(state: string, text = '') { root.dataset.state=state;chip.textContent=state;status.textContent=text; }, setMode(mode: string) { root.dataset.mode=mode; }, connectionError() { status.textContent='Não foi possível conectar ao assistente. Reabra a tela.'; } };
 }
 export function button(text: string, handler: () => unknown, primary = false) { const el=node('button',text,primary?'primary':'') as HTMLButtonElement;el.type='button';el.onclick=handler;return el; }
