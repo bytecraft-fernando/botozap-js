@@ -1,3 +1,4 @@
+import { getUiCapability, RESOURCE_MIME_TYPE } from "@modelcontextprotocol/ext-apps/server";
 import { screenMetadata } from "./resources/screen-resource.js";
 /**
  * Helper de registro de ferramentas: encapsula o padrão comum de
@@ -132,7 +133,8 @@ export function createRegister(
   const allowedAccounts = accounts === undefined
     ? null
     : new Set(accounts.split(",").map(id => id.trim()).filter(Boolean));
-  const uiAllowed = (value: ApiIdentity) => !!options.uiEnabled && (allowedAccounts === null || allowedAccounts.has(value.account_id));
+  const supportsUi = () => { const mimeTypes = getUiCapability(server.server.getClientCapabilities())?.mimeTypes; return Array.isArray(mimeTypes) && mimeTypes.includes(RESOURCE_MIME_TYPE); };
+  const uiAllowed = (value: ApiIdentity) => !!options.uiEnabled && supportsUi() && (allowedAccounts === null || allowedAccounts.has(value.account_id));
   const uiTools = new Set(["open_review_panel", "stage_review_reply", "stage_review_template", "review_template_variables", "open_agent_cases", "stage_appointment_booking"]);
   const listeners: Array<(enabled: boolean) => void> = [];
   const metadata = (name: string) => {
@@ -228,7 +230,8 @@ export function createRegister(
     if (!isToolAllowed(policy, currentIdentity) || (uiTools.has(name) && !uiAllowed(currentIdentity))) tool.disable();
   };
   Object.defineProperty(register, "uiEnabled", { get: () => uiAllowed(currentIdentity) });
-  return Object.assign(register, {
+  const previousInitialized = server.server.oninitialized;
+  const configured = Object.assign(register, {
     onUiChange(listener: (enabled: boolean) => void) {
       listeners.push(listener);
       listener(uiAllowed(currentIdentity));
@@ -243,4 +246,6 @@ export function createRegister(
       for (const listener of listeners) listener(uiAllowed(next));
     },
   });
+  server.server.oninitialized = () => { previousInitialized?.(); configured.updateIdentity(currentIdentity); };
+  return configured;
 }

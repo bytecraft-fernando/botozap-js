@@ -14,10 +14,10 @@ const app = new App({ name: 'BotoZap · Revisão', version: '1.0.0' }, { availab
 const bridge = {
   template: (value: Record<string, any>) => { panel = mountTemplate(root, bridge, value); void bridge.displayMode('fullscreen').then(result => panel.setMode?.(result.mode)); },
   call: (name: string, args: Record<string, unknown>) => app.callServerTool({ name, arguments: args }),
-  context: (value: unknown) => app.updateModelContext({ content: [{ type: 'text', text: JSON.stringify(value) }] }),
-  message: (text: string) => app.sendMessage({ role: 'user', content: [{ type: 'text', text }] }),
+  context: (value: unknown) => !app.getHostCapabilities()?.updateModelContext ? Promise.resolve({}) : app.updateModelContext({ content: [{ type: 'text', text: JSON.stringify(value) }] }),
+  message: (text: string) => !app.getHostCapabilities()?.message ? Promise.reject(new Error('Peça ao assistente uma resposta para esta pendência; este host não oferece mensagens ao modelo.')) : app.sendMessage({ role: 'user', content: [{ type: 'text', text }] }),
   async displayMode(mode: 'inline' | 'fullscreen') {
-    if (app.getHostContext()?.availableDisplayModes?.includes(mode)) return app.requestDisplayMode({ mode });
+    if (app.getHostContext()?.availableDisplayModes?.includes(mode)) try { return await app.requestDisplayMode({ mode }); } catch { return { mode: 'inline' }; }
     return { mode: 'inline' };
   },
 };

@@ -15,7 +15,7 @@ const conversation = {
   status: "active", window_expires_at: "2026-09-30T12:00:00Z", entry_point: null,
   referral: null, last_message_at: null, last_read_at: null, created_at: "2026-09-29T12:00:00Z",
 };
-async function connect(uiEnabled = false, identity = fullAccessIdentity) {
+async function connect(uiEnabled = false, identity = fullAccessIdentity, uiCapability: unknown = true) {
   const fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
     const path = new URL(String(input)).pathname;
     if (path.endsWith(`/conversations/${CONVERSATION_ID}`)) return Response.json({ data: conversation });
@@ -24,7 +24,7 @@ async function connect(uiEnabled = false, identity = fullAccessIdentity) {
   });
   const server = await buildServer({ apiKey: "bz_live_secret", baseUrl: "https://api.test/v1", uiEnabled, fetch }, identity);
   const [ct, st] = InMemoryTransport.createLinkedPair();
-  const client = new Client({ name: "extensions-test", version: "1" });
+  const client = new Client({ name: "extensions-test", version: "1" }, { capabilities: uiCapability !== false ? { extensions: { "io.modelcontextprotocol/ui": { mimeTypes:uiCapability === true ? ["text/html;profile=mcp-app"] : uiCapability } } } as any : {} });
   await Promise.all([server.connect(st), client.connect(ct)]);
   clients.push(client);
   return { client, server, fetch };
@@ -38,6 +38,22 @@ describe("optional review extensions", () => {
     expect(tools.some(t => t.name === "open_review_panel" || t.name === "stage_review_reply")).toBe(false);
     expect(tools.find(t => t.name === "send_message")?._meta).toBeUndefined();
     expect((await client.listResources()).resources.some(r => r.uri.startsWith("ui://"))).toBe(false);
+  });
+  it("requires negotiated MCP Apps capability, independently of flags", async () => {
+    const legacy = await connect(false, fullAccessIdentity, false);
+    const unsupported = await connect(true, fullAccessIdentity, false);
+    expect((await unsupported.client.listTools()).tools).toEqual((await legacy.client.listTools()).tools);
+    expect((await unsupported.client.listResources()).resources).toEqual((await legacy.client.listResources()).resources);
+    expect((await unsupported.client.callTool({name:'stage_review_reply',arguments:{conversation_id:CONVERSATION_ID,text:'Oi'}})).isError).toBe(true);
+    await expect(unsupported.client.readResource({uri:'ui://botozap/reply/v1.html'})).rejects.toThrow();
+    const supported = await connect(true);
+    expect((await supported.client.listTools()).tools.some(t=>t.name==='stage_review_reply')).toBe(true);
+    expect((await supported.client.listResources()).resources.filter(r=>r.uri.startsWith('ui://'))).toHaveLength(6);
+  });
+  it.each([{mimeTypes:["text/html"]},{mimeTypes:"text/html;profile=mcp-app"},{mimeTypes:123}])("does not accept missing MIME or malformed capability %j",async ({mimeTypes})=>{
+    const h=await connect(true,fullAccessIdentity,mimeTypes);
+    expect((await h.client.listTools()).tools.some(t=>t.name==='stage_review_reply')).toBe(false);
+    expect((await h.client.listResources()).resources.some(r=>r.uri.startsWith('ui://'))).toBe(false);
   });
   it("limits UI catalogue and resources to explicitly selected account identities", async () => {
     vi.stubEnv('BOTOZAP_MCP_UI_ACCOUNTS', ` other-account, ${fullAccessIdentity.account_id} `);

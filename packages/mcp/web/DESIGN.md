@@ -94,3 +94,81 @@ Os três recursos declaram inline/fullscreen, preferem inline, seguem o tema do
 host e empacotam CSS/JS. A região inferior respeita a safe area do compositor.
 Fixtures ficam em `scenarios/`; telas reais em `screens/`; somente o host simula
 respostas. As telas 5/8 são trabalho de outro worker e não fazem parte desta rodada.
+
+## Rodada 4A: templates completos e hosts abertos
+
+A direção visual mantém o sistema do host: tipografia/cores/bordas vindas de
+`ui/notifications/host-context-changed` e `styles.variables` do MCP Apps, com os
+tokens locais do apps-sdk-ui como fallback. A bolha de template repete a linguagem
+da resposta pronta; De/Para e variáveis ficam compactos ao lado da prévia, acima
+ou abaixo no mobile. Mídia é um placeholder acessível (tipo/nome/tamanho informados),
+sem download nem URL exposta. Carrossel de template rola apenas horizontalmente;
+a tela reserva a safe area inferior e usa a rolagem do documento.
+
+Referências consultadas novamente: Resend para composição e prévia de mensagem,
+Airbnb para cabeçalho por dia. A UI mantém hierarquia de duas ações no máximo;
+os botões do template são elementos da prévia, sem ação de navegação no host.
+
+### Negociação e matriz host × recurso
+
+O SDK `getUiCapability` lê a extensão negociada no initialize:
+`capabilities.extensions["io.modelcontextprotocol/ui"].mimeTypes` deve ser uma
+lista contendo `text/html;profile=mcp-app`. Inicialmente, tools auxiliares e recursos
+UI ficam desabilitados; após initialize, a capacidade + flag + allowlist + permissões
+ativam o registro. Identidade refrescada reavalia a mesma regra. Metadados UI não
+entram no catálogo sem capacidade; nenhum parâmetro obrigatório antigo mudou.
+
+| Recurso | ChatGPT com MCP Apps | Genérico com MCP Apps | Sem MCP Apps / flags desligadas |
+|---|---|---|---|
+| Card e carrossel inline | iframe / ponte padrão | iframe / ponte padrão | tools e conteúdo estruturado/texto existentes |
+| Radar / conversa | fullscreen quando anunciado | fullscreen quando anunciado; inline como fallback | `list_radar`, conversas e mensagens |
+| Templates, escalação, agenda | componentes reais e tools existentes | mesmos componentes e tools existentes | sem auxiliares UI; tools existentes continuam disponíveis |
+| Tema | variáveis/tema do host | variáveis/tema do host, inclusive fonte | não se aplica |
+| Contexto de modelo / mensagem | capacidades padrão MCP Apps | só se o host anuncia; orientação textual caso não ofereça mensagens | modelo usa resultados das tools |
+| Elicitation nativa OpenAI | somente `openai/elicitation.form` e campos de texto | formulário próprio sem chamadas OpenAI | tools não dependem de elicitation |
+| Metadados OpenAI / entrypoints | hints opcionais | hints desconhecidos ignorados; nenhuma dependência | contrato anterior preservado, incluindo `get_profile` |
+
+Os nomes comerciais Claude web/desktop, VS Code Copilot, M365 Copilot, Goose,
+Postman e MCPJam não viram detecção por user-agent: a capacidade negociada decide.
+O tema genérico do simulador é fictício para testar variáveis diferentes, e não
+uma reprodução desses produtos. Compatibilidade em instalações reais precisa
+ser verificada por versão. PiP, eventos e entrada global são trabalho paralelo
+(telas 5/8), não são implementados nem modificados aqui.
+
+Fontes: [spec MCP Apps](https://github.com/modelcontextprotocol/ext-apps/blob/main/specification/2026-01-26/apps.mdx),
+[SDK oficial](https://github.com/modelcontextprotocol/ext-apps),
+[extensões OpenAI](https://github.com/openai/mcp-extensions/blob/main/docs/spec.md).
+
+### Templates: separar envio de criação
+
+A rota `messages` e o SDK aceitam componentes opacos: até 20 componentes e 32 KiB
+UTF-8 no JSON. A UI só opera definições APROVADAS obtidas do catálogo do número,
+e relê aprovação/definição/destinatário antes de enviar. Conhece header texto,
+imagem, vídeo, documento e localização; body posicional/nomeado e parâmetros
+texto/moeda/data com fallback; footer; quick reply, URL dinâmica, telefone,
+copiar código, OTP copiar/one-tap, carrossel 2–10 cards e oferta limitada.
+Botões de catálogo e Flow já sincronizados podem fornecer action JSON; a prévia
+exibe o CTA, não tenta reproduzir a interação externa do cliente.
+
+Isso não significa que o builder de criação aceite todos esses tipos: ele rejeita
+Flow (removido do produto em 25/09), não preserva LIMITED_TIME_OFFER e não preserva
+exemplos nomeados. São lacunas do app para criar novos templates; precisam de uma
+mudança separada antes de serem oferecidos como criação no BotoZap. Envio de um
+template já aprovado/sincronizado é distinto. Schemas desconhecidos são bloqueados
+na UI e continuam disponíveis no contrato bruto da tool.
+
+Não gera OTP, não faz upload, não consulta terceiros, não promete disponibilidade
+pública da mídia nem aceita media_id como prova de existência. Valida formato,
+limites, exclusão URL/id, HTTPS sem credenciais/endereços locais, coordenadas,
+expiração futura com fuso e JSON objeto. Aprovação da Meta e restrições do canal
+continuam sendo verificadas no servidor/provedor. Oferta mostra a data no fuso do
+visualizador; a expiração enviada conserva o instante absoluto em milissegundos.
+
+### Agenda e métrica
+
+Agenda tem um cabeçalho por dia, horários sem data repetida e “Com Meet” nos cards.
+O aviso de dependência da conexão fica na confirmação/erro. A escalação aceita
+`unique_contacts_today` + `timezone` válidos em `usage` ou `usage.handoff`; sem isso,
+usa `handoff.conversations` e informa **conversas hoje (UTC)**, sem inferir pessoas.
+O produtor da API deve calcular clientes únicos no dia civil do fuso do negócio,
+independentemente do intervalo UTC usado pela métrica antiga.

@@ -17,7 +17,7 @@ export function shell(root: HTMLElement, eyebrow: string, heading: string) {
   const chip=node('span','Carregando','badge'); chip.setAttribute('role','status'); top.append(title,chip);
   const content=node('div','','screen-content'); const status=node('p','Carregando…','screen-status');status.setAttribute('role','status');status.setAttribute('aria-live','polite');
   const actions=node('div','','actions');main.append(top,content,status,actions); root.append(main);
-  return { main, content, actions, chip, status, state(state: string, text = '') { root.dataset.state=state;chip.textContent=state;status.textContent=text; }, setMode(mode: string) { root.dataset.mode=mode; }, connectionError() { status.textContent='Não foi possível conectar ao ChatGPT. Reabra a tela.'; } };
+  return { main, content, actions, chip, status, state(state: string, text = '') { root.dataset.state=state;chip.textContent=state;status.textContent=text; }, setMode(mode: string) { root.dataset.mode=mode; }, connectionError() { status.textContent='Não foi possível conectar ao assistente. Reabra a tela.'; } };
 }
 export function button(text: string, handler: () => unknown, primary = false) { const el=node('button',text,primary?'primary':'') as HTMLButtonElement;el.type='button';el.onclick=handler;return el; }
 export function skeleton(target: HTMLElement) { target.replaceChildren(node('div','','skeleton'),node('div','','skeleton'),node('div','','skeleton')); }

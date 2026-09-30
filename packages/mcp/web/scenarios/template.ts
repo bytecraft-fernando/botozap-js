@@ -1,13 +1,17 @@
+import { completeTemplates, completeTemplateOptions, completeTemplateContext } from './template-complete.js';
 import { conversation,customerId } from '../demo-data.js';
 export const templateScenarios = { kind:'template', options:[['template','4 · Template aprovado'],['template-rejected','4 · Template recusado'],['template-uncertain','4 · Template incerto'],['template-empty','4 · Sem templates'],['template-loading','4 · Carregando templates'],['template-error','4 · Erro de templates']] };
+templateScenarios.options.push(...completeTemplateOptions);
 export const number={id:'00000000-0000-4000-8000-000000000004',customer_id:customerId,display_phone_number:'+55 92 90000-0000',waba_connection_id:'00000000-0000-4000-8000-000000000060'};
 export const approvedTemplates=[{id:'00000000-0000-4000-8000-000000000061',name:'retomar_orcamento',language:'pt_BR',status:'APPROVED',category:'UTILITY',waba_connection_id:number.waba_connection_id,components:[{type:'HEADER',format:'TEXT',text:'Seu orçamento está pronto'},{type:'BODY',text:'Olá, {{1}}! O orçamento de {{2}} ficou pronto no Ateliê das Águas. Podemos retomar a conversa?',example:{body_text:[['Marina','40 lembranças']]}},{type:'FOOTER',text:'Ateliê das Águas · atendimento com cuidado'},{type:'BUTTONS',buttons:[{type:'QUICK_REPLY',text:'Quero conversar'},{type:'QUICK_REPLY',text:'Agora não'}]}]}, {id:'00000000-0000-4000-8000-000000000062',name:'pedido_pronto',language:'pt_BR',status:'APPROVED',category:'UTILITY',waba_connection_id:number.waba_connection_id,components:[{type:'BODY',text:'{{1}}, seu pedido {{2}} está pronto para retirada. Podemos combinar um horário?',example:{body_text:[['Marina','40 lembranças']]}}]}];
-export const templateStage=()=>({conversation:conversation(true),customer_id:customerId,number});
+export const templateStage=(scenario='template')=>({conversation:conversation(true),customer_id:customerId,number,...completeTemplateContext(scenario)});
 export async function templateTool(name:string,args:Record<string,any>,scenario:string) {
-  const page={page:1,per_page:100,total_pages:1,total_count:approvedTemplates.length};
+  const catalog=[...approvedTemplates,...completeTemplates];
+  if(name==='stage_review_template')return {structuredContent:templateStage(scenario)};
+  const page={page:1,per_page:100,total_pages:1,total_count:catalog.length};
   if(name==='get_phone_number')return {structuredContent:{data:number}};
-  if(name==='list_templates'){if(scenario==='template-error')return {isError:true,structuredContent:{error:{message:'Não foi possível consultar os templates deste número.'}}};return {structuredContent:{data:scenario==='template-empty'?[]:approvedTemplates,meta:page}};}
-  if(name==='get_template')return {structuredContent:{data:approvedTemplates.find(t=>t.id===args.id)}};
+  if(name==='list_templates'){if(scenario==='template-error')return {isError:true,structuredContent:{error:{message:'Não foi possível consultar os templates deste número.'}}};return {structuredContent:{data:scenario==='template-empty'?[]:catalog,meta:page}};}
+  if(name==='get_template')return {structuredContent:{data:catalog.find(t=>t.id===args.id)}};
   if(name==='review_template_variables')return {structuredContent:{supported:false,action:'unsupported',variables:args.variables}};
   if(name==='prepare_send_intent')return {structuredContent:{idempotency_key:crypto.randomUUID()}};
   if(name==='send_message'){await new Promise(r=>setTimeout(r,500));if(scenario==='template-rejected')return {isError:true,structuredContent:{error:{outcome:'rejected',message:'O template foi pausado pelo provedor. Atualize a lista antes de revisar novamente.'}}};if(scenario==='template-uncertain')return {isError:true,structuredContent:{error:{outcome:'unknown',message:'Conexão perdida após o envio.'}}};return {structuredContent:{id:'00000000-0000-4000-8000-000000000063',wamid:'wamid.template.demo',status:'accepted'}};}

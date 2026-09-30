@@ -27,7 +27,7 @@ async function connect(
     fetch,
   });
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
-  const client = new Client({ name: "permission-test", version: "1" });
+  const client = new Client({ name: "permission-test", version: "1" }, { capabilities: uiEnabled ? { extensions: { "io.modelcontextprotocol/ui": { mimeTypes: ["text/html;profile=mcp-app"] } } } as any : {} });
   await Promise.all([server.connect(serverTransport), client.connect(clientTransport)]);
   clients.push(client);
   return { client, fetch };

@@ -14,7 +14,7 @@ async function connect(enabled=true,identity:any=fullAccessIdentity,native=false
  const data=path.includes('/conversations/')?templateStage().conversation:path.includes('/phone_numbers/')?templateStage().number:path.includes('/templates/')?approvedTemplates[0]:path.endsWith('/appointments/services')?[service]:path.endsWith('/appointments/availability')?{slots,time_zone:'America/Manaus',schedule_published:true}:[];
  return Response.json({data,meta:{page:1,per_page:20,total_count:Array.isArray(data)?data.length:1,total_pages:1}});});
  const server=await buildServer({apiKey:'bz_live_test',baseUrl:'https://api.test/v1',uiEnabled:enabled,fetch},identity);
- const client=new Client({name:'3a-test',version:'1'},{capabilities:native?{extensions:{'openai/elicitation':{form:{}}}} as any:{}});
+ const client=new Client({name:'3a-test',version:'1'},{capabilities:{extensions:{'io.modelcontextprotocol/ui':{mimeTypes:['text/html;profile=mcp-app']},...(native?{'openai/elicitation':{form:{}}}:{})}} as any});
  if(native)client.setRequestHandler(z.object({method:z.literal('openai/elicitation/create'),params:z.any()}),elicitation);
  const [ct,st]=InMemoryTransport.createLinkedPair();await Promise.all([server.connect(st),client.connect(ct)]);clients.push(client);return {client,fetch};
 }

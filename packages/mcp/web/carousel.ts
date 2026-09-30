@@ -9,7 +9,7 @@ export function mountCarousel(root: HTMLElement, bridge: Bridge) {
   function render() {
     content.setAttribute('aria-busy','false'); content.replaceChildren();
     root.querySelector('#carousel-count')!.textContent = `${rows.length} pendências`;
-    if (!rows.length) { content.innerHTML = '<section class="rich-empty"><span class="empty-symbol" aria-hidden="true">✓</span><h2>Tudo em dia por aqui</h2><p>Nenhuma pendência neste negócio. Peça ao ChatGPT os follow-ups da semana ou quem pediu orçamento.</p></section>'; note.textContent = 'Você pode continuar a conversa para explorar outro negócio.'; return; }
+    if (!rows.length) { content.innerHTML = '<section class="rich-empty"><span class="empty-symbol" aria-hidden="true">✓</span><h2>Tudo em dia por aqui</h2><p>Nenhuma pendência neste negócio. Peça ao assistente os follow-ups da semana ou quem pediu orçamento.</p></section>'; note.textContent = 'Você pode continuar a conversa para explorar outro negócio.'; return; }
     const priority = [...rows.slice(0,8)].sort((a,b) => ['critical','at_risk','scheduled'].indexOf(a.bucket) - ['critical','at_risk','scheduled'].indexOf(b.bucket))[0];
     for (const entry of rows.slice(0,8)) {
       const card = document.createElement('article'); card.className = 'pending-card'; card.dataset.bucket = string(entry.bucket);
@@ -26,9 +26,9 @@ export function mountCarousel(root: HTMLElement, bridge: Bridge) {
         button.disabled = true;
         try {
           await bridge.context({ customer_id: customer, selected_pending: { id: entry.id, entity_type: entry.entity_type, contact_id: entry.contact_id, conversation_id: entry.conversation_id }, untrusted_contact_content: { title: entry.title, next_step: entry.next_step } });
-          if (!bridge.message) throw new Error('Peça ao ChatGPT uma resposta para este item.');
+          if (!bridge.message) throw new Error('Peça ao assistente uma resposta para este item.');
           await bridge.message(`Prepare uma resposta para a pendência ${entry.id} do negócio ${customer || entry.customer_id}. Confira a conversa vinculada e prepare o rascunho com stage_review_reply, sem enviar.`);
-          note.textContent = 'O ChatGPT está preparando uma resposta com o contexto desta conversa.';
+          note.textContent = 'O assistente está preparando uma resposta com o contexto desta conversa.';
         } catch (error) { note.textContent = (error as Error).message; } finally { button.disabled = false; }
       };
       content.append(card);
@@ -48,10 +48,10 @@ export function mountCarousel(root: HTMLElement, bridge: Bridge) {
   return {
     input(args: Row) { customer = string(args.customer_id); if (customer) void bridge.call('get_customer', { id: customer }).then(r => { customerName = string(r.structuredContent?.data?.name); if (rows.length) render(); }).catch(() => {}); },
     bootstrap(result: any) {
-      if (result.isError) { content.setAttribute('aria-busy','false'); content.innerHTML = '<section class="rich-empty"><span class="empty-symbol" aria-hidden="true">!</span><h2>Não foi possível consultar as pendências</h2><p>Confira seu acesso e peça ao ChatGPT para consultar o Radar novamente.</p></section>'; note.textContent = 'A consulta falhou. Nenhuma ação foi realizada.'; return; }
+      if (result.isError) { content.setAttribute('aria-busy','false'); content.innerHTML = '<section class="rich-empty"><span class="empty-symbol" aria-hidden="true">!</span><h2>Não foi possível consultar as pendências</h2><p>Confira seu acesso e peça ao assistente para consultar o Radar novamente.</p></section>'; note.textContent = 'A consulta falhou. Nenhuma ação foi realizada.'; return; }
       const data = result.structuredContent ?? JSON.parse(result.content?.find((c: Row) => c.type === 'text')?.text ?? '{}');
       rows = Array.isArray(data.data) ? data.data : []; render();
     },
-    connectionError() { note.textContent = 'Não foi possível conectar ao host. Reabra a consulta no ChatGPT.'; },
+    connectionError() { note.textContent = 'Não foi possível conectar ao host. Reabra a consulta no MCP App.'; },
   };
 }

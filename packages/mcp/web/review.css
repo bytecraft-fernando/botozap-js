@@ -27,8 +27,8 @@ p{margin:0 0 12px}
 button,select,textarea{font:inherit;color:inherit}
 button{border:1px solid var(--border);background:var(--card);border-radius:var(--radius-full);padding:9px 16px;cursor:pointer;min-height:44px;touch-action:manipulation}
 button:hover{background:var(--muted)}
-/* Branding is limited to the primary action, with white text at >7:1 contrast. */button.primary{background:#a71d5d;color:#fff;border-color:#a71d5d}
-button.primary:hover{background:#8d174e;border-color:#8d174e}
+/* Standard host variables win; compatible tokens provide the fallback. */button.primary{background:var(--color-background-inverse,var(--color-text-primary,#a71d5d));color:var(--color-text-inverse,var(--color-background-primary,#fff));border-color:var(--color-background-inverse,var(--color-text-primary,#a71d5d))}
+button.primary:hover{filter:brightness(.9)}
 button:disabled{opacity:.5;cursor:default}
 button:focus-visible,select:focus-visible,textarea:focus-visible,input:focus-visible{outline:2px solid var(--ring);outline-offset:3px}
 select,textarea{background:var(--card);border:1px solid var(--border);border-radius:var(--radius-xl);padding:10px 12px;width:100%}

@@ -33,7 +33,7 @@ it('template: approval/origin change blocks dispatch at preflight',async()=>{
  const h=harness('template',(n)=>n==='get_template'?result({data:{...approvedTemplates[0],status:'PAUSED'}}):undefined);mountTemplate(document.body,h,templateStage());await state('Rascunho');click('Revisar envio');click('Enviar template');await state('Recusado');expect(h.calls('send_message')).toHaveLength(0);
 });
 it('template: named/header/button values are serialized without interpolating HTML',()=>{
- const t={status:'APPROVED',components:[{type:'HEADER',format:'TEXT',text:'{{title}}'},{type:'BODY',text:'{{1}}'},{type:'BUTTONS',buttons:[{type:'URL',text:'Ver',url:'https://example.test/{{1}}'}]}]};
+ const t={status:'APPROVED',components:[{type:'HEADER',format:'TEXT',text:'{{title}}'},{type:'BODY',text:'{{1}}'},{type:'BUTTONS',buttons:[{type:'URL',text:'Ver',url:'https://example.com/{{1}}'}]}]};
  expect(templateParameters(t,{header_title:'<img>',body_1:'Marina',button_0_1:'123'})).toEqual([{type:'header',parameters:[{type:'text',text:'<img>',parameter_name:'title'}]},{type:'body',parameters:[{type:'text',text:'Marina'}]},{type:'button',sub_type:'url',index:'0',parameters:[{type:'text',text:'123'}]}]);
  expect(supportedTemplate({...t,status:'REJECTED'})).toBe(false);expect(()=>templateParameters(t,{})).toThrow();
 });
