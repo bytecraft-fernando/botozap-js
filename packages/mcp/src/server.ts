@@ -1,3 +1,4 @@
+import { loadUiResources } from './resources/versioned-ui.js';
 /**
  * Construção do servidor MCP: cria o `McpServer`, instancia o cliente do SDK
  * e registra todos os grupos de ferramentas. Extraído de `index.ts` para que o
@@ -141,6 +142,7 @@ export async function buildServer(
     { capabilities: canReadEvents ? { resources: { subscribe: true } } : {} },
   );
 
+  if (options.uiEnabled) await loadUiResources();
   const register = createRegister(server, client, options.apiKey, identity, { uiEnabled: options.uiEnabled });
   permissionRefreshers.set(server, register.updateIdentity);
 

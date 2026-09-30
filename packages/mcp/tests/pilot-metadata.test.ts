@@ -38,3 +38,9 @@ it('agent inbox reads open alerts and all open cases without assuming paused con
 it('OAuth cannot expose agent inbox without the alerts route',async()=>{
  const {client}=await connect(true,{...fullAccessIdentity,auth_type:'oauth',user_id:'user',client_id:'client',grant_id:'grant',allowed_routes:['GET /v1/ai/cases']});expect((await client.listTools()).tools.some(t=>t.name==='open_agent_cases')).toBe(false);
 });
+it('versioned tool URIs and compatibility aliases match only current registered resources',async()=>{
+ const {client}=await connect();const resources=(await client.listResources()).resources.filter(r=>r.uri.startsWith('ui://'));const uris=new Set(resources.map(r=>r.uri));expect(uris.size).toBe(8);
+ for(const resource of resources){expect(resource.uri).toMatch(/^ui:\/\/botozap\/[^/]+\/[a-f0-9]{10}\.html$/);expect(resource._meta?.['openai/widgetCSP']).toBeDefined();expect(resource._meta?.ui).toMatchObject({csp:{connectDomains:[],resourceDomains:[]}});const read=await client.readResource({uri:resource.uri});expect(read.contents[0].uri).toBe(resource.uri);expect(read.contents[0]._meta).toEqual(resource._meta);}
+ for(const tool of (await client.listTools()).tools){const uri=(tool._meta?.ui as any)?.resourceUri;if(uri){expect(uris.has(uri),tool.name).toBe(true);expect(tool._meta?.['openai/outputTemplate']).toBe(uri);}}
+ for(const view of ['review','reply','radar-cards','template','cases','booking','live','global'])await expect(client.readResource({uri:`ui://botozap/${view}/v1.html`})).rejects.toThrow();
+});

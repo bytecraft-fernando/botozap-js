@@ -1,4 +1,4 @@
-import { uiResourceMetadata } from './ui-metadata.js';
+import { uiContent, uiToolMetadata } from './versioned-ui.js';
 import { registerLivePanel } from './live-panel.js';
 import { registerGlobalPanel } from './global-panel.js';
 import { registerTemplatePanel } from "./template-panel.js";
@@ -6,8 +6,7 @@ import { registerCasesPanel } from "./cases-panel.js";
 import { registerBookingPanel } from "./booking-panel.js";
 import { randomUUID } from "node:crypto";
 /** Optional conversation review panel. No credential is embedded in its resource. */
-import { readFile } from "node:fs/promises";
-import { registerAppResource, RESOURCE_MIME_TYPE } from "@modelcontextprotocol/ext-apps/server";
+import { registerAppResource } from "@modelcontextprotocol/ext-apps/server";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { OpenAIUiToolMetadata } from "@openai/mcp-extensions/server";
 import { BotoZapError } from "../client.js";
@@ -15,15 +14,12 @@ import { z } from "zod";
 import type { Register } from "../register.js";
 import { conversationSchema, listCustomersResultSchema } from "../schemas.js";
 
-export const REVIEW_RESOURCE_URI = "ui://botozap/review/v1.html";
-export const RADAR_RESOURCE_URI = "ui://botozap/radar-cards/v1.html";
-export const radarToolMetadata = { ui: { resourceUri: RADAR_RESOURCE_URI, visibility: ["model", "app"] } };
-export const REPLY_RESOURCE_URI = "ui://botozap/reply/v1.html";
-export const replyToolMetadata = { ui: { resourceUri: REPLY_RESOURCE_URI, visibility: ["model", "app"] } };
-export const reviewToolMetadata = {
-  ui: { resourceUri: REVIEW_RESOURCE_URI, visibility: ["model", "app"] },
+export const radarToolMetadata = () => uiToolMetadata('radar-cards');
+export const replyToolMetadata = () => uiToolMetadata('reply');
+export const reviewToolMetadata = () => ({
+  ...uiToolMetadata('review'),
   "openai/ui": { entrypoints: [{ type: "thread" }] } satisfies OpenAIUiToolMetadata,
-};
+});
 
 export function registerReviewPanel(server: McpServer, register: Register): void {
   registerTemplatePanel(server, register);
@@ -31,18 +27,11 @@ export function registerReviewPanel(server: McpServer, register: Register): void
   registerBookingPanel(server, register);
   registerLivePanel(server, register);
   registerGlobalPanel(server, register);
-  for (const [uri, mode] of [[REVIEW_RESOURCE_URI, "fullscreen"], [REPLY_RESOURCE_URI, "inline"], [RADAR_RESOURCE_URI, "inline"]] as const) {
-    const resource = registerAppResource(server, `botozap-${uri === RADAR_RESOURCE_URI ? "cards" : mode}`, uri, {}, async () => {
+  for (const view of ['review','reply','radar-cards'] as const) {
+    const content=uiContent(view);
+    const resource = registerAppResource(server, `botozap-${view}`, content.uri, {_meta:content._meta}, async () => {
       if (!register.uiEnabled) throw new BotoZapError("ui_not_allowed", "UI não habilitada para esta conta.", 403);
-      return {
-        contents: [{ uri, mimeType: RESOURCE_MIME_TYPE,
-          text: (await readFile(new URL("../ui/review.html", import.meta.url), "utf8")).replace('id="app"', `id="app" data-initial-mode="${mode}" data-view="${uri === RADAR_RESOURCE_URI ? "carousel" : "review"}"`),
-          _meta: {
-            "openai/ui": { availableDisplayModes: ["inline", "fullscreen"], preferredDisplayMode: mode },
-            ...uiResourceMetadata(mode === "inline"),
-          },
-        }],
-      };
+      return {contents:[content]};
     });
     register.onUiChange?.(enabled => {
       if (resource.enabled !== enabled) enabled ? resource.enable() : resource.disable();
