@@ -12,6 +12,10 @@ import type {
 } from "../types.js";
 
 export interface ListConversationsParams extends CursorParams {
+  /** Recorta as conversas pelos canais do negócio autorizado. */
+  customer_id?: string;
+  /** true: somente conversas com agente pausado aguardando humano. */
+  agent_paused?: boolean;
   /** id da Meta OU uuid interno do número. */
   phone_number_id?: string;
   /** "active" | "ended" — derivado da janela de 24h. */
@@ -62,6 +66,8 @@ export class Conversations {
       {
         query: {
           limit: params.limit,
+          customer_id: params.customer_id,
+          agent_paused: params.agent_paused === undefined ? undefined : String(params.agent_paused),
           after: params.after,
           before: params.before,
           phone_number_id: params.phone_number_id,

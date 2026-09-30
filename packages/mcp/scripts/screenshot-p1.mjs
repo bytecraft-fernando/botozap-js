@@ -3,10 +3,11 @@ import {chromium} from 'playwright';
 import AxeBuilder from '@axe-core/playwright';
 import {writeFile} from 'node:fs/promises';
 const dir=new URL('../web/screenshots/',import.meta.url).pathname,origin=process.env.UI_ORIGIN??'http://127.0.0.1:4174';
-const browser=await chromium.launch(),results=[];
-try{for(const theme of ['light','dark'])for(const [device,width,height] of [['desktop',1440,1050],['mobile',390,844]])for(const screen of ['carousel','reply','radar','global','template','cases','booking','live','unlinked','unlinked-panel','alerts']){
+const browser=await chromium.launch(),results=[],prefix=process.env.CAPTURE_PREFIX??'p1';
+const screens=(process.env.CAPTURE_SCREENS??'carousel,reply,radar,global,template,cases,booking,live,unlinked,unlinked-panel,alerts').split(',');
+try{for(const theme of ['light','dark'])for(const [device,width,height] of [['desktop',1440,1050],['mobile',390,844]])for(const screen of screens){
  const context=await browser.newContext({viewport:{width,height},reducedMotion:'reduce'}),page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
- const scenario={carousel:'normal',reply:'draft',radar:'draft',global:'pilot-global',template:'template-carousel',cases:'cases',booking:'booking',live:'live',unlinked:'pilot-unlinked','unlinked-panel':'pilot-unlinked',alerts:'pilot-alerts'}[screen];
+ const scenario={carousel:'normal',reply:'draft',radar:'draft',global:'pilot-global',template:'template-carousel',cases:'cases',booking:'booking',live:'live',unlinked:'pilot-unlinked','unlinked-panel':'pilot-unlinked',alerts:'pilot-alerts',paused:'pilot-alerts'}[screen];
  await page.goto(`${origin}/chat?theme=${theme}&scenario=${scenario}`);await page.locator('html[data-demo-ready=true]').waitFor();
  const app=()=>page.frameLocator('iframe').last();
  const prompt=async(text)=>{await page.locator('#prompt').fill(text);await page.locator('#composer').evaluate(f=>f.requestSubmit());};
@@ -15,7 +16,8 @@ try{for(const theme of ['light','dark'])for(const [device,width,height] of [['de
  if(screen==='template'){await app().getByRole('button',{name:'Usar template aprovado',exact:true}).click();await app().locator('#app[data-state=Rascunho]').waitFor();}
  if(screen==='live'){await app().getByRole('button',{name:'Enviar',exact:true}).click();await app().locator('#consent').check();await app().getByRole('button',{name:'Enviar',exact:true}).click();await page.waitForTimeout(1000);await prompt('Abra o plantão ao vivo');await app().locator('.live-event').first().waitFor();}
  if(screen==='global'){await app().locator('.radar-item').first().waitFor();assert.equal(await app().locator('#business').inputValue(),'00000000-0000-4000-8000-000000000001','one business auto-selected');}
- if(screen==='alerts')await app().locator('#app[data-state="Alerta crítico"]').waitFor();
+ if(['alerts','paused'].includes(screen))await app().locator('#app[data-state="Alerta crítico"]').waitFor();
+ if(screen==='paused'){await app().locator('.case-choices').getByRole('button',{name:'Marina Oliveira',exact:true}).click();await app().locator('#app[data-state="Agente pausado"]').waitFor();assert.equal(await app().getByRole('button',{name:'Assumir',exact:true}).count(),0);await app().getByRole('button',{name:'Revisar conversa',exact:true}).waitFor();}
  if(screen==='cases')await app().getByRole('button',{name:'Assumir',exact:true}).waitFor();
  if(screen==='booking')await app().getByRole('button',{name:'Marcar',exact:true}).first().waitFor();
  async function mode(value){await page.frames().at(-1).evaluate(value=>window.parent.postMessage({jsonrpc:'2.0',id:'capture-'+value,method:'ui/request-display-mode',params:{mode:value}},location.origin),value);await app().locator(`#app[data-mode=${value}]`).waitFor();await page.waitForTimeout(200);}
@@ -31,10 +33,10 @@ try{for(const theme of ['light','dark'])for(const [device,width,height] of [['de
    await page.locator('iframe').last().evaluate(el=>el.scrollIntoView({block:'start'}));
   }else{await app().locator('#app').evaluate(el=>el.scrollTop=0);}
   const axe=await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa','wcag21aa']).analyze();assert.deepEqual(axe.violations.map(v=>({id:v.id,targets:v.nodes.map(n=>n.target)})),[],screen+'/'+value+' axe');assert.deepEqual(errors,[]);
-  const file=`p1-${screen}-${value}-${device}-${theme}.png`;await page.screenshot({path:dir+file});results.push({file,axeViolations:0,hostOverflow,iframeOverflow,noEmptyCard:true,...(value==='inline'?{hostBorder:true,noDoubleBorder:true}:{})});console.log(file);
+  const file=`${prefix}-${screen}-${value}-${device}-${theme}.png`;await page.screenshot({path:dir+file});results.push({file,axeViolations:0,hostOverflow,iframeOverflow,noEmptyCard:true,...(value==='inline'?{hostBorder:true,noDoubleBorder:true}:{})});console.log(file);
  }
  await mode('inline');await capture('inline');await mode('fullscreen');await capture('fullscreen');
  if(screen==='global'){await mode('inline');await capture('inline-return');}
  await context.close();
 }}finally{await browser.close();}
-await writeFile(dir+'validation-p1.json',JSON.stringify({screenshots:results.length,results},null,2)+'\n');
+await writeFile(dir+`validation-${prefix}.json`,JSON.stringify({screenshots:results.length,results},null,2)+'\n');

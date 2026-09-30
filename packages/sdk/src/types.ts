@@ -162,6 +162,8 @@ export interface ConversationReferral {
 
 export interface Conversation {
   id: string;
+  /** Pausa do agente aguardando humano (ISO 8601); null quando não pausado. */
+  agent_paused_at?: string | null;
   /** UUID interno do Número da própria Conversa. */
   phone_number_id?: string;
   contact?: {

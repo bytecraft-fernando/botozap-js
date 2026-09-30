@@ -1,0 +1,133 @@
+{
+  "screenshots": 16,
+  "results": [
+    {
+      "file": "p11-alerts-inline-desktop-light.png",
+      "axeViolations": 0,
+      "hostOverflow": false,
+      "iframeOverflow": false,
+      "noEmptyCard": true,
+      "hostBorder": true,
+      "noDoubleBorder": true
+    },
+    {
+      "file": "p11-alerts-fullscreen-desktop-light.png",
+      "axeViolations": 0,
+      "hostOverflow": false,
+      "iframeOverflow": false,
+      "noEmptyCard": true
+    },
+    {
+      "file": "p11-paused-inline-desktop-light.png",
+      "axeViolations": 0,
+      "hostOverflow": false,
+      "iframeOverflow": false,
+      "noEmptyCard": true,
+      "hostBorder": true,
+      "noDoubleBorder": true
+    },
+    {
+      "file": "p11-paused-fullscreen-desktop-light.png",
+      "axeViolations": 0,
+      "hostOverflow": false,
+      "iframeOverflow": false,
+      "noEmptyCard": true
+    },
+    {
+      "file": "p11-alerts-inline-mobile-light.png",
+      "axeViolations": 0,
+      "hostOverflow": false,
+      "iframeOverflow": false,
+      "noEmptyCard": true,
+      "hostBorder": true,
+      "noDoubleBorder": true
+    },
+    {
+      "file": "p11-alerts-fullscreen-mobile-light.png",
+      "axeViolations": 0,
+      "hostOverflow": false,
+      "iframeOverflow": false,
+      "noEmptyCard": true
+    },
+    {
+      "file": "p11-paused-inline-mobile-light.png",
+      "axeViolations": 0,
+      "hostOverflow": false,
+      "iframeOverflow": false,
+      "noEmptyCard": true,
+      "hostBorder": true,
+      "noDoubleBorder": true
+    },
+    {
+      "file": "p11-paused-fullscreen-mobile-light.png",
+      "axeViolations": 0,
+      "hostOverflow": false,
+      "iframeOverflow": false,
+      "noEmptyCard": true
+    },
+    {
+      "file": "p11-alerts-inline-desktop-dark.png",
+      "axeViolations": 0,
+      "hostOverflow": false,
+      "iframeOverflow": false,
+      "noEmptyCard": true,
+      "hostBorder": true,
+      "noDoubleBorder": true
+    },
+    {
+      "file": "p11-alerts-fullscreen-desktop-dark.png",
+      "axeViolations": 0,
+      "hostOverflow": false,
+      "iframeOverflow": false,
+      "noEmptyCard": true
+    },
+    {
+      "file": "p11-paused-inline-desktop-dark.png",
+      "axeViolations": 0,
+      "hostOverflow": false,
+      "iframeOverflow": false,
+      "noEmptyCard": true,
+      "hostBorder": true,
+      "noDoubleBorder": true
+    },
+    {
+      "file": "p11-paused-fullscreen-desktop-dark.png",
+      "axeViolations": 0,
+      "hostOverflow": false,
+      "iframeOverflow": false,
+      "noEmptyCard": true
+    },
+    {
+      "file": "p11-alerts-inline-mobile-dark.png",
+      "axeViolations": 0,
+      "hostOverflow": false,
+      "iframeOverflow": false,
+      "noEmptyCard": true,
+      "hostBorder": true,
+      "noDoubleBorder": true
+    },
+    {
+      "file": "p11-alerts-fullscreen-mobile-dark.png",
+      "axeViolations": 0,
+      "hostOverflow": false,
+      "iframeOverflow": false,
+      "noEmptyCard": true
+    },
+    {
+      "file": "p11-paused-inline-mobile-dark.png",
+      "axeViolations": 0,
+      "hostOverflow": false,
+      "iframeOverflow": false,
+      "noEmptyCard": true,
+      "hostBorder": true,
+      "noDoubleBorder": true
+    },
+    {
+      "file": "p11-paused-fullscreen-mobile-dark.png",
+      "axeViolations": 0,
+      "hostOverflow": false,
+      "iframeOverflow": false,
+      "noEmptyCard": true
+    }
+  ]
+}

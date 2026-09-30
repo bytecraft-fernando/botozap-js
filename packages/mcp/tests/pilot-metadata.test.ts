@@ -7,7 +7,7 @@ import {uiDescription} from '../src/ui-routing.js';
 vi.mock('node:fs/promises',async(importOriginal)=>({...await importOriginal<any>(),readFile:vi.fn(async()=>'<main id="app"></main>')}));
 const clients:Client[]=[];
 async function connect(enabled=true, identity:any=fullAccessIdentity){
- const fetch=vi.fn(async(input:RequestInfo|URL)=>{const path=new URL(String(input)).pathname;const rows=path.endsWith('/alerts')?[{id:'alert',status:'open',severity:'critical',kind:'manipulation_detected'}]:[];return Response.json({data:rows,meta:{page:1,per_page:100,total_count:rows.length,total_pages:1}});});
+ const fetch=vi.fn(async(input:RequestInfo|URL)=>{const path=new URL(String(input)).pathname;const rows=path.endsWith('/alerts')?[{id:'alert',status:'open',severity:'critical',kind:'manipulation_detected'}]:path.endsWith('/conversations')?[{id:'paused',contact:{name:'Marina'},agent_paused_at:'2026-09-30T12:00:00Z'}]:[];return Response.json({data:rows,...(path.endsWith('/conversations')?{paging:{next:null,previous:null}}:{}),meta:{page:1,per_page:100,total_count:rows.length,total_pages:1}});});
  const server=await buildServer({apiKey:'bz_live_test',baseUrl:'https://api.test/v1',uiEnabled:enabled,fetch},identity);
  const client=new Client({name:'pilot',version:'1'},{capabilities:{extensions:{'io.modelcontextprotocol/ui':{mimeTypes:['text/html;profile=mcp-app']}}} as any});
  const [ct,st]=InMemoryTransport.createLinkedPair();await Promise.all([server.connect(st),client.connect(ct)]);clients.push(client);return {client,fetch};
@@ -30,10 +30,11 @@ it('routing guidance exists only for negotiated pilot UI and preserves direct te
  expect(tools.find(t=>t.name==='create_template')?.description).toContain('continua direta');
  vi.stubEnv('BOTOZAP_MCP_UI_ACCOUNTS','another-account');const blocked=await connect();expect((await blocked.client.listTools()).tools.find(t=>t.name==='send_message')?.description).toBe(plain.find(t=>t.name==='send_message')?.description);
 });
-it('agent inbox reads open alerts and all open cases without assuming paused conversations are enumerable',async()=>{
+it('agent inbox reads alerts, open cases and paused conversations scoped to the business',async()=>{
  const {client,fetch}=await connect();const result=await client.callTool({name:'open_agent_cases',arguments:{customer_id:'00000000-0000-4000-8000-000000000001'}});
- expect(result.isError,JSON.stringify(result)).not.toBe(true);expect(result.structuredContent).toMatchObject({alerts:{data:[{kind:'manipulation_detected'}]},paused_available:false});
+ expect(result.isError,JSON.stringify(result)).not.toBe(true);expect(result.structuredContent).toMatchObject({alerts:{data:[{kind:'manipulation_detected'}]},paused:{data:[{id:'paused',agent_paused_at:'2026-09-30T12:00:00Z'}]}});
  const urls=fetch.mock.calls.map(([input])=>new URL(String(input)));expect(urls.some(u=>u.pathname.endsWith('/alerts')&&u.searchParams.get('status')==='open')).toBe(true);expect(urls.find(u=>u.pathname.endsWith('/cases'))?.searchParams.has('source')).toBe(false);
+ const paused=urls.find(u=>u.pathname.endsWith('/conversations'))!;expect(paused.searchParams.get('agent_paused')).toBe('true');expect(paused.searchParams.get('customer_id')).toBe('00000000-0000-4000-8000-000000000001');expect(paused.searchParams.get('limit')).toBe('100');
 });
 it('OAuth cannot expose agent inbox without the alerts route',async()=>{
  const {client}=await connect(true,{...fullAccessIdentity,auth_type:'oauth',user_id:'user',client_id:'client',grant_id:'grant',allowed_routes:['GET /v1/ai/cases']});expect((await client.listTools()).tools.some(t=>t.name==='open_agent_cases')).toBe(false);
@@ -43,4 +44,11 @@ it('versioned tool URIs and compatibility aliases match only current registered 
  for(const resource of resources){expect(resource.uri).toMatch(/^ui:\/\/botozap\/[^/]+\/[a-f0-9]{10}\.html$/);expect(resource._meta?.['openai/widgetCSP']).toBeDefined();expect(resource._meta?.ui).toMatchObject({csp:{connectDomains:[],resourceDomains:[]}});const read=await client.readResource({uri:resource.uri});expect(read.contents[0].uri).toBe(resource.uri);expect(read.contents[0]._meta).toEqual(resource._meta);}
  for(const tool of (await client.listTools()).tools){const uri=(tool._meta?.ui as any)?.resourceUri;if(uri){expect(uris.has(uri),tool.name).toBe(true);expect(tool._meta?.['openai/outputTemplate']).toBe(uri);}}
  for(const view of ['review','reply','radar-cards','template','cases','booking','live','global'])await expect(client.readResource({uri:`ui://botozap/${view}/v1.html`})).rejects.toThrow();
+});
+
+it('agent inbox requires both conversations route and scope, in addition to alerts and cases',async()=>{
+ const routes=['GET /v1/ai/cases','GET /v1/ai/alerts'];const oauth={...fullAccessIdentity,auth_type:'oauth',user_id:'user',client_id:'client',grant_id:'grant',allowed_routes:routes};
+ const missingRoute=await connect(true,oauth),missingScope=await connect(true,{...oauth,allowed_routes:[...routes,'GET /v1/conversations'],scopes:['agents:read']});
+ for(const {client} of [missingRoute,missingScope])expect((await client.listTools()).tools.some(t=>t.name==='open_agent_cases')).toBe(false);
+ const permitted=await connect(true,{...oauth,allowed_routes:[...routes,'GET /v1/conversations'],scopes:['agents:read','conversations:read']});expect((await permitted.client.listTools()).tools.some(t=>t.name==='open_agent_cases')).toBe(true);
 });
