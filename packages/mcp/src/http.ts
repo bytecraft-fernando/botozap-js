@@ -13,6 +13,7 @@ import type { EventSignalSource } from "./resources/events.js";
 import { requestAuthContext, sameOAuthBinding, type RequestAuthContext } from "./auth-context.js";
 import { bearerChallenge, protectedResourceConfig, writeProtectedResourceMetadata, type ProtectedResourceConfig } from "./oauth-metadata.js";
 import { buildServer, getApiIdentity, IntrospectionError, refreshServerIdentity, type ApiIdentity } from "./server.js";
+import { DEFAULT_API_URL } from "./client.js";
 
 export type { EventSignalSource } from "./resources/events.js";
 
@@ -224,6 +225,9 @@ export async function startStreamableHttpServer(
   const sessions = new Map<string, Session>();
   const reservations: SessionReservations = { byApiKey: new Map(), total: 0 };
   const lifecycle: ServerLifecycle = { closing: false };
+  // Uma instância por servidor: compartilhada entre TODAS as sessões deste
+  // processo/instância, nunca entre instâncias independentes (#629).
+  const identityCache = createProcessIdentityCache();
   const idleTimeoutMs = Math.max(1, options.sessionIdleTimeoutMs ?? 5 * 60_000);
   const sweep = setInterval(() => {
     const now = Date.now();
@@ -249,6 +253,7 @@ export async function startStreamableHttpServer(
       rateLimiter,
       trustedProxyList,
       oauth,
+      identityCache,
     ).catch(() => {
       if (!response.headersSent) {
         jsonRpcError(response, 500, -32603, "Erro interno do servidor MCP.");
@@ -307,6 +312,7 @@ async function handleRequest(
   rateLimiter: HttpRateLimiter,
   trustedProxyList: BlockList | undefined,
   oauth: ProtectedResourceConfig | undefined,
+  identityCache: ProcessIdentityCache,
 ): Promise<void> {
   const url = new URL(request.url ?? "/", "http://mcp.invalid");
   if (url.pathname === "/healthz" && request.method === "GET") {
@@ -353,7 +359,7 @@ async function handleRequest(
       jsonRpcError(response, 404, -32001, "Sessão MCP inválida.");
       return;
     }
-    const identity = await authenticateCurrentCredential(apiKey, options, response, oauth, session);
+    const identity = await authenticateCurrentCredential(apiKey, options, response, identityCache, oauth, session);
     if (!identity) return;
     const compatible = session.identity.auth_type === "oauth"
       ? sameOAuthBinding(session.identity, identity)
@@ -380,7 +386,7 @@ async function handleRequest(
     return;
   }
 
-  const identity = await authenticateCurrentCredential(apiKey, options, response, oauth);
+  const identity = await authenticateCurrentCredential(apiKey, options, response, identityCache, oauth);
   if (!identity) return;
 
   if (lifecycle.closing) {
@@ -478,7 +484,7 @@ async function handleRequest(
         // Polls share the session cache and use the latest accepted token.
         const credential = session?.backgroundCredential ?? apiKey;
         const current = session
-          ? await resolveSessionIdentity(session, credential, options)
+          ? await resolveSessionIdentity(session, credential, options, identityCache)
           : identity;
         return { credential, identity: current };
       },
@@ -518,10 +524,89 @@ async function handleRequest(
 
 const IDENTITY_CACHE_TTL_MS = 60_000;
 
+/**
+ * Cache de identidade COMPARTILHADO entre sessões do mesmo processo, chaveado
+ * pelo hash (fingerprint) da credencial — nunca o segredo em claro — mais o
+ * `baseUrl` (não é segredo; só evita reaproveitar identidade validada contra
+ * um endpoint diferente). Existe porque hosts como o ChatGPT abrem sessões
+ * MCP novas com frequência e cada `initialize` sem sessão prévia introspectava
+ * `/v1/me` do zero, mesmo quando outra sessão já tinha validado a MESMA
+ * credencial há poucos segundos.
+ *
+ * Mesmo TTL do cache por sessão (60 s). Uma credencial diferente NUNCA lê a
+ * entrada de outra (chave = fingerprint + baseUrl). Falha de introspecção
+ * nunca é cacheada — só a resolução com sucesso grava a entrada. Buscas
+ * concorrentes da MESMA credencial compartilham uma única requisição em voo.
+ * Tamanho limitado por poda LRU (reinserção no acerto, remoção do mais antigo
+ * no excedente) para não crescer sem limite com muitas credenciais distintas.
+ *
+ * Isto só evita chamadas REDUNDANTES a `/v1/me`; a autorização de cada
+ * operação continua na API a cada chamada real (revogação/suspensão valem
+ * imediatamente nela, cache ou não) e a amarração de sessão OAuth
+ * (`sameOAuthBinding`) roda do mesmo jeito sobre a identidade retornada aqui.
+ */
+const PROCESS_IDENTITY_CACHE_MAX_ENTRIES = 2_000;
+
+function processIdentityKey(credential: string, baseUrl: string | undefined): string {
+  // A credencial nunca cruza endpoints diferentes: uma mesma string de chave
+  // apontando para APIs distintas (ambientes de teste, por exemplo) não deve
+  // reaproveitar a identidade validada contra a outra. `baseUrl` não é
+  // segredo — só a credencial precisa do hash.
+  return `${fingerprint(credential).toString("base64url")}:${baseUrl ?? DEFAULT_API_URL}`;
+}
+
+type ProcessIdentityCache = {
+  resolve(
+    credential: string,
+    options: Pick<StreamableHttpServerOptions, "baseUrl" | "fetch">,
+  ): Promise<ApiIdentity>;
+};
+
+/** Uma instância por `startStreamableHttpServer()` — nunca um singleton do
+ * módulo. Isso mantém servidores independentes (produção roda um por
+ * processo; testes sobem vários no mesmo processo) sem compartilhar cache
+ * entre si por engano. */
+function createProcessIdentityCache(): ProcessIdentityCache {
+  const cache = new Map<string, { identity: ApiIdentity; cachedAt: number }>();
+  const inflight = new Map<string, Promise<ApiIdentity>>();
+  return {
+    async resolve(credential, options) {
+      const key = processIdentityKey(credential, options.baseUrl);
+      const cached = cache.get(key);
+      if (cached && Date.now() - cached.cachedAt < IDENTITY_CACHE_TTL_MS) {
+        // Reinsere para marcar como recém-usada (ordem de poda LRU).
+        cache.delete(key);
+        cache.set(key, cached);
+        return cached.identity;
+      }
+      const existing = inflight.get(key);
+      if (existing) return existing;
+
+      const request = (async () => {
+        const identity = await getApiIdentity({ apiKey: credential, baseUrl: options.baseUrl, fetch: options.fetch });
+        cache.set(key, { identity, cachedAt: Date.now() });
+        while (cache.size > PROCESS_IDENTITY_CACHE_MAX_ENTRIES) {
+          const oldestKey = cache.keys().next().value;
+          if (oldestKey === undefined) break;
+          cache.delete(oldestKey);
+        }
+        return identity;
+      })();
+      inflight.set(key, request);
+      try {
+        return await request;
+      } finally {
+        if (inflight.get(key) === request) inflight.delete(key);
+      }
+    },
+  };
+}
+
 /** One refresh at a time per session, shared by foreground requests and polls.
  * An incompatible bearer never updates the cache or the background credential. */
 async function resolveSessionIdentity(
   session: Session, credential: string, options: StreamableHttpServerOptions,
+  identityCache: ProcessIdentityCache,
 ): Promise<ApiIdentity> {
   for (;;) {
     if (sameFingerprint(session.identityFingerprint, credential) &&
@@ -538,7 +623,7 @@ async function resolveSessionIdentity(
       continue;
     }
     const refresh = (async () => {
-      const current = await getApiIdentity({ apiKey: credential, baseUrl: options.baseUrl, fetch: options.fetch });
+      const current = await identityCache.resolve(credential, options);
       const compatible = session.identity.auth_type === "oauth"
         ? sameOAuthBinding(session.identity, current)
         : current.auth_type !== "oauth" && sameFingerprint(session.apiKeyFingerprint, credential) &&
@@ -564,11 +649,12 @@ async function resolveSessionIdentity(
 
 async function authenticateCurrentCredential(
   credential: string, options: StreamableHttpServerOptions,
-  response: ServerResponse, oauth?: ProtectedResourceConfig, session?: Session,
+  response: ServerResponse, identityCache: ProcessIdentityCache,
+  oauth?: ProtectedResourceConfig, session?: Session,
 ): Promise<ApiIdentity | undefined> {
   try {
-    const identity = session ? await resolveSessionIdentity(session, credential, options)
-      : await getApiIdentity({ apiKey: credential, baseUrl: options.baseUrl, fetch: options.fetch });
+    const identity = session ? await resolveSessionIdentity(session, credential, options, identityCache)
+      : await identityCache.resolve(credential, options);
     if (identity.auth_type === "oauth" && !oauth) throw new IntrospectionError(401, "oauth_disabled");
     return identity;
   } catch (error) {
