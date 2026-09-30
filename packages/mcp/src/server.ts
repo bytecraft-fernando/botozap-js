@@ -54,6 +54,8 @@ export interface BuildServerOptions {
 /** Snapshot from `/me`; pass only between internal HTTP bootstrap helpers. */
 export type ApiIdentity = {
   account_id: string; environment: "live" | "sandbox"; scopes: string[];
+  /** Nome da Conta (#629). Ausente numa API anterior ao campo — sempre opcional. */
+  account_name?: string;
   auth_type?: "api_key" | "oauth";
   user_id?: string; client_id?: string; grant_id?: string; allowed_routes?: string[];
 };
@@ -80,6 +82,9 @@ export function parseIdentity(value: unknown): ApiIdentity {
     (value as ApiIdentity).scopes.some((scope) => typeof scope !== "string")
   ) throw new IntrospectionError(502, "invalid_identity_response");
   const identity = value as ApiIdentity;
+  if (identity.account_name !== undefined && typeof identity.account_name !== "string") {
+    throw new IntrospectionError(502, "invalid_identity_response");
+  }
   if (identity.auth_type !== undefined && identity.auth_type !== "api_key" && identity.auth_type !== "oauth") {
     throw new IntrospectionError(502, "invalid_identity_response");
   }
@@ -179,9 +184,13 @@ export async function buildServer(
     async () => {
       try {
         const current = requestAuthContext.getStore()?.identity ?? await introspect(client);
+        const ambiente = current.environment === "live" ? "produção" : "sandbox";
         const profile = {
           id: `botozap:${current.account_id}:${current.environment}`,
-          nickname: `Conta BotoZap — ${current.environment === "live" ? "produção" : "sandbox"}`,
+          // #629: nome da Conta + ambiente distingue várias conexões no
+          // perfil do ChatGPT. Sem `account_name` (API anterior ao campo),
+          // mantém o texto genérico de sempre.
+          nickname: current.account_name ? `${current.account_name} — ${ambiente}` : `Conta BotoZap — ${ambiente}`,
         };
         return {
           content: [{ type: "text" as const, text: JSON.stringify(profile) }],
