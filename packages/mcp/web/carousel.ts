@@ -1,14 +1,16 @@
+import { externalLink, pendingUrl } from './pending-link.js';
 import type { Bridge } from './panel.js';
-import { initials, relative, string, bucketLabel } from './ui-helpers.js';
+import { initials, relative, string, bucketLabel, quantity } from './ui-helpers.js';
 type Row = Record<string, any>;
 export function mountCarousel(root: HTMLElement, bridge: Bridge) {
-  root.innerHTML = `<main class="carousel-workspace"><div class="carousel-heading"><div><p class="eyebrow">Seu dia, em ordem</p><h1>Pendências no WhatsApp</h1></div><span id="carousel-count" class="badge"></span></div><div id="carousel-content" role="region" aria-label="Pendências" tabindex="0" aria-busy="true">${Array.from({ length: 3 }, () => '<div class="skeleton-card" aria-hidden="true"><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div></div>').join('')}</div><p id="carousel-note" class="caption" role="status" aria-live="polite">Consultando seu Radar…</p></main>`;
+  root.dataset.mode='inline';
+  root.innerHTML = `<main class="carousel-workspace"><div class="carousel-heading"><div><p class="eyebrow">Seu dia, em ordem</p><h1>Pendências</h1></div><span id="carousel-count" class="badge"></span></div><div id="carousel-content" role="region" aria-label="Pendências" tabindex="0" aria-busy="true">${Array.from({ length: 3 }, () => '<div class="skeleton-card" aria-hidden="true"><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div></div>').join('')}</div><p id="carousel-note" class="caption" role="status" aria-live="polite">Consultando seu Radar…</p></main>`;
   let customer = '', customerName = '', rows: Row[] = [];
   const content = root.querySelector<HTMLElement>('#carousel-content')!;
   const note = root.querySelector<HTMLElement>('#carousel-note')!;
   function render() {
     content.setAttribute('aria-busy','false'); content.replaceChildren();
-    root.querySelector('#carousel-count')!.textContent = `${rows.length} pendências`;
+    root.querySelector('#carousel-count')!.textContent = quantity(rows.length,'pendência','pendências');
     if (!rows.length) { content.innerHTML = '<section class="rich-empty"><span class="empty-symbol" aria-hidden="true">✓</span><h2>Tudo em dia por aqui</h2><p>Nenhuma pendência neste negócio. Peça ao assistente os follow-ups da semana ou quem pediu orçamento.</p></section>'; note.textContent = 'Você pode continuar a conversa para explorar outro negócio.'; return; }
     const priority = [...rows.slice(0,8)].sort((a,b) => ['critical','at_risk','scheduled'].indexOf(a.bucket) - ['critical','at_risk','scheduled'].indexOf(b.bucket))[0];
     for (const entry of rows.slice(0,8)) {
@@ -21,7 +23,14 @@ export function mountCarousel(root: HTMLElement, bridge: Bridge) {
       const wait = relative(entry.last_activity_at); card.querySelector('.pending-wait')!.textContent = wait ? `Sem atividade ${wait}` : 'Resposta pendente';
       card.querySelector('.pending-reason')!.textContent = string(entry.reason_label) || string(entry.title) || 'A conversa precisa da sua atenção';
       card.querySelector('.pending-next')!.textContent = string(entry.next_step) || 'Confira o contexto antes de responder';
-      const button = card.querySelector('button')!; button.classList.toggle('primary', entry === priority);
+      const button = card.querySelector('button')!;
+      if(!entry.conversation_id) {
+        button.replaceWith(externalLink('Abrir no BotoZap',pendingUrl(entry),bridge));
+        if(['opportunity','demand'].includes(entry.entity_type))void bridge.call(`list_${entry.entity_type}_conversations`,{id:entry.id,page:1,per_page:1}).then(result=>{
+          const linked=result.structuredContent?.data?.[0]?.conversation_id;
+          if(linked&&card.isConnected){entry.conversation_id=linked;card.querySelector('a')?.replaceWith(button);}
+        }).catch(()=>{});
+      } button.classList.toggle('primary', entry === priority);
       button.onclick = async () => {
         button.disabled = true;
         try {
@@ -46,6 +55,7 @@ export function mountCarousel(root: HTMLElement, bridge: Bridge) {
     note.textContent = 'Escolha uma conversa para preparar uma resposta. Nenhuma mensagem será enviada sem sua confirmação.';
   }
   return {
+    setMode(mode: string) { root.dataset.mode=mode; },
     input(args: Row) { customer = string(args.customer_id); if (customer) void bridge.call('get_customer', { id: customer }).then(r => { customerName = string(r.structuredContent?.data?.name); if (rows.length) render(); }).catch(() => {}); },
     bootstrap(result: any) {
       if (result.isError) { content.setAttribute('aria-busy','false'); content.innerHTML = '<section class="rich-empty"><span class="empty-symbol" aria-hidden="true">!</span><h2>Não foi possível consultar as pendências</h2><p>Confira seu acesso e peça ao assistente para consultar o Radar novamente.</p></section>'; note.textContent = 'A consulta falhou. Nenhuma ação foi realizada.'; return; }

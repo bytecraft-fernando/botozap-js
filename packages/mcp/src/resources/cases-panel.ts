@@ -6,12 +6,13 @@ import { registerScreenResource } from "./screen-resource.js";
 export function registerCasesPanel(server: McpServer, register: Register) {
   registerScreenResource(server, register, "cases");
   register("open_agent_cases", "Mostra casos escalados pelo agente, com evidência e permissões da identidade atual. Não assume nem retoma automação.",
-    { customer_id: z.string().uuid() }, z.object({ customer_id: z.string(), cases: z.unknown(), usage: z.unknown(), user_id: z.string().nullable(), can_update: z.boolean() }),
+    { customer_id: z.string().uuid() }, z.object({ customer_id: z.string(), cases: z.unknown(), alerts: z.unknown(), paused_available: z.boolean(), usage: z.unknown(), user_id: z.string().nullable(), can_update: z.boolean() }),
     async (client, args, identity) => {
       const customer_id = String(args.customer_id);
       const now = new Date(); const start = new Date(now); start.setUTCHours(0,0,0,0);
-      const cases = await client.ai.invoke("cases", "list", { customer_id, status: "open", source: "agent", per_page: 20 });
+      const cases = await client.ai.invoke("cases", "list", { customer_id, status: "open", per_page: 20 });
+      const alerts = await client.ai.invoke("alerts", "list", { customer_id, status: "open", per_page: 100 });
       const usage = await client.ai.invoke("usage", "get", { customer_id, from: start.toISOString(), to: now.toISOString() }).catch(() => null);
-      return { customer_id, cases, usage, user_id: identity.user_id ?? null, can_update: isToolAllowed(getToolPolicy("ai_cases_update"), identity) };
+      return { customer_id, cases, alerts, paused_available: false, usage, user_id: identity.user_id ?? null, can_update: isToolAllowed(getToolPolicy("ai_cases_update"), identity) };
     });
 }

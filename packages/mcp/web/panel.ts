@@ -1,7 +1,9 @@
+import { externalLink, pendingUrl } from './pending-link.js';
 import { installFullscreenLayout } from './screens/fullscreen-layout.js';
-import { initials, maskedPhone, relative, bucketLabel } from './ui-helpers.js';
+import { initials, maskedPhone, relative, bucketLabel, quantity } from './ui-helpers.js';
 type Row = Record<string, any>;
 export interface Bridge {
+  openExternal?(url: string): Promise<unknown>;
   call(name: string, args: Record<string, unknown>): Promise<any>;
   context(value: unknown): Promise<unknown>;
   template?(value: Row): void;
@@ -30,6 +32,9 @@ const date = (value: unknown) => {
 };
 export function mountReview(root: HTMLElement, bridge: Bridge) {
   root.innerHTML = `<main class="workspace"><header><div><p class="eyebrow">PENDÊNCIAS</p><h1>Radar</h1><p class="muted">Escolha o negócio, leia o histórico e confirme o envio.</p></div><span class="badge" id="environment">Conectando…</span></header><p id="identity" class="identity"></p><div id="notice" role="status" aria-live="polite"></div><section class="toolbar"><label for="business">Negócio</label><select id="business" disabled><option value="">Selecione um negócio</option></select><button id="more-business" hidden>Mais negócios</button></section><div class="columns"><section class="panel radar"><div class="section-title"><h2>Pendências</h2><span id="count" class="muted"></span></div><div id="radar-list" class="items"><p class="empty">Selecione um negócio para consultar o Radar.</p></div><button id="more-radar" hidden>Carregar mais</button></section><section class="panel detail"><div class="inline-heading"><div class="person-heading"><span id="avatar" class="avatar" aria-hidden="true"></span><div><p class="eyebrow">Resposta pronta</p><h1 id="contact-name">Conversa</h1><p id="contact-phone" class="muted"></p></div></div><span id="card-state" class="badge" role="status" aria-live="polite">Rascunho</span></div><div id="card-summary" class="card-summary"></div><p id="conversation-urgency" class="conversation-urgency"></p><div class="draft-bubble"><p id="card-preview" class="preview"></p><span id="bubble-status" class="bubble-status">Rascunho · ainda não enviado</span></div><div class="section-title"><h2>Histórico e resposta</h2><span id="window" class="badge"></span></div><p id="recipient" class="muted">Abra um item do Radar.</p><div id="conversations"></div><div id="history" class="history"><p class="empty">O histórico aparecerá aqui.</p></div><button id="more-history" hidden>Mensagens anteriores</button><p class="caption">Mensagens exibidas na ordem em que foram recebidas.</p><label class="draft-label" for="draft">Sua resposta</label><textarea id="draft" rows="5" maxlength="4096" disabled placeholder="Escreva a resposta que deseja revisar…"></textarea><div class="draft-footer" id="draft-controls"><span id="length" class="muted">0 / 4096</span><div class="actions"><button id="edit-draft" class="inline-only">Editar</button><button id="review" class="primary" disabled>Revisar envio</button></div></div><section id="confirmation" class="confirmation" hidden><h3>Confira antes de enviar</h3><dl id="summary"></dl><p id="preview" class="preview"></p><label class="check"><input id="consent" type="checkbox">Conferi o destinatário, o canal e a mensagem.</label><div class="actions"><button id="edit">Editar</button><button id="send" class="primary" disabled>Enviar</button></div></section></section></div></main>`;
+  const expand=document.createElement('button');expand.id='expand-pendings';expand.textContent='Abrir em tela cheia';root.querySelector('.radar')!.append(expand);
+  expand.onclick=()=>void bridge.displayMode?.('fullscreen').then((result:any)=>setMode(result?.mode==='fullscreen'?'fullscreen':'inline'));
+  const standalone=document.createElement('section');standalone.id='pending-detail';standalone.hidden=true;root.querySelector('.detail')!.prepend(standalone);
   installFullscreenLayout(root);
   const el = <T extends HTMLElement = HTMLElement>(id: string) => root.querySelector<T>(`#${id}`)!;
   el('card-summary').after(el('notice'));
@@ -77,7 +82,7 @@ export function mountReview(root: HTMLElement, bridge: Bridge) {
   };
   const resetDraft = () => { el('card-summary').replaceChildren(); el('card-preview').textContent = ''; root.dataset.editing = 'false'; draft.value = ''; draft.disabled = true; el('length').textContent = '0 / 4096'; el<HTMLButtonElement>('review').disabled = true; el('confirmation').hidden = true; el<HTMLInputElement>('consent').checked = false; reviewBody = ''; };
   const context = () => {
-    root.dataset.conversationOpen = String(!!conversation); root.dataset.itemSelected = String(!!selected);
+    root.dataset.conversationOpen = String(!!conversation); if(conversation) { el('pending-detail').hidden=true;delete root.dataset.unlinked; } root.dataset.itemSelected = String(!!selected);
     // Context is scoped to the authorized selection. Contact strings remain explicitly untrusted.
     const payload = { account_id: account, customer_id: business.value || null, entity: selected ? { id: selected.id, type: selected.entity_type } : null, conversation_id: conversation?.id ?? null, review_state: root.dataset.state, untrusted_contact_content: conversation ? { draft: draft.value, contact: conversation.contact, messages: messages.slice(0,20).map(m => ({ direction: m.direction, body: messageBody(m), at: m.created_at })) } : null };
     void bridge.context(payload).catch(() => { /* Context support is optional; sending does not depend on it. */ });
@@ -98,7 +103,7 @@ export function mountReview(root: HTMLElement, bridge: Bridge) {
     el('more-history').hidden = !historyCursor; context();
   }
   function renderRadar() {
-    el('radar-list').replaceChildren(); el('count').textContent = `${entries.length} itens`;
+    el('radar-list').replaceChildren(); el('count').textContent = quantity(entries.length, 'item', 'itens');
     if (!entries.length) el('radar-list').textContent = 'Nenhum item neste recorte do Radar.';
     const labels: Row = { opportunity: 'Oportunidade', demand: 'Demanda', return: 'Retorno', appointment: 'Agendamento', critical: 'Crítico', at_risk: 'Atenção', scheduled: 'Programado' };
     for (const entry of entries) {
@@ -123,7 +128,7 @@ export function mountReview(root: HTMLElement, bridge: Bridge) {
   async function selectEntry(entry: Row) {
     if (sending) return;
     ++stageGeneration;
-    const token = ++generation; selected = entry; conversation = null; messages = []; locked = false; resetDraft(); context(); renderRadar(); el('history').textContent = 'Carregando o histórico…'; el('recipient').textContent = text(entry.title); el('window').textContent = ''; el('conversations').replaceChildren(); el('more-history').hidden = true;
+    const token = ++generation; selected = entry; conversation = null; messages = []; locked = false; resetDraft(); context(); renderRadar(); el('history').textContent = 'Carregando o histórico…'; el('recipient').textContent = text(entry.title); el('window').textContent = ''; el('conversations').replaceChildren(); el('more-history').hidden = true; delete root.dataset.unlinked; el('pending-detail').hidden=true;
     try {
       let ids: string[] = [];
       if (entry.entity_type === 'opportunity' || entry.entity_type === 'demand') {
@@ -132,7 +137,12 @@ export function mountReview(root: HTMLElement, bridge: Bridge) {
         if (linked.meta.total_pages > 1) notice('Mostrando as primeiras 20 conversas vinculadas. Consulte as demais no painel BotoZap.');
       } else if (entry.conversation_id) ids = [entry.conversation_id];
       if (token !== generation) return;
-      if (!ids.length) { el('history').textContent = 'Este item não tem conversa vinculada. Abra o painel BotoZap para vincular uma conversa.'; return; }
+      if (!ids.length) {
+        root.dataset.unlinked='true';standalone.hidden=false;standalone.replaceChildren();
+        const heading=document.createElement('h2');heading.textContent=text(entry.title)||'Pendência';
+        const detail=document.createElement('p');detail.textContent=text(entry.next_step)||'Este item não tem conversa vinculada. Abra o BotoZap para consultar ou vincular uma conversa.';
+        standalone.append(heading,detail,externalLink('Abrir no BotoZap',pendingUrl(entry),bridge));return;
+      }
       if (ids.length > 1) {
         const label = document.createElement('label'); label.textContent = 'Conversa vinculada'; const select = document.createElement('select'); label.append(select);
         const initial = document.createElement('option'); initial.value = ''; initial.textContent = 'Selecione uma conversa'; select.append(initial);
@@ -166,7 +176,7 @@ export function mountReview(root: HTMLElement, bridge: Bridge) {
       card();
     } catch (error) { if (token === generation) { el('history').textContent = 'Não foi possível carregar esta conversa.'; notice((error as Error).message, 'error'); } }
   }
-  business.onchange = () => { ++stageGeneration; ++generation; selected = null; conversation = null; entries = []; messages = []; locked = false; resetDraft(); el('history').textContent = 'Abra um item do Radar.'; el('recipient').textContent = ''; el('window').textContent = ''; el('conversations').replaceChildren(); el('more-history').hidden = true; context(); renderRadar(); if (business.value) void loadRadar(); };
+  business.onchange = () => { ++stageGeneration; ++generation; selected = null; conversation = null; entries = []; messages = []; locked = false; resetDraft(); el('history').textContent = 'Abra um item do Radar.'; el('recipient').textContent = ''; el('window').textContent = ''; el('conversations').replaceChildren(); el('more-history').hidden = true; delete root.dataset.unlinked; el('pending-detail').hidden=true; context(); renderRadar(); if (business.value) void loadRadar(); };
   el('edit-draft').onclick = () => { if (locked || draft.disabled) return; void (async () => { const result = await bridge.displayMode?.('fullscreen') as { mode?: string } | undefined; const expanded = result?.mode === 'fullscreen'; if (expanded) { setMode('fullscreen'); root.dataset.focus = 'conversation'; } root.dataset.editing = 'true'; if (expanded && business.value) void call('list_radar', { customer_id: business.value, per_page: 20 }).then(data => { const pending = data.data.find((entry: Row) => entry.contact_id === conversation?.contact_id); if (pending && selected) { selected = { ...selected, bucket: pending.bucket, next_step: pending.next_step }; card(); } }).catch(() => {}); if (expanded) el('draft-controls').scrollIntoView({ block: 'center' }); draft.focus({ preventScroll: expanded }); })().catch(() => { root.dataset.editing = 'true'; draft.focus(); }); };
   draft.oninput = () => { acceptedId = ''; card(); context(); setState('draft'); ++stageGeneration; if (conversation) { const intent = intents.get(conversation.id); if (intent && !intent.uncertain && intent.body !== draft.value) intents.delete(conversation.id); } el('length').textContent = `${draft.value.length} / 4096`; el<HTMLButtonElement>('review').disabled = !draft.value.trim() || locked || !isOpen(); el('confirmation').hidden = true; };
   el('review').onclick = () => {
@@ -262,7 +272,7 @@ export function mountReview(root: HTMLElement, bridge: Bridge) {
           })().catch(() => notice('Não foi possível preparar este rascunho. Reabra o painel e confira as permissões.', 'error'));
           return;
         }
-        if (account && data.account_id !== account) { ++stageGeneration; ++generation; intents.clear(); conversation = null; selected = null; messages = []; resetDraft(); context(); business.disabled = true; throw new Error('A conta mudou. Feche este painel e abra uma nova revisão.'); } if (!account && root.dataset.mode === 'fullscreen') void bridge.displayMode?.('fullscreen').catch(() => {}); account = data.account_id; environment = data.environment; el('identity').textContent = text(data.account_name); el('identity').hidden = !text(data.account_name); el('environment').textContent = environment === 'live' ? 'Ambiente de produção' : 'Sandbox'; appendCustomers(data.customers); business.disabled = false; notice(customers.length ? '' : 'Nenhum negócio disponível. Confira seu acesso no painel BotoZap.'); }
+        if (account && data.account_id !== account) { ++stageGeneration; ++generation; intents.clear(); conversation = null; selected = null; messages = []; resetDraft(); context(); business.disabled = true; throw new Error('A conta mudou. Feche este painel e abra uma nova revisão.'); } if (!account && root.dataset.mode === 'fullscreen') void bridge.displayMode?.('fullscreen').catch(() => {}); account = data.account_id; environment = data.environment; el('identity').textContent = text(data.account_name); el('identity').hidden = !text(data.account_name); el('environment').textContent = environment === 'live' ? 'Ambiente de produção' : 'Sandbox'; appendCustomers(data.customers); business.disabled = false; notice(customers.length ? '' : 'Nenhum negócio disponível. Confira seu acesso no painel BotoZap.'); if(!business.value && customers.length===1 && data.customers.meta.total_count===1) {business.value=customers[0].id;void loadRadar();} }
       catch (error) { notice((error as Error).message, 'error'); }
     },
     connectionError() { notice('Não foi possível conectar ao host MCP. Reabra o painel a partir da conversa.', 'error'); },

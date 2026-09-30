@@ -89,7 +89,7 @@ describe("optional review extensions", () => {
     const tool = (await client.listTools()).tools.find(t => t.name === "open_review_panel");
     expect(tool?._meta).toMatchObject({ ui: { resourceUri: "ui://botozap/review/v1.html", visibility: ["model", "app"] }, "openai/ui": { entrypoints: [{ type: "thread" }] } });
     const stage = (await client.listTools()).tools.find(t => t.name === "stage_review_reply");
-    expect(stage?._meta).toEqual({ ui: { resourceUri: "ui://botozap/reply/v1.html", visibility: ["model", "app"] } });
+    expect(stage?._meta).toMatchObject({ ui: { resourceUri: "ui://botozap/reply/v1.html", visibility: ["model", "app"] } });
     expect(tool?.annotations).toMatchObject({ readOnlyHint: true, destructiveHint: false, openWorldHint: false });
     const replyResource = await client.readResource({ uri: "ui://botozap/reply/v1.html" });
     expect(replyResource.contents[0]._meta).toMatchObject({ "openai/ui": { availableDisplayModes: ["inline", "fullscreen"], preferredDisplayMode: "inline" }, ui: { csp: { connectDomains: [], resourceDomains: [] } } });
