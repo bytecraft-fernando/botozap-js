@@ -27,7 +27,10 @@ try{for(const theme of ['light','dark'])for(const [device,width,height]of [['des
   const confirming = ['conversation','radar'].includes(route) && await app().locator('#confirmation').isVisible();
   const last=app().locator(route==='conversation'||route==='radar'?(confirming?'#confirmation .check':'#length'):'.screen-status');
   const tail=await last.boundingBox();const bar=await app().locator('.fullscreen-actions').boundingBox();assert.ok(tail,`${route} final content visible`);assert.ok(tail.y>=frame.y,`${route} final content above viewport`);assert.ok(tail.y+tail.height<=bar.y-4,`${route} final content under action bar`);assert.ok(tail.y+tail.height<=composer.y-4,`${route} final content under composer`);
-  const axe=await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa','wcag21aa']).analyze();assert.deepEqual(axe.violations.map(v=>({id:v.id,targets:v.nodes.map(n=>n.target)})),[],`${route} WCAG AA`);assert.deepEqual(failures,[]);const file=`${prefix}-${route}-${step}-${device}-${theme}.png`;await page.screenshot({path:dir+file});results.push({file,axeViolations:0,primaryAboveComposer:true,lastContentAboveActions:true});console.log(file);
+  const hostOverflow=await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1);
+  const iframeOverflow=await app().locator('#app').evaluate(root=>root.scrollWidth>root.clientWidth+1||document.documentElement.scrollWidth>innerWidth+1);
+  assert.equal(hostOverflow,false,`${route} host overflow`);assert.equal(iframeOverflow,false,`${route} iframe overflow`);
+  const axe=await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa','wcag21aa']).analyze();assert.deepEqual(axe.violations.map(v=>({id:v.id,targets:v.nodes.map(n=>n.target)})),[],`${route} WCAG AA`);assert.deepEqual(failures,[]);const file=`${prefix}-${route}-${step}-${device}-${theme}.png`;await page.screenshot({path:dir+file});results.push({file,axeViolations:0,hostOverflow,iframeOverflow,primaryAboveComposer:true,lastContentAboveActions:true});console.log(file);
  }
  await check('rodape');
  if(route==='template-carousel'){await app().getByRole('button',{name:'Revisar envio',exact:true}).click();await check('confirmacao');}
