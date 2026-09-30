@@ -1,3 +1,4 @@
+import { uiContent } from '../src/resources/versioned-ui.js';
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
@@ -87,13 +88,13 @@ describe("optional review extensions", () => {
   it("advertises a standard app resource and thread entrypoint without credentials", async () => {
     const { client } = await connect(true);
     const tool = (await client.listTools()).tools.find(t => t.name === "open_review_panel");
-    expect(tool?._meta).toMatchObject({ ui: { resourceUri: "ui://botozap/review/v1.html", visibility: ["model", "app"] }, "openai/ui": { entrypoints: [{ type: "thread" }] } });
+    expect(tool?._meta).toMatchObject({ ui: { resourceUri: uiContent('review').uri, visibility: ["model", "app"] }, "openai/ui": { entrypoints: [{ type: "thread" }] } });
     const stage = (await client.listTools()).tools.find(t => t.name === "stage_review_reply");
-    expect(stage?._meta).toMatchObject({ ui: { resourceUri: "ui://botozap/reply/v1.html", visibility: ["model", "app"] } });
+    expect(stage?._meta).toMatchObject({ ui: { resourceUri: uiContent('reply').uri, visibility: ["model", "app"] } });
     expect(tool?.annotations).toMatchObject({ readOnlyHint: true, destructiveHint: false, openWorldHint: false });
-    const replyResource = await client.readResource({ uri: "ui://botozap/reply/v1.html" });
+    const replyResource = await client.readResource({ uri: uiContent('reply').uri });
     expect(replyResource.contents[0]._meta).toMatchObject({ "openai/ui": { availableDisplayModes: ["inline", "fullscreen"], preferredDisplayMode: "inline" }, ui: { csp: { connectDomains: [], resourceDomains: [] } } });
-    const resource = await client.readResource({ uri: "ui://botozap/review/v1.html" });
+    const resource = await client.readResource({ uri: uiContent('review').uri });
     expect(resource.contents[0]._meta).toMatchObject({ "openai/ui": { availableDisplayModes: ["inline", "fullscreen"], preferredDisplayMode: "fullscreen" } });
     expect(resource.contents[0]).toMatchObject({ mimeType: "text/html;profile=mcp-app", _meta: { ui: { csp: { connectDomains: [], resourceDomains: [], frameDomains: [] } } } });
     expect(JSON.stringify(resource)).not.toContain("bz_live_secret");

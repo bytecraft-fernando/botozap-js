@@ -140,13 +140,13 @@ export function createRegister(
   const uiTools = new Set(["open_review_panel", "stage_review_reply", "stage_review_template", "review_template_variables", "open_agent_cases", "stage_appointment_booking", "open_live_conversation", "open_botozap"]);
   const listeners: Array<(enabled: boolean) => void> = [];
   const screenMeta = (name: string) => {
-    if (name === "open_review_panel") return reviewToolMetadata;
-    if (name === "stage_review_reply") return replyToolMetadata;
-    if (name === "list_radar") return radarToolMetadata;
+    if (name === "open_review_panel") return reviewToolMetadata();
+    if (name === "stage_review_reply") return replyToolMetadata();
+    if (name === "list_radar") return radarToolMetadata();
     if (name === "stage_review_template") return screenMetadata("template");
     if (name === "open_agent_cases") return screenMetadata("cases");
     if (name === "open_live_conversation") return screenMetadata("live");
-    if (name === "open_botozap") return globalToolMetadata;
+    if (name === "open_botozap") return globalToolMetadata();
     if (name === "stage_appointment_booking") return screenMetadata("booking");
     return { ui: { visibility: ["model", "app"] } };
   };
