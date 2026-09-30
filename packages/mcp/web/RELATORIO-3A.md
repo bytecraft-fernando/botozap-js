@@ -51,7 +51,12 @@ confirmação, CAS, parâmetros, disponibilidade, recusa, incerteza e aviso post
 Playwright/axe: 100 capturas novas + 60 anteriores regeneradas; WCAG A/AA com zero
 violações, nenhum erro de runtime ou overflow. Até duas ações por card, uma por
 horário. Resultados em `screenshots/validation-3a.json` e `validation.json`.
-Os vídeos são gravações do navegador durante cada roteiro, sem montagem.
+Os vídeos são gravações do navegador durante cada roteiro, sem montagem: template
+8,24 s, casos 9,08 s e agenda 6,96 s, com pausas para leitura. Regenerar somente
+os vídeos: `node packages/mcp/scripts/screenshot-3a.mjs --video-only`.
+
+CI da implementação `f41a8b9c0bba92e7ce810dcfec200e1b9208a44c`: Node 20.19, 22 e 24
+verdes ([execução](https://github.com/bytecraft-fernando/botozap-js/actions/runs/36676378891)).
 
 ## Limites e decisões do Fernando
 
