@@ -1285,6 +1285,10 @@ export type AiCatalogModel = {
     cache_read_usd_per_million: number | null;
     cache_write_usd_per_million: number | null;
     notes: ("request_fee" | "long_context" | "image_input" | "variable")[];
+    /** Absent: reported by the credential's own provider. `"openrouter"`: the provider's own list
+     * price read from OpenRouter's public catalog, for providers whose model list has no prices
+     * (OpenAI, Anthropic, Google, DeepSeek). */
+    source?: "openrouter";
   } | null;
 };
 export type AiModelCatalogSnapshot = {
