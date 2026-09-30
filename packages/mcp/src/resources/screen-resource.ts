@@ -9,7 +9,7 @@ export function registerScreenResource(server: McpServer, register: Register, vi
     if (!register.uiEnabled) throw new BotoZapError("ui_not_allowed", "UI não habilitada para esta conta.", 403);
     return { contents: [{ uri, mimeType: RESOURCE_MIME_TYPE,
       text: (await readFile(new URL("../ui/review.html", import.meta.url), "utf8")).replace('id="app"', `id="app" data-initial-mode="inline" data-view="${view}"`),
-      _meta: { "openai/ui": { availableDisplayModes: ["inline", "fullscreen"], preferredDisplayMode: "inline" }, ui: { prefersBorder: true, csp: { connectDomains: [], resourceDomains: [], frameDomains: [] } } },
+      _meta: { "openai/ui": { availableDisplayModes: ["inline", "fullscreen"], preferredDisplayMode: view === "global" ? "fullscreen" : "inline" }, ui: { prefersBorder: true, csp: { connectDomains: [], resourceDomains: [], frameDomains: [] } } },
     }] };
   });
   register.onUiChange?.(enabled => { if (resource.enabled !== enabled) enabled ? resource.enable() : resource.disable(); });

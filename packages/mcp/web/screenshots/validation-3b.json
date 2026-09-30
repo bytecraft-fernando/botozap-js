@@ -1,0 +1,291 @@
+{
+  "screenshots": 41,
+  "results": [
+    {
+      "file": "3b-live-enviada-desktop-light.png",
+      "axeViolations": 0,
+      "hostOverflow": false,
+      "iframeOverflow": false
+    },
+    {
+      "file": "3b-live-digitando-desktop-light.png",
+      "axeViolations": 0,
+      "hostOverflow": false,
+      "iframeOverflow": false
+    },
+    {
+      "file": "3b-live-resposta-desktop-light.png",
+      "axeViolations": 0,
+      "hostOverflow": false,
+      "iframeOverflow": false
+    },
+    {
+      "file": "3b-live-fullscreen-desktop-light.png",
+      "axeViolations": 0,
+      "hostOverflow": false,
+      "iframeOverflow": false
+    },
+    {
+      "file": "3b-live-novo-rascunho-desktop-light.png",
+      "axeViolations": 0,
+      "hostOverflow": false,
+      "iframeOverflow": false
+    },
+    {
+      "file": "3b-global-conversa-desktop-light.png",
+      "axeViolations": 0,
+      "hostOverflow": false,
+      "iframeOverflow": false,
+      "primaryAboveComposer": true,
+      "lastContentAboveActions": true
+    },
+    {
+      "file": "3b-global-compositor-alto-desktop-light.png",
+      "axeViolations": 0,
+      "hostOverflow": false,
+      "iframeOverflow": false,
+      "primaryAboveComposer": true,
+      "lastContentAboveActions": true
+    },
+    {
+      "file": "3b-global-contexto-atualizado-desktop-light.png",
+      "axeViolations": 0,
+      "hostOverflow": false,
+      "iframeOverflow": false,
+      "primaryAboveComposer": true,
+      "lastContentAboveActions": true
+    },
+    {
+      "file": "3b-global-pendencias-desktop-light.png",
+      "axeViolations": 0,
+      "hostOverflow": false,
+      "iframeOverflow": false,
+      "primaryAboveComposer": true,
+      "lastContentAboveActions": true
+    },
+    {
+      "file": "3b-global-link-atualizado-desktop-light.png",
+      "axeViolations": 0,
+      "hostOverflow": false,
+      "iframeOverflow": false,
+      "primaryAboveComposer": true,
+      "lastContentAboveActions": true
+    },
+    {
+      "file": "3b-live-enviada-mobile-light.png",
+      "axeViolations": 0,
+      "hostOverflow": false,
+      "iframeOverflow": false
+    },
+    {
+      "file": "3b-live-digitando-mobile-light.png",
+      "axeViolations": 0,
+      "hostOverflow": false,
+      "iframeOverflow": false
+    },
+    {
+      "file": "3b-live-resposta-mobile-light.png",
+      "axeViolations": 0,
+      "hostOverflow": false,
+      "iframeOverflow": false
+    },
+    {
+      "file": "3b-live-fullscreen-mobile-light.png",
+      "axeViolations": 0,
+      "hostOverflow": false,
+      "iframeOverflow": false
+    },
+    {
+      "file": "3b-live-novo-rascunho-mobile-light.png",
+      "axeViolations": 0,
+      "hostOverflow": false,
+      "iframeOverflow": false
+    },
+    {
+      "file": "3b-global-conversa-mobile-light.png",
+      "axeViolations": 0,
+      "hostOverflow": false,
+      "iframeOverflow": false,
+      "primaryAboveComposer": true,
+      "lastContentAboveActions": true
+    },
+    {
+      "file": "3b-global-compositor-alto-mobile-light.png",
+      "axeViolations": 0,
+      "hostOverflow": false,
+      "iframeOverflow": false,
+      "primaryAboveComposer": true,
+      "lastContentAboveActions": true
+    },
+    {
+      "file": "3b-global-contexto-atualizado-mobile-light.png",
+      "axeViolations": 0,
+      "hostOverflow": false,
+      "iframeOverflow": false,
+      "primaryAboveComposer": true,
+      "lastContentAboveActions": true
+    },
+    {
+      "file": "3b-global-pendencias-mobile-light.png",
+      "axeViolations": 0,
+      "hostOverflow": false,
+      "iframeOverflow": false,
+      "primaryAboveComposer": true,
+      "lastContentAboveActions": true
+    },
+    {
+      "file": "3b-global-link-atualizado-mobile-light.png",
+      "axeViolations": 0,
+      "hostOverflow": false,
+      "iframeOverflow": false,
+      "primaryAboveComposer": true,
+      "lastContentAboveActions": true
+    },
+    {
+      "file": "3b-live-enviada-desktop-dark.png",
+      "axeViolations": 0,
+      "hostOverflow": false,
+      "iframeOverflow": false
+    },
+    {
+      "file": "3b-live-digitando-desktop-dark.png",
+      "axeViolations": 0,
+      "hostOverflow": false,
+      "iframeOverflow": false
+    },
+    {
+      "file": "3b-live-resposta-desktop-dark.png",
+      "axeViolations": 0,
+      "hostOverflow": false,
+      "iframeOverflow": false
+    },
+    {
+      "file": "3b-live-fullscreen-desktop-dark.png",
+      "axeViolations": 0,
+      "hostOverflow": false,
+      "iframeOverflow": false
+    },
+    {
+      "file": "3b-live-novo-rascunho-desktop-dark.png",
+      "axeViolations": 0,
+      "hostOverflow": false,
+      "iframeOverflow": false
+    },
+    {
+      "file": "3b-global-conversa-desktop-dark.png",
+      "axeViolations": 0,
+      "hostOverflow": false,
+      "iframeOverflow": false,
+      "primaryAboveComposer": true,
+      "lastContentAboveActions": true
+    },
+    {
+      "file": "3b-global-compositor-alto-desktop-dark.png",
+      "axeViolations": 0,
+      "hostOverflow": false,
+      "iframeOverflow": false,
+      "primaryAboveComposer": true,
+      "lastContentAboveActions": true
+    },
+    {
+      "file": "3b-global-contexto-atualizado-desktop-dark.png",
+      "axeViolations": 0,
+      "hostOverflow": false,
+      "iframeOverflow": false,
+      "primaryAboveComposer": true,
+      "lastContentAboveActions": true
+    },
+    {
+      "file": "3b-global-pendencias-desktop-dark.png",
+      "axeViolations": 0,
+      "hostOverflow": false,
+      "iframeOverflow": false,
+      "primaryAboveComposer": true,
+      "lastContentAboveActions": true
+    },
+    {
+      "file": "3b-global-link-atualizado-desktop-dark.png",
+      "axeViolations": 0,
+      "hostOverflow": false,
+      "iframeOverflow": false,
+      "primaryAboveComposer": true,
+      "lastContentAboveActions": true
+    },
+    {
+      "file": "3b-live-enviada-mobile-dark.png",
+      "axeViolations": 0,
+      "hostOverflow": false,
+      "iframeOverflow": false
+    },
+    {
+      "file": "3b-live-digitando-mobile-dark.png",
+      "axeViolations": 0,
+      "hostOverflow": false,
+      "iframeOverflow": false
+    },
+    {
+      "file": "3b-live-resposta-mobile-dark.png",
+      "axeViolations": 0,
+      "hostOverflow": false,
+      "iframeOverflow": false
+    },
+    {
+      "file": "3b-live-fullscreen-mobile-dark.png",
+      "axeViolations": 0,
+      "hostOverflow": false,
+      "iframeOverflow": false
+    },
+    {
+      "file": "3b-live-novo-rascunho-mobile-dark.png",
+      "axeViolations": 0,
+      "hostOverflow": false,
+      "iframeOverflow": false
+    },
+    {
+      "file": "3b-global-conversa-mobile-dark.png",
+      "axeViolations": 0,
+      "hostOverflow": false,
+      "iframeOverflow": false,
+      "primaryAboveComposer": true,
+      "lastContentAboveActions": true
+    },
+    {
+      "file": "3b-global-compositor-alto-mobile-dark.png",
+      "axeViolations": 0,
+      "hostOverflow": false,
+      "iframeOverflow": false,
+      "primaryAboveComposer": true,
+      "lastContentAboveActions": true
+    },
+    {
+      "file": "3b-global-contexto-atualizado-mobile-dark.png",
+      "axeViolations": 0,
+      "hostOverflow": false,
+      "iframeOverflow": false,
+      "primaryAboveComposer": true,
+      "lastContentAboveActions": true
+    },
+    {
+      "file": "3b-global-pendencias-mobile-dark.png",
+      "axeViolations": 0,
+      "hostOverflow": false,
+      "iframeOverflow": false,
+      "primaryAboveComposer": true,
+      "lastContentAboveActions": true
+    },
+    {
+      "file": "3b-global-link-atualizado-mobile-dark.png",
+      "axeViolations": 0,
+      "hostOverflow": false,
+      "iframeOverflow": false,
+      "primaryAboveComposer": true,
+      "lastContentAboveActions": true
+    },
+    {
+      "file": "3b-global-generico-mobile.png",
+      "axeViolations": 0,
+      "openAiDeepLinkIgnored": true,
+      "openAiSidebarHidden": true
+    }
+  ]
+}

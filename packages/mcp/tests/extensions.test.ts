@@ -48,7 +48,7 @@ describe("optional review extensions", () => {
     await expect(unsupported.client.readResource({uri:'ui://botozap/reply/v1.html'})).rejects.toThrow();
     const supported = await connect(true);
     expect((await supported.client.listTools()).tools.some(t=>t.name==='stage_review_reply')).toBe(true);
-    expect((await supported.client.listResources()).resources.filter(r=>r.uri.startsWith('ui://'))).toHaveLength(6);
+    expect((await supported.client.listResources()).resources.filter(r=>r.uri.startsWith('ui://'))).toHaveLength(8);
   });
   it.each([{mimeTypes:["text/html"]},{mimeTypes:"text/html;profile=mcp-app"},{mimeTypes:123}])("does not accept missing MIME or malformed capability %j",async ({mimeTypes})=>{
     const h=await connect(true,fullAccessIdentity,mimeTypes);
@@ -59,7 +59,7 @@ describe("optional review extensions", () => {
     vi.stubEnv('BOTOZAP_MCP_UI_ACCOUNTS', ` other-account, ${fullAccessIdentity.account_id} `);
     const allowed = await connect(true);
     expect((await allowed.client.listTools()).tools.some(t => t.name === 'stage_review_reply')).toBe(true);
-    expect((await allowed.client.listResources()).resources.filter(r => r.uri.startsWith('ui://'))).toHaveLength(6);
+    expect((await allowed.client.listResources()).resources.filter(r => r.uri.startsWith('ui://'))).toHaveLength(8);
     const denied = await connect(true, { ...fullAccessIdentity, account_id: 'not-selected' });
     const baseline = await connect(false, { ...fullAccessIdentity, account_id: 'not-selected' });
     expect((await denied.client.listTools()).tools).toEqual((await baseline.client.listTools()).tools);
