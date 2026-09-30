@@ -49,3 +49,17 @@ Exemplos: [Plantão mobile escuro](screenshots/3b-live-resposta-mobile-dark.png)
 ## Decisões de Fernando
 
 Definir plugin-id publicado, confirmar o nome open_botozap no catálogo publicado, escolher contas do piloto e validar OAuth/layout no host real. Android ainda não tem deep links na tabela atual; decidir fallback para Android e para operadores sem plugin (inbox web autenticada ou conexão do plugin). A proposta de alerta WhatsApp `cta_url` “Sâmia respondeu…” com botão “Responder no ChatGPT”, suas dependências e os formatos web/codex/chatgpt estão em [DESIGN.md](DESIGN.md); não implementamos no app, não habilitamos flags e não houve deploy/publicação.
+
+## Rodada 3B.1 — correções visuais
+
+Corrigidos os sete defeitos aprovados na revisão. Pendências ocupa uma coluna de leitura e esconde o detalhe vazio enquanto nenhum item está selecionado; no mobile a primeira pendência fica inteira visível e a lista continua rolável. O rodapé compartilhado só fixa ações do painel depois que uma conversa foi aberta, sem reservar altura quando não há ações. A seleção de um item com várias conversas ainda permite escolher a conversa antes de preparar a resposta.
+
+A pill vazia foi removida da apresentação. Cada pendência mostra o nome do contato e o motivo em linhas separadas; a leitura autorizada `get_contact` completa os nomes sem interpretar o texto como HTML. A identidade usa `account_name` quando fornecido e omite a linha quando ausente, sem exibir o slug; o perfil atual não fornece esse campo e seu contrato não foi alterado.
+
+A conversa aberta por deep link começa com a primeira bolha inteira, espaço após o cabeçalho e o rótulo de contato consistente. Lida usa o indicador textual acessível “Lida ✓✓”. No fullscreen do plantão, a composição fica centralizada com largura máxima de 680 px e Responder permanece junto da timeline, no fluxo do conteúdo.
+
+Validação final: build, typecheck, 554 testes (173 SDK, 105 CLI, 276 MCP), gate:tarballs, guarda HTTP do CI e `git diff --check` verdes. Foram recapturadas as 41 imagens 3B e os dois vídeos; outras 56 imagens verificam conversa, Radar, template/carrossel, casos e agendamento do #14 em desktop/mobile e claro/escuro, incluindo confirmação e compositor alto. Todas as 97 imagens passaram com zero violações axe A/AA e sem overflow. Os scripts agora exigem ausência de barra de ações antes da seleção, ao menos uma pendência inteira visível no mobile e consistência de rótulo/espaçamento na primeira bolha.
+
+Artefatos: [validação 3B](screenshots/validation-3b.json), [regressão do rodapé](screenshots/validation-3b1-fullscreen.json), [Pendências mobile](screenshots/3b-global-pendencias-mobile-light.png), [conversa por deep link](screenshots/3b-global-conversa-desktop-dark.png), [plantão fullscreen](screenshots/3b-live-fullscreen-desktop-dark.png), [vídeo do plantão](screenshots/3b-roteiro-live-desktop-dark.webm) e [vídeo da entrada global](screenshots/3b-roteiro-global-desktop-dark.webm). As capturas da regressão usam o prefixo `3b1-`; as capturas anteriores do #14 foram preservadas.
+
+O simulador continua em http://127.0.0.1:4174/chat e o PR #17 permanece draft. Sem instrumentação de debug no commit, alteração no app, deploy, publicação ou mudança de flags; as decisões de piloto e publicação listadas acima continuam pendentes de Fernando.

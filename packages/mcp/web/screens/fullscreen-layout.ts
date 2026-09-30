@@ -13,7 +13,7 @@ export function installFullscreenLayout(root: HTMLElement) {
     pending = 0;
     if (disposed) return;
     const candidates = Array.from(root.querySelectorAll<HTMLElement>('.screen-card > .actions, .detail .actions'));
-    const next = root.dataset.mode === 'fullscreen' ? candidates.reverse().find(el => el.childElementCount > 0 && visible(el)) ?? null : null;
+    const next = root.dataset.mode === 'fullscreen' && root.dataset.actionPlacement !== 'flow' ? candidates.reverse().find(el => el.childElementCount > 0 && visible(el) && (!el.closest('.detail') || root.dataset.conversationOpen === 'true')) ?? null : null;
     if (active !== next) { active?.classList.remove('fullscreen-actions'); resize?.disconnect(); active = next; active?.classList.add('fullscreen-actions'); if (active) resize?.observe(active); }
     if (!active) { root.style.setProperty('--fullscreen-action-height','0px'); return; }
     const container = active.closest<HTMLElement>('.detail, .screen-card')!;
@@ -24,7 +24,7 @@ export function installFullscreenLayout(root: HTMLElement) {
     root.style.setProperty('--fullscreen-action-height',`${Math.ceil(active.getBoundingClientRect().height)}px`);
   }
   const mutations = new MutationObserver(schedule);
-  mutations.observe(root,{childList:true,subtree:true,attributes:true,attributeFilter:['data-mode','data-state','hidden','class']});
+  mutations.observe(root,{childList:true,subtree:true,attributes:true,attributeFilter:['data-mode','data-state','data-conversation-open','data-action-placement','hidden','class']});
   window.addEventListener('resize',schedule);
   window.addEventListener('scroll',schedule,{passive:true});
   const dispose = () => { disposed = true; cancelAnimationFrame(pending); mutations.disconnect(); resize?.disconnect(); window.removeEventListener('resize',schedule); window.removeEventListener('scroll',schedule); active?.classList.remove('fullscreen-actions'); };

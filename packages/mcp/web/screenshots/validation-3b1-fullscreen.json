@@ -1,0 +1,341 @@
+{
+  "screenshots": 56,
+  "results": [
+    {
+      "file": "3b1-template-carousel-rodape-desktop-light.png",
+      "axeViolations": 0,
+      "primaryAboveComposer": true,
+      "lastContentAboveActions": true
+    },
+    {
+      "file": "3b1-template-carousel-confirmacao-desktop-light.png",
+      "axeViolations": 0,
+      "primaryAboveComposer": true,
+      "lastContentAboveActions": true
+    },
+    {
+      "file": "3b1-template-carousel-compositor-alto-desktop-light.png",
+      "axeViolations": 0,
+      "primaryAboveComposer": true,
+      "lastContentAboveActions": true
+    },
+    {
+      "file": "3b1-conversation-rodape-desktop-light.png",
+      "axeViolations": 0,
+      "primaryAboveComposer": true,
+      "lastContentAboveActions": true
+    },
+    {
+      "file": "3b1-conversation-confirmacao-desktop-light.png",
+      "axeViolations": 0,
+      "primaryAboveComposer": true,
+      "lastContentAboveActions": true
+    },
+    {
+      "file": "3b1-conversation-compositor-alto-desktop-light.png",
+      "axeViolations": 0,
+      "primaryAboveComposer": true,
+      "lastContentAboveActions": true
+    },
+    {
+      "file": "3b1-radar-rodape-desktop-light.png",
+      "axeViolations": 0,
+      "primaryAboveComposer": true,
+      "lastContentAboveActions": true
+    },
+    {
+      "file": "3b1-radar-confirmacao-desktop-light.png",
+      "axeViolations": 0,
+      "primaryAboveComposer": true,
+      "lastContentAboveActions": true
+    },
+    {
+      "file": "3b1-radar-compositor-alto-desktop-light.png",
+      "axeViolations": 0,
+      "primaryAboveComposer": true,
+      "lastContentAboveActions": true
+    },
+    {
+      "file": "3b1-cases-rodape-desktop-light.png",
+      "axeViolations": 0,
+      "primaryAboveComposer": true,
+      "lastContentAboveActions": true
+    },
+    {
+      "file": "3b1-cases-confirmacao-desktop-light.png",
+      "axeViolations": 0,
+      "primaryAboveComposer": true,
+      "lastContentAboveActions": true
+    },
+    {
+      "file": "3b1-cases-compositor-alto-desktop-light.png",
+      "axeViolations": 0,
+      "primaryAboveComposer": true,
+      "lastContentAboveActions": true
+    },
+    {
+      "file": "3b1-booking-rodape-desktop-light.png",
+      "axeViolations": 0,
+      "primaryAboveComposer": true,
+      "lastContentAboveActions": true
+    },
+    {
+      "file": "3b1-booking-compositor-alto-desktop-light.png",
+      "axeViolations": 0,
+      "primaryAboveComposer": true,
+      "lastContentAboveActions": true
+    },
+    {
+      "file": "3b1-template-carousel-rodape-mobile-light.png",
+      "axeViolations": 0,
+      "primaryAboveComposer": true,
+      "lastContentAboveActions": true
+    },
+    {
+      "file": "3b1-template-carousel-confirmacao-mobile-light.png",
+      "axeViolations": 0,
+      "primaryAboveComposer": true,
+      "lastContentAboveActions": true
+    },
+    {
+      "file": "3b1-template-carousel-compositor-alto-mobile-light.png",
+      "axeViolations": 0,
+      "primaryAboveComposer": true,
+      "lastContentAboveActions": true
+    },
+    {
+      "file": "3b1-conversation-rodape-mobile-light.png",
+      "axeViolations": 0,
+      "primaryAboveComposer": true,
+      "lastContentAboveActions": true
+    },
+    {
+      "file": "3b1-conversation-confirmacao-mobile-light.png",
+      "axeViolations": 0,
+      "primaryAboveComposer": true,
+      "lastContentAboveActions": true
+    },
+    {
+      "file": "3b1-conversation-compositor-alto-mobile-light.png",
+      "axeViolations": 0,
+      "primaryAboveComposer": true,
+      "lastContentAboveActions": true
+    },
+    {
+      "file": "3b1-radar-rodape-mobile-light.png",
+      "axeViolations": 0,
+      "primaryAboveComposer": true,
+      "lastContentAboveActions": true
+    },
+    {
+      "file": "3b1-radar-confirmacao-mobile-light.png",
+      "axeViolations": 0,
+      "primaryAboveComposer": true,
+      "lastContentAboveActions": true
+    },
+    {
+      "file": "3b1-radar-compositor-alto-mobile-light.png",
+      "axeViolations": 0,
+      "primaryAboveComposer": true,
+      "lastContentAboveActions": true
+    },
+    {
+      "file": "3b1-cases-rodape-mobile-light.png",
+      "axeViolations": 0,
+      "primaryAboveComposer": true,
+      "lastContentAboveActions": true
+    },
+    {
+      "file": "3b1-cases-confirmacao-mobile-light.png",
+      "axeViolations": 0,
+      "primaryAboveComposer": true,
+      "lastContentAboveActions": true
+    },
+    {
+      "file": "3b1-cases-compositor-alto-mobile-light.png",
+      "axeViolations": 0,
+      "primaryAboveComposer": true,
+      "lastContentAboveActions": true
+    },
+    {
+      "file": "3b1-booking-rodape-mobile-light.png",
+      "axeViolations": 0,
+      "primaryAboveComposer": true,
+      "lastContentAboveActions": true
+    },
+    {
+      "file": "3b1-booking-compositor-alto-mobile-light.png",
+      "axeViolations": 0,
+      "primaryAboveComposer": true,
+      "lastContentAboveActions": true
+    },
+    {
+      "file": "3b1-template-carousel-rodape-desktop-dark.png",
+      "axeViolations": 0,
+      "primaryAboveComposer": true,
+      "lastContentAboveActions": true
+    },
+    {
+      "file": "3b1-template-carousel-confirmacao-desktop-dark.png",
+      "axeViolations": 0,
+      "primaryAboveComposer": true,
+      "lastContentAboveActions": true
+    },
+    {
+      "file": "3b1-template-carousel-compositor-alto-desktop-dark.png",
+      "axeViolations": 0,
+      "primaryAboveComposer": true,
+      "lastContentAboveActions": true
+    },
+    {
+      "file": "3b1-conversation-rodape-desktop-dark.png",
+      "axeViolations": 0,
+      "primaryAboveComposer": true,
+      "lastContentAboveActions": true
+    },
+    {
+      "file": "3b1-conversation-confirmacao-desktop-dark.png",
+      "axeViolations": 0,
+      "primaryAboveComposer": true,
+      "lastContentAboveActions": true
+    },
+    {
+      "file": "3b1-conversation-compositor-alto-desktop-dark.png",
+      "axeViolations": 0,
+      "primaryAboveComposer": true,
+      "lastContentAboveActions": true
+    },
+    {
+      "file": "3b1-radar-rodape-desktop-dark.png",
+      "axeViolations": 0,
+      "primaryAboveComposer": true,
+      "lastContentAboveActions": true
+    },
+    {
+      "file": "3b1-radar-confirmacao-desktop-dark.png",
+      "axeViolations": 0,
+      "primaryAboveComposer": true,
+      "lastContentAboveActions": true
+    },
+    {
+      "file": "3b1-radar-compositor-alto-desktop-dark.png",
+      "axeViolations": 0,
+      "primaryAboveComposer": true,
+      "lastContentAboveActions": true
+    },
+    {
+      "file": "3b1-cases-rodape-desktop-dark.png",
+      "axeViolations": 0,
+      "primaryAboveComposer": true,
+      "lastContentAboveActions": true
+    },
+    {
+      "file": "3b1-cases-confirmacao-desktop-dark.png",
+      "axeViolations": 0,
+      "primaryAboveComposer": true,
+      "lastContentAboveActions": true
+    },
+    {
+      "file": "3b1-cases-compositor-alto-desktop-dark.png",
+      "axeViolations": 0,
+      "primaryAboveComposer": true,
+      "lastContentAboveActions": true
+    },
+    {
+      "file": "3b1-booking-rodape-desktop-dark.png",
+      "axeViolations": 0,
+      "primaryAboveComposer": true,
+      "lastContentAboveActions": true
+    },
+    {
+      "file": "3b1-booking-compositor-alto-desktop-dark.png",
+      "axeViolations": 0,
+      "primaryAboveComposer": true,
+      "lastContentAboveActions": true
+    },
+    {
+      "file": "3b1-template-carousel-rodape-mobile-dark.png",
+      "axeViolations": 0,
+      "primaryAboveComposer": true,
+      "lastContentAboveActions": true
+    },
+    {
+      "file": "3b1-template-carousel-confirmacao-mobile-dark.png",
+      "axeViolations": 0,
+      "primaryAboveComposer": true,
+      "lastContentAboveActions": true
+    },
+    {
+      "file": "3b1-template-carousel-compositor-alto-mobile-dark.png",
+      "axeViolations": 0,
+      "primaryAboveComposer": true,
+      "lastContentAboveActions": true
+    },
+    {
+      "file": "3b1-conversation-rodape-mobile-dark.png",
+      "axeViolations": 0,
+      "primaryAboveComposer": true,
+      "lastContentAboveActions": true
+    },
+    {
+      "file": "3b1-conversation-confirmacao-mobile-dark.png",
+      "axeViolations": 0,
+      "primaryAboveComposer": true,
+      "lastContentAboveActions": true
+    },
+    {
+      "file": "3b1-conversation-compositor-alto-mobile-dark.png",
+      "axeViolations": 0,
+      "primaryAboveComposer": true,
+      "lastContentAboveActions": true
+    },
+    {
+      "file": "3b1-radar-rodape-mobile-dark.png",
+      "axeViolations": 0,
+      "primaryAboveComposer": true,
+      "lastContentAboveActions": true
+    },
+    {
+      "file": "3b1-radar-confirmacao-mobile-dark.png",
+      "axeViolations": 0,
+      "primaryAboveComposer": true,
+      "lastContentAboveActions": true
+    },
+    {
+      "file": "3b1-radar-compositor-alto-mobile-dark.png",
+      "axeViolations": 0,
+      "primaryAboveComposer": true,
+      "lastContentAboveActions": true
+    },
+    {
+      "file": "3b1-cases-rodape-mobile-dark.png",
+      "axeViolations": 0,
+      "primaryAboveComposer": true,
+      "lastContentAboveActions": true
+    },
+    {
+      "file": "3b1-cases-confirmacao-mobile-dark.png",
+      "axeViolations": 0,
+      "primaryAboveComposer": true,
+      "lastContentAboveActions": true
+    },
+    {
+      "file": "3b1-cases-compositor-alto-mobile-dark.png",
+      "axeViolations": 0,
+      "primaryAboveComposer": true,
+      "lastContentAboveActions": true
+    },
+    {
+      "file": "3b1-booking-rodape-mobile-dark.png",
+      "axeViolations": 0,
+      "primaryAboveComposer": true,
+      "lastContentAboveActions": true
+    },
+    {
+      "file": "3b1-booking-compositor-alto-mobile-dark.png",
+      "axeViolations": 0,
+      "primaryAboveComposer": true,
+      "lastContentAboveActions": true
+    }
+  ]
+}

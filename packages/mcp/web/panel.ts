@@ -38,7 +38,7 @@ export function mountReview(root: HTMLElement, bridge: Bridge) {
   const templateButton = document.createElement('button'); templateButton.id = 'use-template'; templateButton.textContent = 'Usar template aprovado'; templateButton.className = 'primary'; el('draft-controls').after(templateButton);
   templateButton.onclick = () => { if (conversation && !isOpen() && !locked && !intents.get(conversation.id)?.uncertain) bridge.template?.({ conversation, customer_id: business.value }); };
   const business = el<HTMLSelectElement>('business'), draft = el<HTMLTextAreaElement>('draft');
-  root.dataset.mode = root.dataset.initialMode === 'inline' ? 'inline' : 'fullscreen'; root.dataset.state = 'draft';
+  root.dataset.mode = root.dataset.initialMode === 'inline' ? 'inline' : 'fullscreen'; root.dataset.state = 'draft'; root.dataset.conversationOpen = 'false'; root.dataset.itemSelected = 'false';
   let account = '', environment = '', customers: Row[] = [], entries: Row[] = [], customerPage = 1, customerPages = 1, radarPage = 1, radarPages = 1;
   let selected: Row | null = null, conversation: Row | null = null, messages: Row[] = [], historyCursor: string | undefined;
   let acceptedId = '', draftVersion = 0;
@@ -77,6 +77,7 @@ export function mountReview(root: HTMLElement, bridge: Bridge) {
   };
   const resetDraft = () => { el('card-summary').replaceChildren(); el('card-preview').textContent = ''; root.dataset.editing = 'false'; draft.value = ''; draft.disabled = true; el('length').textContent = '0 / 4096'; el<HTMLButtonElement>('review').disabled = true; el('confirmation').hidden = true; el<HTMLInputElement>('consent').checked = false; reviewBody = ''; };
   const context = () => {
+    root.dataset.conversationOpen = String(!!conversation); root.dataset.itemSelected = String(!!selected);
     // Context is scoped to the authorized selection. Contact strings remain explicitly untrusted.
     const payload = { account_id: account, customer_id: business.value || null, entity: selected ? { id: selected.id, type: selected.entity_type } : null, conversation_id: conversation?.id ?? null, review_state: root.dataset.state, untrusted_contact_content: conversation ? { draft: draft.value, contact: conversation.contact, messages: messages.slice(0,20).map(m => ({ direction: m.direction, body: messageBody(m), at: m.created_at })) } : null };
     void bridge.context(payload).catch(() => { /* Context support is optional; sending does not depend on it. */ });
@@ -102,9 +103,11 @@ export function mountReview(root: HTMLElement, bridge: Bridge) {
     const labels: Row = { opportunity: 'Oportunidade', demand: 'Demanda', return: 'Retorno', appointment: 'Agendamento', critical: 'Crítico', at_risk: 'Atenção', scheduled: 'Programado' };
     for (const entry of entries) {
       const button = document.createElement('button'); button.className = 'radar-item'; button.setAttribute('aria-pressed', String(selected?.id === entry.id)); button.disabled = sending;
-      const title = document.createElement('strong'); title.textContent = text(entry.title) || labels[entry.entity_type];
+      const title = document.createElement('strong'); title.textContent = text(entry.contact_name) || 'Contato';
+      const reason = document.createElement('span'); reason.textContent = text(entry.title) || labels[entry.entity_type];
       const meta = document.createElement('span'); meta.textContent = `${labels[entry.bucket] ?? 'Acompanhamento'}${relative(entry.last_message_at || entry.created_at) ? ` · Esperando ${relative(entry.last_message_at || entry.created_at)}` : ''}`;
-      const next = document.createElement('small'); next.textContent = text(entry.next_step) || 'Próximo passo não definido'; button.append(title, meta, next); button.onclick = () => void selectEntry(entry); el('radar-list').append(button);
+      const next = document.createElement('small'); next.textContent = text(entry.next_step) || 'Próximo passo não definido'; button.append(title, reason, meta, next);
+      if(entry.contact_id) void call('get_contact',{id:entry.contact_id}).then(result=>{if(!button.isConnected)return;const contact=result.data;title.textContent=text(contact?.display_name)||text(contact?.profile_name)||'Contato';}).catch(()=>{}); button.onclick = () => void selectEntry(entry); el('radar-list').append(button);
     }
     el('more-radar').hidden = radarPage >= radarPages;
   }
@@ -259,7 +262,7 @@ export function mountReview(root: HTMLElement, bridge: Bridge) {
           })().catch(() => notice('Não foi possível preparar este rascunho. Reabra o painel e confira as permissões.', 'error'));
           return;
         }
-        if (account && data.account_id !== account) { ++stageGeneration; ++generation; intents.clear(); conversation = null; selected = null; messages = []; resetDraft(); context(); business.disabled = true; throw new Error('A conta mudou. Feche este painel e abra uma nova revisão.'); } if (!account && root.dataset.mode === 'fullscreen') void bridge.displayMode?.('fullscreen').catch(() => {}); account = data.account_id; environment = data.environment; el('identity').textContent = `Conta ${account}`; el('environment').textContent = environment === 'live' ? 'Ambiente de produção' : 'Sandbox'; appendCustomers(data.customers); business.disabled = false; notice(customers.length ? '' : 'Nenhum negócio disponível. Confira seu acesso no painel BotoZap.'); }
+        if (account && data.account_id !== account) { ++stageGeneration; ++generation; intents.clear(); conversation = null; selected = null; messages = []; resetDraft(); context(); business.disabled = true; throw new Error('A conta mudou. Feche este painel e abra uma nova revisão.'); } if (!account && root.dataset.mode === 'fullscreen') void bridge.displayMode?.('fullscreen').catch(() => {}); account = data.account_id; environment = data.environment; el('identity').textContent = text(data.account_name); el('identity').hidden = !text(data.account_name); el('environment').textContent = environment === 'live' ? 'Ambiente de produção' : 'Sandbox'; appendCustomers(data.customers); business.disabled = false; notice(customers.length ? '' : 'Nenhum negócio disponível. Confira seu acesso no painel BotoZap.'); }
       catch (error) { notice((error as Error).message, 'error'); }
     },
     connectionError() { notice('Não foi possível conectar ao host MCP. Reabra o painel a partir da conversa.', 'error'); },

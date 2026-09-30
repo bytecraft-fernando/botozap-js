@@ -12,7 +12,7 @@ export function parseDeepLink(value:unknown):DeepLink|null {
 }
 export function mountGlobal(root:HTMLElement,bridge:Bridge){
   root.id='global-container';
-  for(const key of ['mode','focus','state','editing'])delete root.dataset[key];
+  for(const key of ['mode','focus','state','editing','conversationOpen','itemSelected','actionPlacement'])delete root.dataset[key];
   const surface=()=>{const el=document.createElement('div');el.id='app';root.replaceChildren(el);return el;};
   let current=surface();
   let review=mountReview(current,bridge),mode='inline',initial:Row|undefined,lastUrl:unknown,generation=0;

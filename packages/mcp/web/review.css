@@ -175,3 +175,14 @@ button,.pending-card,.detail{transition:background-color 150ms ease,border-color
 html{scroll-padding-bottom:var(--host-safe-bottom,0px)}
 
 [data-focus=conversation] .inline-heading{position:sticky;top:0;z-index:2;background:var(--background);padding-top:12px}
+
+/* 3B.1: a browsing Radar has no draft surface or action footer yet. */
+[data-conversation-open=false] .detail .actions{display:none!important}
+[data-mode=fullscreen][data-item-selected=false] .detail{display:none}
+[data-mode=fullscreen][data-item-selected=false] .columns{grid-template-columns:minmax(0,1fr)}
+[data-mode=fullscreen][data-item-selected=false] .radar{width:100%;max-width:740px;margin-inline:auto}
+#window:empty{display:none}
+[data-focus=conversation] .history{padding-top:28px}
+[data-focus=conversation] .message:first-child{margin-top:4px}
+
+@media(max-width:650px){[data-mode=fullscreen][data-item-selected=false] .workspace{padding:16px 16px 32px!important}[data-mode=fullscreen][data-item-selected=false] .toolbar{margin:16px 0}[data-mode=fullscreen][data-item-selected=false] .radar{padding:16px}}

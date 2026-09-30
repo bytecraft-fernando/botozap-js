@@ -40,6 +40,7 @@ function display(view: View, fullscreen: boolean) {
   document.body.classList.toggle('has-fullscreen', fullscreen); $('fullscreen-bar').hidden = !fullscreen;
   for (const message of Array.from($('thread').children)) (message as HTMLElement).inert = fullscreen && message !== view.mount;
   current = view; sync(view);
+  if(fullscreen)window.scrollTo({top:0,left:0});
   if (!fullscreen) view.iframe.scrollIntoView({ block: 'end' });
 }
 async function createView(kind: 'carousel' | 'review' | 'template' | 'cases' | 'booking' | 'live' | 'global', result: Record<string, any>, tool: string, input?: Record<string, any>, introduction?: string, deepLink?: string) {

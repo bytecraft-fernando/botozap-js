@@ -4,6 +4,7 @@ import './live.css';
 type LiveBridge=Bridge & { liveDisplayMode?(mode:'pip'|'inline'):Promise<unknown> };
 export function mountLive(root:HTMLElement,bridge:LiveBridge) {
   const ui=shell(root,'Plantão ao vivo','Acompanhando a conversa');
+  root.dataset.actionPlacement='flow';
   const timeline=node('ol','','live-timeline');timeline.setAttribute('aria-label','Eventos da conversa');ui.content.append(timeline);
   let id='',messageId='',cursor='0',timer:ReturnType<typeof setTimeout>|undefined,closed=false,busy=false,idle=0,started=Date.now(),epoch=0;
   const seen=new Map<string,Row>();
@@ -15,7 +16,7 @@ export function mountLive(root:HTMLElement,bridge:LiveBridge) {
       if(event.kind==='typing'&&(Date.now()-Date.parse(event.at)>12000||[...seen.values()].some(e=>e.kind==='reply'&&e.at>=event.at)))continue;
       const level=['sent','delivered','read'].indexOf(event.kind)+1;
       if(level&&level<=receipt)continue;receipt=Math.max(receipt,level);
-      const labels:Row={sent:'Enviada ✓',delivered:'Entregue ✓✓',read:'Lida',typing:'Digitando…',reply:'Resposta do cliente'};
+      const labels:Row={sent:'Enviada ✓',delivered:'Entregue ✓✓',read:'Lida ✓✓',typing:'Digitando…',reply:'Resposta do cliente'};
       const item=node('li','','live-event');const time=node('time',new Intl.DateTimeFormat('pt-BR',{hour:'2-digit',minute:'2-digit'}).format(new Date(event.at)));time.setAttribute('datetime',event.at);
       item.append(node('strong',labels[event.kind]),time);if(event.text)item.append(node('p',event.text,'screen-preview'));timeline.append(item);
     }
