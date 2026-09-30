@@ -2,6 +2,7 @@ type Row = Record<string, any>;
 export interface Bridge {
   call(name: string, args: Record<string, unknown>): Promise<any>;
   context(value: unknown): Promise<unknown>;
+  displayMode?(mode: 'inline' | 'fullscreen'): Promise<unknown>;
 }
 class BridgeError extends Error {
   constructor(message: string, readonly outcome?: 'rejected' | 'unknown', readonly retry?: string) { super(message); }
@@ -24,9 +25,10 @@ const date = (value: unknown) => {
   return Number.isNaN(d.valueOf()) ? '' : new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' }).format(d);
 };
 export function mountReview(root: HTMLElement, bridge: Bridge) {
-  root.innerHTML = `<main class="workspace"><header><div><p class="eyebrow">BOTOZAP · RADAR</p><h1>Revisar uma resposta</h1><p class="muted">Escolha o negócio, leia o histórico e confirme o envio.</p></div><span class="badge" id="environment">Conectando…</span></header><p id="identity" class="identity"></p><div id="notice" role="status" aria-live="polite"></div><section class="toolbar"><label for="business">Negócio</label><select id="business" disabled><option value="">Selecione um negócio</option></select><button id="more-business" hidden>Mais negócios</button></section><div class="columns"><section class="panel radar"><div class="section-title"><h2>Precisa de atenção</h2><span id="count" class="muted"></span></div><div id="radar-list" class="items"><p class="empty">Selecione um negócio para consultar o Radar.</p></div><button id="more-radar" hidden>Carregar mais</button></section><section class="panel detail"><div class="section-title"><h2>Histórico e resposta</h2><span id="window" class="badge"></span></div><p id="recipient" class="muted">Abra um item do Radar.</p><div id="conversations"></div><div id="history" class="history"><p class="empty">O histórico aparecerá aqui.</p></div><button id="more-history" hidden>Mensagens anteriores</button><p class="caption">Mensagens exibidas na ordem em que foram recebidas.</p><label for="draft">Sua resposta</label><textarea id="draft" rows="5" maxlength="4096" disabled placeholder="Escreva a resposta que deseja revisar…"></textarea><div class="draft-footer"><span id="length" class="muted">0 / 4096</span><button id="review" class="primary" disabled>Revisar envio</button></div><section id="confirmation" class="confirmation" hidden><h3>Confira antes de enviar</h3><dl id="summary"></dl><p id="preview" class="preview"></p><label class="check"><input id="consent" type="checkbox">Conferi o destinatário, o canal e a mensagem.</label><div class="actions"><button id="edit">Voltar ao rascunho</button><button id="send" class="primary" disabled>Confirmar e enviar</button></div></section></section></div></main>`;
+  root.innerHTML = `<main class="workspace"><header><div><p class="eyebrow">PENDÊNCIAS</p><h1>Radar</h1><p class="muted">Escolha o negócio, leia o histórico e confirme o envio.</p></div><span class="badge" id="environment">Conectando…</span></header><p id="identity" class="identity"></p><div id="notice" role="status" aria-live="polite"></div><section class="toolbar"><label for="business">Negócio</label><select id="business" disabled><option value="">Selecione um negócio</option></select><button id="more-business" hidden>Mais negócios</button></section><div class="columns"><section class="panel radar"><div class="section-title"><h2>Pendências</h2><span id="count" class="muted"></span></div><div id="radar-list" class="items"><p class="empty">Selecione um negócio para consultar o Radar.</p></div><button id="more-radar" hidden>Carregar mais</button></section><section class="panel detail"><div class="inline-heading"><h1>Resposta pronta</h1><span id="card-state" class="badge" role="status" aria-live="polite">Rascunho</span></div><dl id="card-summary" class="card-summary"></dl><p id="card-preview" class="preview"></p><div class="section-title"><h2>Histórico e resposta</h2><span id="window" class="badge"></span></div><p id="recipient" class="muted">Abra um item do Radar.</p><div id="conversations"></div><div id="history" class="history"><p class="empty">O histórico aparecerá aqui.</p></div><button id="more-history" hidden>Mensagens anteriores</button><p class="caption">Mensagens exibidas na ordem em que foram recebidas.</p><label class="draft-label" for="draft">Sua resposta</label><textarea id="draft" rows="5" maxlength="4096" disabled placeholder="Escreva a resposta que deseja revisar…"></textarea><div class="draft-footer"><span id="length" class="muted">0 / 4096</span><div class="actions"><button id="edit-draft" class="inline-only">Editar</button><button id="review" class="primary" disabled>Revisar envio</button></div></div><section id="confirmation" class="confirmation" hidden><h3>Confira antes de enviar</h3><dl id="summary"></dl><p id="preview" class="preview"></p><label class="check"><input id="consent" type="checkbox">Conferi o destinatário, o canal e a mensagem.</label><div class="actions"><button id="edit">Editar</button><button id="send" class="primary" disabled>Enviar</button></div></section></section></div></main>`;
   const el = <T extends HTMLElement = HTMLElement>(id: string) => root.querySelector<T>(`#${id}`)!;
   const business = el<HTMLSelectElement>('business'), draft = el<HTMLTextAreaElement>('draft');
+  root.dataset.mode = root.dataset.initialMode === 'inline' ? 'inline' : 'fullscreen'; root.dataset.state = 'draft';
   let account = '', environment = '', customers: Row[] = [], entries: Row[] = [], customerPage = 1, customerPages = 1, radarPage = 1, radarPages = 1;
   let selected: Row | null = null, conversation: Row | null = null, messages: Row[] = [], historyCursor: string | undefined;
   let generation = 0, sending = false, locked = false, reviewBody = '', stageGeneration = 0;
@@ -35,6 +37,15 @@ export function mountReview(root: HTMLElement, bridge: Bridge) {
   const expired = (intent: Intent | undefined) => !!intent?.uncertain && intent.firstAttemptAt !== undefined && Date.now() - intent.firstAttemptAt >= 24 * 60 * 60 * 1000;
   const expiredNotice = () => notice('O prazo de proteção desta tentativa expirou. Confira o histórico no painel BotoZap antes de decidir sobre outro envio. Esta tentativa não será repetida.', 'warning');
   const destination = (c: Row) => JSON.stringify([c.id, c.contact_id, c.phone_number_id, c.channel, c.channel_account?.id, c.contact?.wa_id, c.contact?.phone]);
+  const setState = (state: string) => { root.dataset.state = state; el('card-state').textContent = ({ draft: 'Rascunho', confirming: 'Confirmando', sending: 'Enviando', accepted: 'Aceito', rejected: 'Recusado', uncertain: 'Incerto', closed: 'Janela fechada' } as Row)[state] ?? state; };
+  const setMode = (mode: 'inline' | 'fullscreen') => { root.dataset.mode = mode; el('review').textContent = mode === 'inline' ? 'Enviar' : 'Revisar envio'; };
+  function card() {
+    const c = conversation; if (!c) return;
+    el('card-summary').replaceChildren();
+    const pairs = [['Contato', `${text(c.contact?.name)} · ${text(c.contact?.phone) || text(c.contact?.wa_id)}`], ['Canal / origem', `WhatsApp · Número de origem: ${text(c.display_phone_number) || text(c.channel_account?.display) || c.phone_number_id}`], ['Negócio', customers.find(r => r.id === business.value)?.name || business.value], ['Janela 24h', isOpen() ? `Aberta até ${date(c.window_expires_at)}` : 'Fechada · use um template aprovado no painel']];
+    for (const [key, value] of pairs) { const dt = document.createElement('dt'), dd = document.createElement('dd'); dt.textContent = key; dd.textContent = value; el('card-summary').append(dt, dd); }
+    el('card-preview').textContent = draft.value || 'Prepare uma resposta nesta conversa.';
+  }
   const notice = (message: string, kind = '') => { el('notice').textContent = message; el('notice').className = kind ? `notice ${kind}` : ''; };
   const call = async (name: string, args: Record<string, unknown>) => decode(await bridge.call(name, args));
   const isOpen = () => conversation?.status === 'active' && (!conversation.channel || conversation.channel === 'whatsapp') && Date.parse(conversation.window_expires_at ?? '') > Date.now();
@@ -42,12 +53,13 @@ export function mountReview(root: HTMLElement, bridge: Bridge) {
     if (!conversation || (conversation.channel && conversation.channel !== 'whatsapp')) return false;
     const intent = intents.get(conversation.id);
     if (expired(intent)) return false;
+    if (root.dataset.mode === 'inline' && intent?.uncertain) return false;
     return isOpen() || (!!intent?.uncertain && intent.destination === destination(conversation));
   };
-  const resetDraft = () => { draft.value = ''; draft.disabled = true; el('length').textContent = '0 / 4096'; el<HTMLButtonElement>('review').disabled = true; el('confirmation').hidden = true; el<HTMLInputElement>('consent').checked = false; reviewBody = ''; };
+  const resetDraft = () => { el('card-summary').replaceChildren(); el('card-preview').textContent = ''; root.dataset.editing = 'false'; draft.value = ''; draft.disabled = true; el('length').textContent = '0 / 4096'; el<HTMLButtonElement>('review').disabled = true; el('confirmation').hidden = true; el<HTMLInputElement>('consent').checked = false; reviewBody = ''; };
   const context = () => {
     // Context is scoped to the authorized selection. Contact strings remain explicitly untrusted.
-    const payload = { account_id: account, customer_id: business.value || null, entity: selected ? { id: selected.id, type: selected.entity_type } : null, conversation_id: conversation?.id ?? null, untrusted_contact_content: conversation ? { contact: conversation.contact, messages: messages.slice(0,20).map(m => ({ direction: m.direction, body: messageBody(m), at: m.created_at })) } : null };
+    const payload = { account_id: account, customer_id: business.value || null, entity: selected ? { id: selected.id, type: selected.entity_type } : null, conversation_id: conversation?.id ?? null, untrusted_contact_content: conversation ? { draft: draft.value, contact: conversation.contact, messages: messages.slice(0,20).map(m => ({ direction: m.direction, body: messageBody(m), at: m.created_at })) } : null };
     void bridge.context(payload).catch(() => { /* Context support is optional; sending does not depend on it. */ });
   };
   function messageBody(m: Row) {
@@ -68,7 +80,7 @@ export function mountReview(root: HTMLElement, bridge: Bridge) {
   function renderRadar() {
     el('radar-list').replaceChildren(); el('count').textContent = `${entries.length} itens`;
     if (!entries.length) el('radar-list').textContent = 'Nenhum item neste recorte do Radar.';
-    const labels: Row = { opportunity: 'Oportunidade', demand: 'Demanda', return: 'Retorno', appointment: 'Agendamento', critical: 'Crítico', at_risk: 'Em risco', scheduled: 'Programado' };
+    const labels: Row = { opportunity: 'Oportunidade', demand: 'Demanda', return: 'Retorno', appointment: 'Agendamento', critical: 'Crítico', at_risk: 'Atenção', scheduled: 'Programado' };
     for (const entry of entries) {
       const button = document.createElement('button'); button.className = 'radar-item'; button.setAttribute('aria-pressed', String(selected?.id === entry.id)); button.disabled = sending;
       const title = document.createElement('strong'); title.textContent = text(entry.title) || labels[entry.entity_type];
@@ -123,29 +135,32 @@ export function mountReview(root: HTMLElement, bridge: Bridge) {
       const c = conversation!; el('recipient').textContent = `${text(c.contact?.name)} · ${text(c.contact?.phone) || text(c.contact?.wa_id) || text(c.contact?.username)} · ${text(c.channel) || 'WhatsApp'} · ${text(c.channel_account?.display) || text(c.display_phone_number) || c.phone_number_id}`;
       el('window').textContent = isOpen() ? `Janela aberta até ${date(c.window_expires_at)}` : 'Janela fechada'; el('window').className = `badge ${isOpen() ? 'success' : 'warning'}`;
       const pending = intents.get(id);
-      locked = false; draft.disabled = !isOpen() || !!pending?.uncertain; renderHistory();
-      if (pending?.uncertain) { draft.value = pending.body; reviewBody = pending.body; el('length').textContent = `${draft.value.length} / 4096`; el<HTMLButtonElement>('review').disabled = !canAttempt(); el('review').textContent = 'Revisar tentativa pendente'; notice('O resultado da tentativa anterior está incerto. Você pode repetir a mesma tentativa com proteção contra duplicidade.', 'warning'); }
-      else el('review').textContent = 'Revisar envio';
+      locked = false; draft.disabled = !isOpen() || !!pending?.uncertain; renderHistory(); card(); setState(pending?.uncertain ? 'uncertain' : isOpen() ? 'draft' : 'closed');
+      if (pending?.uncertain) { draft.value = pending.body; reviewBody = pending.body; el('length').textContent = `${draft.value.length} / 4096`; el<HTMLButtonElement>('review').disabled = !canAttempt(); el('review').textContent = 'Revisar tentativa pendente'; notice(root.dataset.mode === 'inline' ? 'O resultado da tentativa anterior está incerto. Confira o histórico no painel BotoZap. Novos envios estão bloqueados.' : 'O resultado da tentativa anterior está incerto. Confira o histórico antes de repetir explicitamente a mesma tentativa com proteção contra duplicidade.', 'warning'); }
+      else el('review').textContent = root.dataset.mode === 'inline' ? 'Enviar' : 'Revisar envio';
       if (pending?.uncertain && pending.destination !== destination(c)) { locked = true; el<HTMLButtonElement>('review').disabled = true; notice('O destino da tentativa pendente mudou. Confira o resultado no painel BotoZap antes de enviar outra resposta.', 'warning'); }
       if (expired(pending)) { locked = true; el<HTMLButtonElement>('review').disabled = true; expiredNotice(); }
       if (!isOpen() && !pending?.uncertain) notice(c.channel && c.channel !== 'whatsapp' ? 'Este painel envia respostas de texto pelo WhatsApp. Continue esta conversa no painel BotoZap.' : 'A janela para resposta de texto está fechada. Abra o painel BotoZap para avaliar um template aprovado.', 'warning');
+      card();
     } catch (error) { if (token === generation) { el('history').textContent = 'Não foi possível carregar esta conversa.'; notice((error as Error).message, 'error'); } }
   }
   business.onchange = () => { ++stageGeneration; ++generation; selected = null; conversation = null; entries = []; messages = []; locked = false; resetDraft(); el('history').textContent = 'Abra um item do Radar.'; el('recipient').textContent = ''; el('window').textContent = ''; el('conversations').replaceChildren(); el('more-history').hidden = true; context(); renderRadar(); if (business.value) void loadRadar(); };
-  draft.oninput = () => { ++stageGeneration; if (conversation) { const intent = intents.get(conversation.id); if (intent && !intent.uncertain && intent.body !== draft.value) intents.delete(conversation.id); } el('length').textContent = `${draft.value.length} / 4096`; el<HTMLButtonElement>('review').disabled = !draft.value.trim() || locked || !isOpen(); el('confirmation').hidden = true; };
+  el('edit-draft').onclick = () => { if (locked || draft.disabled) return; root.dataset.editing = 'true'; draft.focus(); };
+  draft.oninput = () => { card(); context(); setState('draft'); ++stageGeneration; if (conversation) { const intent = intents.get(conversation.id); if (intent && !intent.uncertain && intent.body !== draft.value) intents.delete(conversation.id); } el('length').textContent = `${draft.value.length} / 4096`; el<HTMLButtonElement>('review').disabled = !draft.value.trim() || locked || !isOpen(); el('confirmation').hidden = true; };
   el('review').onclick = () => {
     if (conversation && expired(intents.get(conversation.id))) { expiredNotice(); return; }
     if (!conversation || !canAttempt() || locked || !draft.value.trim()) return;
+    root.dataset.editing = 'false'; setState('confirming');
     reviewBody = draft.value; el('preview').textContent = reviewBody; el('summary').replaceChildren();
     const existing = intents.get(conversation.id);
     if (!existing || existing.body !== reviewBody || existing.destination !== destination(conversation)) intents.set(conversation.id, { body: reviewBody, key: crypto.randomUUID(), uncertain: false, destination: destination(conversation) });
-    el('send').textContent = intents.get(conversation.id)?.uncertain ? 'Repetir a mesma tentativa' : 'Confirmar e enviar';
+    el('send').textContent = intents.get(conversation.id)?.uncertain ? 'Repetir a mesma tentativa' : 'Enviar';
     el<HTMLButtonElement>('edit').disabled = !!intents.get(conversation.id)?.uncertain;
     const c = conversation; const pairs = [['Negócio', customers.find(r => r.id === business.value)?.name || business.value], ['Destinatário', `${text(c.contact?.name)} · ${text(c.contact?.phone) || text(c.contact?.wa_id) || text(c.contact?.username)}`], ['Canal', `${text(c.channel) || 'WhatsApp'} · ${text(c.channel_account?.display) || text(c.display_phone_number) || c.phone_number_id}`]];
     for (const [key, value] of pairs) { const dt = document.createElement('dt'), dd = document.createElement('dd'); dt.textContent = key; dd.textContent = value; el('summary').append(dt, dd); }
-    el<HTMLInputElement>('consent').checked = false; el<HTMLButtonElement>('send').disabled = true; el('confirmation').hidden = false; el('confirmation').scrollIntoView({ block: 'nearest' });
+    el<HTMLInputElement>('consent').checked = false; el<HTMLButtonElement>('send').disabled = true; el('confirmation').hidden = false; if (root.dataset.mode === 'fullscreen') el('confirmation').scrollIntoView({ block: 'nearest' }); el<HTMLInputElement>('consent').focus();
   };
-  el('edit').onclick = () => { el('confirmation').hidden = true; draft.focus(); };
+  el('edit').onclick = () => { setState('draft'); root.dataset.editing = 'true'; el('confirmation').hidden = true; draft.focus(); };
   el<HTMLInputElement>('consent').onchange = () => { el<HTMLButtonElement>('send').disabled = !el<HTMLInputElement>('consent').checked || locked || sending; };
   el('send').onclick = async () => {
     if (conversation && expired(intents.get(conversation.id))) { el<HTMLButtonElement>('send').disabled = true; expiredNotice(); return; }
@@ -153,31 +168,31 @@ export function mountReview(root: HTMLElement, bridge: Bridge) {
     const id = conversation.id, intent = intents.get(conversation.id);
     if (!intent || intent.body !== reviewBody || intent.destination !== destination(conversation)) return;
     let posted = false;
-    sending = true; locked = true; business.disabled = true; draft.disabled = true; el<HTMLButtonElement>('send').disabled = true; el<HTMLButtonElement>('review').disabled = true; el('conversations').querySelectorAll('select').forEach(s => s.disabled = true); renderRadar(); notice('Enviando a resposta…');
+    setState('sending'); sending = true; locked = true; business.disabled = true; draft.disabled = true; el<HTMLButtonElement>('send').disabled = true; el<HTMLButtonElement>('review').disabled = true; el('conversations').querySelectorAll('select').forEach(s => s.disabled = true); renderRadar(); notice('Enviando a resposta…');
     try {
       const fresh = (await call('get_conversation', { id })).data;
       const original = conversation;
       const matches = fresh.contact_id === original.contact_id && fresh.phone_number_id === original.phone_number_id && fresh.channel === original.channel && JSON.stringify(fresh.contact) === JSON.stringify(original.contact) && JSON.stringify(fresh.channel_account) === JSON.stringify(original.channel_account) && fresh.display_phone_number === original.display_phone_number;
       if (!matches || (!intent.uncertain && (fresh.status !== 'active' || Date.parse(fresh.window_expires_at ?? '') <= Date.now()))) {
-        notice('Os dados da conversa ou a janela de envio mudaram. Reabra a conversa e revise novamente antes de enviar.', 'warning'); el('confirmation').hidden = true; return;
+        setState('closed'); notice('Os dados da conversa ou a janela de envio mudaram. Reabra a conversa e revise novamente antes de enviar.', 'warning'); el('confirmation').hidden = true; return;
       }
       if (expired(intent)) { expiredNotice(); return; }
       intent.firstAttemptAt ??= Date.now();
       posted = true;
       const result = await call('reply_to_conversation', { conversation_id: id, text: { body: intent.body }, idempotency_key: intent.key });
       if (!text(result.id) && !text(result.wamid)) throw new Error('Resultado sem confirmação');
-      notice(`Resposta aceita pelo BotoZap.${text(result.status) ? ` Status: ${text(result.status)}.` : ''} ID: ${text(result.id) || text(result.wamid)}`, 'success');
-      intents.delete(id); locked = false; draft.value = ''; draft.disabled = !isOpen(); el('length').textContent = '0 / 4096'; el('confirmation').hidden = true; el('review').textContent = 'Revisar envio';
+      setState('accepted'); notice(`Resposta aceita pelo BotoZap. Aceite não confirma entrega nem leitura.${text(result.status) ? ` Status: ${text(result.status)}.` : ''} ID: ${text(result.id) || text(result.wamid)}`, 'success');
+      intents.delete(id); locked = false; draft.value = ''; draft.disabled = !isOpen(); el('length').textContent = '0 / 4096'; el('confirmation').hidden = true; el('review').textContent = root.dataset.mode === 'inline' ? 'Enviar' : 'Revisar envio';
     } catch (error) {
       locked = false; el<HTMLInputElement>('consent').checked = false;
       if ((posted && error instanceof BridgeError && error.outcome === 'rejected') || (!posted && !intent.uncertain)) {
-        intent.uncertain = false; intent.firstAttemptAt = undefined;
-        draft.disabled = !isOpen(); el<HTMLButtonElement>('review').disabled = !isOpen() || !draft.value.trim(); el<HTMLButtonElement>('edit').disabled = false; el('confirmation').hidden = true; el('review').textContent = 'Revisar envio'; el('send').textContent = 'Confirmar e enviar';
+        setState('rejected'); intent.uncertain = false; intent.firstAttemptAt = undefined;
+        draft.disabled = !isOpen(); el<HTMLButtonElement>('review').disabled = !isOpen() || !draft.value.trim(); el<HTMLButtonElement>('edit').disabled = false; el('confirmation').hidden = true; el('review').textContent = root.dataset.mode === 'inline' ? 'Enviar' : 'Revisar envio'; el('send').textContent = 'Enviar';
         const message = error instanceof BridgeError ? error.message : 'Não foi possível consultar a conversa. Confira seu acesso e tente novamente.';
         const next = error instanceof BridgeError && error.retry === 'backoff' ? 'Aguarde o prazo indicado antes de revisar novamente.' : 'Você pode corrigir a resposta e revisar novamente.';
         notice(`${posted ? 'O envio foi recusado e não foi realizado.' : 'A resposta não foi enviada.'} ${message} ${next}`, 'error');
       } else {
-        intent.uncertain = true; el<HTMLButtonElement>('edit').disabled = true; el('send').textContent = 'Repetir a mesma tentativa'; notice('O resultado do envio está incerto. Confira a mensagem e marque a confirmação para repetir a mesma tentativa. O texto e a chave de envio serão preservados.', 'warning');
+        setState('uncertain'); intent.uncertain = true; el<HTMLButtonElement>('edit').disabled = true; el<HTMLButtonElement>('send').disabled = true; el('send').textContent = 'Repetir a mesma tentativa'; notice(root.dataset.mode === 'inline' ? 'O resultado do envio está incerto. Confira o histórico no painel BotoZap. Novos envios estão bloqueados; o texto e a chave desta intenção permanecem preservados.' : 'O resultado do envio está incerto. Confira o histórico antes de confirmar uma repetição da mesma tentativa. O texto e a chave de envio serão preservados.', 'warning');
       }
     }
     finally { sending = false; business.disabled = false; renderRadar(); }
@@ -201,9 +216,11 @@ export function mountReview(root: HTMLElement, bridge: Bridge) {
     finally { el<HTMLButtonElement>('more-business').disabled = false; }
   };
   return {
+    setMode,
     bootstrap(result: unknown) {
       try { const data = decode(result);
         if (data.draft && data.conversation && data.customer_id) {
+          setMode('inline'); void bridge.displayMode?.('inline').catch(() => {});
           if (sending) return;
           const stageToken = ++stageGeneration;
           void (async () => {
@@ -216,12 +233,12 @@ export function mountReview(root: HTMLElement, bridge: Bridge) {
             business.value = data.customer_id; ++generation; selected = { id: data.conversation.id, contact_id: data.conversation.contact_id, entity_type: 'conversation', title: 'Resposta preparada' }; resetDraft(); el('conversations').replaceChildren();
             await loadConversation(data.conversation.id);
             if (stageToken !== stageGeneration) return;
-            if (conversation && conversation.id === data.conversation.id && !draft.disabled) { draft.value = text(data.draft.text).slice(0,4096); intents.set(conversation.id, { body: draft.value, key: destination(data.conversation) === destination(conversation) ? text(data.draft.idempotency_key) || crypto.randomUUID() : crypto.randomUUID(), uncertain: false, destination: destination(conversation) }); el('length').textContent = `${draft.value.length} / 4096`; el<HTMLButtonElement>('review').disabled = !draft.value.trim() || locked || !isOpen(); notice('Rascunho preparado. Confira o histórico e revise antes de enviar.'); }
-            void loadRadar();
+            if (conversation && conversation.id === data.conversation.id && !intents.get(conversation.id)?.uncertain) { draft.value = text(data.draft.text).slice(0,4096); intents.set(conversation.id, { body: draft.value, key: destination(data.conversation) === destination(conversation) ? text(data.draft.idempotency_key) || crypto.randomUUID() : crypto.randomUUID(), uncertain: false, destination: destination(conversation) }); el('length').textContent = `${draft.value.length} / 4096`; el<HTMLButtonElement>('review').disabled = !draft.value.trim() || locked || !isOpen(); card(); context(); setState(isOpen() ? 'draft' : 'closed'); notice(isOpen() ? '' : 'A janela de 24h está fechada. Use um template aprovado no painel BotoZap.'); }
+            if (root.dataset.mode === 'fullscreen') void loadRadar();
           })().catch(() => notice('Não foi possível preparar este rascunho. Reabra o painel e confira as permissões.', 'error'));
           return;
         }
-        if (account && data.account_id !== account) { ++stageGeneration; ++generation; intents.clear(); conversation = null; selected = null; messages = []; resetDraft(); context(); business.disabled = true; throw new Error('A conta mudou. Feche este painel e abra uma nova revisão.'); } account = data.account_id; environment = data.environment; el('identity').textContent = `Conta ${account}`; el('environment').textContent = environment === 'live' ? 'Ambiente de produção' : 'Sandbox'; appendCustomers(data.customers); business.disabled = false; notice(customers.length ? '' : 'Nenhum negócio disponível. Confira seu acesso no painel BotoZap.'); }
+        if (account && data.account_id !== account) { ++stageGeneration; ++generation; intents.clear(); conversation = null; selected = null; messages = []; resetDraft(); context(); business.disabled = true; throw new Error('A conta mudou. Feche este painel e abra uma nova revisão.'); } if (!account && root.dataset.mode === 'fullscreen') void bridge.displayMode?.('fullscreen').catch(() => {}); account = data.account_id; environment = data.environment; el('identity').textContent = `Conta ${account}`; el('environment').textContent = environment === 'live' ? 'Ambiente de produção' : 'Sandbox'; appendCustomers(data.customers); business.disabled = false; notice(customers.length ? '' : 'Nenhum negócio disponível. Confira seu acesso no painel BotoZap.'); }
       catch (error) { notice((error as Error).message, 'error'); }
     },
     connectionError() { notice('Não foi possível conectar ao host MCP. Reabra o painel a partir da conversa.', 'error'); },

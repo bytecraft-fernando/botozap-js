@@ -10,22 +10,25 @@ import type { Register } from "../register.js";
 import { conversationSchema, listCustomersResultSchema } from "../schemas.js";
 
 export const REVIEW_RESOURCE_URI = "ui://botozap/review/v1.html";
+export const REPLY_RESOURCE_URI = "ui://botozap/reply/v1.html";
+export const replyToolMetadata = { ui: { resourceUri: REPLY_RESOURCE_URI, visibility: ["model", "app"] } };
 export const reviewToolMetadata = {
   ui: { resourceUri: REVIEW_RESOURCE_URI, visibility: ["model", "app"] },
   "openai/ui": { entrypoints: [{ type: "thread" }] } satisfies OpenAIUiToolMetadata,
 };
 
 export function registerReviewPanel(server: McpServer, register: Register): void {
-  registerAppResource(server, "botozap-review", REVIEW_RESOURCE_URI, {}, async () => ({
-    contents: [{
-      uri: REVIEW_RESOURCE_URI,
-      mimeType: RESOURCE_MIME_TYPE,
-      text: await readFile(new URL("../ui/review.html", import.meta.url), "utf8"),
-      _meta: { ui: { prefersBorder: true, csp: {
-        connectDomains: [], resourceDomains: [], frameDomains: [],
-      } } },
-    }],
-  }));
+  for (const [uri, mode] of [[REVIEW_RESOURCE_URI, "fullscreen"], [REPLY_RESOURCE_URI, "inline"]] as const) {
+    registerAppResource(server, `botozap-${mode}`, uri, {}, async () => ({
+      contents: [{ uri, mimeType: RESOURCE_MIME_TYPE,
+        text: (await readFile(new URL("../ui/review.html", import.meta.url), "utf8")).replace('id="app"', `id="app" data-initial-mode="${mode}"`),
+        _meta: {
+          "openai/ui": { availableDisplayModes: mode === "inline" ? ["inline"] : ["inline", "fullscreen"], preferredDisplayMode: mode },
+          ui: { prefersBorder: mode === "inline", csp: { connectDomains: [], resourceDomains: [], frameDomains: [] } },
+        },
+      }],
+    }));
+  }
   register(
     "stage_review_reply",
     "Prepara um rascunho editável no painel de revisão após confirmar acesso à conversa. Não envia mensagem.",

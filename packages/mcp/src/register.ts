@@ -8,7 +8,7 @@
  *  5. converter `BotoZapError`/exceções em resultado `isError` com mensagem PT-BR.
  */
 
-import { reviewToolMetadata, REVIEW_RESOURCE_URI } from "./resources/review-panel.js";
+import { reviewToolMetadata, replyToolMetadata } from "./resources/review-panel.js";
 import { requestAuthContext } from "./auth-context.js";
 import type { ApiIdentity } from "./server.js";
 import type { McpServer, RegisteredTool } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -142,7 +142,7 @@ export function createRegister(
       {
         description,
         inputSchema,
-        ...(options.uiEnabled ? { _meta: name === "open_review_panel" ? reviewToolMetadata : name === "stage_review_reply" ? { ui: { resourceUri: REVIEW_RESOURCE_URI, visibility: ["model", "app"] } } : { ui: { visibility: ["model", "app"] } } } : {}),
+        ...(options.uiEnabled ? { _meta: name === "open_review_panel" ? reviewToolMetadata : name === "stage_review_reply" ? replyToolMetadata : { ui: { visibility: ["model", "app"] } } } : {}),
         annotations: {
           readOnlyHint: policy.readOnlyHint,
           destructiveHint: policy.destructiveHint,
