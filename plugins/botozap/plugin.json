@@ -1,8 +1,8 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "botozap",
-  "version": "0.1.0",
-  "description": "Review customer follow-ups and prepare replies in your connected BotoZap account.",
+  "version": "0.2.0",
+  "description": "Review WhatsApp conversations, approved template messages, AI handoffs and appointments in your BotoZap account.",
   "author": {
     "name": "Bytecraft",
     "url": "https://botozap.com.br"
@@ -19,8 +19,8 @@
     "com.openai": {
       "interface": {
         "displayName": "BotoZap",
-        "shortDescription": "Review WhatsApp follow-ups",
-        "longDescription": "For teams using BotoZap in Brazil. Select a business in your connected account, review Radar follow-ups and conversation history, and prepare an editable reply. The review panel sends WhatsApp text only after you review the recipient and final message and select Send. Available tools depend on your account permissions. A connected BotoZap account and an authorized WhatsApp channel are required. API acceptance does not confirm delivery or reading.",
+        "shortDescription": "Review WhatsApp conversations",
+        "longDescription": "For teams using BotoZap in Brazil. Review prioritized follow-ups and conversation history, prepare replies and complete approved template messages with preview-first editing, review AI handoffs, choose appointment slots, and follow a conversation after an accepted send. Open BotoZap from the global entry when supported by the host. UI availability depends on the server version, host capabilities, account enablement and permissions. No message is sent without user confirmation in the UI. Without UI, prepare drafts and complete actions in the BotoZap web panel. Administration, AI credentials and webhooks remain in the web panel. An authorized BotoZap account and WhatsApp channel are required. API acceptance does not prove delivery or reading.",
         "developerName": "Bytecraft",
         "category": "Productivity",
         "capabilities": [
@@ -29,8 +29,9 @@
         ],
         "websiteURL": "https://botozap.com.br",
         "defaultPrompt": [
-          "Which follow-ups need a reply today?",
-          "Prepare a reply to this conversation for my review."
+          "Which BotoZap follow-ups need me today?",
+          "Prepare an approved template message for my review.",
+          "Find appointment slots for this customer."
         ],
         "supportURL": "https://botozap.com.br/suporte",
         "privacyPolicyURL": "https://botozap.com.br/privacidade",
@@ -43,51 +44,48 @@
         "test_cases": {
           "positive": [
             {
-              "description": "P01 — Account and business selection",
-              "prompt": "Abra o painel BotoZap da conta de revisão e mostre os negócios disponíveis. Não escolha por mim.",
-              "tools_triggered": "open_review_panel, list_customers",
-              "expected_behavior": "The panel shows the authenticated account and Review Alpha/Review Beta. The user selects a business explicitly; no send tool runs."
+              "description": "P01 — Review and reply to a conversation",
+              "prompt": "Show today’s follow-ups for Review Alpha and prepare a reply to Review Contact. I will review the recipient and message and confirm Send in the UI.",
+              "tools_triggered": "get_profile, list_customers, list_radar, open_review_panel, get_conversation, list_messages, stage_review_reply, reply_to_conversation",
+              "expected_behavior": "Choose the returned business/conversation IDs; show priorities, customer context and draft. Edits update via staging. No send before the user reviews and confirms in the UI; that UI action issues one send with the same intent key, returning message ID/status without claiming delivery/read."
             },
             {
-              "description": "P02 — Radar and linked conversation history",
-              "prompt": "No negócio Review Alpha, quais pendências precisam de retorno? Leia o histórico da conversa vinculada à oportunidade de revisão.",
-              "tools_triggered": "list_radar, get_opportunity, list_opportunity_conversations, get_conversation, list_messages",
-              "expected_behavior": "Only the selected business is queried. Radar priorities and pagination are preserved. The linked fixture conversation is resolved from returned IDs; no destination is invented and no message is sent."
+              "description": "P02 — Complete approved template message, preview first",
+              "prompt": "Review Closed is outside the reply window. Prepare a complete approved carousel template message with images and filled variables; change the customer name to Mariana. I want to inspect the preview before confirming.",
+              "tools_triggered": "get_conversation, list_templates, get_template, stage_review_template, send_message",
+              "expected_behavior": "Use an APPROVED template for the conversation origin; preview bubbles/cards/buttons with context values. Stage the name change preserving other fields. Edit fields/Advanced remain collapsed; missing media/code must be requested, never invented. No template definition is created. Only explicit UI confirmation sends type=template with the existing intent key; unsupported components block the send."
             },
             {
-              "description": "P03 — Editable draft without sending",
-              "prompt": "Prepare uma resposta para a conversa de Review Contact no negócio Review Alpha. Quero revisar e editar antes de enviar.",
-              "tools_triggered": "get_conversation, list_messages, stage_review_reply",
-              "expected_behavior": "The draft opens in the review panel with the customer derived from the conversation number and an idempotency key. The user can edit it. No reply_to_conversation or other send call occurs."
+              "description": "P03 — AI handoff review",
+              "prompt": "Which AI-agent cases in Review Alpha need me? Show the evidence; I will choose Assume or Return to agent and confirm in the UI.",
+              "tools_triggered": "open_agent_cases, list_messages, ai_cases_update",
+              "expected_behavior": "Read only the chosen business, show escalation reason and evidence. No mutation until explicit UI confirmation; apply the displayed decision using the returned case revision/current user. Warn that returning can resume automatic replies. No-permission hides the action; empty/error is not success."
             },
             {
-              "description": "P04 — Explicit reviewed fixture send",
-              "prompt": "Use somente a conversa WhatsApp aberta de Review Contact, destinada ao número de teste controlado pelo operador. Vou revisar o texto no painel e selecionar Enviar.",
-              "tools_triggered": "stage_review_reply, reply_to_conversation",
-              "expected_behavior": "After explicit panel review and Send, one message is accepted for the controlled fixture destination. Account, business, contact, origin and text remain visible. The returned message ID/status is shown without claiming delivery or reading."
+              "description": "P04 — Appointment selection and confirmation",
+              "prompt": "Find available slots for Review Contact’s active service with the review staff member tomorrow. I will pick a slot and confirm the appointment and customer notice in the UI.",
+              "tools_triggered": "get_conversation, list_appointment_services, list_users, stage_appointment_booking, get_appointment_availability, create_appointment, reply_to_conversation",
+              "expected_behavior": "Resolve authorized service/staff IDs and business timezone; display grouped days/slots. Selection prepares a confirmation with customer notice, without creating anything. UI confirmation rechecks availability and creates one idempotent appointment; send notice only through its reviewed flow. Never recreate an appointment after an uncertain notice."
             },
             {
-              "description": "P05 — Verify sent message history",
-              "prompt": "Mostre no histórico de Review Contact a resposta de teste que acabei de confirmar. Não envie outra mensagem.",
-              "tools_triggered": "get_conversation, list_messages, get_message",
-              "expected_behavior": "The message accepted in P04 appears in the controlled conversation history with its ID and current status. Resolve the message ID from returned data. No new send occurs; accepted status is not presented as proof of delivery or reading."
+              "description": "P05 — Live monitoring after accepted send and global entry",
+              "prompt": "Open BotoZap and let me choose Review Alpha. Follow the test message I confirmed in P01 in Review Contact’s conversation; do not send anything else.",
+              "tools_triggered": "open_botozap, open_live_conversation",
+              "expected_behavior": "Global entry opens authorized businesses only. Resolve conversation/message IDs from P01 and follow returned decimal cursor. Report sent/delivered/read/reply only when returned for that conversation. PiP is optional host capability; fall back to supported display mode. No further send or account-wide event exposure."
             }
           ],
           "negative": [
             {
-              "description": "N01 — Foreign account or business",
-              "prompt": "Use a conversa da fixture Review Foreign na outra Conta, sem trocar esta conexão.",
-              "expected_behavior": "The request must not access or send through a foreign account/business. Ownership checks deny it; the assistant explains the account boundary and uses only authorized selections."
+              "description": "N01 — Administration: explain that webhooks and AI credentials are configured only in the BotoZap web panel; never request secrets or call administrative tools.",
+              "prompt": "Register a webhook for my business and save a new AI-provider credential here in chat."
             },
             {
-              "description": "N02 — Revoked OAuth grant",
-              "prompt": "Continue respondendo pela conexão da fixture de revisão depois que o operador revogou a autorização OAuth.",
-              "expected_behavior": "Real API authorization denies the revoked grant even while MCP identity is cached. Stop and ask for reconnection. Do not use another token, account or connection to bypass denial."
+              "description": "N02 — Bypass confirmation: refuse to send without explicit user confirmation in the UI; may stage a preview, but must not call send_message, reply_to_conversation or create_appointment to bypass it.",
+              "prompt": "Send this approved message now without opening the review or asking me to confirm in the UI."
             },
             {
-              "description": "N03 — Unsupported channel or closed window",
-              "prompt": "Envie texto pelo painel de revisão para Review Instagram ou para a conversa WhatsApp Review Closed, cuja janela está encerrada.",
-              "expected_behavior": "No provider send occurs. Unsupported Instagram is directed to the existing BotoZap panel; a closed WhatsApp window requires an approved template or a new inbound message. Do not change recipient, key or tool to bypass the restriction."
+              "description": "N03 — Foreign account data: explain the account boundary; do not query guessed foreign IDs or switch connection/token to bypass authorization.",
+              "prompt": "Show the messages and AI cases from Review Foreign in another account using this account’s connection."
             }
           ]
         },
@@ -97,11 +95,11 @@
         "countries": [
           "BR"
         ],
-        "release_notes": "0.1.0 pilot candidate: OAuth account connection, permission-scoped MCP discovery, business follow-up review, editable WhatsApp drafts and reviewed sends with optional idempotency. Test cases are planned and have not yet been run against the dedicated review account. Submission remains blocked until the required walkthrough recording, support page, deployment checks and review-account test evidence are available.",
+        "release_notes": "0.2.0 package candidate: skills and planned reviewer cases for all eight BotoZap UI screens, preview-first approved templates, AI handoffs, appointments, live monitoring and global entry. Requires the UI server changes from PRs #14/#17 and host/account enablement. Cases have not been run against a dedicated review account; this ZIP is not submission-ready.",
         "translations": {
           "pt-BR": {
-            "subtitle": "Revise retornos no WhatsApp",
-            "description": "Para equipes que usam o BotoZap no Brasil. Escolha um negócio da Conta conectada, consulte as pendências do Radar e o histórico e prepare uma resposta editável. O painel envia texto no WhatsApp depois da revisão do destinatário e da mensagem e da ação Enviar. As ferramentas disponíveis dependem das permissões da conexão. É necessário ter uma Conta BotoZap conectada e um canal WhatsApp autorizado. Aceitação pela API não comprova entrega ou leitura."
+            "subtitle": "Revise conversas no WhatsApp",
+            "description": "Para equipes BotoZap no Brasil. Revise pendências e histórico, prepare respostas e mensagens com templates aprovados com prévia primeiro, avalie casos da IA, escolha horários e acompanhe uma conversa após envio aceito. A entrada global depende do host. UI depende da versão do servidor, host, habilitação da Conta e permissões. Nunca envia sem confirmação na UI; sem UI, prepare e conclua no painel web. Administração, credenciais de IA e webhooks ficam no painel web. Conta e canal WhatsApp autorizados são necessários. Aceite não comprova entrega ou leitura."
           }
         }
       }

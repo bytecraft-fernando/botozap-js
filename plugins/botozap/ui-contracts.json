@@ -1,0 +1,73 @@
+{
+  "verified_from_git": {
+    "14": "498277f87e6384cc429b7679e6c2033f7d10f0b9",
+    "17": "ebfe41e65976c2dd88d30d2cee6e9f030d2858b6"
+  },
+  "runtime_verified": false,
+  "tools": {
+    "list_radar": {
+      "screen": 1,
+      "required": [
+        "customer_id"
+      ],
+      "source": "14"
+    },
+    "stage_review_reply": {
+      "screen": 2,
+      "required": [
+        "conversation_id",
+        "text"
+      ],
+      "source": "14"
+    },
+    "open_review_panel": {
+      "screen": 3,
+      "required": [],
+      "source": "14"
+    },
+    "stage_review_template": {
+      "screen": 4,
+      "required": [
+        "conversation_id"
+      ],
+      "source": "14"
+    },
+    "open_live_conversation": {
+      "screen": 5,
+      "required": [
+        "conversation_id"
+      ],
+      "source": "17"
+    },
+    "open_agent_cases": {
+      "screen": 6,
+      "required": [
+        "customer_id"
+      ],
+      "source": "14"
+    },
+    "stage_appointment_booking": {
+      "screen": 7,
+      "required": [
+        "conversation_id",
+        "service_id",
+        "owner_user_id",
+        "from",
+        "to"
+      ],
+      "source": "14"
+    },
+    "open_botozap": {
+      "screen": 8,
+      "required": [],
+      "source": "17"
+    },
+    "review_template_variables": {
+      "helper": true,
+      "required": [
+        "template_id"
+      ],
+      "source": "14"
+    }
+  }
+}

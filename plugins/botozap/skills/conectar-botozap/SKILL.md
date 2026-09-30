@@ -11,7 +11,7 @@ A pessoa escolhe a Conta durante a autorização. Outra Conta exige sua própria
 conexão; a seleção de negócio não muda a Conta autorizada.
 
 Com a conexão ativa, use `get_profile` para identificar Conta e ambiente.
-Se `open_review_panel` estiver disponível, abra o painel e peça a escolha do
+Se `open_botozap` estiver disponível, abra a entrada global sem parâmetros; senão, use `open_review_panel` para abrir o painel e peça a escolha do
 negócio entre os resultados. Sem UI, use `list_customers` e os nomes/IDs reais
 devolvidos. Se a ferramenta estiver ausente ou negar acesso, explique a permissão
 necessária e peça ao responsável que ajuste/reconecte, sem contornar por outra
@@ -21,3 +21,5 @@ Após a escolha, consulte `list_radar` com o `customer_id` selecionado e siga a
 skill [revisar-pendencias](../revisar-pendencias/SKILL.md) para histórico e rascunho.
 Conectar e consultar não autoriza envio. Uma mensagem depende da revisão do
 contato e conteúdo e da ação explícita de envio.
+
+Administração, webhooks e credenciais de IA ficam exclusivamente no painel web. Nunca enviar sem confirmação do usuário na UI; sem UI, apenas consultar/preparar e concluir no painel web.
