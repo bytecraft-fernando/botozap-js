@@ -10,6 +10,7 @@ export function mountCarousel(root: HTMLElement, bridge: Bridge) {
     content.setAttribute('aria-busy','false'); content.replaceChildren();
     root.querySelector('#carousel-count')!.textContent = `${rows.length} pendências`;
     if (!rows.length) { content.innerHTML = '<section class="rich-empty"><span class="empty-symbol" aria-hidden="true">✓</span><h2>Tudo em dia por aqui</h2><p>Nenhuma pendência neste negócio. Peça ao ChatGPT os follow-ups da semana ou quem pediu orçamento.</p></section>'; note.textContent = 'Você pode continuar a conversa para explorar outro negócio.'; return; }
+    const priority = [...rows.slice(0,8)].sort((a,b) => ['critical','at_risk','scheduled'].indexOf(a.bucket) - ['critical','at_risk','scheduled'].indexOf(b.bucket))[0];
     for (const entry of rows.slice(0,8)) {
       const card = document.createElement('article'); card.className = 'pending-card'; card.dataset.bucket = string(entry.bucket);
       const name = string(entry.contact?.name) || 'Contato';
@@ -20,7 +21,7 @@ export function mountCarousel(root: HTMLElement, bridge: Bridge) {
       const wait = relative(entry.last_activity_at); card.querySelector('.pending-wait')!.textContent = wait ? `Sem atividade ${wait}` : 'Resposta pendente';
       card.querySelector('.pending-reason')!.textContent = string(entry.reason_label) || string(entry.title) || 'A conversa precisa da sua atenção';
       card.querySelector('.pending-next')!.textContent = string(entry.next_step) || 'Confira o contexto antes de responder';
-      const button = card.querySelector('button')!;
+      const button = card.querySelector('button')!; button.classList.toggle('primary', entry === priority);
       button.onclick = async () => {
         button.disabled = true;
         try {

@@ -3,6 +3,7 @@ type Row = Record<string, any>;
 export interface Bridge {
   call(name: string, args: Record<string, unknown>): Promise<any>;
   context(value: unknown): Promise<unknown>;
+  template?(value: Row): void;
   message?(text: string): Promise<unknown>;
   displayMode?(mode: 'inline' | 'fullscreen'): Promise<unknown>;
 }
@@ -31,6 +32,9 @@ export function mountReview(root: HTMLElement, bridge: Bridge) {
   const el = <T extends HTMLElement = HTMLElement>(id: string) => root.querySelector<T>(`#${id}`)!;
   el('card-summary').after(el('notice'));
   el('contact-phone').after(el('conversation-urgency'));
+  const incoming = document.createElement('article'); incoming.className = 'incoming-context'; incoming.id = 'incoming-context'; incoming.hidden = true; el('card-preview').parentElement!.before(incoming);
+  const templateButton = document.createElement('button'); templateButton.id = 'use-template'; templateButton.textContent = 'Usar template aprovado'; templateButton.className = 'primary'; el('draft-controls').after(templateButton);
+  templateButton.onclick = () => { if (conversation && !isOpen() && !locked && !intents.get(conversation.id)?.uncertain) bridge.template?.({ conversation, customer_id: business.value }); };
   const business = el<HTMLSelectElement>('business'), draft = el<HTMLTextAreaElement>('draft');
   root.dataset.mode = root.dataset.initialMode === 'inline' ? 'inline' : 'fullscreen'; root.dataset.state = 'draft';
   let account = '', environment = '', customers: Row[] = [], entries: Row[] = [], customerPage = 1, customerPages = 1, radarPage = 1, radarPages = 1;
@@ -53,9 +57,10 @@ export function mountReview(root: HTMLElement, bridge: Bridge) {
     const minutes = Math.max(0, Math.ceil((Date.parse(c.window_expires_at ?? '')-Date.now())/60000));
     const window = isOpen() ? `Janela fecha em ${minutes >= 60 ? `${Math.ceil(minutes/60)}h` : `${minutes} min`}` : 'Janela fechada';
     const chips = [customers.find(r => r.id === business.value)?.name || business.value, `Origem ${text(c.display_phone_number) || text(c.channel_account?.display) || c.phone_number_id}`, window];
-    chips.forEach((value, index) => { const span = document.createElement('span'); span.className = `chip ${index === 2 && minutes <= 60 ? 'window-warning' : ''}`; span.textContent = value; el('card-summary').append(span); });
+    chips.forEach((value, index) => { const span = document.createElement('span'); span.className = `chip ${index === 2 ? 'window-chip' : ''} ${index === 2 && minutes <= 60 ? 'window-warning' : ''}`; span.textContent = value; el('card-summary').append(span); });
     const wait = relative(c.last_message_at || messages.filter(m => m.direction === 'inbound').at(-1)?.created_at);
     el('conversation-urgency').textContent = selected?.bucket ? `${bucketLabel(selected.bucket)} · ${wait ? `Esperando ${wait}` : 'Aguardando resposta'}` : wait ? `Esperando ${wait}` : '';
+    const last = [...messages].sort((a,b) => text(a.created_at).localeCompare(text(b.created_at))).filter(m => m.direction === 'inbound').at(-1); incoming.hidden = !last; incoming.replaceChildren(); if (last) { const time=document.createElement('small'); time.textContent=`Última mensagem do cliente · ${relative(last.created_at)}`; const body=document.createElement('p'); body.textContent=messageBody(last); incoming.append(time,body); }
     el('card-preview').textContent = draft.value || 'Prepare uma resposta nesta conversa.';
   }
   const notice = (message: string, kind = '') => { el('notice').textContent = message; el('notice').className = kind ? `notice ${kind}` : ''; };
@@ -231,7 +236,7 @@ export function mountReview(root: HTMLElement, bridge: Bridge) {
     setMode,
     bootstrap(result: unknown) {
       try { const data = decode(result);
-        if (Array.isArray(data.data) && data.paging && acceptedId) { const receipt = data.data.find((m: Row) => (m.id === acceptedId || m.wamid === acceptedId) && m.conversation_id === conversation?.id && m.direction === 'outbound'); if (receipt && ['delivered', 'read'].includes(receipt.status)) { if (root.dataset.state !== 'read') setState(receipt.status); notice(receipt.status === 'read' ? 'Leitura confirmada pelo canal.' : 'Entrega confirmada pelo canal.'); } return; }
+        if (Array.isArray(data.data) && data.paging && acceptedId) { const receipt = data.data.find((m: Row) => (m.id === acceptedId || m.wamid === acceptedId) && m.conversation_id === conversation?.id && m.direction === 'outbound'); if (receipt && ['delivered', 'read'].includes(receipt.status)) { if (root.dataset.state !== 'read') setState(receipt.status); notice(''); } return; }
         if (data.draft && data.conversation && data.customer_id) {
           if (sending) return;
           acceptedId = '';

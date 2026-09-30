@@ -1,3 +1,6 @@
+import { registerTemplatePanel } from "./template-panel.js";
+import { registerCasesPanel } from "./cases-panel.js";
+import { registerBookingPanel } from "./booking-panel.js";
 import { randomUUID } from "node:crypto";
 /** Optional conversation review panel. No credential is embedded in its resource. */
 import { readFile } from "node:fs/promises";
@@ -20,6 +23,9 @@ export const reviewToolMetadata = {
 };
 
 export function registerReviewPanel(server: McpServer, register: Register): void {
+  registerTemplatePanel(server, register);
+  registerCasesPanel(server, register);
+  registerBookingPanel(server, register);
   for (const [uri, mode] of [[REVIEW_RESOURCE_URI, "fullscreen"], [REPLY_RESOURCE_URI, "inline"], [RADAR_RESOURCE_URI, "inline"]] as const) {
     const resource = registerAppResource(server, `botozap-${uri === RADAR_RESOURCE_URI ? "cards" : mode}`, uri, {}, async () => {
       if (!register.uiEnabled) throw new BotoZapError("ui_not_allowed", "UI não habilitada para esta conta.", 403);

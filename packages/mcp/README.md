@@ -423,3 +423,29 @@ A página hospeda os iframes reais de produção via `AppBridge` / MCP Apps. Dad
 modelo, envio e eventos de entregue/lido são simulados exclusivamente no host.
 Use o compositor ou os controles do roteiro para explorar carrossel, rascunho,
 conversa fullscreen e os estados alternativos. Consulte `web/DESIGN.md`.
+
+
+O seletor também inclui **4 · Template aprovado**, **6 · O agente precisa de
+você** e **7 · Marcar horário**, com carregamento, vazio, erro, recusa/incerteza
+quando há envio, e ausência de permissão no atendimento. A janela fechada abre
+um editor de templates aprovados com prévia renderizada. Quando o cliente anuncia
+`extensions["openai/elicitation"].form`, as variáveis usam o formulário nativo
+com `x-openai-suggestions`; nos demais hosts ficam no formulário acessível da UI.
+Nenhum formulário envia sem a confirmação final.
+
+As auxiliares `stage_review_template`, `review_template_variables`,
+`open_agent_cases` e `stage_appointment_booking` só aparecem no piloto da UI,
+respeitam `allowed_routes`, não aceitam `account_id` e apenas consultam/preparam.
+Envio, atribuição de caso e compromisso usam as tools existentes. Um resultado
+incerto bloqueia repetição; compromisso criado com aviso incerto continua criado
+sem tentar marcar novamente. Casos usam `expected_revision` e a identidade do
+operador; devolver ao agente exige confirmação da retomada automática.
+
+```sh
+# Com a demo em execução, gerar as capturas e vídeos da rodada 3A:
+node packages/mcp/scripts/screenshot-3a.mjs
+```
+
+A evidência e as limitações estão em `web/RELATORIO-3A.md`. O protótipo renderiza
+templates de texto com botões de resposta, URL ou telefone; templates de mídia e
+autenticação continuam disponíveis nas tools, mas não neste editor de prévia.

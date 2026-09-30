@@ -1,3 +1,6 @@
+import { mountTemplate } from './screens/template.js';
+import { mountCases } from './screens/cases.js';
+import { mountBooking } from './screens/booking.js';
 import { App, applyDocumentTheme, applyHostStyleVariables } from '@modelcontextprotocol/ext-apps';
 import type { McpUiHostContext } from '@modelcontextprotocol/ext-apps';
 import { mountCarousel } from './carousel.js';
@@ -9,6 +12,7 @@ const root = document.getElementById('app') ?? document.body;
 const modes: ('inline' | 'fullscreen')[] = ['inline', 'fullscreen'];
 const app = new App({ name: 'BotoZap · Revisão', version: '1.0.0' }, { availableDisplayModes: modes });
 const bridge = {
+  template: (value: Record<string, any>) => { panel = mountTemplate(root, bridge, value); void bridge.displayMode('fullscreen').then(result => panel.setMode?.(result.mode)); },
   call: (name: string, args: Record<string, unknown>) => app.callServerTool({ name, arguments: args }),
   context: (value: unknown) => app.updateModelContext({ content: [{ type: 'text', text: JSON.stringify(value) }] }),
   message: (text: string) => app.sendMessage({ role: 'user', content: [{ type: 'text', text }] }),
@@ -17,7 +21,10 @@ const bridge = {
     return { mode: 'inline' };
   },
 };
-const panel = root.dataset.view === 'carousel' ? mountCarousel(root, bridge) : mountReview(root, bridge);
+let panel: any = root.dataset.view === 'carousel' ? mountCarousel(root, bridge) : mountReview(root, bridge);
+if (root.dataset.view === 'template') panel = mountTemplate(root, bridge);
+if (root.dataset.view === 'cases') panel = mountCases(root, bridge);
+if (root.dataset.view === 'booking') panel = mountBooking(root, bridge);
 app.ontoolinput = params => { if ('input' in panel) panel.input(params.arguments ?? {}); };
 function hostContext(context: McpUiHostContext) {
   if (context.displayMode && 'setMode' in panel) panel.setMode(context.displayMode === 'fullscreen' ? 'fullscreen' : 'inline');

@@ -1,3 +1,4 @@
+import { screenMetadata } from "./resources/screen-resource.js";
 /**
  * Helper de registro de ferramentas: encapsula o padrão comum de
  *  1. validar args (zod, feito pelo SDK a partir do `inputSchema`),
@@ -132,12 +133,15 @@ export function createRegister(
     ? null
     : new Set(accounts.split(",").map(id => id.trim()).filter(Boolean));
   const uiAllowed = (value: ApiIdentity) => !!options.uiEnabled && (allowedAccounts === null || allowedAccounts.has(value.account_id));
-  const uiTools = new Set(["open_review_panel", "stage_review_reply"]);
+  const uiTools = new Set(["open_review_panel", "stage_review_reply", "stage_review_template", "review_template_variables", "open_agent_cases", "stage_appointment_booking"]);
   const listeners: Array<(enabled: boolean) => void> = [];
   const metadata = (name: string) => {
     if (name === "open_review_panel") return reviewToolMetadata;
     if (name === "stage_review_reply") return replyToolMetadata;
     if (name === "list_radar") return radarToolMetadata;
+    if (name === "stage_review_template") return screenMetadata("template");
+    if (name === "open_agent_cases") return screenMetadata("cases");
+    if (name === "stage_appointment_booking") return screenMetadata("booking");
     return { ui: { visibility: ["model", "app"] } };
   };
   const tools: Array<{ name: string; tool: RegisteredTool; policy: ReturnType<typeof getToolPolicy> }> = [];

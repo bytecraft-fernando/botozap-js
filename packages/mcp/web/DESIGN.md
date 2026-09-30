@@ -59,3 +59,38 @@ pnpm --filter @botozap/mcp screenshots:ui
 ```
 
 O script grava 60 PNGs: roteiro a–e, seis variações f e Radar, em desktop/mobile e claro/escuro. Também grava `roteiro-chat-desktop-dark.webm` e `validation.json`. O vídeo é uma gravação de sessão de browser, sem composição artificial. A validação automática e o simulador não substituem a revisão em uma sessão OAuth real do ChatGPT.
+
+
+## Rodada 3A: contexto e decisões assistidas
+
+A pendência mais urgente recebe o único **Responder** cheio do carrossel. As
+outras usam contorno. O card de resposta mostra a última mensagem recebida antes
+do rascunho (padrão de contexto Poppy, solicitado no feedback). Após aceite, o chip
+de janela desaparece; entregue/lido ficam no chip e na bolha, sem um segundo aviso.
+
+A pesquisa Refero desta rodada examinou [Resend](https://refero.design/pages/cb66ec48-9da5-4899-81e9-ae73e24806f0)
+para De/Para compactos e prévia grande, e [Airbnb Select a time](https://refero.design/pages/9db126f1-1482-4e66-8806-e097341d7d55)
+para horários ordenados por dia e confirmação separada. Square Assistant orienta
+o resumo do atendimento e a escalação com evidência; a leitura de histórico real
+substitui notas internas do caso, que não são mensagens do cliente.
+
+- Tela 4: `stage_review_template` → `ui://botozap/template/v1.html`. Só templates
+  aprovados com prévia suportada, valores editáveis e confirmação. A janela fechada
+  do card abre a mesma tela em fullscreen; sua tool prefere inline. Releitura de
+  origem, destinatário, aprovação e definição acontece antes do envio. O formulário
+  nativo segue [MCP extensions](https://github.com/openai/mcp-extensions/blob/main/docs/spec.md)
+  (`openai/elicitation/create`, modo form, `x-openai-suggestions`). UI própria quando
+  a capability está ausente. A ferramenta de variáveis não envia.
+- Tela 6: `open_agent_cases` → `ui://botozap/cases/v1.html`, inline. Evidência vem de
+  `list_messages`; assumir/devolver usam `ai_cases_update`, revisão CAS e confirmação
+  explícita, incluindo o efeito de retomar automação. Sem permissão, sem ação;
+  evidência indisponível também bloqueia ação. Métrica é de conversas, não pessoas.
+- Tela 7: `stage_appointment_booking` → `ui://botozap/booking/v1.html`, inline.
+  Disponibilidade e criação são reais. Selecionar não cria; confirmar releituras e
+  usa UUID por intenção. Compromisso e aviso são operações separadas: falha no aviso
+  nunca refaz o compromisso, e janela fechada orienta template.
+
+Os três recursos declaram inline/fullscreen, preferem inline, seguem o tema do
+host e empacotam CSS/JS. A região inferior respeita a safe area do compositor.
+Fixtures ficam em `scenarios/`; telas reais em `screens/`; somente o host simula
+respostas. As telas 5/8 são trabalho de outro worker e não fazem parte desta rodada.

@@ -43,7 +43,7 @@ describe("optional review extensions", () => {
     vi.stubEnv('BOTOZAP_MCP_UI_ACCOUNTS', ` other-account, ${fullAccessIdentity.account_id} `);
     const allowed = await connect(true);
     expect((await allowed.client.listTools()).tools.some(t => t.name === 'stage_review_reply')).toBe(true);
-    expect((await allowed.client.listResources()).resources.filter(r => r.uri.startsWith('ui://'))).toHaveLength(3);
+    expect((await allowed.client.listResources()).resources.filter(r => r.uri.startsWith('ui://'))).toHaveLength(6);
     const denied = await connect(true, { ...fullAccessIdentity, account_id: 'not-selected' });
     const baseline = await connect(false, { ...fullAccessIdentity, account_id: 'not-selected' });
     expect((await denied.client.listTools()).tools).toEqual((await baseline.client.listTools()).tools);
