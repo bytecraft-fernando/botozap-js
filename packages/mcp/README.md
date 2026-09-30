@@ -210,7 +210,7 @@ Edite `~/.cursor/mcp.json` (global) ou `.cursor/mcp.json` (no projeto):
 Transportes: **stdio** (padrão, local) e **Streamable HTTP** (remoto stateful).
 Nomes em inglês (snake_case, melhor para tool-calling); descrições em PT-BR.
 
-**Mensagens** — `send_message`, `list_messages`, `get_message`
+**Mensagens** — `send_message` (`text`, `template`, `interactive` button/list/cta_url, `location`, `reaction`), `list_messages` (`sort`: `created_at` ou `event_at`; cada item traz `source`), `get_message`
 **Conversas** — `reply_to_conversation`, `list_conversations`, `get_conversation`, `update_conversation` (leituras trazem `entry_point`, `referral` Click-to-WhatsApp, `fep_expires_at` e `fep_reply_by`)
 **Contatos** — `list_contacts`, `get_contact`, `create_contact`, `update_contact`, `delete_contact` (`display_name` é o nome dado pela empresa; `null` limpa)
 **Mídia** — `send_media_message`, `ingest_media`
@@ -218,8 +218,8 @@ Nomes em inglês (snake_case, melhor para tool-calling); descrições em PT-BR.
 **Links de setup** — `list_setup_links`, `create_setup_link`, `update_setup_link` (redirects `https`: concluído → `success_redirect_url` com `status=completed`; link esgotado → `failure_redirect_url` com `status=failed`; cliente volta num erro recuperável → `failure_redirect_url` com `status=cancelled`, link segue válido; todo destino recebe `setup_link_id`)
 **Números** — `list_phone_numbers`, `get_phone_number`, `update_phone_number` (só o `label`, nome local), `phone_number_health`
 **Templates** — `list_templates`, `get_template`, `create_template`
-**Webhooks** — `list_webhooks`, `get_webhook`, `create_webhook`, `update_webhook`, `delete_webhook`, `test_webhook`
-**Entregas de webhook** — `list_webhook_deliveries`
+**Webhooks** — `list_webhooks`, `get_webhook`, `create_webhook`, `update_webhook`, `delete_webhook`, `test_webhook` (`events` aceita a categoria opt-in `app_messages`)
+**Entregas de webhook** — `list_webhook_deliveries` (status `limited` = cortada pelo limite de repasse do Free)
 **Logs** — `list_api_logs`
 **Usuários** — `list_users`
 **Uso** — `get_meta_costs` (custo aproximado da Meta por moeda, dia e categoria; custo ausente vem `null`, nunca 0)

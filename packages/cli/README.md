@@ -132,9 +132,19 @@ botozap messages send --to 5511999999999 --text "Olá do BotoZap!"
 botozap messages send --input ./mensagem.json
 cat ./mensagem.json | botozap messages send --stdin
 
-# Listar mensagens com filtro e paginação por cursor
+# Botões/lista/link (objeto interactive da Cloud API), localização e reação
+botozap messages send-interactive --to 5511999999999 --input ./botoes.json
+botozap messages send-location --to 5511999999999 --latitude -3.119 --longitude -60.0217 --name "Loja"
+botozap messages react --to 5511999999999 --message-id <uuid-ou-wamid> --emoji 👍
+botozap messages react --to 5511999999999 --message-id <uuid-ou-wamid> --remove
+
+# Listar mensagens com filtro e paginação por cursor (coluna ORIGEM = source)
 botozap messages list --direction inbound --limit 20
 botozap messages list --after <cursor>
+botozap messages list --sort event_at   # ordem real; reuse o cursor com o mesmo --sort
+
+# Webhook com a categoria opt-in de mensagens do app (coexistência)
+botozap webhooks create --url https://exemplo.com/hook --events messages,app_messages
 
 # Encerrar uma conversa
 botozap conversations update <id> --status ended

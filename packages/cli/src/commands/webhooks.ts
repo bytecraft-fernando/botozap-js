@@ -52,7 +52,7 @@ export function registerWebhooks(program: Command): void {
     .requiredOption("--url <url>", "URL de entrega (obrigatório)")
     .requiredOption(
       "--events <lista>",
-      "eventos separados por vírgula (obrigatório)",
+      "categorias separadas por vírgula: messages, statuses, crm, account, app_messages (opt-in; obrigatório)",
     )
     .option("--secret <segredo>", "segredo para assinar as entregas")
     .option("--active <bool>", "true | false")

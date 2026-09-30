@@ -38,10 +38,10 @@ export function registerWebhookTools(register: Register): void {
 
   register(
     "create_webhook",
-    "Cria um endpoint de webhook. `url` precisa ser https. `events` é a lista de categorias assinadas (messages, statuses, crm, account; ao menos uma). `customer_id` opcional limita as entregas a um Cliente da conta. `headers.Authorization` é opcional (ex.: Bearer …) e nunca é devolvido. A resposta inclui o segredo HMAC em `data.secret` uma única vez: armazene-o com segurança; ele não volta a ser exibido. Retorna { data }.",
+    "Cria um endpoint de webhook. `url` precisa ser https. `events` é a lista de categorias assinadas (messages, statuses, crm, account, app_messages; ao menos uma). `app_messages` é opt-in: eventos whatsapp.message.echo/edited/revoked do app WhatsApp Business em coexistência; só chega a quem a assina. `account` inclui whatsapp.phone_number.connected. `customer_id` opcional limita as entregas a um Cliente da conta. `headers.Authorization` é opcional (ex.: Bearer …) e nunca é devolvido. A resposta inclui o segredo HMAC em `data.secret` uma única vez: armazene-o com segurança; ele não volta a ser exibido. Retorna { data }.",
     {
       url: z.string().describe("URL https do endpoint."),
-      events: z.array(z.string()).describe("Tipos de evento assinados."),
+      events: z.array(z.string()).describe("Categorias assinadas: messages, statuses, crm, account, app_messages (opt-in)."),
       active: z.boolean().optional().describe("Ativo (default true)."),
       headers: z
         .object({
@@ -137,7 +137,7 @@ export function registerWebhookTools(register: Register): void {
     "Lista as entregas de webhook (tentativas de POST aos endpoints), com status e resposta. Paginação por cursor: { data, paging }.",
     {
       webhook_id: z.string().optional().describe("Filtra por endpoint (alias de endpoint_id na rota)."),
-      status: z.string().optional().describe("Filtra por status da entrega (pending|success|failed|exhausted)."),
+      status: z.string().optional().describe("Filtra por status da entrega (pending|success|failed|exhausted|limited; limited = cortada pelo limite de repasse do Free, sem retry)."),
       event_type: z.string().optional().describe("Filtra pelo tipo de evento da entrega."),
       limit: z.number().int().positive().optional(),
       after: z.string().optional(),

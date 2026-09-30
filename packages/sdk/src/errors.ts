@@ -34,3 +34,43 @@ export class BotoZapError extends Error {
     this.retry = details?.retry;
   }
 }
+
+/**
+ * Códigos de erro conhecidos da API (não exaustivo; valores novos podem surgir).
+ * Envio (POST /v1/messages): `invalid_reaction`, `missing_reaction_target`,
+ * `reaction_target_not_found`, `reaction_target_invalid`,
+ * `reaction_target_expired`, `unsupported_type`, `free_form_limit_reached`
+ * (429, limite 1:1 do Free). Plano: `plan_restricted` (403, escritas de IA,
+ * Agenda, Calendário e Jornadas fora do plano), `free_number_cap` (402, setup
+ * além do teto de Números do Free). IA: `provider_not_enabled` (422, credencial
+ * nova de provedor com `accepts_new_credentials: false`).
+ */
+export type BotoZapErrorCode =
+  | "invalid_request"
+  | "unsupported_type"
+  | "invalid_reaction"
+  | "missing_reaction_target"
+  | "reaction_target_not_found"
+  | "reaction_target_invalid"
+  | "reaction_target_expired"
+  | "free_form_limit_reached"
+  | "quota_exceeded"
+  | "plan_restricted"
+  | "free_number_cap"
+  | "provider_not_enabled"
+  | (string & {});
+
+/** Códigos que indicam limite ou restrição do plano contratado. */
+export const PLAN_ERROR_CODES = [
+  "plan_restricted",
+  "free_form_limit_reached",
+  "free_number_cap",
+] as const;
+
+/** True quando o erro é recusa por plano (upgrade resolve; retry não). */
+export function isPlanError(error: unknown): error is BotoZapError {
+  return (
+    error instanceof BotoZapError &&
+    (PLAN_ERROR_CODES as readonly string[]).includes(error.code)
+  );
+}

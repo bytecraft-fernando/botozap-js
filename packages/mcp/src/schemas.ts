@@ -140,6 +140,17 @@ export const sendMessageResultSchema = z
     status: z.string().describe("Status inicial do envio."),
     sandbox: z.boolean().optional(),
     warnings: z.array(z.object({ code: z.string(), message: z.string() }).strip()).optional(),
+    type: z.literal("reaction").optional(),
+    reaction: z
+      .object({
+        message_id: internalUuidSchema,
+        wamid: z.string(),
+        emoji: z.string(),
+        action: z.enum(["react", "unreact"]),
+      })
+      .strip()
+      .optional()
+      .describe("Só em type='reaction': alvo e ação."),
   })
   .strip() satisfies z.ZodType<SendResult>;
 
@@ -453,7 +464,7 @@ export const webhookDeliverySchema = z
     id: internalUuidSchema,
     endpoint_id: internalUuidSchema,
     event_type: z.string(),
-    status: z.enum(["pending", "success", "failed", "exhausted"]),
+    status: z.enum(["pending", "success", "failed", "exhausted", "limited"]),
     response_code: z.number().int().nullable(),
     attempts: z.number().int().nonnegative(),
     last_attempt_at: z.string().nullable(),

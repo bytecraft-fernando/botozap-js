@@ -116,6 +116,35 @@ exports[`MCP — send_media_message > anuncia o contrato de mídia e seus limite
         ],
         "description": "UUID interno da Mensagem; null se a persistência best-effort falhou.",
       },
+      "reaction": {
+        "additionalProperties": false,
+        "description": "Só em type='reaction': alvo e ação.",
+        "properties": {
+          "action": {
+            "enum": [
+              "react",
+              "unreact",
+            ],
+            "type": "string",
+          },
+          "emoji": {
+            "type": "string",
+          },
+          "message_id": {
+            "$ref": "#/properties/id/anyOf/0",
+          },
+          "wamid": {
+            "type": "string",
+          },
+        },
+        "required": [
+          "message_id",
+          "wamid",
+          "emoji",
+          "action",
+        ],
+        "type": "object",
+      },
       "sandbox": {
         "type": "boolean",
       },
@@ -129,6 +158,10 @@ exports[`MCP — send_media_message > anuncia o contrato de mídia e seus limite
       },
       "to": {
         "description": "Destinatário solicitado pelo cliente.",
+        "type": "string",
+      },
+      "type": {
+        "const": "reaction",
         "type": "string",
       },
       "wamid": {

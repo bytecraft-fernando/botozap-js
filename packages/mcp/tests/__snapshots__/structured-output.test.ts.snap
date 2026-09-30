@@ -780,11 +780,11 @@ exports[`MCP — output schemas e structured content > anuncia schemas não vazi
       "additionalProperties": false,
       "properties": {
         "after": {
-          "description": "Cursor: itens após este created_at.",
+          "description": "Cursor opaco da próxima página (paging.next).",
           "type": "string",
         },
         "before": {
-          "description": "Cursor: itens antes deste created_at.",
+          "description": "Cursor opaco da página anterior (paging.previous).",
           "type": "string",
         },
         "conversation_id": {
@@ -813,6 +813,14 @@ exports[`MCP — output schemas e structured content > anuncia schemas não vazi
         },
         "phone_number_id": {
           "description": "Filtra pelo ID Meta ou UUID interno do número.",
+          "type": "string",
+        },
+        "sort": {
+          "description": "Ordem: created_at (padrão, chegada à BotoZap) ou event_at (data real da mensagem). Reuse o cursor com o mesmo sort.",
+          "enum": [
+            "created_at",
+            "event_at",
+          ],
           "type": "string",
         },
         "status": {
@@ -1630,6 +1638,57 @@ exports[`MCP — output schemas e structured content > anuncia schemas não vazi
           "pattern": "^[!-~]+$",
           "type": "string",
         },
+        "interactive": {
+          "additionalProperties": {},
+          "description": "Objeto interactive da Cloud API quando type='interactive': type 'button' (até 3 botões reply {id,title≤20}), 'list' (action.button + sections[].rows[] {id,title≤24,description?}, até 10 opções) ou 'cta_url' (action {name:'cta_url', parameters {display_text, url https}}); body.text obrigatório; header/footer opcionais. A API valida e recusa com 422 invalid_request.",
+          "type": "object",
+        },
+        "location": {
+          "additionalProperties": false,
+          "description": "Localização quando type='location'.",
+          "properties": {
+            "address": {
+              "type": "string",
+            },
+            "latitude": {
+              "maximum": 90,
+              "minimum": -90,
+              "type": "number",
+            },
+            "longitude": {
+              "maximum": 180,
+              "minimum": -180,
+              "type": "number",
+            },
+            "name": {
+              "type": "string",
+            },
+          },
+          "required": [
+            "latitude",
+            "longitude",
+          ],
+          "type": "object",
+        },
+        "reaction": {
+          "additionalProperties": false,
+          "description": "Reação quando type='reaction'.",
+          "properties": {
+            "emoji": {
+              "description": "Emoji; string vazia retira a reação.",
+              "type": "string",
+            },
+            "message_id": {
+              "description": "UUID interno ou wamid da mensagem RECEBIDA do contato (até 30 dias).",
+              "type": "string",
+            },
+          },
+          "required": [
+            "message_id",
+            "emoji",
+          ],
+          "type": "object",
+        },
         "template": {
           "additionalProperties": false,
           "description": "Objeto do template quando type='template'. Exige name e language.code.",
@@ -1689,10 +1748,13 @@ exports[`MCP — output schemas e structured content > anuncia schemas não vazi
           "type": "string",
         },
         "type": {
-          "description": "Tipo da mensagem.",
+          "description": "Tipo da mensagem. interactive, location e reaction são mensagens livres (exigem janela de 24h aberta).",
           "enum": [
             "text",
             "template",
+            "interactive",
+            "location",
+            "reaction",
           ],
           "type": "string",
         },
@@ -1762,6 +1824,35 @@ exports[`MCP — output schemas e structured content > anuncia schemas não vazi
           ],
           "description": "UUID interno da Mensagem; null se a persistência best-effort falhou.",
         },
+        "reaction": {
+          "additionalProperties": false,
+          "description": "Só em type='reaction': alvo e ação.",
+          "properties": {
+            "action": {
+              "enum": [
+                "react",
+                "unreact",
+              ],
+              "type": "string",
+            },
+            "emoji": {
+              "type": "string",
+            },
+            "message_id": {
+              "$ref": "#/properties/id/anyOf/0",
+            },
+            "wamid": {
+              "type": "string",
+            },
+          },
+          "required": [
+            "message_id",
+            "wamid",
+            "emoji",
+            "action",
+          ],
+          "type": "object",
+        },
         "sandbox": {
           "type": "boolean",
         },
@@ -1775,6 +1866,10 @@ exports[`MCP — output schemas e structured content > anuncia schemas não vazi
         },
         "to": {
           "description": "Destinatário solicitado pelo cliente.",
+          "type": "string",
+        },
+        "type": {
+          "const": "reaction",
           "type": "string",
         },
         "wamid": {

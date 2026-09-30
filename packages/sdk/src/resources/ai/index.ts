@@ -47,6 +47,7 @@ import type {
   AiConfigurablePurpose,
   AiRateInput,
   AiRecord,
+  AiProviderInfo,
   AiRevision,
   AiRouter,
   AiRouterConfig,
@@ -239,7 +240,7 @@ export class AiCredentialsResource {
   get(input: AiScope & { id: string }): Promise<AiCredential> {
     return request(this.client, AI_OPERATIONS[11]!, input);
   }
-  /** Cria credencial própria no Vault; a resposta nunca contém a chave. */
+  /** Cria credencial própria no Vault; a resposta nunca contém a chave. Só `AI_CREDENTIAL_PROVIDERS` (openai/anthropic); os demais: 422 `provider_not_enabled`. */
   create(
     input: AiScope & { provider: AiProvider; label: string; key: string },
   ): Promise<AiCredential> {
@@ -267,7 +268,7 @@ export class AiProvidersResource {
   constructor(private readonly client: BotoZap) {}
   /** GET /ai/providers */
   get(input: AiScope): Promise<{
-    providers: AiRecord[];
+    providers: AiProviderInfo[];
     purposes: Record<string, string>;
     credentials: AiCredential[];
     bindings: AiBinding[];
