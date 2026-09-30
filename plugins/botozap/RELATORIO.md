@@ -1,45 +1,31 @@
-# Pacote do plugin — oito telas (30/09/2026)
+# Pacote do plugin — rodada 2 (30/09/2026)
 
-Branch própria `feat/plugin-pack-ui`, baseada em `origin/main` e832a58. Alterações restritas a `plugins/botozap/**`; sem edição de packages/mcp, npm, deploy, flags ou portal. Versão portátil 0.2.0, identidade/endpoint/ícone preservados.
+Branch `feat/plugin-pack-ui` rebaseada em `origin/main` f586343fd1ea82b7e4f2328486e6b01ba2fcfad7, com #14/#15/#17 integrados. Alterações apenas em `plugins/botozap/**`; sem npm, servidor, deploy, flags ou portal.
 
-## Resultado
+## Regra do piloto
 
-Seis skills cobrem as oito telas: pendências/carrossel (list_radar), resposta (stage_review_reply), Radar/conversa (open_review_panel), template (stage_review_template), plantão (open_live_conversation), casos (open_agent_cases), agenda (stage_appointment_booking) e global (open_botozap). review_template_variables é auxiliar opcional, nunca aberto automaticamente. Todas exigem confirmação na UI para envio/mutação; sem UI, somente leitura/preparação e conclusão no painel web. Administração/credenciais/webhooks não são operados pelo plugin.
+Todas as seis skills distinguem pedidos completos e explícitos (tool direta com permissão do ChatGPT) de pedidos incompletos, escolhas e preparação/revisão (UI, com confirmação nela). Agenda completa não abre seletor; texto exato não abre outro card. Criar definição usa `create_template` diretamente; `stage_review_template` só prepara envio aprovado. UI nunca autoriza mutação paralela. Sem UI, pedidos completos mantêm rota direta; preparação/revisão conclui no painel. Administração, credenciais de IA e webhooks continuam no painel.
 
-Cinco positivos e três negativos importáveis em inglês, com tradução pt-BR e preparação reproduzível em pilot-materials.md. Cobrem revisão/envio confirmado, template completo aprovado com prévia primeiro, casos, agenda, plantão/entrada global; negativos cobrem administração, pular confirmação e outra Conta. Estão **não executados**, sem credenciais ou IDs reais.
+A tela do agente está preparada nas instruções para casos, alertas abertos e conversas pausadas retornados pelo servidor; não presume implementação nem inventa categorias ausentes. Worker B cuida dessa alteração MCP.
 
-## Auditoria oficial e divergências
+Manifest e materiais mantêm 5 positivos/3 negativos EN/pt-BR. P01/P02/P04 têm ensaios adicionais da rota direta; N02 agora testa contornar qualquer permissão, sem proibir um pedido completo de usar tool direta. Casos reais continuam **não executados**.
 
-Conferido na documentação atual de [submissão](https://developers.openai.com/plugins/deploy/submission) e [Extensions](https://developers.openai.com/plugins/build/extensions):
+## Validação
 
-- Manifest portátil: listagem em extensions.com.openai.interface; onboardingSkill, review e publication no mesmo namespace. Um servidor: exatamente 5 positivos/3 negativos em review.test_cases, campos textuais; traduções de casos ficam nos materiais, não em campos inventados do manifest.
-- Limites validados: displayName/subtitle 30, descrição 4000, developerName 80; até 3 prompts únicos, de uma linha, 128 caracteres; quatro URLs HTTPS, ícone PNG quadrado 1024×1024, abaixo de 5 MiB. Nenhuma vinculação privada apps/.app.json.
-- Thread/global são entrypoints da metadata das tools MCP, não do ZIP. Display modes, PiP, contexto e formulários dependem do host/servidor. Nenhum campo fictício de entrypoint foi acrescentado ao manifest.
-- A divergência inicial era o pacote só conhecer duas tools de UI. Corrigida nas skills/casos/validação; main ainda não contém seis novas tools UI. Contratos verificados em PR #14 SHA 498277f e PR #17 SHA ebfe41e, registrados em ui-contracts.json, fora do ZIP. --catalog-ref valida declarações em revisões Git, sem afirmar disponibilidade remota; worker B continua responsável pelo servidor.
-- “Criar template completo” significa preparar uma mensagem com template aprovado. Criação/aprovação de definição não existe nesta UI e permanece administrativa no painel web. Não foi inventada essa capacidade.
-- Gravação obrigatória e execução real dos casos faltam; as demos fictícias não as substituem. --submission-ready continua bloqueado. Publisher/scans/atestações/acesso seguro do revisor são pendências externas.
+`package.py` agora exige todas as nove tools de UI/auxiliar no catálogo local integrado; não injeta contratos planejados nem aceita `--catalog-ref`. As tools diretas são conferidas no catálogo existente. Snapshot de origem aponta só para main integrado; nenhuma disponibilidade remota é alegada.
 
-Os links [website](https://botozap.com.br), [suporte](https://botozap.com.br/suporte), [privacidade](https://botozap.com.br/privacidade) e [termos](https://botozap.com.br/termos) foram inspecionados publicamente. Suporte retornou HTTP 200 e conteúdo próprio com canais de ajuda e orientação para envios incertos (curl; o navegador de pesquisa não o abriu). As políticas acessíveis tratam o produto, mas não mencionam ChatGPT; a cobertura específica desta integração requer revisão do responsável, sem presumir insuficiência jurídica nem editar políticas.
-
-## Validação e artefato
-
-Comandos executados:
+Comandos:
 
 ```sh
-python3 plugins/botozap/scripts/package.py
 python3 plugins/botozap/scripts/test_package.py
-python3 plugins/botozap/scripts/package.py --catalog-ref 498277f87e6384cc429b7679e6c2033f7d10f0b9 --catalog-ref ebfe41e65976c2dd88d30d2cee6e9f030d2858b6 --zip /tmp/botozap-plugin-0.2.0.zip
+python3 plugins/botozap/scripts/package.py --zip /tmp/botozap-plugin-0.2.0.zip
 python3 plugins/botozap/scripts/package.py --zip /tmp/botozap-plugin-0.2.0-rebuild.zip
 cmp /tmp/botozap-plugin-0.2.0.zip /tmp/botozap-plugin-0.2.0-rebuild.zip
 ```
 
-Seis testes offline passaram: igualdade binária, allowlist (exclui .env/screenshots/instruções privadas), metadata privada, token em skill, tool desconhecida, symlink/binding privado, limites de listagem e bloqueio de readiness. ZIP inspecionado sem scripts/docs/contratos, screenshots grandes, segredos ou campos privados; os padrões de tokens são uma defesa adicional, não prova geral de ausência de segredos.
+Oito testes offline: ZIP idêntico/allowlist, campos privados, token, tool desconhecida, symlink/binding, limites/readiness, tool integrada ausente e regra do piloto em todas as skills. ZERO tools UI ausentes no catálogo integrado. ZIP 764402 bytes; SHA-256 `e441d2ad2392d0499bf45be2d15b2bb720795d34ff3bccb35731b0d7e6f10994`.
 
-ZIP: `/tmp/botozap-plugin-0.2.0.zip` · 760671 bytes
-
-SHA-256: `4819df8ce49a84d5ee7e4cae7bfc6ed68756f1dcc78575ed132e9fc4e738fda7`
-
-Inventário exato:
+Inventário exato (9):
 
 - `assets/icon.png`
 - `mcp.json`
@@ -50,3 +36,9 @@ Inventário exato:
 - `skills/plantao-ao-vivo/SKILL.md`
 - `skills/preparar-template/SKILL.md`
 - `skills/revisar-pendencias/SKILL.md`
+
+## Submissão e limites
+
+Mantidos os campos/limites e entrypoints conferidos anteriormente na documentação oficial de [submissão](https://developers.openai.com/plugins/deploy/submission) e [Extensions](https://developers.openai.com/plugins/build/extensions). Nenhum campo novo de manifest ou entrypoint fictício; thread/global continuam no servidor. ZIP exclui scripts, docs, contratos, screenshots, .env e materiais privados.
+
+PR pronto para revisão não significa submissão pronta. Ainda faltam gravação real, execução dos casos com conta dedicada, verificação da implantação/host/conta, cobertura das políticas, publisher/scans/atestações e acesso seguro do revisor. `--submission-ready` continua bloqueando; nada foi enviado ao portal.

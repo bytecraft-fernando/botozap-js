@@ -52,6 +52,19 @@ class PackageTests(unittest.TestCase):
         self.assertNotEqual(self.run_package().returncode,0)
         p.unlink();p.write_text(data);(self.root/'.app.json').write_text('{}')
         self.assertNotEqual(self.run_package().returncode,0)
+    def test_missing_integrated_ui_tool_rejected(self):
+        for p in (self.repo/'packages/mcp/src').rglob('*.ts'):
+            text=p.read_text()
+            if 'open_botozap' in text:
+                p.write_text(text.replace('open_botozap', 'removed_global_tool'))
+        self.assertNotEqual(self.run_package().returncode,0)
+    def test_pilot_routing_in_every_skill(self):
+        for p in (self.root/'skills').glob('*/SKILL.md'):
+            text=p.read_text()
+            self.assertIn('Pedido completo e explícito',text)
+            self.assertIn('permissão do ChatGPT',text)
+            self.assertIn('Pedido vago/incompleto',text)
+            self.assertIn('`create_template`',text)
     def test_listing_limits_and_submission_gate(self):
         self.assertNotEqual(self.run_package('--submission-ready').returncode,0)
         self.manifest(lambda m:m['extensions']['com.openai']['interface'].update(shortDescription='x'*31))

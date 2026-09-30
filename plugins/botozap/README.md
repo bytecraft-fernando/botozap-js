@@ -2,7 +2,7 @@
 
 Pacote portátil atualizado para as oito telas: pendências/carrossel, resposta pronta, Radar/conversa, template aprovado, plantão ao vivo, casos da IA, agendamento e entrada global. A identidade, endpoint OAuth e ícone existentes foram preservados. Base em inglês, tradução pt-BR e targeting BR mantidos.
 
-As skills só chamam tools descobertas na conexão. UI depende dos PRs #14/#17 no servidor, capacidades do host, permissões e habilitação da Conta. O ZIP não habilita UI nem registra entrypoints: thread/global/display modes são metadados das tools/recursos MCP. Sem UI, consultar/preparar e concluir no painel web. Nunca enviar sem confirmação do usuário na UI; administração, credenciais de IA e webhooks ficam no painel web.
+As skills só chamam tools descobertas na conexão. Os PRs #14/#15/#17 estão integrados em main; UI depende da versão implantada do servidor, capacidades do host, permissões e habilitação da Conta. O ZIP não habilita UI nem registra entrypoints: thread/global/display modes são metadados das tools/recursos MCP. Pedidos completos e explícitos usam tools diretas com permissão do ChatGPT. Pedidos vagos, escolhas e preparação/revisão usam UI e confirmação nela. Criar definição de template usa create_template diretamente; a UI de template só envia aprovado. Sem UI, revisão no painel; pedidos completos mantêm a rota direta; administração, credenciais de IA e webhooks ficam no painel web.
 
 ## Validar e empacotar
 
@@ -16,13 +16,7 @@ unzip -l /tmp/botozap-plugin-0.2.0.zip
 shasum -a 256 /tmp/botozap-plugin-0.2.0.zip
 ```
 
-Para conferir as declarações diretamente contra as revisões dos PRs disponíveis no clone:
-
-```sh
-python3 plugins/botozap/scripts/package.py --catalog-ref origin/feat/mcp-ui-chatgpt --catalog-ref origin/mcp-ui-live
-```
-
-`ui-contracts.json` registra os nomes e argumentos obrigatórios verificados nas revisões de origem. A validação padrão distingue os contratos planejados das tools ainda ausentes no main local. `--catalog-ref` faz uma conferência adicional no código Git, sem checkout/edição do servidor; não verifica catálogo remoto ou disponibilidade no ChatGPT.
+A validação lê o catálogo real no código integrado de main, incluindo a fixture 0.6.0 e as declarações de tools. Falha se qualquer tool de UI estiver ausente; não acrescenta contratos planejados ao catálogo. `ui-contracts.json` registra a base integrada `f586343`. Isso valida código local, não disponibilidade remota no ChatGPT.
 
 O ZIP reproduzível contém somente os dois manifests, ícone e seis SKILL.md: 9 arquivos, ordem/timestamp/permissões fixos. `.env`, segredos, credenciais/instruções privadas, scripts, docs, contratos, vídeos e screenshots não entram. Links simbólicos nos caminhos selecionados e padrões conhecidos de tokens são rejeitados; isso não substitui revisão humana de dados privados.
 
