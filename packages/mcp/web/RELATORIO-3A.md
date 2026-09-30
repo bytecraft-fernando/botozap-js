@@ -25,7 +25,9 @@ simula dados e resultados. Nenhuma ação do simulador consulta produção.
 - Tela 4: janela fechada abre templates aprovados do número, De/Para, seletor,
   variáveis sugeridas/editáveis e prévia com cabeçalho/corpo/botões. Confirmação
   explícita usa `send_message type=template`, prepara UUID por intenção, relê
-  destinatário/origem/aprovação e congela após resultado incerto. Formulário nativo
+  destinatário/origem/aprovação/nome/idioma e congela após resultado incerto.
+  Recusa confirmada conserva a chave para nova confirmação sem edição; edição
+  cria outra intenção. Resultado tardio do formulário nativo não sobrescreve edição. Formulário nativo
   `openai/elicitation/create` com sugestões quando anunciado; fallback acessível.
 - Tela 6: caso escalado, razão, evidência do histórico, resumo de conversas e
   assumir/devolver com confirmação, identidade, permissão e CAS. Ausência de
@@ -52,7 +54,7 @@ Playwright/axe: 100 capturas novas + 60 anteriores regeneradas; WCAG A/AA com ze
 violações, nenhum erro de runtime ou overflow. Até duas ações por card, uma por
 horário. Resultados em `screenshots/validation-3a.json` e `validation.json`.
 Os vídeos são gravações do navegador durante cada roteiro, sem montagem: template
-8,24 s, casos 9,08 s e agenda 6,96 s, com pausas para leitura. Regenerar somente
+cerca de 8 s, casos 9 s e agenda 7 s, com pausas para leitura. Regenerar somente
 os vídeos: `node packages/mcp/scripts/screenshot-3a.mjs --video-only`.
 
 CI da implementação `f41a8b9c0bba92e7ce810dcfec200e1b9208a44c`: Node 20.19, 22 e 24
