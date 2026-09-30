@@ -104,3 +104,9 @@ it.each([['cases', '24 conversas hoje (UTC)'], ['cases-unique', '17 clientes hoj
     if (scenario === 'cases-unique')
         expect(document.body.textContent).toContain('America/Manaus');
 });
+
+it('códigos seguem tamanho aceito, sem inventar mínimo OTP ou restringir cupom a ASCII',()=>{
+    expect(validateTemplateValues(completeTemplates[4]!,{body_1:'1'})).toEqual({});
+    expect(validateTemplateValues(completeTemplates[10]!,{...values(10),button_0_code:'ÁGUAS 2026'})).toEqual({});
+    expect(validateTemplateValues(completeTemplates[10]!,{...values(10),button_0_code:'AGUAS\n2026'}).button_0_code).toBeTruthy();
+});

@@ -95,7 +95,7 @@ contagem de pessoas únicas no dia civil do negócio pertence ao agente da API.
 ## Validação
 
 - `pnpm build`, `pnpm typecheck`, `pnpm test` e `pnpm gate:tarballs` passaram.
-- Testes: SDK 173, CLI 105, MCP 245 (523 no total), incluindo renderizadores,
+- Testes: SDK 173, CLI 105, MCP 246 (524 no total), incluindo renderizadores,
   parâmetros por tipo, tamanhos/UTF-8, URLs/mídia, localização, OTP, carrossel,
   moeda/data, catálogo desconhecido, métrica, agrupamento e negociação de UI.
 - Guarda HTTP do CI passou: nenhum cliente/fetch novo fora do SDK.

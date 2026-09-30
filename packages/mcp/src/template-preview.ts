@@ -149,10 +149,10 @@ export function validateTemplateValues(t: TemplateRow, values: Record<string, st
             errors[f.key] = 'Latitude entre −90 e 90.';
         else if (f.kind === 'longitude' && !coordinate(v, -180, 180))
             errors[f.key] = 'Longitude entre −180 e 180.';
-        else if (f.kind === 'otp' && !/^[a-zA-Z0-9]{4,15}$/.test(v))
-            errors[f.key] = 'Código de 4 a 15 caracteres alfanuméricos, emitido pelo seu sistema.';
-        else if (f.kind === 'coupon' && (!/^[\x21-\x7e]{1,15}$/.test(v)))
-            errors[f.key] = 'Código de até 15 caracteres, sem espaços.';
+        else if (f.kind === 'otp' && !/^[a-zA-Z0-9]{1,15}$/.test(v))
+            errors[f.key] = 'Código de 1 a 15 caracteres alfanuméricos, emitido pelo seu sistema.';
+        else if (f.kind === 'coupon' && /[\x00-\x1f\x7f]/.test(v))
+            errors[f.key] = 'Código de até 15 caracteres, sem caracteres de controle.';
         else if (f.kind === 'expiry' && (!Number.isFinite(Date.parse(v)) || Date.parse(v) <= now || !/(Z|[+-]\d\d:\d\d)$/.test(v)))
             errors[f.key] = 'Informe uma data futura ISO 8601 com fuso.';
         else if (f.kind === 'json' && !objectJson(v))
@@ -232,7 +232,7 @@ function buildParameters(t: TemplateRow, values: Record<string, string>): Templa
                     else if (bt === 'URL' && variables(b.url ?? '').length)
                         out.push({ ...base, sub_type: 'url', parameters: variables(b.url).map(v => ({ type: 'text', text: values[key + v] })) });
                     else if (bt === 'COPY_CODE')
-                        out.push({ ...base, sub_type: 'copy_code', parameters: [{ type: 'coupon_code', coupon_code: values[key + 'code'] }] });
+                        out.push({ ...base, sub_type: 'copy_code', parameters: [{ type: 'coupon_code', coupon_code: values[key + 'code']?.trim() }] });
                     else if (bt === 'QUICK_REPLY' && values[key + 'payload']?.trim())
                         out.push({ ...base, sub_type: 'quick_reply', parameters: [{ type: 'payload', payload: values[key + 'payload'] }] });
                     else if (bt === 'FLOW' && (values[key + 'token'] || values[key + 'data']))
