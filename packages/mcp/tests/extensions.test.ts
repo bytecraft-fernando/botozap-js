@@ -29,7 +29,7 @@ async function connect(uiEnabled = false, identity = fullAccessIdentity) {
   clients.push(client);
   return { client, server, fetch };
 }
-afterEach(async () => { await Promise.allSettled(clients.splice(0).map(c => c.close())); });
+afterEach(async () => { vi.unstubAllEnvs(); await Promise.allSettled(clients.splice(0).map(c => c.close())); });
 
 describe("optional review extensions", () => {
   it("keeps the catalogue unchanged by default", async () => {
@@ -39,6 +39,35 @@ describe("optional review extensions", () => {
     expect(tools.find(t => t.name === "send_message")?._meta).toBeUndefined();
     expect((await client.listResources()).resources.some(r => r.uri.startsWith("ui://"))).toBe(false);
   });
+  it("limits UI catalogue and resources to explicitly selected account identities", async () => {
+    vi.stubEnv('BOTOZAP_MCP_UI_ACCOUNTS', ` other-account, ${fullAccessIdentity.account_id} `);
+    const allowed = await connect(true);
+    expect((await allowed.client.listTools()).tools.some(t => t.name === 'stage_review_reply')).toBe(true);
+    expect((await allowed.client.listResources()).resources.filter(r => r.uri.startsWith('ui://'))).toHaveLength(3);
+    const denied = await connect(true, { ...fullAccessIdentity, account_id: 'not-selected' });
+    const baseline = await connect(false, { ...fullAccessIdentity, account_id: 'not-selected' });
+    expect((await denied.client.listTools()).tools).toEqual((await baseline.client.listTools()).tools);
+    expect((await denied.client.listResources()).resources.some(r => r.uri.startsWith('ui://'))).toBe(false);
+    const result = await denied.client.callTool({ name: 'stage_review_reply', arguments: { conversation_id: CONVERSATION_ID, text: 'Olá' } });
+    expect(result.isError).toBe(true);
+  });
+  it("does not enable UI with the account list alone or an empty list", async () => {
+    vi.stubEnv('BOTOZAP_MCP_UI_ACCOUNTS', fullAccessIdentity.account_id);
+    const off = await connect(false);
+    expect((await off.client.listTools()).tools.some(t => t.name === 'open_review_panel')).toBe(false);
+    vi.stubEnv('BOTOZAP_MCP_UI_ACCOUNTS', ' ');
+    const empty = await connect(true);
+    expect((await empty.client.listTools()).tools.some(t => t.name === 'open_review_panel')).toBe(false);
+    expect((await empty.client.listResources()).resources.some(r => r.uri.startsWith('ui://'))).toBe(false);
+  });
+  it("removes UI metadata and resources after identity moves out of the pilot", async () => {
+    vi.stubEnv('BOTOZAP_MCP_UI_ACCOUNTS', fullAccessIdentity.account_id);
+    const h = await connect(true);
+    refreshServerIdentity(h.server, { ...fullAccessIdentity, account_id: 'not-selected' });
+    expect((await h.client.listTools()).tools.some(t => t.name === 'open_review_panel')).toBe(false);
+    expect((await h.client.listTools()).tools.find(t => t.name === 'list_radar')?._meta).toBeUndefined();
+    expect((await h.client.listResources()).resources.some(r => r.uri.startsWith('ui://'))).toBe(false);
+  });
   it("advertises a standard app resource and thread entrypoint without credentials", async () => {
     const { client } = await connect(true);
     const tool = (await client.listTools()).tools.find(t => t.name === "open_review_panel");
@@ -47,7 +76,7 @@ describe("optional review extensions", () => {
     expect(stage?._meta).toEqual({ ui: { resourceUri: "ui://botozap/reply/v1.html", visibility: ["model", "app"] } });
     expect(tool?.annotations).toMatchObject({ readOnlyHint: true, destructiveHint: false, openWorldHint: false });
     const replyResource = await client.readResource({ uri: "ui://botozap/reply/v1.html" });
-    expect(replyResource.contents[0]._meta).toMatchObject({ "openai/ui": { availableDisplayModes: ["inline"], preferredDisplayMode: "inline" }, ui: { csp: { connectDomains: [], resourceDomains: [] } } });
+    expect(replyResource.contents[0]._meta).toMatchObject({ "openai/ui": { availableDisplayModes: ["inline", "fullscreen"], preferredDisplayMode: "inline" }, ui: { csp: { connectDomains: [], resourceDomains: [] } } });
     const resource = await client.readResource({ uri: "ui://botozap/review/v1.html" });
     expect(resource.contents[0]._meta).toMatchObject({ "openai/ui": { availableDisplayModes: ["inline", "fullscreen"], preferredDisplayMode: "fullscreen" } });
     expect(resource.contents[0]).toMatchObject({ mimeType: "text/html;profile=mcp-app", _meta: { ui: { csp: { connectDomains: [], resourceDomains: [], frameDomains: [] } } } });

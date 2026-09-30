@@ -17,7 +17,7 @@ function harness(reply = vi.fn(async () => data({ id: null, wamid: "wamid.accept
     if (name === "reply_to_conversation") return reply();
     throw new Error(`Unexpected ${name}`);
   });
-  const context = vi.fn(async () => {});
+  const context = vi.fn(async (_value: unknown) => {});
   const panel = mountReview(document.body, { call, context }); panel.bootstrap(bootstrap);
   return { call, context, panel, reply };
 }
@@ -66,4 +66,20 @@ describe("review UI safety", () => {
     expect($<HTMLTextAreaElement>("draft").disabled).toBe(true); expect($("notice").textContent).toContain("conta mudou");
     expect(h.reply).not.toHaveBeenCalled();
   });
+  it("only upgrades delivery status from a matching outbound receipt and never regresses read", async () => {
+    const h = harness(); await select(); review(); $("send").click();
+    await vi.waitFor(() => expect(document.body.dataset.state).toBe("accepted"));
+    const receipt = { id: "receipt", wamid: "wamid.accepted", conversation_id: "conversation", direction: "outbound", status: "delivered" };
+    const notify = (row: Record<string, unknown>) => h.panel.bootstrap(data({ data: [row], paging: { next: null } }));
+    notify({ ...receipt, conversation_id: "other" });
+    notify({ ...receipt, direction: "inbound" });
+    notify({ ...receipt, wamid: "unrelated" });
+    expect(document.body.dataset.state).toBe("accepted");
+    notify(receipt); expect(document.body.dataset.state).toBe("delivered");
+    notify({ ...receipt, status: "read" }); expect(document.body.dataset.state).toBe("read");
+    notify(receipt); expect(document.body.dataset.state).toBe("read");
+    expect(h.reply).toHaveBeenCalledTimes(1);
+    expect(h.context.mock.calls.at(-1)?.[0]).toMatchObject({ review_state: "read" });
+  });
+
 });

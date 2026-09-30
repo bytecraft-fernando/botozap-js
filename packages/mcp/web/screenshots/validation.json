@@ -1,0 +1,419 @@
+{
+  "scenarios": 60,
+  "results": [
+    {
+      "step": "a-pendencias",
+      "theme": "light",
+      "device": "desktop",
+      "scenario": "normal",
+      "axeViolations": 0
+    },
+    {
+      "step": "b-resposta",
+      "theme": "light",
+      "device": "desktop",
+      "scenario": "normal",
+      "axeViolations": 0
+    },
+    {
+      "step": "c-curta",
+      "theme": "light",
+      "device": "desktop",
+      "scenario": "normal",
+      "axeViolations": 0
+    },
+    {
+      "step": "d-conversa",
+      "theme": "light",
+      "device": "desktop",
+      "scenario": "normal",
+      "axeViolations": 0
+    },
+    {
+      "step": "e-confirmacao",
+      "theme": "light",
+      "device": "desktop",
+      "scenario": "normal",
+      "axeViolations": 0
+    },
+    {
+      "step": "e-aceito",
+      "theme": "light",
+      "device": "desktop",
+      "scenario": "normal",
+      "axeViolations": 0
+    },
+    {
+      "step": "e-entregue",
+      "theme": "light",
+      "device": "desktop",
+      "scenario": "normal",
+      "axeViolations": 0
+    },
+    {
+      "step": "e-lido",
+      "theme": "light",
+      "device": "desktop",
+      "scenario": "normal",
+      "axeViolations": 0
+    },
+    {
+      "step": "radar",
+      "theme": "light",
+      "device": "desktop",
+      "scenario": "normal",
+      "axeViolations": 0
+    },
+    {
+      "step": "f-closed",
+      "theme": "light",
+      "device": "desktop",
+      "scenario": "closed",
+      "axeViolations": 0
+    },
+    {
+      "step": "f-rejected",
+      "theme": "light",
+      "device": "desktop",
+      "scenario": "rejected",
+      "axeViolations": 0
+    },
+    {
+      "step": "f-uncertain",
+      "theme": "light",
+      "device": "desktop",
+      "scenario": "uncertain",
+      "axeViolations": 0
+    },
+    {
+      "step": "f-empty",
+      "theme": "light",
+      "device": "desktop",
+      "scenario": "empty",
+      "axeViolations": 0
+    },
+    {
+      "step": "f-loading",
+      "theme": "light",
+      "device": "desktop",
+      "scenario": "loading",
+      "axeViolations": 0
+    },
+    {
+      "step": "f-error",
+      "theme": "light",
+      "device": "desktop",
+      "scenario": "error",
+      "axeViolations": 0
+    },
+    {
+      "step": "a-pendencias",
+      "theme": "light",
+      "device": "mobile",
+      "scenario": "normal",
+      "axeViolations": 0
+    },
+    {
+      "step": "b-resposta",
+      "theme": "light",
+      "device": "mobile",
+      "scenario": "normal",
+      "axeViolations": 0
+    },
+    {
+      "step": "c-curta",
+      "theme": "light",
+      "device": "mobile",
+      "scenario": "normal",
+      "axeViolations": 0
+    },
+    {
+      "step": "d-conversa",
+      "theme": "light",
+      "device": "mobile",
+      "scenario": "normal",
+      "axeViolations": 0
+    },
+    {
+      "step": "e-confirmacao",
+      "theme": "light",
+      "device": "mobile",
+      "scenario": "normal",
+      "axeViolations": 0
+    },
+    {
+      "step": "e-aceito",
+      "theme": "light",
+      "device": "mobile",
+      "scenario": "normal",
+      "axeViolations": 0
+    },
+    {
+      "step": "e-entregue",
+      "theme": "light",
+      "device": "mobile",
+      "scenario": "normal",
+      "axeViolations": 0
+    },
+    {
+      "step": "e-lido",
+      "theme": "light",
+      "device": "mobile",
+      "scenario": "normal",
+      "axeViolations": 0
+    },
+    {
+      "step": "radar",
+      "theme": "light",
+      "device": "mobile",
+      "scenario": "normal",
+      "axeViolations": 0
+    },
+    {
+      "step": "f-closed",
+      "theme": "light",
+      "device": "mobile",
+      "scenario": "closed",
+      "axeViolations": 0
+    },
+    {
+      "step": "f-rejected",
+      "theme": "light",
+      "device": "mobile",
+      "scenario": "rejected",
+      "axeViolations": 0
+    },
+    {
+      "step": "f-uncertain",
+      "theme": "light",
+      "device": "mobile",
+      "scenario": "uncertain",
+      "axeViolations": 0
+    },
+    {
+      "step": "f-empty",
+      "theme": "light",
+      "device": "mobile",
+      "scenario": "empty",
+      "axeViolations": 0
+    },
+    {
+      "step": "f-loading",
+      "theme": "light",
+      "device": "mobile",
+      "scenario": "loading",
+      "axeViolations": 0
+    },
+    {
+      "step": "f-error",
+      "theme": "light",
+      "device": "mobile",
+      "scenario": "error",
+      "axeViolations": 0
+    },
+    {
+      "step": "a-pendencias",
+      "theme": "dark",
+      "device": "desktop",
+      "scenario": "normal",
+      "axeViolations": 0
+    },
+    {
+      "step": "b-resposta",
+      "theme": "dark",
+      "device": "desktop",
+      "scenario": "normal",
+      "axeViolations": 0
+    },
+    {
+      "step": "c-curta",
+      "theme": "dark",
+      "device": "desktop",
+      "scenario": "normal",
+      "axeViolations": 0
+    },
+    {
+      "step": "d-conversa",
+      "theme": "dark",
+      "device": "desktop",
+      "scenario": "normal",
+      "axeViolations": 0
+    },
+    {
+      "step": "e-confirmacao",
+      "theme": "dark",
+      "device": "desktop",
+      "scenario": "normal",
+      "axeViolations": 0
+    },
+    {
+      "step": "e-aceito",
+      "theme": "dark",
+      "device": "desktop",
+      "scenario": "normal",
+      "axeViolations": 0
+    },
+    {
+      "step": "e-entregue",
+      "theme": "dark",
+      "device": "desktop",
+      "scenario": "normal",
+      "axeViolations": 0
+    },
+    {
+      "step": "e-lido",
+      "theme": "dark",
+      "device": "desktop",
+      "scenario": "normal",
+      "axeViolations": 0
+    },
+    {
+      "step": "radar",
+      "theme": "dark",
+      "device": "desktop",
+      "scenario": "normal",
+      "axeViolations": 0
+    },
+    {
+      "step": "f-closed",
+      "theme": "dark",
+      "device": "desktop",
+      "axeViolations": 0
+    },
+    {
+      "step": "f-rejected",
+      "theme": "dark",
+      "device": "desktop",
+      "axeViolations": 0
+    },
+    {
+      "step": "f-uncertain",
+      "theme": "dark",
+      "device": "desktop",
+      "axeViolations": 0
+    },
+    {
+      "step": "f-empty",
+      "theme": "dark",
+      "device": "desktop",
+      "axeViolations": 0
+    },
+    {
+      "step": "f-loading",
+      "theme": "dark",
+      "device": "desktop",
+      "axeViolations": 0
+    },
+    {
+      "step": "f-error",
+      "theme": "dark",
+      "device": "desktop",
+      "axeViolations": 0
+    },
+    {
+      "step": "a-pendencias",
+      "theme": "dark",
+      "device": "mobile",
+      "scenario": "normal",
+      "axeViolations": 0
+    },
+    {
+      "step": "b-resposta",
+      "theme": "dark",
+      "device": "mobile",
+      "scenario": "normal",
+      "axeViolations": 0
+    },
+    {
+      "step": "c-curta",
+      "theme": "dark",
+      "device": "mobile",
+      "scenario": "normal",
+      "axeViolations": 0
+    },
+    {
+      "step": "d-conversa",
+      "theme": "dark",
+      "device": "mobile",
+      "scenario": "normal",
+      "axeViolations": 0
+    },
+    {
+      "step": "e-confirmacao",
+      "theme": "dark",
+      "device": "mobile",
+      "scenario": "normal",
+      "axeViolations": 0
+    },
+    {
+      "step": "e-aceito",
+      "theme": "dark",
+      "device": "mobile",
+      "scenario": "normal",
+      "axeViolations": 0
+    },
+    {
+      "step": "e-entregue",
+      "theme": "dark",
+      "device": "mobile",
+      "scenario": "normal",
+      "axeViolations": 0
+    },
+    {
+      "step": "e-lido",
+      "theme": "dark",
+      "device": "mobile",
+      "scenario": "normal",
+      "axeViolations": 0
+    },
+    {
+      "step": "radar",
+      "theme": "dark",
+      "device": "mobile",
+      "scenario": "normal",
+      "axeViolations": 0
+    },
+    {
+      "step": "f-closed",
+      "theme": "dark",
+      "device": "mobile",
+      "scenario": "closed",
+      "axeViolations": 0
+    },
+    {
+      "step": "f-rejected",
+      "theme": "dark",
+      "device": "mobile",
+      "scenario": "rejected",
+      "axeViolations": 0
+    },
+    {
+      "step": "f-uncertain",
+      "theme": "dark",
+      "device": "mobile",
+      "scenario": "uncertain",
+      "axeViolations": 0
+    },
+    {
+      "step": "f-empty",
+      "theme": "dark",
+      "device": "mobile",
+      "scenario": "empty",
+      "axeViolations": 0
+    },
+    {
+      "step": "f-loading",
+      "theme": "dark",
+      "device": "mobile",
+      "scenario": "loading",
+      "axeViolations": 0
+    },
+    {
+      "step": "f-error",
+      "theme": "dark",
+      "device": "mobile",
+      "scenario": "error",
+      "axeViolations": 0
+    }
+  ]
+}

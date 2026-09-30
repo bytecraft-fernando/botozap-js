@@ -105,3 +105,73 @@ h1{font-size:24px}
 .demo-banner{padding:12px 16px}
 select,textarea{font-size:16px}
 }
+/* Round 2: conversation, rather than a standalone form. */
+.person-heading,.pending-person{display:flex;align-items:center;gap:12px;min-width:0}
+.avatar{width:44px;height:44px;flex:none;border-radius:var(--radius-full);display:grid;place-items:center;background:var(--muted);color:var(--foreground);font-size:15px;font-weight:600;border:1px solid var(--border)}
+.person-heading h1{font-size:20px!important;letter-spacing:-.35px}
+.person-heading .eyebrow{font-size:11px;margin-bottom:2px}
+.person-heading #contact-phone{margin:3px 0 0;font-size:12px}
+[data-mode=inline] .inline-heading{align-items:center}
+[data-mode=inline] .card-summary{display:flex;flex-wrap:wrap;gap:6px;margin:18px 0 12px}
+.chip{font-size:11px;line-height:1.4;padding:5px 9px;border:1px solid var(--border);border-radius:var(--radius-full);color:var(--muted-foreground);overflow-wrap:anywhere}
+.window-warning{background:var(--color-background-warning-surface);border-color:var(--color-border-warning-outline);color:var(--foreground);font-weight:600}
+[data-mode=inline] .detail{padding:22px;border-radius:var(--radius-3xl);box-shadow:var(--shadow-hairline)}
+[data-mode=inline] .workspace{max-width:720px;padding:2px;margin:0}
+[data-mode=inline] .draft-bubble{display:block;margin:18px 0 20px 30px;padding:16px 18px 10px;background:var(--muted);border-radius:20px 20px 4px 20px}
+[data-mode=inline] #card-preview{background:transparent;padding:0;border:0;margin:0;font-size:15px;line-height:1.6}
+.bubble-status{display:block;text-align:right;font-size:11px;color:var(--muted-foreground);margin-top:10px}
+[data-mode=inline] .draft-footer{margin:0;padding-top:0}
+[data-mode=inline] .draft-footer .actions{width:100%}
+[data-mode=inline] #notice:not(:empty){margin:12px 0;padding:14px 16px;border-left:3px solid var(--foreground);font-size:13px}
+[data-mode=inline] #card-state{font-size:11px;border:0;background:var(--muted);padding:6px 10px;flex:none}
+[data-mode=inline] .confirmation{margin-top:12px}
+[data-mode=inline][data-state=delivered] .draft-footer,[data-mode=inline][data-state=read] .draft-footer{display:none}
+[data-mode=inline] .conversation-urgency{display:none}
+.draft-bubble,.conversation-urgency{display:none}
+[data-mode=fullscreen][data-focus=conversation] .workspace{max-width:960px;padding:28px 32px max(180px,calc(var(--host-safe-bottom,0px) + 32px))}
+[data-focus=conversation] header,[data-focus=conversation] .identity,[data-focus=conversation] .toolbar,[data-focus=conversation] .radar,[data-focus=conversation] .detail>.section-title,[data-focus=conversation] #recipient,[data-focus=conversation] .caption{display:none}
+[data-focus=conversation] .columns{display:block}
+[data-focus=conversation] .detail{border:0;padding:0;background:transparent}
+[data-focus=conversation] .inline-heading{display:flex;padding-bottom:20px;border-bottom:1px solid var(--border)}
+[data-focus=conversation] .card-summary{display:flex;flex-wrap:wrap;gap:6px;margin:16px 0 8px}
+[data-focus=conversation] .conversation-urgency:not(:empty){display:block;font-size:12px;color:var(--muted-foreground);margin:5px 0 0}
+[data-focus=conversation] .history{border:0;gap:20px;padding:24px 0}
+[data-focus=conversation] .message{font-size:15px;max-width:75%;padding:14px 18px;border-radius:20px 20px 20px 4px}
+[data-focus=conversation] .message.outbound{border-radius:20px 20px 4px 20px}
+[data-focus=conversation] .draft-label{font-size:12px;color:var(--muted-foreground);margin-top:24px}
+[data-focus=conversation] #draft{margin-left:auto;display:block;width:90%;min-height:120px;border-radius:20px 20px 4px 20px;background:var(--muted);font-size:15px;border-color:transparent}
+[data-focus=conversation] .draft-footer{padding-left:10%}
+[data-focus=conversation] .confirmation{margin-left:10%}
+.workspace{padding-bottom:max(180px,calc(var(--host-safe-bottom,0px) + 32px))}
+.carousel-workspace{padding:4px 2px;max-width:100%;overflow:hidden}
+.carousel-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}
+.carousel-heading h1{font-size:20px;margin:3px 0 0;font-weight:600}
+.carousel-heading .badge{font-size:11px;flex:none}
+#carousel-content{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;padding:2px 2px 16px;scrollbar-width:thin}
+#carousel-content:focus-visible{outline:2px solid var(--ring);outline-offset:-2px}
+.pending-card{flex:0 0 235px;scroll-snap-align:start;border:1px solid var(--border);border-radius:var(--radius-3xl);padding:18px;display:flex;flex-direction:column;gap:12px;min-height:290px;background:var(--card)}
+.pending-person .avatar{width:36px;height:36px;font-size:12px}
+.pending-person h2{font-size:14px;margin:0;line-height:1.3}
+.pending-business{font-size:11px;color:var(--muted-foreground);margin:3px 0 0;line-height:1.4}
+.urgency{font-size:11px;font-weight:600;align-self:flex-start;padding:4px 8px;background:var(--muted);border-radius:var(--radius-full)}
+.pending-card[data-bucket=critical] .urgency{background:var(--foreground);color:var(--background)}
+.pending-wait{color:var(--muted-foreground);font-size:12px;margin:0}
+.pending-reason{font-size:16px;line-height:1.4;font-weight:500;min-height:44px;margin:0}
+.pending-next{font-size:12px;color:var(--muted-foreground);margin:0;flex:1}
+.pending-card button{display:flex;justify-content:space-between;width:100%;font-size:13px}
+.carousel-workspace>.caption{margin:4px 0 0;font-size:12px}
+.rich-empty{padding:32px 24px;text-align:center;border:1px solid var(--border);border-radius:var(--radius-3xl);width:100%;min-height:190px}
+.rich-empty h2{margin:12px 0 8px;font-size:17px}
+.rich-empty p{max-width:38ch;margin:auto;color:var(--muted-foreground);font-size:13px}
+.empty-symbol{display:grid;place-items:center;width:40px;height:40px;border-radius:50%;background:var(--muted);margin:auto;font-size:20px}
+.skeleton-card{width:235px;min-height:250px;border:1px solid var(--border);border-radius:var(--radius-3xl);padding:24px}
+.skeleton{height:26px;border-radius:8px;background:var(--muted);margin-bottom:24px;animation:skeleton-pulse 1.5s ease-in-out infinite}
+.skeleton:nth-child(2){width:65%}.skeleton:nth-child(3){height:72px}
+@keyframes skeleton-pulse{50%{opacity:.4}}
+button,.pending-card,.detail{transition:background-color 150ms ease,border-color 150ms ease}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+@media(max-width:650px){[data-mode=inline] .detail{padding:18px}[data-mode=inline] .draft-bubble{margin-left:12px}[data-mode=inline] .person-heading h1{font-size:18px!important}.avatar{width:38px;height:38px}[data-mode=inline] .card-summary{gap:5px}.chip{font-size:10px}[data-mode=fullscreen][data-focus=conversation] .workspace{padding:22px 20px max(180px,calc(var(--host-safe-bottom,0px) + 24px))}[data-focus=conversation] .message{max-width:90%;font-size:14px}[data-focus=conversation] #draft{font-size:16px;width:96%}[data-focus=conversation] .draft-footer,[data-focus=conversation] .confirmation{padding-left:0;margin-left:0}.pending-card{flex-basis:232px}.carousel-heading h1{font-size:18px}}
+
+html{scroll-padding-bottom:var(--host-safe-bottom,0px)}
+
+[data-focus=conversation] .inline-heading{position:sticky;top:0;z-index:2;background:var(--background);padding-top:12px}

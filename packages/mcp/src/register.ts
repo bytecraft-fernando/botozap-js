@@ -8,7 +8,7 @@
  *  5. converter `BotoZapError`/exceções em resultado `isError` com mensagem PT-BR.
  */
 
-import { reviewToolMetadata, replyToolMetadata } from "./resources/review-panel.js";
+import { reviewToolMetadata, replyToolMetadata, radarToolMetadata } from "./resources/review-panel.js";
 import { requestAuthContext } from "./auth-context.js";
 import type { ApiIdentity } from "./server.js";
 import type { McpServer, RegisteredTool } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -54,6 +54,8 @@ export function emptyOperationResult(): StructuredToolResult {
 }
 
 export interface Register {
+  readonly uiEnabled?: boolean;
+  onUiChange?(listener: (enabled: boolean) => void): void;
   (
     name: string,
     description: string,
@@ -125,7 +127,20 @@ export function createRegister(
   options: { uiEnabled?: boolean } = {},
 ) {
   let currentIdentity = identity;
-  const tools: Array<{ tool: RegisteredTool; policy: ReturnType<typeof getToolPolicy> }> = [];
+  const accounts = process.env.BOTOZAP_MCP_UI_ACCOUNTS;
+  const allowedAccounts = accounts === undefined
+    ? null
+    : new Set(accounts.split(",").map(id => id.trim()).filter(Boolean));
+  const uiAllowed = (value: ApiIdentity) => !!options.uiEnabled && (allowedAccounts === null || allowedAccounts.has(value.account_id));
+  const uiTools = new Set(["open_review_panel", "stage_review_reply"]);
+  const listeners: Array<(enabled: boolean) => void> = [];
+  const metadata = (name: string) => {
+    if (name === "open_review_panel") return reviewToolMetadata;
+    if (name === "stage_review_reply") return replyToolMetadata;
+    if (name === "list_radar") return radarToolMetadata;
+    return { ui: { visibility: ["model", "app"] } };
+  };
+  const tools: Array<{ name: string; tool: RegisteredTool; policy: ReturnType<typeof getToolPolicy> }> = [];
   const register: Register = function register(
     name: string,
     description: string,
@@ -142,7 +157,7 @@ export function createRegister(
       {
         description,
         inputSchema,
-        ...(options.uiEnabled ? { _meta: name === "open_review_panel" ? reviewToolMetadata : name === "stage_review_reply" ? replyToolMetadata : { ui: { visibility: ["model", "app"] } } } : {}),
+        ...(uiAllowed(currentIdentity) ? { _meta: metadata(name) } : {}),
         annotations: {
           readOnlyHint: policy.readOnlyHint,
           destructiveHint: policy.destructiveHint,
@@ -155,7 +170,7 @@ export function createRegister(
       async (args): Promise<CallToolResult> => {
         try {
           const authority = requestAuthContext.getStore()?.identity ?? currentIdentity;
-          if (!isToolAllowed(policy, authority)) {
+          if (!isToolAllowed(policy, authority) || (uiTools.has(name) && !uiAllowed(authority))) {
             throw new BotoZapError("forbidden_scope", "Esta autorização não permite a ferramenta.", 403);
           }
           const handlerResult = await handler(
@@ -205,16 +220,23 @@ export function createRegister(
         }
       },
     );
-    tools.push({ tool, policy });
-    if (!isToolAllowed(policy, currentIdentity)) tool.disable();
+    tools.push({ name, tool, policy });
+    if (!isToolAllowed(policy, currentIdentity) || (uiTools.has(name) && !uiAllowed(currentIdentity))) tool.disable();
   };
+  Object.defineProperty(register, "uiEnabled", { get: () => uiAllowed(currentIdentity) });
   return Object.assign(register, {
+    onUiChange(listener: (enabled: boolean) => void) {
+      listeners.push(listener);
+      listener(uiAllowed(currentIdentity));
+    },
     updateIdentity(next: ApiIdentity) {
       currentIdentity = next;
-      for (const { tool, policy } of tools) {
-        const allowed = isToolAllowed(policy, next);
+      for (const { name, tool, policy } of tools) {
+        tool._meta = uiAllowed(next) ? metadata(name) : undefined;
+        const allowed = isToolAllowed(policy, next) && (!uiTools.has(name) || uiAllowed(next));
         if (tool.enabled !== allowed) allowed ? tool.enable() : tool.disable();
       }
+      for (const listener of listeners) listener(uiAllowed(next));
     },
   });
 }

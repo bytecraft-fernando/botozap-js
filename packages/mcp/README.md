@@ -400,3 +400,26 @@ nova intenção. `unknown` ou `accepted` exigem conciliação antes de considera
 outro envio. SDK e MCP preservam `outcome` e `retry` da API. Resultados concluídos
 vencidos são removidos pelo cron a cada minuto; claims incertas não são removidas
 por tempo, conforme o runbook `botozap/docs/ops/message-send-receipts.md`.
+
+### Piloto da UI por conta
+
+Com `BOTOZAP_MCP_UI_ENABLED=true`, a variável opcional
+`BOTOZAP_MCP_UI_ACCOUNTS=account_id_1,account_id_2` restringe as tools de revisão,
+recursos e metadados de UI às Contas selecionadas, usando a identidade autenticada
+já resolvida da sessão. Conta fora da lista recebe o catálogo tools-only habitual
+(fixture 0.6.0 mais `get_profile` e `prepare_send_intent`). Lista definida mas vazia
+não libera nenhuma conta; espaços são ignorados. Sem essa variável, a flag mantém
+o comportamento anterior. Sem a flag, a lista não ativa UI. Nenhuma configuração
+foi habilitada em produção por este protótipo.
+
+### Simulador do ChatGPT
+
+```sh
+pnpm --filter @botozap/mcp demo:ui
+# Abra http://127.0.0.1:4173/chat
+```
+
+A página hospeda os iframes reais de produção via `AppBridge` / MCP Apps. Dados,
+modelo, envio e eventos de entregue/lido são simulados exclusivamente no host.
+Use o compositor ou os controles do roteiro para explorar carrossel, rascunho,
+conversa fullscreen e os estados alternativos. Consulte `web/DESIGN.md`.

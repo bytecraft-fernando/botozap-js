@@ -1,56 +1,61 @@
-# BotoZap no ChatGPT
+# BotoZap dentro do ChatGPT — rodada 2
 
-A direção visual é o sistema oficial do ChatGPT, com fonte do sistema, superfícies neutras e os tokens de `@openai/apps-sdk-ui@0.2.2`. O tema do host chega por `App.getHostContext` / `onhostcontextchanged`: `applyDocumentTheme` e `applyHostStyleVariables` aplicam tema, cores, tipografia e foco. Não existe paleta própria `.dark`, logo na resposta, fonte externa ou CDN. O rosa `#a71d5d` aparece somente no botão primário, com texto branco (contraste superior a 7:1).
+O produto é uma conversa assistida: o ChatGPT organiza as prioridades, prepara a resposta com contexto e ajusta o texto pelo próprio compositor. A pessoa só abre a conversa completa quando precisa revisar o histórico. As UIs de produção e da demonstração são os mesmos iframes, com uma ponte MCP Apps real; os dados e o comportamento do modelo fictício ficam exclusivamente no host local.
 
-## Referências e decisões
+## Referências e direção
 
-Referência principal travada: [UI guidelines da OpenAI](https://developers.openai.com/plugins/concepts/ui-guidelines). Preserve fonte do sistema, cores do sistema, ação única e card autocontido; nenhuma marca em texto, bordas ou superfícies. Referências complementares: [Apps SDK UI](https://github.com/openai/apps-sdk-ui), [spec MCP extensions](https://github.com/openai/mcp-extensions/blob/main/docs/spec.md), `@modelcontextprotocol/ext-apps@1.7.5` e a referência de foco/formulários `refero-design/references/craft-details.md`. O contexto do app em `botozap/docs/DESIGN.md` contribui somente com lista/detalhe, vocabulário e papel do rosa; suas fontes e sua paleta não são transplantadas.
+A referência principal é a [UI guidelines da OpenAI](https://developers.openai.com/plugins/concepts/ui-guidelines): fonte e cores do sistema, cards autocontidos, até duas ações por card, carrossel inline e fullscreen para revisão complexa. [Apps SDK UI](https://github.com/openai/apps-sdk-ui) fornece os tokens oficiais; a [spec MCP extensions](https://github.com/openai/mcp-extensions/blob/main/docs/spec.md) determina os modos e entrypoints. O contexto em `botozap/docs/DESIGN.md` foi lido somente para vocabulário e produto; não transplantamos suas fontes ou paleta.
 
-| Decisão | Fonte / papel | Aplicação |
-|---|---|---|
-| Resposta pronta inline | OpenAI: decisão simples, até duas ações | Contato, WhatsApp/número de origem, negócio, janela 24h, prévia e Enviar/Editar |
-| Confirmação no mesmo card | Brief de segurança + craft forms | Consentimento explícito; sem terceira ação ou navegação |
-| Radar fullscreen | OpenAI: fluxo complexo | Negócio, pendências e histórico com rascunho editável |
-| Tema e tokens oficiais | Apps SDK UI + host context | Tokens primitivos, semânticos e de componentes empacotados no HTML; variáveis do host prevalecem |
-| Documento com uma rolagem | OpenAI: sem scroll aninhado | Lista e histórico crescem no fluxo; mobile empilha colunas |
-| Composer sobreposto | OpenAI fullscreen + safeAreaInsets | Reserva inferior de 160px mais inset do host; overlay demonstrativo só na demo |
-| Foco e anúncios | WCAG / craft details | Labels, foco visível, role=status, aria-live e dados de contato como texto |
+A pesquisa com a skill `refero-design` consultou estilos de Attio (CRM) e Intercom (mensagens), telas de ChatGPT claro/escuro, Nextdoor (conversa) e Cushion (inbox vazia). O coordenador também forneceu referências de Rox, WhatsApp iOS, Jace, Fernand e ManyChat. Elas orientam hierarquia e comportamento; nenhuma marca, fonte ou cor de outro app aparece nas telas.
 
-Os estados usam rótulos explícitos e texto neutro do sistema: os tons de estado padrão do pacote não passaram contraste AA em todas as superfícies escuras, então não os usamos para texto.
+| Referência | Decisão aplicada |
+|---|---|
+| [ChatGPT claro](https://refero.design/screens/2260b104-cf7a-4284-8ce0-22b6c2453efd) e [escuro](https://refero.design/screens/c9675a3b-dec0-42ee-9b66-1c89b4039f21) | Sidebar discreta, usuário em bolha, assistente em texto, superfície neutra e compositor fixo |
+| Attio e Intercom | Priorização por pessoa, avatar de iniciais, informação curta e uma ação por pendência |
+| [Nextdoor](https://refero.design/screens/a2ea9fb7-ecfa-4655-b2b7-d1d5354762ce) e [WhatsApp iOS](https://refero.design/screens/9d2b1d8b-a098-4833-9ee6-53eb53e29570) | Cabeçalho de contato, bolhas alinhadas por direção e horários relativos; sem cores ou logotipos de terceiros |
+| [Rox](https://refero.design/pages/b2b99545-69d1-40fe-924c-5d65f4ce1f1d) | Negócio identificado nos cards; seletor de negócio no Radar |
+| [Jace](https://refero.design/pages/a0d2caa3-4913-4c3b-8fe8-88f49293bfb9) | Rascunho imediatamente após o histórico, em formato de mensagem |
+| [Fernand](https://refero.design/pages/54c8ba55-da90-4ccf-9964-133858a29f8f) | Origem, negócio e janela explícitos; aceite separado de entrega/leitura |
+| [ManyChat](https://refero.design/pages/cd0f5eaf-2afa-4166-861b-b0fc04ed49c2) | Rascunho atualiza no mesmo card e anuncia “Atualizado”; sem uma terceira ação de desfazer |
+| [Cushion](https://refero.design/screens/8a974bf1-38e4-4f51-b9a1-1259de5343e1) | Vazio útil com próximos comandos; skeleton e falha com orientação |
 
-Os controles são elementos HTML nativos acessíveis estilizados pelos tokens oficiais; não adicionamos uma árvore React ao painel existente. O build importa os três layers de tokens diretamente do pacote instalado (incluindo licença MIT), transforma `@theme static` em declarações CSS padrão e não inclui os assets de fontes/Katex do pacote. Assim o HTML continua autocontido e a CSP mantém todos os domínios vazios.
+## Telas e protocolo
 
-## Recursos e display modes
+1. `list_radar` aponta para `ui://botozap/radar-cards/v1.html`, carrossel inline com até oito pendências e uma ação **Responder** por card. Nome vem de `get_contact`, não do título do Radar. O tempo de espera vem de `get_conversation.last_message_at`; quando não há conversa vinculada, o card informa o tempo sem atividade do Radar. Enriquecimento não disponível mantém uma apresentação conservadora.
+2. `stage_review_reply` aponta para `ui://botozap/reply/v1.html`, preferência inline, contato, número mascarado, bolha de rascunho, chips e **Editar / Enviar**. Editar solicita fullscreen; em hosts sem esse modo, a edição permanece no mesmo documento.
+3. `open_review_panel` conserva `ui://botozap/review/v1.html`, entrypoint `thread` e preferência fullscreen. O Radar completo permite trocar negócio e selecionar pendências; a edição do card abre diretamente a conversa, com contato/urgência persistentes e rascunho após o histórico.
 
-- `stage_review_reply` aponta para `ui://botozap/reply/v1.html`: `availableDisplayModes: ["inline"]`, `preferredDisplayMode: "inline"`.
-- `open_review_panel` conserva `ui://botozap/review/v1.html` e o entrypoint `thread`: `availableDisplayModes: ["inline", "fullscreen"]`, `preferredDisplayMode: "fullscreen"`.
-- O cliente anuncia os modos do recurso correspondente na inicialização e só solicita uma mudança se o host a oferecer. A preferência é uma sugestão ao host; se fullscreen não existir, o Radar permanece um documento responsivo sem rolagens internas.
-- Os schemas e resultados das tools permanecem iguais. Sem UI, as tools continuam retornando dados estruturados úteis. Com `BOTOZAP_MCP_UI_ENABLED` desligado, tools de revisão, metadados UI e recursos UI não são registrados, como antes.
-- Seleção, histórico e rascunho são atualizados por `ui/update-model-context`, com conteúdo de contato explicitamente não confiável. Ações de envio usam `callServerTool`; não é necessário produzir uma mensagem redundante por `ui/message`.
+Os três recursos declaram `availableDisplayModes: ["inline", "fullscreen"]`. A preferência não obriga o host. Sem suporte visual, as tools conservam dados estruturados e schemas. `ui/update-model-context` transmite seleção, rascunho e estado com conteúdo do contato marcado não confiável; o carrossel usa `ui/message` para pedir ao modelo a preparação de uma resposta. Nenhuma tela envia ao clicar em Responder ou Editar.
 
-## Estados e envio
+O simulador usa `AppBridge` e `PostMessageTransport` do `@modelcontextprotocol/ext-apps`: inicialização, tool input/result, server tools, mensagem ao modelo, contexto e pedido de display mode passam pelo protocolo. O host fornece tema, dimensões, locale e safe area medida a partir do compositor. Iframes fullscreen ficam sob o compositor, com reserva inferior e rolagem de documento; lista e histórico não viram scroll containers. Só o carrossel tem a rolagem horizontal prevista nas diretrizes.
 
-O card possui rascunho, confirmando, enviando, aceito, recusado, incerto e janela fechada. Aceite significa somente confirmação do servidor/provedor, sem afirmar entrega ou leitura. Uma recusa confirmada exibe motivo/próxima ação e libera a preparação; uma janela fechada remove Enviar e orienta template no painel. O estado incerto no card congela texto e chave, bloqueia repetição e orienta conferir o histórico.
+## Aparência e acessibilidade
 
-A lógica de idempotência do Radar permanece integral: UUID por intenção, chave preparada preservada, edição gera nova chave, recusa confirmada libera, sem retry automático, texto incerto congelado e recuperação manual explícita somente com o mesmo payload/chave. O relógio começa no primeiro POST e bloqueia recuperação após 24h. A releitura antes do envio confirma destinatário/canal/janela, sem eliminar a possibilidade de alteração concorrente entre GET e POST. Intenções vivem na memória do iframe; recarregar não restaura uma tentativa pendente.
+Os tokens CSS de `@openai/apps-sdk-ui@0.2.2` e sua licença são empacotados no HTML. Controles HTML nativos fornecem semântica e teclado; não há fontes, CDN ou domínios externos na CSP. `applyDocumentTheme` e `applyHostStyleVariables` acompanham o host. Não há tema próprio `.dark` nem logo dentro da resposta. A marca aparece somente no botão primário rosa `#a71d5d`, com texto branco e contraste superior a 7:1.
 
-## Demo local e screenshots
+Texto e ícones usam cores do sistema. Aviso de janela usa a superfície semântica de warning, borda do sistema e texto de alto contraste. Labels, foco visível, `aria-live`, regiões nomeadas, avatares decorativos e respeito a reduced motion permanecem em todos os estados. O script de captura verifica WCAG A/AA, overflow, até duas ações inline e a posição da ação de revisão acima do compositor real do simulador.
 
-Na raiz do repo, após `pnpm install`:
+## Estados e segurança
+
+Rascunho → confirmando → enviando → aceito. O card só informa entregue/lido quando recebe um resultado de histórico com o mesmo ID ou wamid, mesma conversa, direção outbound e status explícito; eventos de outras mensagens não alteram o card e leitura não regride. Na demo, esses eventos são gerados pelo host após o aceite e são identificados como fictícios.
+
+Recusa confirmada mostra motivo/próxima ação no card e libera revisão. Incerto congela texto/chave e bloqueia repetição inline; a recuperação manual original do Radar conserva payload/chave/24h. Janela fechada não mostra Enviar e orienta avaliar template no painel BotoZap. Não há retry automático. UUID por intenção, releitura de destinatário/canal/janela antes do POST, congelamento, expiração de 24h e proteção de clique duplo permanecem. Intenções vivem na memória do iframe; reload não restaura tentativas pendentes.
+
+## Piloto por conta
+
+`BOTOZAP_MCP_UI_ENABLED=true` continua sendo necessário. `BOTOZAP_MCP_UI_ACCOUNTS` opcional restringe a UI por `account_id` da identidade já resolvida, no registro de tools/recursos. Lista ausente preserva o comportamento anterior da flag; lista vazia bloqueia todas as contas; lista definida remove tools/metadados/recursos UI de outras contas. Refresh de identidade também atualiza o catálogo e os recursos. Nenhuma flag foi habilitada em produção.
+
+## Simulador e reprodução
 
 ```sh
 pnpm --filter @botozap/mcp demo:ui
 ```
 
-Abra http://127.0.0.1:4173/. Os controles alternam card/Radar, sete estados do card e tema claro/escuro; o Radar tem negócio e pendências navegáveis, histórico e edição reais sobre uma ponte fictícia. Nenhuma credencial ou mensagem real é usada. O composer exibido no Radar é uma simulação identificada; em produção, só o ChatGPT desenha seu composer.
-
-Para recriar os screenshots, mantenha a demo aberta e rode em outro terminal:
+Abra http://127.0.0.1:4173/chat. O roteiro começa com “O que tenho hoje no BotoZap?”. Clique em Responder, escreva “deixa mais curto” no compositor, clique em Editar e confirme o envio. O status passa por aceite, entrega e leitura em eventos separados. “Abra o Radar” mostra a visão completa; o seletor superior troca cenário e o botão de tema altera os iframes pelo host context. Todos os dados são fictícios e não há credenciais.
 
 ```sh
 pnpm --filter @botozap/mcp exec playwright install chromium
 pnpm --filter @botozap/mcp screenshots:ui
 ```
 
-O script verifica WCAG A/AA com axe, limite de duas ações visíveis no card e ausência de overflow horizontal; grava 21 PNGs em `screenshots/`: sete estados em dois temas, Radar desktop/mobile em dois temas, dois viewports mobile mostrando o composer e um card mobile escuro. A avaliação automática complementa a inspeção visual, sem substituir a validação no host real.
-
-O protótipo não ativa flags, não publica pacotes e não faz deploy. A próxima decisão é a validação dentro de uma sessão real do ChatGPT antes de habilitar a UI em produção.
+O script grava 60 PNGs: roteiro a–e, seis variações f e Radar, em desktop/mobile e claro/escuro. Também grava `roteiro-chat-desktop-dark.webm` e `validation.json`. O vídeo é uma gravação de sessão de browser, sem composição artificial. A validação automática e o simulador não substituem a revisão em uma sessão OAuth real do ChatGPT.
