@@ -1,3 +1,4 @@
+import { globalToolMetadata } from './resources/global-panel.js';
 import { getUiCapability, RESOURCE_MIME_TYPE } from "@modelcontextprotocol/ext-apps/server";
 import { screenMetadata } from "./resources/screen-resource.js";
 /**
@@ -135,7 +136,7 @@ export function createRegister(
     : new Set(accounts.split(",").map(id => id.trim()).filter(Boolean));
   const supportsUi = () => { const mimeTypes = getUiCapability(server.server.getClientCapabilities())?.mimeTypes; return Array.isArray(mimeTypes) && mimeTypes.includes(RESOURCE_MIME_TYPE); };
   const uiAllowed = (value: ApiIdentity) => !!options.uiEnabled && supportsUi() && (allowedAccounts === null || allowedAccounts.has(value.account_id));
-  const uiTools = new Set(["open_review_panel", "stage_review_reply", "stage_review_template", "review_template_variables", "open_agent_cases", "stage_appointment_booking"]);
+  const uiTools = new Set(["open_review_panel", "stage_review_reply", "stage_review_template", "review_template_variables", "open_agent_cases", "stage_appointment_booking", "open_live_conversation", "open_botozap"]);
   const listeners: Array<(enabled: boolean) => void> = [];
   const metadata = (name: string) => {
     if (name === "open_review_panel") return reviewToolMetadata;
@@ -143,6 +144,8 @@ export function createRegister(
     if (name === "list_radar") return radarToolMetadata;
     if (name === "stage_review_template") return screenMetadata("template");
     if (name === "open_agent_cases") return screenMetadata("cases");
+    if (name === "open_live_conversation") return screenMetadata("live");
+    if (name === "open_botozap") return globalToolMetadata;
     if (name === "stage_appointment_booking") return screenMetadata("booking");
     return { ui: { visibility: ["model", "app"] } };
   };
@@ -162,6 +165,7 @@ export function createRegister(
       name,
       {
         description,
+        ...(name === "open_botozap" ? { title: "Pendências", icons: [{ src: "data:image/svg+xml," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><path d="M4 4h12v9H9l-5 3V4Z" fill="none" stroke="currentColor" stroke-width="1.33"/></svg>'), mimeType:"image/svg+xml", sizes:["20x20"] }] } : {}),
         inputSchema,
         ...(uiAllowed(currentIdentity) ? { _meta: metadata(name) } : {}),
         annotations: {

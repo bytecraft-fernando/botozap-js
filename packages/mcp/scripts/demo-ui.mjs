@@ -8,7 +8,8 @@ const server = createServer(async (request, response) => {
   const isApp = url.pathname === '/app';
   const host = await readFile(new URL('../web/.preview/demo.html', import.meta.url));
   const app = await readFile(new URL('../dist/ui/review.html', import.meta.url), 'utf8');
-  const html = isApp ? app.replace('id="app"', `id="app" data-initial-mode="inline" data-view="${['carousel','template','cases','booking'].includes(url.searchParams.get('view')) ? url.searchParams.get('view') : 'review'}"`) : host;
+  const html = isApp ? app.replace('id="app"', `id="app" data-initial-mode="inline" data-view="${['carousel','template','cases','booking','live','global'].includes(url.searchParams.get('view')) ? url.searchParams.get('view') : 'review'}"`) : host;
   response.writeHead(200, { 'content-type': 'text/html; charset=utf-8' }); response.end(html);
 });
-server.listen(4173, '127.0.0.1', () => console.log('Simulador ChatGPT: http://127.0.0.1:4173/chat'));
+const port=Number(process.env.PORT??4173);
+server.listen(port, '127.0.0.1', () => console.log(`Simulador ChatGPT: http://127.0.0.1:${port}/chat`));

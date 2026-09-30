@@ -109,3 +109,6 @@ routes(["stage_review_template"], "GET /v1/conversations/:id", "GET /v1/phone_nu
 routes(["review_template_variables"], "GET /v1/templates/:id");
 routes(["open_agent_cases"], "GET /v1/ai/cases");
 routes(["stage_appointment_booking"], "GET /v1/conversations/:id", "GET /v1/phone_numbers/:id", "GET /v1/appointments/services", "GET /v1/appointments/availability");
+
+routes(["open_live_conversation"], "GET /v1/conversations/:id", "GET /v1/messages", "GET /v1/events");
+routes(["open_botozap"], "GET /v1/customers");

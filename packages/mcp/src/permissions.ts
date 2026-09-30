@@ -197,3 +197,6 @@ export const EVENT_RESOURCE_POLICY = {
   requiredRoutes: ["GET /v1/events"],
   sandbox: true,
 } as const;
+
+registerPolicy("open_live_conversation", { requiredScopes:["conversations:read","messages:read","events:read"], sandbox:true, readOnlyHint:true, destructiveHint:false, openWorldHint:false });
+read(["open_botozap"], "customers:read", false);

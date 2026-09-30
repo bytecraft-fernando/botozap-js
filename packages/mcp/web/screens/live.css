@@ -1,0 +1,7 @@
+.live-timeline{list-style:none;margin:0;padding:0;display:grid;gap:16px}.live-event{border-left:2px solid var(--color-border-primary);padding-left:14px;display:grid;grid-template-columns:1fr auto;gap:8px}.live-event time{color:var(--color-text-secondary);font-size:12px}.live-event p{grid-column:1/-1;margin:0}#app[data-screen="Plantão ao vivo"] .screen-card{max-width:440px;margin-inline:auto}#app[data-mode="pip"] .screen-card{padding:16px}
+
+#app[data-screen="Plantão ao vivo"][data-mode=fullscreen]{display:flex;flex-direction:column;padding:32px 20px}
+#app[data-screen="Plantão ao vivo"][data-mode=fullscreen] .screen-card{width:100%;max-width:680px;margin-block:auto;padding:28px!important;flex-shrink:0}
+#app[data-screen="Plantão ao vivo"][data-mode=fullscreen] .actions{margin-top:20px;padding-top:18px;border-top:1px solid var(--border)}
+#app[data-screen="Plantão ao vivo"][data-mode=fullscreen] .actions button{width:100%}
+@media(max-width:650px){#app[data-screen="Plantão ao vivo"][data-mode=fullscreen]{padding:20px 16px}#app[data-screen="Plantão ao vivo"][data-mode=fullscreen] .screen-card{padding:18px!important}}

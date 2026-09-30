@@ -3,16 +3,17 @@ import {chromium} from 'playwright';
 import AxeBuilder from '@axe-core/playwright';
 import {writeFile} from 'node:fs/promises';
 const dir=new URL('../web/screenshots/',import.meta.url).pathname;
+const origin=process.env.UI_ORIGIN??'http://127.0.0.1:4173';const prefix=process.env.CAPTURE_PREFIX??'4a3';
 const browser=await chromium.launch();const results=[];
 try{for(const theme of ['light','dark'])for(const [device,width,height]of [['desktop',1440,1050],['mobile',390,844]])for(const route of ['template-carousel','conversation','radar','cases','booking']){
  const context=await browser.newContext({viewport:{width,height},reducedMotion:'reduce'});const page=await context.newPage();const failures=[];page.on('pageerror',e=>failures.push(e.message));
- await page.goto(`http://127.0.0.1:4173/chat?theme=${theme}&scenario=${['conversation','radar'].includes(route)?'draft':route}`);await page.locator('html[data-demo-ready=true]').waitFor();
+ await page.goto(`${origin}/chat?theme=${theme}&scenario=${['conversation','radar'].includes(route)?'draft':route}`);await page.locator('html[data-demo-ready=true]').waitFor();
  async function prompt(text){await page.locator('#prompt').fill(text);await page.locator('#composer').evaluate(f=>f.requestSubmit());}
  if(route==='conversation'){await prompt('Prepare uma resposta para Marina');await page.frameLocator('iframe').last().getByRole('button',{name:'Editar',exact:true}).click();}
  if(route==='radar'){await prompt('Abra o Radar');}
  const app=()=>page.frameLocator('iframe').last();
  if(route==='template-carousel')await app().getByRole('button',{name:'Usar template aprovado',exact:true}).click();
- if(route==='radar'){await app().locator('#business').selectOption({index:1});await app().locator('#radar-list button').first().click();await app().locator('#draft').fill('Marina, seu orçamento está pronto. Posso enviar os detalhes?');}
+ if(route==='radar'){await app().locator('#business').selectOption({index:1});await app().locator('.radar-item').first().waitFor();await page.waitForTimeout(80);assert.equal(await app().locator('.fullscreen-actions').count(),0,'no action footer before selection');await app().locator('#radar-list button').first().click();await app().locator('#draft').fill('Marina, seu orçamento está pronto. Posso enviar os detalhes?');}
  if(['cases','booking'].includes(route)){await page.frames().at(-1).evaluate(()=>window.parent.postMessage({jsonrpc:'2.0',id:'test-fullscreen',method:'ui/request-display-mode',params:{mode:'fullscreen'}},location.origin));}
  await app().locator('#app[data-mode=fullscreen]').waitFor();
  if(route==='booking')await app().getByRole('button',{name:'Marcar',exact:true}).first().click();
@@ -26,7 +27,10 @@ try{for(const theme of ['light','dark'])for(const [device,width,height]of [['des
   const confirming = ['conversation','radar'].includes(route) && await app().locator('#confirmation').isVisible();
   const last=app().locator(route==='conversation'||route==='radar'?(confirming?'#confirmation .check':'#length'):'.screen-status');
   const tail=await last.boundingBox();const bar=await app().locator('.fullscreen-actions').boundingBox();assert.ok(tail,`${route} final content visible`);assert.ok(tail.y>=frame.y,`${route} final content above viewport`);assert.ok(tail.y+tail.height<=bar.y-4,`${route} final content under action bar`);assert.ok(tail.y+tail.height<=composer.y-4,`${route} final content under composer`);
-  const axe=await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa','wcag21aa']).analyze();assert.deepEqual(axe.violations.map(v=>({id:v.id,targets:v.nodes.map(n=>n.target)})),[],`${route} WCAG AA`);assert.deepEqual(failures,[]);const file=`4a3-${route}-${step}-${device}-${theme}.png`;await page.screenshot({path:dir+file});results.push({file,axeViolations:0,primaryAboveComposer:true,lastContentAboveActions:true});console.log(file);
+  const hostOverflow=await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1);
+  const iframeOverflow=await app().locator('#app').evaluate(root=>root.scrollWidth>root.clientWidth+1||document.documentElement.scrollWidth>innerWidth+1);
+  assert.equal(hostOverflow,false,`${route} host overflow`);assert.equal(iframeOverflow,false,`${route} iframe overflow`);
+  const axe=await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa','wcag21aa']).analyze();assert.deepEqual(axe.violations.map(v=>({id:v.id,targets:v.nodes.map(n=>n.target)})),[],`${route} WCAG AA`);assert.deepEqual(failures,[]);const file=`${prefix}-${route}-${step}-${device}-${theme}.png`;await page.screenshot({path:dir+file});results.push({file,axeViolations:0,hostOverflow,iframeOverflow,primaryAboveComposer:true,lastContentAboveActions:true});console.log(file);
  }
  await check('rodape');
  if(route==='template-carousel'){await app().getByRole('button',{name:'Revisar envio',exact:true}).click();await check('confirmacao');}
@@ -36,4 +40,4 @@ try{for(const theme of ['light','dark'])for(const [device,width,height]of [['des
  await page.locator('#prompt').evaluate(el=>el.style.height='100px');await page.waitForTimeout(150);await check('compositor-alto');
  await context.close();
 }}finally{await browser.close();}
-await writeFile(dir+'validation-4a3-fullscreen.json',JSON.stringify({screenshots:results.length,results},null,2)+'\n');
+await writeFile(dir+`validation-${prefix}-fullscreen.json`,JSON.stringify({screenshots:results.length,results},null,2)+'\n');

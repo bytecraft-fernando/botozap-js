@@ -191,3 +191,48 @@ O simulador de ajustes fica exclusivamente em `web/scenarios/template.ts`, no ho
 ### 4A.3 — rodapé fullscreen centralizado
 
 A área rolável termina antes do compositor e da barra fixa de ações, com a altura da barra medida e a safe area informada pelo host (mínimo/fallback 160 px). Screen-kit e Radar/conversa compartilham o mesmo controlador; não há padding manual por tela para corrigir esse caso. Os testes percorrem topo/meio/fim, confirmação e compositor expandido em todas as telas fullscreen. Veja [o relatório e as capturas](RELATORIO-4A3.md).
+
+
+## Rodada 3B — plantão e entrada global (30/09/2026)
+
+Direção travada: preservamos os tokens, tipografia do host e a densidade das referências ChatGPT/Intercom/Fernand acima. No plantão, a linha vertical organiza recibos e prévia do cliente; uma única ação **Responder** devolve a intenção ao compositor do host, sem editor ou envio próprio. A entrada global reutiliza `mountReview` (Radar/Pendências, histórico e rodapé compartilhado); não duplica a tela de briefing. Não alteramos o card, carrossel ou as telas de template/casos/agenda.
+
+### PiP: contrato e limite real do host
+
+A [spec atual de mcp-extensions](https://github.com/openai/mcp-extensions/blob/main/docs/spec.md#display-modes) declara explicitamente que ChatGPT suporta `inline` e `fullscreen`, mas **não `pip`**. A tabela de plataformas cobre ChatGPT Work web (exclui ChatGPT clássico), desktop, iOS e Android; ela não promete PiP em nenhuma plataforma. As [diretrizes de UI](https://developers.openai.com/plugins/concepts/ui-guidelines#picture-in-picture-pip) descrevem o comportamento desejado para quando houver suporte, não uma garantia de disponibilidade. `@modelcontextprotocol/ext-apps@1.7.5` tipa `pip` e aceita `app.requestDisplayMode({mode:"pip"})`; o SDK de extensões `0.1.0` também aceita `pip` no schema de recursos, mas a spec publicada restringe os metadados OpenAI a inline/fullscreen. Mantemos os recursos nesses dois modos e anunciamos a capacidade PiP na inicialização MCP Apps; pedimos PiP somente quando `hostContext.availableDisplayModes` incluir o valor literal `pip`. Recusa/ausência resulta em inline, sem erro. A demo na 4174 mostra esse fallback real, sem inventar janela flutuante do ChatGPT.
+
+A sessão termina quando a conversa deixa de estar ativa, o prazo local de 30 minutos após o envio termina, ou a pessoa pede uma resposta nova. Ao terminar, retorna a inline; teardown do host e pagehide param o timer e invalidam leituras em andamento. Só há a ação Responder, que envia `ui/update-model-context` (texto do cliente marcado não confiável) e `ui/message`; o assistente prepara uma nova resposta com a última mensagem. Hosts sem mensagem ao modelo orientam usar o compositor. Não há retry de envio.
+
+### Atualizações: polling de leitura via host
+
+O stream durável `/events` e LISTEN/NOTIFY continuam nos resources MCP existentes. A notificação `notifications/resources/updated` sinaliza uma releitura ao cliente MCP; não existe na ponte instalada uma assinatura genérica que encaminhe essas notificações a qualquer iframe. A extensão `openai/resource` descreve os arquivos que abriram a app, e não um repasse universal do event bus BotoZap. Portanto o caminho implementado é `callServerTool` → `open_live_conversation`, com `conversation_id`, `after` e `message_id` (ID interno ou WAMID do envio aceito). O host conserva as credenciais; nenhum fetch/domínio externo é usado no iframe.
+
+Cada leitura confirma a conversa, consulta até 100 mensagens filtradas por ela e uma página de até 100 eventos. O cursor avança sobre a página inteira, mesmo que nenhum evento seja desta conversa. Só devolve projeções de recibos ligados às mensagens autorizadas, respostas posteriores ao envio e eventos de digitação explicitamente vinculados à conversa. Corpo bruto do evento, account_id, outras conversas e mensagens antigas não saem da tool. Um recibo só promove a própria mensagem outbound; a UI não regride leitura. A prévia vem do histórico autorizado, é limitada a 500 caracteres e renderizada com textContent; conteúdo removido é substituído. Enquanto chegam novos eventos, intervalo de 2 s; sem mudanças cresce até 30 s; páginas com mais eventos usam 1 s. Aba invisível pausa consultas. Falha de permissão ou leitura interrompe o polling e pede reabertura pelo assistente, sem loop de erro. Limite: eventos cuja mensagem não esteja entre as 100 consultadas não são inferidos; a pessoa pode consultar o histórico completo no Radar.
+
+A tool é somente leitura, exige `conversations:read`, `messages:read`, `events:read` e suas três rotas OAuth exatas. Tanto ela quanto os dois resources e `open_botozap` usam o gating existente de `createRegister`: flags de UI, allowlist de contas e suporte MCP Apps negociado no initialize. Sem UI, o catálogo 0.6.0 permanece intacto. A identidade atual é conferida a cada chamada.
+
+### Entrada global e deep links
+
+`open_botozap` aceita `{}`, tem título Pendências, ícone SVG monocromático embutido e `_meta["openai/ui"].entrypoints: [{type:"global"}]`. O resultado inicial reutiliza o bootstrap do Radar; o recurso prefere fullscreen, com composer e safe area do host. Links chegam como `hostContext["openai/deepLink"].url` na inicialização e em `ui/notifications/host-context-changed`. Tema e alterações parciais sem deepLink não apagam a rota.
+
+Rotas aceitas: `/`, `/conversa/<UUID>` e `/pendencia/<UUID>?type=opportunity|demand` (sem type usa opportunity). O parser rejeita URLs absolutas, autoridade `//`, fragments, escapes, traversal, IDs inválidos e query ambígua. Não usamos o path para autorizar: get_conversation e get_phone_number confirmam conversa/negócio; pendências passam antes por get_opportunity/get_demand e lista de conversas vinculadas. O painel relê histórico e conversa pelas tools existentes. Falha mantém uma orientação de acesso; nenhum envio ou rascunho automático é criado. Troca de rota invalida consultas anteriores e usa uma instância isolada do mesmo Radar, evitando que respostas antigas alterem a nova tela.
+
+Conforme a [spec de deep links](https://github.com/openai/mcp-extensions/blob/main/docs/spec.md#deep-links), encode o path inteiro como valor da query:
+
+- Web: `https://chatgpt.com/plugins/<plugin-id>/app/open_botozap?path=%2Fconversa%2F<UUID>`.
+- Desktop: `codex://plugins/<plugin-id>/app/open_botozap?path=%2Fconversa%2F<UUID>`.
+- Mobile: `chatgpt://plugins/<plugin-id>/app/open_botozap?path=%2Fconversa%2F<UUID>`.
+
+Plugin-id e tool name são segmentos percent-encoded. `@<marketplace>` só se usa em marketplace próprio e é omitido na publicação direta no ChatGPT. A tabela atual promete deep links no desktop, Work web e iOS; **Android ainda não tem suporte**, embora o entrypoint global esteja previsto nas quatro plataformas. Validar isso no host real antes do piloto.
+
+### Proposta para o APP (não implementada)
+
+Quando um cliente responder, o app poderá enviar ao operador autorizado uma mensagem WhatsApp interativa `cta_url`, por exemplo: “Sâmia respondeu: pode confirmar o pedido. Abra a conversa para revisar.” O botão **Responder no ChatGPT** aponta para o deep link web da conversa. O app deve respeitar a janela/regras do WhatsApp do operador; fora da janela, avaliar um template aprovado compatível. O alerta não autoriza acesso nem envia resposta ao cliente.
+
+Faltam: plugin-id publicado, confirmação do nome `open_botozap` no catálogo publicado, operador com acesso ao mesmo negócio e plugin conectado, escolha de fallback para Android/operador sem plugin (inbox web autenticada ou instrução para conectar o plugin), deduplicação dos alertas e política de notificação/preview. Fernando decide publicação/piloto, contas e fallback; este PR não modifica o app nem ativa flags/deploy.
+
+### Outros hosts e reprodução
+
+Claude, VS Code Copilot, M365 Copilot e Goose podem renderizar o mesmo plantão inline pelo protocolo MCP Apps, com os tokens padrão do host e fallback. Entrada global e deep links são extras OpenAI: hosts que não os reconhecem ignoram os metadados, não exibem shortcut e podem abrir o Radar por tool; sem deepLink a tela começa nas pendências. Nenhuma promessa de suporte a PiP é feita por nome de plataforma. Host sem MCP Apps não recebe as tools auxiliares/resources UI.
+
+`PORT=4174 pnpm --filter @botozap/mcp demo:ui` mantém esta demo separada da 4173 do worker A. Em `/chat?scenario=live`, confirme Enviar e peça “Abra o plantão ao vivo”; chegam enviada, entregue, lida, digitando e resposta do cliente, e Responder prepara o novo card. `/chat?scenario=global` simula a entrada global em uma conversa via deepLink; o botão BotoZap na sidebar abre Pendências. `host=generic` ignora a entrada/deep link OpenAI. Capturas e dois vídeos: `pnpm --filter @botozap/mcp exec node scripts/screenshot-3b.mjs`; axe A/AA, overflow e geometria do rodapé global são verificados no script.

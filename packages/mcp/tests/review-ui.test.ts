@@ -33,6 +33,25 @@ function review() {
 }
 beforeEach(() => { document.body.innerHTML = ""; HTMLElement.prototype.scrollIntoView = vi.fn(); });
 describe("review UI safety", () => {
+  it("omits the account slug, accepts a display name and tracks selection for the shared footer", async () => {
+    const h = harness();
+    expect($("identity").hidden).toBe(true); expect($("identity").textContent).toBe("");
+    expect(document.body.dataset.conversationOpen).toBe("false");
+    h.panel.bootstrap(data({ ...bootstrap.structuredContent, account_name: "Operação Fernando" }));
+    expect($("identity").textContent).toBe("Operação Fernando"); expect($("identity").hidden).toBe(false);
+    await select(); expect(document.body.dataset.conversationOpen).toBe("true");
+    $<HTMLSelectElement>("business").value = "other"; event("business", "change");
+    expect(document.body.dataset.conversationOpen).toBe("false");
+  });
+  it("enriches Radar contact names as text without treating titles as names", async () => {
+    const h = harness(); const original=h.call.getMockImplementation()!;
+    h.call.mockImplementation(async name => name === "get_contact" ? data({data:{display_name:"Marina <img src=x>"}}) : original(name));
+    $<HTMLSelectElement>("business").value = "business"; event("business", "change");
+    await vi.waitFor(()=>expect(document.querySelector(".radar-item strong")?.textContent).toBe("Marina <img src=x>"));
+    expect(document.querySelector(".radar-item img")).toBeNull();
+    expect(document.querySelector(".radar-item")?.textContent).toContain("Retornar orçamento");
+  });
+
   it("renders contact content as text and never sends during preparation or cancel", async () => {
     const h = harness(); await select(); review(); $("edit").click();
     expect($("history").querySelector("img")).toBeNull(); expect($("history").textContent).toContain("<img");
