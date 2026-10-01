@@ -40,12 +40,14 @@ describe("optional review extensions", () => {
     expect(tools.find(t => t.name === "send_message")?._meta).toBeUndefined();
     expect((await client.listResources()).resources.some(r => r.uri.startsWith("ui://"))).toBe(false);
   });
-  it("requires negotiated MCP Apps capability, independently of flags", async () => {
+  it("requires negotiated capability for UI resources, but keeps authorized data tools usable", async () => {
     const legacy = await connect(false, fullAccessIdentity, false);
     const unsupported = await connect(true, fullAccessIdentity, false);
-    expect((await unsupported.client.listTools()).tools).toEqual((await legacy.client.listTools()).tools);
+    const tools = (await unsupported.client.listTools()).tools;
+    expect(tools.find(t => t.name === 'open_botozap')).toBeDefined();
+    expect(tools.find(t => t.name === 'open_botozap')?._meta).toBeUndefined();
     expect((await unsupported.client.listResources()).resources).toEqual((await legacy.client.listResources()).resources);
-    expect((await unsupported.client.callTool({name:'stage_review_reply',arguments:{conversation_id:CONVERSATION_ID,text:'Oi'}})).isError).toBe(true);
+    expect((await unsupported.client.callTool({name:'stage_review_reply',arguments:{conversation_id:CONVERSATION_ID,text:'Oi'}})).isError).not.toBe(true);
     await expect(unsupported.client.readResource({uri:'ui://botozap/reply/v1.html'})).rejects.toThrow();
     const supported = await connect(true);
     expect((await supported.client.listTools()).tools.some(t=>t.name==='stage_review_reply')).toBe(true);
@@ -53,8 +55,24 @@ describe("optional review extensions", () => {
   });
   it.each([{mimeTypes:["text/html"]},{mimeTypes:"text/html;profile=mcp-app"},{mimeTypes:123}])("does not accept missing MIME or malformed capability %j",async ({mimeTypes})=>{
     const h=await connect(true,fullAccessIdentity,mimeTypes);
-    expect((await h.client.listTools()).tools.some(t=>t.name==='stage_review_reply')).toBe(false);
+    expect((await h.client.listTools()).tools.find(t=>t.name==='stage_review_reply')?._meta).toBeUndefined();
     expect((await h.client.listResources()).resources.some(r=>r.uri.startsWith('ui://'))).toBe(false);
+  });
+  it.each([false, true])("executes bootstrap with UI capability %s and denies revoked scopes", async (capability) => {
+    const { client, server, fetch } = await connect(true, fullAccessIdentity, capability);
+    const result = await client.callTool({ name: 'open_botozap', arguments: {} });
+    expect(result.isError).not.toBe(true);
+    expect(result.structuredContent).toEqual({ account_id: fullAccessIdentity.account_id, environment: 'live', customers });
+    expect(JSON.parse((result.content[0] as {text:string}).text)).toEqual(result.structuredContent);
+    refreshServerIdentity(server, { ...fullAccessIdentity, scopes: [] });
+    expect((await client.callTool({ name: 'open_botozap', arguments: {} })).isError).toBe(true);
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+  it("denies bootstrap outside the account rollout even without UI capability", async () => {
+    vi.stubEnv('BOTOZAP_MCP_UI_ACCOUNTS', 'other-account');
+    const { client, fetch } = await connect(true, fullAccessIdentity, false);
+    expect((await client.callTool({ name: 'open_botozap', arguments: {} })).isError).toBe(true);
+    expect(fetch).not.toHaveBeenCalled();
   });
   it("limits UI catalogue and resources to explicitly selected account identities", async () => {
     vi.stubEnv('BOTOZAP_MCP_UI_ACCOUNTS', ` other-account, ${fullAccessIdentity.account_id} `);
