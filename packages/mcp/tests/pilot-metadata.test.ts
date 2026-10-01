@@ -13,6 +13,24 @@ async function connect(enabled=true, identity:any=fullAccessIdentity){
  const [ct,st]=InMemoryTransport.createLinkedPair();await Promise.all([server.connect(st),client.connect(ct)]);clients.push(client);return {client,fetch};
 }
 afterEach(async()=>{await Promise.allSettled(clients.splice(0).map(c=>c.close()));vi.unstubAllEnvs();});
+it('negotiated follow-up tools describe one pending screen followed by the reply card, without empty-screen detours',async()=>{
+ const {client}=await connect();const tools=(await client.listTools()).tools;
+ for(const name of ['open_botozap','list_radar','open_review_panel','stage_review_reply']){
+  const description=tools.find(t=>t.name===name)?.description;
+  expect(description,name).toContain('open_botozap e list_radar são alternativas: nunca chame ambas na mesma resposta');
+  expect(description,name).toContain('no máximo uma tela de Pendências e depois use stage_review_reply');
+  expect(description,name).toContain('pedido principal é preparar resposta e o radar está vazio, vá direto a stage_review_reply');
+  expect(description,name).toContain('list_customers, list_contacts ou list_conversations sem UI');
+  expect(description,name).toContain('nem acrescente open_review_panel como tela de Pendências duplicada');
+ }
+});
+it('follow-up guidance preserves original descriptions without UI and outside the pilot account',async()=>{
+ for(const name of ['open_botozap','list_radar','open_review_panel','stage_review_reply'])expect(uiDescription(name,'Descrição original',false)).toBe('Descrição original');
+ const off=await connect(false);const plain=(await off.client.listTools()).tools.find(t=>t.name==='list_radar')!.description;
+ expect(plain).not.toContain('são alternativas');
+ vi.stubEnv('BOTOZAP_MCP_UI_ACCOUNTS','another-account');const blocked=await connect();
+ expect((await blocked.client.listTools()).tools.find(t=>t.name==='list_radar')!.description).toBe(plain);
+});
 it('every UI resource carries standard and ChatGPT CSP with only first-party redirects',async()=>{
  const {client}=await connect();const resources=(await client.listResources()).resources.filter(r=>r.uri.startsWith('ui://'));expect(resources).toHaveLength(8);
  for(const resource of resources){const result=await client.readResource({uri:resource.uri});for(const content of result.contents){expect(content._meta?.ui).toMatchObject({csp:{connectDomains:[],resourceDomains:[],frameDomains:[]}});expect(content._meta?.['openai/widgetCSP']).toEqual({connect_domains:[],resource_domains:[],frame_domains:[],redirect_domains:['https://botozap.com.br']});}}
