@@ -9,8 +9,8 @@ const click=(label:string)=>{const b=[...document.querySelectorAll('button')].fi
 it('acknowledged critical alert and eight paused conversations populate compact inline and full lists',async()=>{
  const screen=mountCases(document.body,{call:vi.fn(),context:vi.fn(async()=>{})});screen.bootstrap(casesStage('cases-p2'));
  await vi.waitFor(()=>expect(document.body.dataset.state).toBe('Alerta crítico'));
- expect(document.body.textContent).toContain('Reconhecido');expect(document.body.textContent).toContain('9 precisam de você');expect(document.querySelectorAll('.case-row')).toHaveLength(3);expect(document.body.textContent).toContain('+55 11 98966-9559');expect(document.body.textContent).toContain('Preciso remarcar');
- screen.setMode('fullscreen');await vi.waitFor(()=>expect(document.querySelectorAll('.case-row')).toHaveLength(9));expect(document.querySelector('.case-row')?.textContent).toContain('Crítico');expect(document.body.textContent).not.toContain('Confira o contexto');
+ expect(document.body.textContent).toContain('Reconhecido');expect(document.body.textContent).toContain('8 precisam de você');expect(document.querySelectorAll('.case-row')).toHaveLength(3);expect(document.body.textContent).toContain('+55 11 98966-9559');expect(document.body.textContent).toContain('Preciso remarcar');
+ screen.setMode('fullscreen');await vi.waitFor(()=>expect(document.querySelectorAll('.case-row')).toHaveLength(8));expect(document.querySelector('.case-row')?.textContent).toContain('Crítico');expect(document.body.textContent).not.toContain('Confira o contexto');
 });
 it('opens authorized history/composer and resumes only after explicit confirmation, once',async()=>{
  const conv={...conversation(),agent_paused_at:new Date().toISOString()},message=vi.fn();
@@ -23,3 +23,14 @@ it('failed conversation authorization leaves the inbox and never mutates',async(
  const call=vi.fn(async()=>({isError:true,structuredContent:{error:{message:'Sem permissão'}}}));mountCases(document.body,{call,context:vi.fn(async()=>{})}).bootstrap(casesStage('cases-p2'));click('Revisar conversa');await vi.waitFor(()=>expect(document.body.textContent).toContain('Sem permissão'));expect(document.querySelector('#draft')).toBeNull();expect(call).toHaveBeenCalledOnce();
 });
 it('formats phones centrally without modifying other identities',()=>{expect(formatPhone('+5511989669559')).toBe('+55 11 98966-9559');expect(formatPhone('551132345678')).toBe('+55 11 3234-5678');expect(formatPhone('Marina Oliveira')).toBe('Marina Oliveira');expect(formatPhone('@samia')).toBe('@samia');expect(formatPhone('+12025550123')).toBe('+12025550123');});
+it.each([0,1,2])('daily customer count %s is human and hides timezone identifiers',async count=>{
+ const stage=casesStage('cases-p3');stage.structuredContent.usage={unique_contacts_today:count,timezone:'America/Sao_Paulo'};mountCases(document.body,{call:vi.fn(),context:vi.fn(async()=>{})}).bootstrap(stage);
+ await vi.waitFor(()=>expect(document.body.textContent).toContain(count===0?'Nenhum cliente atendido hoje':count===1?'1 cliente atendido hoje':'2 clientes atendidos hoje'));
+ expect(document.body.textContent).not.toContain('America/Sao_Paulo');expect(document.body.textContent).not.toContain('authority_claim');expect([...document.querySelectorAll('.screen-evidence p')].every(p=>p.textContent?.trim())).toBe(true);
+});
+it('an empty serialized text becomes a label rather than an empty customer balloon',async()=>{
+ const stage=casesStage('cases-p3');stage.structuredContent.paused.data=[];mountCases(document.body,{call:vi.fn(),context:vi.fn(async()=>{})}).bootstrap(stage);await vi.waitFor(()=>expect(document.querySelector('.screen-evidence p')?.textContent).toBe('Mensagem sem texto'));
+});
+it('an aggregated inbox identifies the business on every unique row',async()=>{
+ const stage=casesStage('cases-p3');stage.structuredContent.businesses=[{id:'a',name:'Ateliê'},{id:'b',name:'Café'}];for(const row of [...stage.structuredContent.alerts.data,...stage.structuredContent.paused.data]){row.customer_id='a';row.customer_name='Ateliê';}stage.structuredContent.paused.data[1].customer_id='b';stage.structuredContent.paused.data[1].customer_name='Café';mountCases(document.body,{call:vi.fn(),context:vi.fn(async()=>{})}).bootstrap(stage);await vi.waitFor(()=>expect(document.querySelectorAll('.case-business')).toHaveLength(3));expect(document.body.textContent).toContain('Café');
+});

@@ -7,7 +7,7 @@ const guidance: Record<string, string> = {
   stage_review_reply: 'Para preparar, redigir ou revisar resposta, publique o rascunho neste card; não use o bloco nativo de texto. Não envia.',
   stage_review_template: 'Para escolher/preparar o ENVIO de um template já aprovado numa conversa, abra esta UI. Criar template novo usa create_template diretamente; esta UI não cria templates.',
   stage_appointment_booking: 'Para pedido vago de agendamento ou escolha de serviço/horário, use esta UI de disponibilidade antes de criar.',
-  open_agent_cases: 'Para alertas ou atendimentos que aguardam humano, abra esta UI, com críticos primeiro e ações por item.',
+  open_agent_cases: 'Para "a IA precisa de ajuda?", chame open_agent_cases diretamente, sem customer_id para todos os negócios autorizados. Não abra Pendências/open_botozap para descobrir IDs; list_customers é consulta sem UI quando precisar escolher. Críticos primeiro, agrupados por conversa.',
   send_message: 'Se ainda precisa preparar/revisar texto, use stage_review_reply; se precisa escolher template aprovado, stage_review_template. Envie diretamente só com destinatário, origem e conteúdo completos e ordem explícita de enviar.',
   reply_to_conversation: 'Para preparar/redigir/revisar resposta use stage_review_reply. Responda diretamente só com conversa e texto completos e ordem explícita de enviar.',
   create_appointment: 'Pedido de agendamento vago/incompleto ou com escolha de horário usa stage_appointment_booking. Crie diretamente só com serviço, pessoa, data/horário e instrução completa e explícita.',

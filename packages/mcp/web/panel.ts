@@ -1,3 +1,4 @@
+import { messagePreview } from '../src/agent-inbox.js';
 import { externalLink, pendingUrl } from './pending-link.js';
 import { installFullscreenLayout } from './screens/fullscreen-layout.js';
 import { initials, formatPhone, relative, bucketLabel, quantity } from './ui-helpers.js';
@@ -90,7 +91,7 @@ export function mountReview(root: HTMLElement, bridge: Bridge) {
   function messageBody(m: Row) {
     if (m.revoked_at) return 'Mensagem removida pelo remetente';
     if (typeof m.content === 'string') return m.content;
-    return text(m.content?.text?.body) || text(m.content?.body) || `[${text(m.type) || 'Mensagem sem texto'}]`;
+    return messagePreview(m);
   }
   function renderHistory() {
     el('history').replaceChildren();
