@@ -1,7 +1,7 @@
 import { messagePreview } from '../src/agent-inbox.js';
 import { externalLink, pendingUrl } from './pending-link.js';
 import { installFullscreenLayout } from './screens/fullscreen-layout.js';
-import { initials, formatPhone, relative, bucketLabel, quantity } from './ui-helpers.js';
+import { initials, contactLabel, contactAddress, channelLabel, channelOrigin, formatPhone, relative, bucketLabel, quantity } from './ui-helpers.js';
 type Row = Record<string, any>;
 export interface Bridge {
   openExternal?(url: string): Promise<unknown>;
@@ -42,7 +42,7 @@ export function mountReview(root: HTMLElement, bridge: Bridge) {
   el('contact-phone').after(el('conversation-urgency'));
   const incoming = document.createElement('article'); incoming.className = 'incoming-context'; incoming.id = 'incoming-context'; incoming.hidden = true; el('card-preview').parentElement!.before(incoming);
   const templateButton = document.createElement('button'); templateButton.id = 'use-template'; templateButton.textContent = 'Usar template aprovado'; templateButton.className = 'primary'; el('draft-controls').after(templateButton);
-  templateButton.onclick = () => { if (conversation && !isOpen() && !locked && !intents.get(conversation.id)?.uncertain) bridge.template?.({ conversation, customer_id: business.value }); };
+  templateButton.onclick = () => { if (conversation && conversation.channel !== 'instagram' && !isOpen() && !locked && !intents.get(conversation.id)?.uncertain) bridge.template?.({ conversation, customer_id: business.value }); };
   const business = el<HTMLSelectElement>('business'), draft = el<HTMLTextAreaElement>('draft');
   root.dataset.mode = root.dataset.initialMode === 'inline' ? 'inline' : 'fullscreen'; root.dataset.state = 'draft'; root.dataset.conversationOpen = 'false'; root.dataset.itemSelected = 'false';
   let account = '', environment = '', customers: Row[] = [], entries: Row[] = [], customerPage = 1, customerPages = 1, radarPage = 1, radarPages = 1;
@@ -57,14 +57,14 @@ export function mountReview(root: HTMLElement, bridge: Bridge) {
   const setState = (state: string) => { root.dataset.state = state; el('card-state').textContent = ({ draft: 'Rascunho', confirming: 'Confirmando', sending: 'Enviando', accepted: 'Aceito', delivered: 'Entregue', read: 'Lido', rejected: 'Recusado', uncertain: 'Incerto', closed: 'Janela fechada' } as Row)[state] ?? state; el('bubble-status').textContent = ({ draft: 'Rascunho · ainda não enviado', confirming: 'Confira antes de enviar', sending: 'Enviando…', accepted: '✓ Aceito · aguardando confirmação de entrega', delivered: '✓✓ Entregue · confirmação recebida', read: '✓✓ Lido · confirmação recebida', rejected: 'Não enviado', uncertain: 'Resultado não confirmado', closed: 'Janela de texto fechada' } as Row)[state] ?? ''; context(); };
   const setMode = (mode: 'inline' | 'fullscreen') => { root.dataset.mode = mode; if (mode === 'inline') delete root.dataset.focus; el('review').textContent = mode === 'inline' ? 'Enviar' : 'Revisar envio'; };
   function card() {
-    const c = conversation; if (!c) return;
+    const c = conversation; if (!c) return; templateButton.hidden = c.channel === 'instagram' || isOpen();
     el('card-summary').replaceChildren();
-    const name = formatPhone(c.contact?.name) || 'Contato';
+    const name = contactLabel(c.contact);
     el('avatar').textContent = initials(name); el('contact-name').textContent = name;
-    el('contact-phone').textContent = `WhatsApp · ${formatPhone(text(c.contact?.phone) || text(c.contact?.wa_id))}`;
+    el('contact-phone').textContent = [channelLabel(c),contactAddress(c.contact)].filter(Boolean).join(' · ');
     const minutes = Math.max(0, Math.ceil((Date.parse(c.window_expires_at ?? '')-Date.now())/60000));
-    const window = isOpen() ? `Janela fecha em ${minutes >= 60 ? `${Math.ceil(minutes/60)}h` : `${minutes} min`}` : 'Janela fechada';
-    const chips = [customers.find(r => r.id === business.value)?.name || business.value, `Origem ${formatPhone(c.display_phone_number) || text(c.channel_account?.display) || c.phone_number_id}`, window];
+    const window = c.channel === 'instagram' ? (isOpen() ? 'Resposta disponível' : 'Continue no BotoZap') : isOpen() ? `Janela fecha em ${minutes >= 60 ? `${Math.ceil(minutes/60)}h` : `${minutes} min`}` : 'Janela fechada';
+    const chips = [customers.find(r => r.id === business.value)?.name || business.value, `Origem ${channelOrigin(c)}`, window];
     chips.forEach((value, index) => { const span = document.createElement('span'); span.className = `chip ${index === 2 ? 'window-chip' : ''} ${index === 2 && minutes <= 60 ? 'window-warning' : ''}`; span.textContent = value; el('card-summary').append(span); });
     const wait = relative(c.last_message_at || messages.filter(m => m.direction === 'inbound').at(-1)?.created_at);
     el('conversation-urgency').textContent = selected?.bucket ? `${bucketLabel(selected.bucket)} · ${wait ? `Esperando ${wait}` : 'Aguardando resposta'}` : wait ? `Esperando ${wait}` : '';
@@ -73,9 +73,9 @@ export function mountReview(root: HTMLElement, bridge: Bridge) {
   }
   const notice = (message: string, kind = '') => { el('notice').textContent = message; el('notice').className = kind ? `notice ${kind}` : ''; };
   const call = async (name: string, args: Record<string, unknown>) => decode(await bridge.call(name, args));
-  const isOpen = () => conversation?.status === 'active' && (!conversation.channel || conversation.channel === 'whatsapp') && Date.parse(conversation.window_expires_at ?? '') > Date.now();
+  const isOpen = () => conversation?.status === 'active' && (!conversation.channel || ['whatsapp','instagram'].includes(conversation.channel)) && Date.parse(conversation.window_expires_at ?? '') > Date.now();
   const canAttempt = () => {
-    if (!conversation || (conversation.channel && conversation.channel !== 'whatsapp')) return false;
+    if (!conversation || (conversation.channel && !['whatsapp','instagram'].includes(conversation.channel))) return false;
     const intent = intents.get(conversation.id);
     if (expired(intent)) return false;
     if (root.dataset.mode === 'inline' && intent?.uncertain) return false;
@@ -165,15 +165,15 @@ export function mountReview(root: HTMLElement, bridge: Bridge) {
       const history = await call('list_messages', { conversation_id: id, limit: 20 });
       if (token !== generation) return;
       conversation = detail.data; messages = history.data; historyCursor = history.paging?.next ? history.paging.cursors.after : undefined;
-      const c = conversation!; el('recipient').textContent = `${formatPhone(c.contact?.name)} · ${formatPhone(c.contact?.phone || c.contact?.wa_id || c.contact?.username)} · ${text(c.channel) || 'WhatsApp'} · ${text(c.channel_account?.display) || formatPhone(c.display_phone_number) || c.phone_number_id}`;
-      el('window').textContent = isOpen() ? `Janela aberta até ${date(c.window_expires_at)}` : 'Janela fechada'; el('window').className = `badge ${isOpen() ? 'success' : 'warning'}`;
+      const c = conversation!; el('recipient').textContent = [contactLabel(c.contact),contactAddress(c.contact),channelLabel(c),channelOrigin(c)].filter(Boolean).join(' · ');
+      el('window').textContent = c.channel === 'instagram' ? (isOpen() ? 'Resposta disponível' : 'Continue no BotoZap') : isOpen() ? `Janela aberta até ${date(c.window_expires_at)}` : 'Janela fechada'; el('window').className = `badge ${isOpen() ? 'success' : 'warning'}`;
       const pending = intents.get(id);
       locked = false; draft.disabled = !isOpen() || !!pending?.uncertain; renderHistory(); card(); setState(pending?.uncertain ? 'uncertain' : isOpen() ? 'draft' : 'closed');
       if (pending?.uncertain) { draft.value = pending.body; reviewBody = pending.body; el('length').textContent = `${draft.value.length} / 4096`; el<HTMLButtonElement>('review').disabled = !canAttempt(); el('review').textContent = 'Revisar tentativa pendente'; notice(root.dataset.mode === 'inline' ? 'O resultado da tentativa anterior está incerto. Confira o histórico no painel BotoZap. Novos envios estão bloqueados.' : 'O resultado da tentativa anterior está incerto. Confira o histórico antes de repetir explicitamente a mesma tentativa com proteção contra duplicidade.', 'warning'); }
       else el('review').textContent = root.dataset.mode === 'inline' ? 'Enviar' : 'Revisar envio';
       if (pending?.uncertain && pending.destination !== destination(c)) { locked = true; el<HTMLButtonElement>('review').disabled = true; notice('O destino da tentativa pendente mudou. Confira o resultado no painel BotoZap antes de enviar outra resposta.', 'warning'); }
       if (expired(pending)) { locked = true; el<HTMLButtonElement>('review').disabled = true; expiredNotice(); }
-      if (!isOpen() && !pending?.uncertain) notice(c.channel && c.channel !== 'whatsapp' ? 'Este painel envia respostas de texto pelo WhatsApp. Continue esta conversa no painel BotoZap.' : 'A janela para resposta de texto está fechada. Abra o painel BotoZap para avaliar um template aprovado.', 'warning');
+      if (!isOpen() && !pending?.uncertain) notice(c.channel && c.channel !== 'whatsapp' ? 'O envio não está disponível nesta conversa Instagram. Continue no painel BotoZap.' : 'A janela para resposta de texto está fechada. Abra o painel BotoZap para avaliar um template aprovado.', 'warning');
       card();
     } catch (error) { if (token === generation) { el('history').textContent = 'Não foi possível carregar esta conversa.'; notice((error as Error).message, 'error'); } }
   }
@@ -189,7 +189,7 @@ export function mountReview(root: HTMLElement, bridge: Bridge) {
     if (!existing || existing.body !== reviewBody || existing.destination !== destination(conversation)) intents.set(conversation.id, { body: reviewBody, key: crypto.randomUUID(), uncertain: false, destination: destination(conversation) });
     el('send').textContent = intents.get(conversation.id)?.uncertain ? 'Repetir a mesma tentativa' : 'Enviar';
     el<HTMLButtonElement>('edit').disabled = !!intents.get(conversation.id)?.uncertain;
-    const c = conversation; const pairs = [['Negócio', customers.find(r => r.id === business.value)?.name || business.value], ['Destinatário', `${formatPhone(c.contact?.name)} · ${formatPhone(c.contact?.phone || c.contact?.wa_id || c.contact?.username)}`], ['Canal', `${text(c.channel) || 'WhatsApp'} · ${text(c.channel_account?.display) || formatPhone(c.display_phone_number) || c.phone_number_id}`]];
+    const c = conversation; const pairs = [['Negócio', customers.find(r => r.id === business.value)?.name || business.value], ['Destinatário', [contactLabel(c.contact),contactAddress(c.contact)].filter(Boolean).join(' · ')], ['Canal', `${channelLabel(c)} · ${channelOrigin(c)}`]];
     for (const [key, value] of pairs) { const dt = document.createElement('dt'), dd = document.createElement('dd'); dt.textContent = key; dd.textContent = value; el('summary').append(dt, dd); }
     el<HTMLInputElement>('consent').checked = false; el<HTMLButtonElement>('send').disabled = true; el('confirmation').hidden = false; if (root.dataset.mode === 'fullscreen') el('confirmation').scrollIntoView({ block: 'center' }); el<HTMLInputElement>('consent').focus({ preventScroll: true });
   };
@@ -268,7 +268,7 @@ export function mountReview(root: HTMLElement, bridge: Bridge) {
             business.value = data.customer_id; ++generation; selected = { id: data.conversation.id, contact_id: data.conversation.contact_id, entity_type: 'conversation', title: 'Resposta preparada' }; resetDraft(); el('conversations').replaceChildren();
             await loadConversation(data.conversation.id);
             if (stageToken !== stageGeneration) return;
-            if (conversation && conversation.id === data.conversation.id && !intents.get(conversation.id)?.uncertain) { draft.value = text(data.draft.text).slice(0,4096); intents.set(conversation.id, { body: draft.value, key: destination(data.conversation) === destination(conversation) ? text(data.draft.idempotency_key) || crypto.randomUUID() : crypto.randomUUID(), uncertain: false, destination: destination(conversation) }); el('length').textContent = `${draft.value.length} / 4096`; el<HTMLButtonElement>('review').disabled = !draft.value.trim() || locked || !isOpen(); card(); context(); setState(isOpen() ? 'draft' : 'closed'); if (isOpen() && draftVersion++ > 0) el('card-state').textContent = 'Atualizado'; notice(isOpen() ? '' : 'A janela de 24h está fechada. Use um template aprovado no painel BotoZap.'); }
+            if (conversation && conversation.id === data.conversation.id && !intents.get(conversation.id)?.uncertain) { draft.value = text(data.draft.text).slice(0,4096); intents.set(conversation.id, { body: draft.value, key: destination(data.conversation) === destination(conversation) ? text(data.draft.idempotency_key) || crypto.randomUUID() : crypto.randomUUID(), uncertain: false, destination: destination(conversation) }); el('length').textContent = `${draft.value.length} / 4096`; el<HTMLButtonElement>('review').disabled = !draft.value.trim() || locked || !isOpen(); card(); context(); setState(isOpen() ? 'draft' : 'closed'); if (isOpen() && draftVersion++ > 0) el('card-state').textContent = 'Atualizado'; notice(isOpen() ? '' : conversation?.channel === 'instagram' ? 'Continue esta conversa no painel BotoZap.' : 'A janela de 24h está fechada. Use um template aprovado no painel BotoZap.'); }
             if (root.dataset.mode === 'fullscreen') void loadRadar();
           })().catch(() => notice('Não foi possível preparar este rascunho. Reabra o painel e confira as permissões.', 'error'));
           return;

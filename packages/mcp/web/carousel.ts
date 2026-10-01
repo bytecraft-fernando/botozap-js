@@ -1,4 +1,4 @@
-import { formatPhone } from './ui-helpers.js';
+import { contactLabel, formatPhone } from './ui-helpers.js';
 import { externalLink, pendingUrl } from './pending-link.js';
 import type { Bridge } from './panel.js';
 import { initials, relative, string, bucketLabel, quantity } from './ui-helpers.js';
@@ -16,7 +16,7 @@ export function mountCarousel(root: HTMLElement, bridge: Bridge) {
     const priority = [...rows.slice(0,8)].sort((a,b) => ['critical','at_risk','scheduled'].indexOf(a.bucket) - ['critical','at_risk','scheduled'].indexOf(b.bucket))[0];
     for (const entry of rows.slice(0,8)) {
       const card = document.createElement('article'); card.className = 'pending-card'; card.dataset.bucket = string(entry.bucket);
-      const name = formatPhone(entry.contact?.name) || 'Contato';
+      const name = contactLabel(entry.contact);
       card.innerHTML = '<div class="pending-person"><span class="avatar" aria-hidden="true"></span><div><h2></h2><p class="pending-business"></p></div></div><span class="urgency"></span><p class="pending-wait"></p><p class="pending-reason"></p><p class="pending-next"></p><button class="primary">Responder <span aria-hidden="true">↗</span></button>';
       card.querySelector('.avatar')!.textContent = initials(name); card.querySelector('h2')!.textContent = name;
       card.querySelector('.pending-business')!.textContent = customerName || string(entry.customer_name) || 'Negócio selecionado';
@@ -45,7 +45,7 @@ export function mountCarousel(root: HTMLElement, bridge: Bridge) {
       // Enrich from existing authorized tools; Radar titles are not contact names.
       if (entry.contact_id) void bridge.call('get_contact', { id: entry.contact_id }).then(result => {
         const contact = result.structuredContent?.data; if (!card.isConnected || !contact) return;
-        const name = formatPhone(contact.display_name) || formatPhone(contact.profile_name) || 'Contato';
+        const name = contactLabel(contact);
         card.querySelector('h2')!.textContent = name; card.querySelector('.avatar')!.textContent = initials(name);
       }).catch(() => {});
       if (entry.conversation_id) void bridge.call('get_conversation', { id: entry.conversation_id }).then(result => {

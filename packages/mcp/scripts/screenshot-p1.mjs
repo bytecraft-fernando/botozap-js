@@ -7,7 +7,7 @@ const browser=await chromium.launch(),results=[],prefix=process.env.CAPTURE_PREF
 const screens=(process.env.CAPTURE_SCREENS??'carousel,reply,radar,global,template,cases,booking,live,unlinked,unlinked-panel,alerts').split(',');
 try{for(const theme of ['light','dark'])for(const [device,width,height] of [['desktop',1440,1050],['mobile',390,844]])for(const screen of screens){
  const context=await browser.newContext({viewport:{width,height},reducedMotion:'reduce'}),page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
- const scenario={carousel:'normal',reply:'draft',radar:'draft',global:'pilot-global',template:'template-carousel',cases:'cases',booking:'booking',live:'live',unlinked:'pilot-unlinked','unlinked-panel':'pilot-unlinked',alerts:'pilot-alerts',paused:'pilot-alerts',p2:'cases-p2',p3:'cases-p3'}[screen];
+ const scenario={instagram:'instagram',carousel:'normal',reply:'draft',radar:'draft',global:'pilot-global',template:'template-carousel',cases:'cases',booking:'booking',live:'live',unlinked:'pilot-unlinked','unlinked-panel':'pilot-unlinked',alerts:'pilot-alerts',paused:'pilot-alerts',p2:'cases-p2',p3:'cases-p3'}[screen];
  await page.goto(`${origin}/chat?theme=${theme}&scenario=${scenario}`);await page.locator('html[data-demo-ready=true]').waitFor();
  const app=()=>page.frameLocator('iframe').last();
  const prompt=async(text)=>{await page.locator('#prompt').fill(text);await page.locator('#composer').evaluate(f=>f.requestSubmit());};
@@ -22,6 +22,7 @@ try{for(const theme of ['light','dark'])for(const [device,width,height] of [['de
  if(screen==='booking')await app().getByRole('button',{name:'Marcar',exact:true}).first().waitFor();
  async function mode(value){await page.frames().at(-1).evaluate(value=>window.parent.postMessage({jsonrpc:'2.0',id:'capture-'+value,method:'ui/request-display-mode',params:{mode:value}},location.origin),value);await app().locator(`#app[data-mode=${value}]`).waitFor();await page.waitForTimeout(200);}
  async function capture(value){
+  if(screen==='instagram'){const text=await app().locator('main').innerText();assert.ok(text.includes('Instagram'));assert.ok(text.includes('@contato_instagram'));assert.ok(!text.includes('BR.'));assert.equal(await app().locator('#use-template').isVisible(),false);assert.equal(await app().locator('#draft').isDisabled(),false);}
   const hostOverflow=await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),iframeOverflow=await app().locator('#app').evaluate(root=>root.scrollWidth>root.clientWidth+1||document.documentElement.scrollWidth>innerWidth+1);assert.equal(hostOverflow,false,screen+' host overflow');assert.equal(iframeOverflow,false,screen+' iframe overflow');
   assert.ok((await app().locator('main').innerText()).trim().length>30,screen+' no empty screen');
   if(await app().locator('.inline-heading').isVisible()){assert.ok((await app().locator('#avatar').innerText()).trim());assert.notEqual((await app().locator('#contact-name').innerText()).trim(),'Conversa');assert.ok((await app().locator('#card-preview').innerText()).trim());}

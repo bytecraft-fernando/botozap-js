@@ -11,6 +11,7 @@ export function registerTemplatePanel(server: McpServer, register: Register) {
     { conversation_id: z.string().uuid(), template_id: z.string().optional(), suggested_values: z.record(z.record(z.string().max(32768))).optional(), media_metadata: z.record(z.object({ filename:z.string().max(240).optional(),file_size:z.number().positive().optional() })).optional() }, z.object({ conversation: z.record(z.unknown()), customer_id: z.string(), number: z.record(z.unknown()), preferred_template_id:z.string().optional(), suggested_values:z.record(z.record(z.string())).optional(), media_metadata:z.unknown().optional() }),
     async (client, args) => {
       const conversation = await client.conversations.get(String(args.conversation_id));
+      if (conversation.channel === 'instagram') return {conversation, customer_id:'', number:{}};
       if (!conversation.phone_number_id) throw new BotoZapError("unsupported_channel", "Selecione uma conversa WhatsApp.", 422);
       const number = await client.phoneNumbers.get(conversation.phone_number_id);
       if (typeof number.customer_id !== 'string' || !number.customer_id) throw new BotoZapError('missing_customer', 'Negócio da conversa indisponível.', 422);

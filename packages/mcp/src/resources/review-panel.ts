@@ -1,3 +1,4 @@
+import {isToolAllowed,getToolPolicy} from '../permissions.js';
 import { uiContent, uiToolMetadata } from './versioned-ui.js';
 import { registerLivePanel } from './live-panel.js';
 import { registerGlobalPanel } from './global-panel.js';
@@ -37,6 +38,7 @@ export function registerReviewPanel(server: McpServer, register: Register): void
       if (resource.enabled !== enabled) enabled ? resource.enable() : resource.disable();
     });
   }
+  register('get_channel_account', 'Consulta a conta de canal autorizada para resolver o negócio de uma conversa.', {id:z.string().uuid()}, z.object({data:z.record(z.unknown())}), async(client,args)=>({data:await client.requestItem('GET',`/channel_accounts/${encodeURIComponent(String(args.id))}`)}));
   register(
     "stage_review_reply",
     "Prepara um rascunho editável no painel de revisão após confirmar acesso à conversa. Não envia mensagem.",
@@ -46,10 +48,14 @@ export function registerReviewPanel(server: McpServer, register: Register): void
       conversation: conversationSchema,
       draft: z.object({ text: z.string(), idempotency_key: z.string().uuid() }).strict(),
     }).strict(),
-    async (client, args) => {
+    async (client, args, identity) => {
       const conversation = await client.conversations.get(String(args.conversation_id));
-      if (!conversation.phone_number_id) throw new BotoZapError("unsupported_channel", "A revisão de resposta está disponível para conversas WhatsApp.", 422);
-      const number = await client.phoneNumbers.get(conversation.phone_number_id);
+      if(conversation.channel==='instagram'&&!isToolAllowed(getToolPolicy('get_channel_account'),identity))throw new BotoZapError('forbidden_scope','Esta autorização não permite consultar a conta de canal.',403);
+      const channelId=(conversation.channel_account as {id?:string}|null)?.id;
+      const number = conversation.channel === 'instagram' && channelId
+        ? await client.requestItem<{customer_id:string}>('GET', `/channel_accounts/${encodeURIComponent(channelId!)}`)
+        : conversation.phone_number_id ? await client.phoneNumbers.get(conversation.phone_number_id) : null;
+      if (!number) throw new BotoZapError('unsupported_channel', 'Conta de canal indisponível.', 422);
       if (!number.customer_id) throw new BotoZapError("missing_customer", "Não foi possível confirmar o cliente desta conversa.", 422);
       return { customer_id: number.customer_id, conversation, draft: { text: String(args.text), idempotency_key: randomUUID() } };
     },
@@ -63,11 +69,13 @@ export function registerReviewPanel(server: McpServer, register: Register): void
     },
     z.object({
       account_id: z.string(),
+      account_name: z.string().optional(),
       environment: z.enum(["live", "sandbox"]),
       customers: listCustomersResultSchema,
     }).strict(),
     async (client, args, identity) => ({
       account_id: identity.account_id,
+      ...(identity.account_name?{account_name:identity.account_name}:{}),
       environment: identity.environment,
       customers: await client.customers.list({
         page: args.page as number | undefined,

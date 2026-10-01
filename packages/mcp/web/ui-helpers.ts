@@ -13,7 +13,18 @@ export function quantity(count: number, singular: string, plural: string) { retu
 /** Preserve non-phone identifiers; format Brazilian E.164 without guessing missing digits. */
 export function formatPhone(value: unknown): string {
   const raw=string(value).trim(),digits=raw.replace(/\D/g,'');
+  if(/^[A-Za-z]{2}\.[A-Za-z0-9]+$/.test(raw)||/^\d{16,32}$/.test(raw))return '';
   if(!/^\+?[\d\s().-]+$/.test(raw))return raw;
   const match=/^55(\d{2})(\d{4,5})(\d{4})$/.exec(digits);
   return match?`+55 ${match[1]} ${match[2]}-${match[3]}`:raw;
 }
+
+export function contactLabel(contact: Record<string,any>|undefined): string {
+  const name=string(contact?.display_name||contact?.profile_name||contact?.name).trim();
+  if(name && !/^[A-Za-z]{2}\.[A-Za-z0-9]+$/.test(name) && !/^\d{16,32}$/.test(name))return formatPhone(name);
+  const username=string(contact?.username).replace(/^@/,'');
+  return username?`@${username}`:formatPhone(contact?.phone)||'Contato';
+}
+export function channelLabel(conversation: Record<string,any>): string {return conversation.channel==='instagram'?'Instagram':'WhatsApp';}
+export function contactAddress(contact: Record<string,any>|undefined): string {const username=string(contact?.username).replace(/^@/,'');const address=username?`@${username}`:formatPhone(contact?.phone);return address===contactLabel(contact)?'':address;}
+export function channelOrigin(c: Record<string,any>): string {return string(c.channel_account?.display)||formatPhone(c.display_phone_number)||channelLabel(c);}

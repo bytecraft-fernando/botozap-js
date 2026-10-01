@@ -3,6 +3,7 @@ import type {ToolPolicy} from './permissions.js';
 
 export type CatalogProfile = 'assistant' | 'full';
 const descriptions: Record<string, [string,string]> = {
+  get_channel_account: ['Conta de canal','Consulta a conta de canal autorizada para a app.'],
   get_profile: ['Conta conectada','Consulta a identidade da conta autorizada.'],
   open_botozap: ['Pendências','Abre as pendências da conta para escolher o próximo atendimento.'],
   list_radar: ['Pendências do negócio','Consulta pendências priorizadas de um negócio.'],

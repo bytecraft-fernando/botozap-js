@@ -29,8 +29,8 @@ export function mountGlobal(root:HTMLElement,bridge:Bridge){
         if(!parseDeepLink(`/conversa/${id}`))throw new Error('Pendência sem conversa disponível.');
       }
       const conversation=(await call(bridge,'get_conversation',{id})).data;
-      if(conversation.id!==id||!conversation.phone_number_id)throw new Error('Conversa indisponível.');
-      const number=(await call(bridge,'get_phone_number',{id:conversation.phone_number_id})).data;
+      if(conversation.id!==id||(!conversation.phone_number_id&&conversation.channel!=='instagram'))throw new Error('Conversa indisponível.');
+      const number=(await call(bridge,conversation.channel==='instagram'?'get_channel_account':'get_phone_number',{id:conversation.channel==='instagram'?conversation.channel_account?.id:conversation.phone_number_id})).data;
       if(!number.customer_id)throw new Error('Negócio indisponível.');
       if(token!==generation)return;
       review.setMode(mode==='fullscreen'?'fullscreen':'inline');current.dataset.focus='conversation';
