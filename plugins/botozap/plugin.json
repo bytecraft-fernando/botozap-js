@@ -99,7 +99,7 @@
         "release_notes": "First release: review today's follow-ups, reply to WhatsApp conversations, send approved templates, handle AI agent handoffs and follow a conversation live — always with your confirmation before sending.",
         "translations": {
           "pt-BR": {
-            "subtitle": "CRM de WhatsApp para o seu negócio",
+            "subtitle": "CRM de WhatsApp para negócios",
             "description": "BotoZap é um CRM de WhatsApp para negócios brasileiros. Conecte sua conta para ver o que precisa da sua atenção hoje, ler o histórico de conversas, preparar respostas e templates aprovados do WhatsApp e enviá-los após sua confirmação, atender conversas em que o agente de IA precisa de uma pessoa e criar novos templates. Todo envio exige sua confirmação; configurações da conta, webhooks e credenciais de IA ficam no painel do BotoZap."
           }
         }

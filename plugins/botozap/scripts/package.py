@@ -37,9 +37,7 @@ assert metadata["publication"]["countries"] == ["BR"]
 translation = metadata["publication"]["translations"]["pt-BR"]
 assert 0 < len(translation["subtitle"]) and "\n" not in translation["subtitle"]
 warnings = []
-if len(translation["subtitle"]) > 30:
-    assert translation["subtitle"] == "CRM de WhatsApp para o seu negócio", "Translated subtitle exceeds 30 characters"
-    warnings.append("Owner-approved pt-BR subtitle has 34 characters; confirm portal acceptance or approve a shorter translation before submission.")
+assert len(translation["subtitle"]) <= 30, "Translated subtitle exceeds 30 characters (portal limit)"
 assert 0 < len(translation["description"]) <= 4000
 cases = metadata["review"]["test_cases"]
 assert len(cases["positive"]) == 5 and len(cases["negative"]) == 3
