@@ -13,6 +13,13 @@ async function connect(enabled=true, identity:any=fullAccessIdentity){
  const [ct,st]=InMemoryTransport.createLinkedPair();await Promise.all([server.connect(st),client.connect(ct)]);clients.push(client);return {client,fetch};
 }
 afterEach(async()=>{await Promise.allSettled(clients.splice(0).map(c=>c.close()));vi.unstubAllEnvs();});
+it('enabled UI directs administration to the dashboard without offering plugin exposure or asking for secrets',async()=>{
+ const {client}=await connect();const tools=(await client.listTools()).tools;
+ for(const name of ['open_review_panel','open_botozap','open_agent_cases','stage_review_template']){
+  const description=tools.find(t=>t.name===name)!.description;
+  expect(description).toContain('https://botozap.com.br');expect(description).toContain('nunca sugira habilitar ou expor ações administrativas no plugin');expect(description).toContain('nunca peça chaves, tokens ou senhas no chat');expect(uiDescription(name,'original',false)).toBe('original');
+ }
+});
 it('monitoring guidance is read-only on all relevant tools and absent without negotiated UI',async()=>{
  const {client}=await connect();const tools=(await client.listTools()).tools;
  for(const name of ['open_live_conversation','send_message','reply_to_conversation','stage_review_reply']){

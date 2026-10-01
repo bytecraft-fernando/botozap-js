@@ -5,6 +5,18 @@ export const provenance=[
     "sha256": "835447a296d2e8e2005c4c6ebdd6b069c895baca30726e441e71c40c7a72e906"
   },
   {
+    "path": "src/lib/whatsapp/template-rejection.ts",
+    "sha256": "f0f493fd02716273e214c716bb5f9cd85159ab6d31f95e1bb52a42858909c3be"
+  },
+  {
+    "path": "src/app/api/v1/templates/serialize.ts",
+    "sha256": "070d949cc19b91675231894973c9e804ae2ce38ff52852cefa391043d58d17dd"
+  },
+  {
+    "path": "src/app/api/v1/phone_numbers/serialize.ts",
+    "sha256": "9cebc7827999c45fa340d3e5367f4ffb1e09356ac76c1bd2166b5b160d522e6f"
+  },
+  {
     "path": "src/lib/api/channel.ts",
     "sha256": "e062981aa5e319de2695492470061f0e89509a16052b98d887b13b065ea23c2b"
   },
@@ -1068,6 +1080,89 @@ export const reviewerContract={
       "is_self": true,
       "created_at": "2026-10-01T12:00:00Z",
       "updated_at": "2026-10-01T12:00:00Z"
+    }
+  ],
+  "number": {
+    "id": "00000000-0000-4000-8000-000000000004",
+    "phone_number_id": "123456789",
+    "display_phone_number": "+1 208 555 0100",
+    "verified_name": "Negócio de teste",
+    "label": null,
+    "quality_rating": "GREEN",
+    "type": "CLOUD_API",
+    "waba_connection_id": "00000000-0000-4000-8000-000000000006",
+    "customer_id": "00000000-0000-4000-8000-000000000001",
+    "waba_id": "99887766",
+    "connection_status": "active",
+    "token_status": "valid",
+    "created_at": "2026-10-01T12:00:00Z"
+  },
+  "templates": [
+    {
+      "id": "00000000-0000-4000-8000-000000000500",
+      "name": "confirmacao_pedido",
+      "language": "pt_BR",
+      "category": "UTILITY",
+      "status": "APPROVED",
+      "rejection_reason": null,
+      "meta_template_id": "9876540",
+      "components": [
+        {
+          "type": "BODY",
+          "text": "Olá {{1}}, pedido {{2}}, entrega {{3}}, endereço {{4}}.",
+          "example": {
+            "body_text": [
+              [
+                "Fernando",
+                "12345",
+                "amanhã",
+                "Rua de teste"
+              ]
+            ]
+          }
+        }
+      ],
+      "waba_connection_id": "00000000-0000-4000-8000-000000000006",
+      "created_at": "2026-10-01T12:00:00Z",
+      "last_synced_at": "2026-10-01T12:00:00Z"
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000501",
+      "name": "confirmacao_nomeada",
+      "language": "pt_BR",
+      "category": "UTILITY",
+      "status": "APPROVED",
+      "rejection_reason": null,
+      "meta_template_id": "9876541",
+      "components": [
+        {
+          "type": "BODY",
+          "text": "Olá {{nome}}, pedido {{pedido}}, entrega {{data}}, endereço {{endereco}}.",
+          "example": {
+            "body_text_named_params": [
+              {
+                "param_name": "nome",
+                "example": "Fernando"
+              },
+              {
+                "param_name": "pedido",
+                "example": "12345"
+              },
+              {
+                "param_name": "data",
+                "example": "amanhã"
+              },
+              {
+                "param_name": "endereco",
+                "example": "Rua de teste"
+              }
+            ]
+          }
+        }
+      ],
+      "waba_connection_id": "00000000-0000-4000-8000-000000000006",
+      "created_at": "2026-10-01T12:00:00Z",
+      "last_synced_at": "2026-10-01T12:00:00Z"
     }
   ],
   "meta": {

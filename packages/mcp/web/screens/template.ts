@@ -6,7 +6,7 @@ import { templateFields, templateParameters, validateTemplateValues, templateUns
 import { renderTemplatePreview } from './template-renderer.js';
 import { shell, node, button, field, call, ScreenError, skeleton, type Row } from './screen-kit.js';
 export function mountTemplate(root: HTMLElement, bridge: Bridge, initial?: Row) {
-    const ui = shell(root, 'Fora da janela', 'Uma mensagem aprovada, com contexto', bridge);
+    const ui = shell(root, 'Template aprovado', 'Uma mensagem aprovada, com contexto', bridge);
     skeleton(ui.content);
     let context: Row, templates: Row[] = [], selected: Row, values: Record<string, string> = {}, frozen = false, sending = false, key = '', definition = '', mode = 'draft';
     let destination = '';
@@ -72,7 +72,7 @@ export function mountTemplate(root: HTMLElement, bridge: Bridge, initial?: Row) 
             const groupId = f.card === undefined ? 'Mensagem' : `Card ${f.card + 1}`;
             if (!groups.has(groupId)) { const simple = node('section', '', 'template-field-group'); const advanced = document.createElement('details'); advanced.className = 'template-advanced'; advanced.append(node('summary','Avançado')); simple.append(node('h2', groupId), advanced); fields.append(simple); groups.set(groupId,{simple,advanced}); }
             const group = groups.get(groupId)!;
-            values[f.key] = context.suggested_values?.[selected.id]?.[f.key] ?? (f.section === 'body' && f.kind === 'text' && ['1', 'name', 'nome', 'customer_name'].includes(f.variable) && f.card === undefined ? name : f.kind === 'otp' || f.kind === 'media' || f.kind === 'media_id' ? '' : String(f.example ?? ''));
+            values[f.key] = (context.suggested_values?.[selected.id] ?? context.suggested_values?.[selected.name])?.[f.key] ?? (f.section === 'body' && f.kind === 'text' && ['1', 'name', 'nome', 'customer_name'].includes(f.variable) && f.card === undefined ? name : f.kind === 'otp' || f.kind === 'media' || f.kind === 'media_id' ? '' : String(f.example ?? ''));
             const human = templateFieldName(selected, f);
             const title = f.kind === 'media_id' ? 'Identificador do arquivo existente' : f.kind === 'media' ? 'Endereço HTTPS público do arquivo' : human;
             const input = field(`${title}${f.required ? '' : ' (opcional)'}`, values[f.key], `variable-${f.key}`);
@@ -199,21 +199,25 @@ export function mountTemplate(root: HTMLElement, bridge: Bridge, initial?: Row) 
             if (!data.number)
                 Object.assign(data, await call(bridge, 'stage_review_template', { conversation_id: data.conversation.id }));
             destination = JSON.stringify([data.conversation.id, data.conversation.contact_id, data.conversation.phone_number_id, data.conversation.contact?.wa_id, data.conversation.contact?.phone]);
+            const open=data.conversation.status==='active' && Date.parse(data.conversation.window_expires_at ?? '')>Date.now();
+            ui.main.querySelector('.eyebrow')!.textContent=open?'Janela aberta · Template aprovado':'Template aprovado';
+            const origin=data.number.waba_connection_id?{waba_connection_id:data.number.waba_connection_id}:data.number.phone_number_id?{phone_number_id:data.number.phone_number_id}:null;
+            if(!origin)throw new Error('Não foi possível confirmar a conexão do número. Reabra a revisão.');
             templates = [];
             let page = 1, total = 1;
             do {
-                const result = await call(bridge, 'list_templates', { status: 'APPROVED', phone_number_id: data.conversation.phone_number_id, per_page: 100, page });
-                templates.push(...result.data.filter((t: Row) => String(t.status).toUpperCase() === 'APPROVED'));
+                const result = await call(bridge, 'list_templates', { status: 'APPROVED', ...origin, per_page: 100, page });
+                templates.push(...result.data.filter((t: Row) => String(t.status).toUpperCase() === 'APPROVED' && (!data.number.waba_connection_id || t.waba_connection_id===data.number.waba_connection_id)));
                 total = result.meta.total_pages;
                 page++;
             } while (page <= total && page <= 10);
             if (!templates.length) {
-                ui.state('Sem templates', 'Nenhum template aprovado com prévia suportada neste número. Revise os templates no painel BotoZap.');
+                ui.state('Sem templates', 'Nenhum template aprovado foi encontrado na conexão deste número. Revise os templates no painel BotoZap.');
                 ui.content.replaceChildren();
                 return;
             }
             selector.replaceChildren(...templates.map(t => { const o = document.createElement('option'); o.value = t.id; o.textContent = `${t.name} · ${t.language}${templateUnsupportedReason(t) ? ' · Não suportado' : ''}`; return o; }));
-            selector.value = templates.some(t => t.id === data.preferred_template_id) ? data.preferred_template_id : templates[0]?.id;
+            selector.value = templates.find(t => t.id===data.preferred_template_id || t.name===data.preferred_template_id)?.id ?? templates[0]?.id;
             selector.onchange = () => void selectTemplate();
             metadata.replaceChildren();
             for (const [name, value] of [['De', formatPhone(data.number?.display_phone_number || data.conversation.display_phone_number) || 'Número de origem'], ['Para', `${contactLabel(data.conversation.contact)} · ${contactAddress(data.conversation.contact)}`]])

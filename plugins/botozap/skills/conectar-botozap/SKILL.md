@@ -31,3 +31,5 @@ Conectar e consultar não autoriza envio. Uma mensagem depende da revisão do
 contato e conteúdo e da ação explícita de envio.
 
 Administração, webhooks e credenciais de IA ficam exclusivamente no painel web. Respeite a permissão do ChatGPT na rota direta e a confirmação na UI na rota de revisão.
+
+Webhooks, credenciais de IA e configurações administrativas são feitos exclusivamente no painel BotoZap: https://botozap.com.br. Oriente a abrir o painel; nunca sugira habilitar/expor essas ações no plugin e nunca peça chave de API, token ou senha no chat.
