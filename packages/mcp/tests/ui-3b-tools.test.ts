@@ -27,8 +27,8 @@ it('no outbound yields an explicit missing receipt without inventing delivery ev
  const client={conversations:{get:vi.fn(async()=>conversation())},messages:{list:vi.fn(async()=>({data:[]}))},events:{list:vi.fn(async()=>({data:[],paging:{cursor:'1',has_more:false}}))}};
  expect(await readLiveConversation(client as any,conversationId,'0')).toMatchObject({receipt_found:false,events:[]});
 });
-it('new tools and resources need flags, account and negotiated MCP Apps',async()=>{
- for(const [enabled,ui]of [[false,true],[true,false]]){const h=await connect(enabled,ui);expect((await h.client.listTools()).tools.map(t=>t.name)).not.toEqual(expect.arrayContaining(['open_live_conversation','open_botozap']));expect((await h.client.listResources()).resources.some(r=>r.uri.includes('/live/')||r.uri.includes('/global/'))).toBe(false);}
+it('tools require rollout permission and resources also require negotiated MCP Apps',async()=>{
+ for(const [enabled,ui]of [[false,true],[true,false]]){const h=await connect(enabled,ui);expect((await h.client.listTools()).tools.some(t=>t.name==='open_botozap')).toBe(enabled);expect((await h.client.listResources()).resources.some(r=>r.uri.includes('/live/')||r.uri.includes('/global/'))).toBe(false);}
  const h=await connect();const tools=(await h.client.listTools()).tools;
  for(const name of ['open_live_conversation','open_botozap'])expect(tools.find(t=>t.name===name)?.annotations).toMatchObject({readOnlyHint:true,destructiveHint:false,openWorldHint:false});
  expect(tools.find(t=>t.name==='open_botozap')).toMatchObject({title:'Pendências',_meta:{'openai/ui':{entrypoints:[{type:'global'}]}}});
