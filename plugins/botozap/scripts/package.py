@@ -35,7 +35,11 @@ assert all(isinstance(p,str) and p.strip() and len(p) <= 128 and not re.search(r
 assert len({" ".join(p.split()) for p in prompts}) == len(prompts)
 assert metadata["publication"]["countries"] == ["BR"]
 translation = metadata["publication"]["translations"]["pt-BR"]
-assert 0 < len(translation["subtitle"]) <= 30 and "\n" not in translation["subtitle"]
+assert 0 < len(translation["subtitle"]) and "\n" not in translation["subtitle"]
+warnings = []
+if len(translation["subtitle"]) > 30:
+    assert translation["subtitle"] == "CRM de WhatsApp para o seu negócio", "Translated subtitle exceeds 30 characters"
+    warnings.append("Owner-approved pt-BR subtitle has 34 characters; confirm portal acceptance or approve a shorter translation before submission.")
 assert 0 < len(translation["description"]) <= 4000
 cases = metadata["review"]["test_cases"]
 assert len(cases["positive"]) == 5 and len(cases["negative"]) == 3
@@ -99,10 +103,11 @@ gates = [
 ]
 if not video:
     gates.insert(0, "Required video walkthrough URL is absent. Record the actual fixture walkthrough before submission.")
+    warnings.append("review.demo_recording_url absent; owner must supply the actual HTTPS recording URL.")
 else:
     parsed = urlsplit(video)
     assert parsed.scheme == "https" and parsed.hostname and not parsed.username and not parsed.password
-print(json.dumps({"candidate_valid": True, "files": [str(path.relative_to(root)) for path in files], "required_ui_tools": sorted(ui_tools), "ui_tools_missing_in_local_main": missing_on_main, "review_cases_executed": False, "submission_ready": False, "gates": gates}, ensure_ascii=False, indent=2))
+print(json.dumps({"candidate_valid": True, "warnings": warnings, "files": [str(path.relative_to(root)) for path in files], "required_ui_tools": sorted(ui_tools), "ui_tools_missing_in_local_main": missing_on_main, "review_cases_executed": False, "submission_ready": False, "gates": gates}, ensure_ascii=False, indent=2))
 if args.submission_ready:
     raise SystemExit("Submission blocked: candidate validation is not portal readiness; gates above remain open.")
 if args.zip:

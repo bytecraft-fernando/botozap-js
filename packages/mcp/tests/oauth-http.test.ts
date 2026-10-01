@@ -136,13 +136,15 @@ describe("MCP OAuth protected resources and credential binding", () => {
     expect(response.headers.get("www-authenticate")).toContain('error="invalid_token"');
   });
 
-  it("filters actions by current allowed routes while preserving operational writes", async () => {
+  it("intersects assistant catalog with current routes while preserving permitted sends", async () => {
     const tokens = new Map([["first", identity]]);
     const { server } = await remote(tokens);
     const session = await initialize(server, "first");
     const tools = (await result(await rpc(server, "first", "tools/list", {}, session))).result.tools.map((t: { name: string }) => t.name);
-    expect(tools).toContain("create_contact");
-    expect(tools).toContain("create_customer");
+    expect(tools).not.toContain("create_contact");
+    expect(tools).not.toContain("create_customer");
+    const denied = (await result(await rpc(server, "first", "tools/call", { name: "create_customer", arguments: {} }, session))).result;
+    expect(denied.isError).toBe(true);
     expect(tools).toContain("send_message");
     expect(tools).not.toContain("delete_contact");
     expect(tools).not.toContain("delete_customer");

@@ -1,5 +1,13 @@
 # @botozap/sdk
 
+## 0.10.0
+
+### Novidades
+
+- Adiciona `customer_id` e `agent_paused` aos filtros de conversas e tipa `agent_paused_at`, para consultar atendimentos que aguardam intervenção humana.
+- Adiciona `account_name` opcional à introspecção `boto.me.get()`, compatível com APIs que ainda não enviam esse campo.
+- Tipa `pricing.source` em `AiCatalogModel`: `openrouter` identifica preço de referência do catálogo público; sem esse campo, o preço veio do próprio provedor.
+
 ## 0.9.0
 
 ### Minor Changes

@@ -3,12 +3,13 @@ set -euo pipefail
 
 RELEASE_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$RELEASE_ROOT"
-if [[ "$(git branch --show-current)" != main ]] || [[ -n "$(git status --porcelain)" ]]; then
-  echo "Publique a partir de um checkout limpo da main." >&2
-  exit 1
-fi
 if [[ $# -gt 1 ]] || [[ $# -eq 1 && "$1" != --dry-run ]]; then
   echo "Uso: pnpm release:mcp [--dry-run]" >&2
+  exit 1
+fi
+
+if [[ $# -eq 0 ]] && { [[ "$(git branch --show-current)" != main ]] || [[ -n "$(git status --porcelain)" ]]; }; then
+  echo "Publique a partir de um checkout limpo da main; --dry-run também aceita branches de revisão." >&2
   exit 1
 fi
 

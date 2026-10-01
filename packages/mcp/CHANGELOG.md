@@ -1,5 +1,17 @@
 # @botozap/mcp
 
+## 0.8.0
+
+### Novidades
+
+- Integra oito telas MCP Apps: pendências, revisão de resposta, Radar/conversa, template aprovado, plantão ao vivo, casos da IA, agendamento e entrada global com deep links. Ações de envio e retomada exigem confirmação explícita; acompanhamento ao vivo usa PiP quando suportado e fallback inline.
+- Versiona URIs pelo conteúdo e metadados; declara CSP em todos os recursos, domínio configurável e rota de desafio de verificação do domínio.
+- Agrupa alertas não resolvidos, conversas pausadas e casos por conversa, com prévias conforme o contrato real, motivos traduzidos e descoberta autorizada dos negócios sem abrir outra tela.
+- Orienta escolha entre tools diretas e UI conforme o pedido e a disponibilidade da UI, preservando o catálogo padrão sem UI.
+- Usa o nome da conta no perfil e cache compartilhado de identidade por instância, TTL de 60 segundos e isolamento por hash da credencial/URL. Falhas não são guardadas; vinculação OAuth e autorização da API permanecem em cada operação.
+- Limita sessões OAuth ao perfil `assistant` por padrão, com mapeamento opcional por `client_id`, títulos/descrições claros e hints revisados. API keys preservam o catálogo completo; tools fora do perfil são omitidas e chamadas diretas recusadas, inclusive após atualizar a identidade.
+- Atualiza a dependência exata do tarball para `@botozap/sdk@0.10.0`.
+
 ## 0.7.0
 
 ### Minor Changes

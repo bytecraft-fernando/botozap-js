@@ -1,5 +1,11 @@
 # @botozap/cli
 
+## 0.6.1
+
+### Correções
+
+- Atualiza a dependência interna para `@botozap/sdk@0.10.0`. O especificador `workspace:*` vira versão exata no tarball, por isso a CLI recebe patch para distribuir a dependência atualizada. Sem mudanças de comandos.
+
 ## 0.6.0
 
 ### Minor Changes

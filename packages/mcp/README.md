@@ -308,7 +308,10 @@ Use `pnpm release:mcp` a partir de um checkout limpo da `main`, após
 `pnpm build`, `pnpm typecheck`, `pnpm test` e `pnpm gate:tarballs`. O comando
 empacota com pnpm, verifica as dependências no próprio tarball e publica esse
 mesmo arquivo com `npm publish`. Publicação usa npm; instalação, build e pack
-continuam usando pnpm. `pnpm release:mcp --dry-run` valida sem publicar.
+continuam usando pnpm. `pnpm release:mcp --dry-run` valida sem publicar e aceita
+branches de revisão com alterações locais; a publicação real exige `main` limpa.
+Publique primeiro o SDK 0.10.0, depois a CLI 0.6.1 e o MCP 0.8.0: os dois
+tarballs dependem da versão exata do SDK, convertida de `workspace:*`.
 
 Não publique o diretório com outro empacotador: `workspace:*` pertence ao
 monorepo e precisa virar a versão do SDK no artefato. A versão 0.2.5 violou esse
@@ -497,3 +500,15 @@ Capturas/vídeos e validação axe A/AA ficam em `web/screenshots/`.
 ### Templates: prévia primeiro
 
 Na revisão de templates, peça ajustes na conversa ou abra **Editar campos**. Referências de mídia e outros detalhes técnicos ficam em **Avançado**; o código de autenticação vem do sistema do negócio e permanece visível. O staging existente atualiza a prévia, sem enviar. Veja [o roteiro e as capturas da rodada 4A.2](web/RELATORIO-4A2.md).
+
+## Perfil de catálogo OAuth
+
+API keys mantêm o catálogo completo, sujeito aos scopes, ambiente e rotas existentes. Sessões OAuth usam o perfil `assistant` por padrão, inclusive para um `client_id` não mapeado. Esse perfil oferece 35 tools sem UI e até 43 com UI negociada; `list_users` fica visível apenas à app quando a UI está ativa, pois o agendamento precisa do nome do responsável. O limite real pode ser menor conforme os scopes/rotas da identidade. Administração, webhooks e credenciais de IA ficam fora desse perfil.
+
+A configuração opcional `BOTOZAP_MCP_OAUTH_CLIENT_PROFILES` aceita pares UUID:perfil separados por vírgula, por exemplo:
+
+```text
+e948ea06-d925-41b6-980c-d7ea3538a4ac:assistant,1ec8fa7c-f51a-44dd-88b2-b5696bc0b627:assistant
+```
+
+Os perfis válidos são `assistant` e `full`. `full` é uma opção explícita para clientes futuros que precisem do catálogo completo; não altera os scopes/rotas autorizados. A configuração é lida na criação da sessão/servidor e rejeita UUIDs, perfis ou duplicatas inválidos. O filtro vale no registro, na atualização de identidade e na execução: conhecer o nome de uma tool omitida não permite chamá-la. Nenhuma configuração foi aplicada a produção neste PR.

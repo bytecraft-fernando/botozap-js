@@ -1,0 +1,22 @@
+{
+  "version": "0.3.0",
+  "archive": "botozap-plugin-0.3.0.zip",
+  "bytes": 763986,
+  "sha256": "08166879662580e686a8fd0a03b89ffa1ea94a3edb3c1fc4ca54c63fdf9e24f6",
+  "files": [
+    "assets/icon.png",
+    "mcp.json",
+    "plugin.json",
+    "skills/casos-da-ia/SKILL.md",
+    "skills/conectar-botozap/SKILL.md",
+    "skills/marcar-horario/SKILL.md",
+    "skills/plantao-ao-vivo/SKILL.md",
+    "skills/preparar-template/SKILL.md",
+    "skills/revisar-pendencias/SKILL.md"
+  ],
+  "warnings": [
+    "Subtitle pt-BR aprovado com 34 caracteres; conferir aceitação antes da submissão.",
+    "demo_recording_url ausente; aguarda URL HTTPS real do dono."
+  ],
+  "submission_ready": false
+}
