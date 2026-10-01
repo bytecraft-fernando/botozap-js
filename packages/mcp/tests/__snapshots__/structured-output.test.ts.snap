@@ -350,9 +350,17 @@ exports[`MCP — output schemas e structured content > anuncia schemas não vazi
               "type": "string",
             },
             "phone_number_id": {
+              "anyOf": [
+                {
+                  "description": "UUID interno do Número no BotoZap; use nas tools get_phone_number e phone_number_health.",
+                  "format": "uuid",
+                  "type": "string",
+                },
+                {
+                  "type": "null",
+                },
+              ],
               "description": "UUID interno do Número no BotoZap; use nas tools get_phone_number e phone_number_health.",
-              "format": "uuid",
-              "type": "string",
             },
             "revoked_at": {
               "type": [
@@ -974,9 +982,17 @@ exports[`MCP — output schemas e structured content > anuncia schemas não vazi
                 "type": "string",
               },
               "phone_number_id": {
+                "anyOf": [
+                  {
+                    "description": "UUID interno do Número no BotoZap; use nas tools get_phone_number e phone_number_health.",
+                    "format": "uuid",
+                    "type": "string",
+                  },
+                  {
+                    "type": "null",
+                  },
+                ],
                 "description": "UUID interno do Número no BotoZap; use nas tools get_phone_number e phone_number_health.",
-                "format": "uuid",
-                "type": "string",
               },
               "revoked_at": {
                 "type": [

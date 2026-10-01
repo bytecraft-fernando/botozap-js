@@ -1,7 +1,7 @@
 import { messagePreview, alertCopy, groupInbox } from '../../src/agent-inbox.js';
 import { externalLink } from '../pending-link.js';
 import { mountReview, type Bridge } from '../panel.js';
-import { relative, quantity, formatPhone } from '../ui-helpers.js';
+import { relative, quantity, contactLabel, formatPhone } from '../ui-helpers.js';
 import { shell,node,button,call,skeleton,type Row } from './screen-kit.js';
 export function mountCases(root:HTMLElement,bridge:Bridge) {
   const ui=shell(root,'Atendimento com IA','O agente precisa de você');skeleton(ui.content);
@@ -16,7 +16,7 @@ export function mountCases(root:HTMLElement,bridge:Bridge) {
   }
   let mode='inline', activeReview:ReturnType<typeof mountReview>|undefined;
   const messageText=messagePreview;
-  const name=(r:Row)=>formatPhone(r.contact_name||r.contact?.name||r.contact?.phone)||(r.alerts?.length?alertCopy(r.alerts[0]).title:r.title)||'Contato';
+  const name=(r:Row)=>contactLabel(r.contact??{name:r.contact_name})||(r.alerts?.length?alertCopy(r.alerts[0]).title:r.title)||'Contato';
   const reason=(r:Row)=>[...r.alerts.map((a:Row)=>`${alertCopy(a).title} · ${alertStatus(a)}`),...(r.agent_paused_at?['IA pausada']:[]),...r.cases.map((c:Row)=>c.blocker||c.title||'Caso aguardando decisão')].join(' · ');
   const since=(r:Row)=>relative(r.agent_paused_at||r.created_at);
   const alertStatus=(r:Row)=>r.status==='acknowledged'?'Reconhecido':'Aberto';
@@ -26,8 +26,8 @@ export function mountCases(root:HTMLElement,bridge:Bridge) {
     try {
       const conversation=(await call(bridge,'get_conversation',{id:row.conversation_id})).data;
       if(token!==selection)return;
-      if(conversation.id!==row.conversation_id||!conversation.phone_number_id)throw new Error('Conversa sem canal de revisão disponível.');
-      const number=(await call(bridge,'get_phone_number',{id:conversation.phone_number_id})).data;
+      if(conversation.id!==row.conversation_id||(!conversation.phone_number_id&&conversation.channel!=='instagram'))throw new Error('Conversa sem canal de revisão disponível.');
+      const number=(await call(bridge,conversation.channel==='instagram'?'get_channel_account':'get_phone_number',{id:conversation.channel==='instagram'?conversation.channel_account?.id:conversation.phone_number_id})).data;
       if(token!==selection)return;
       if(!number.customer_id||!(row.customer_ids?.length?row.customer_ids:[context.customer_id]).includes(number.customer_id))throw new Error('Conversa fora do negócio selecionado.');
       delete root.dataset.actionPlacement;activeReview=mountReview(root,bridge);root.dataset.focus='conversation';activeReview.setMode('fullscreen');mode='fullscreen';

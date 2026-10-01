@@ -503,7 +503,7 @@ Na revisão de templates, peça ajustes na conversa ou abra **Editar campos**. R
 
 ## Perfil de catálogo OAuth
 
-API keys mantêm o catálogo completo, sujeito aos scopes, ambiente e rotas existentes. Sessões OAuth usam o perfil `assistant` por padrão, inclusive para um `client_id` não mapeado. Esse perfil oferece 35 tools sem UI e até 43 com UI negociada; `list_users` fica visível apenas à app quando a UI está ativa, pois o agendamento precisa do nome do responsável. O limite real pode ser menor conforme os scopes/rotas da identidade. Administração, webhooks e credenciais de IA ficam fora desse perfil.
+API keys mantêm o catálogo completo, sujeito aos scopes, ambiente e rotas existentes. Sessões OAuth usam o perfil `assistant` por padrão, inclusive para um `client_id` não mapeado. Esse perfil oferece 35 tools sem UI e até 44 com UI negociada; `list_users` fica visível apenas à app quando a UI está ativa, pois o agendamento precisa do nome do responsável. O limite real pode ser menor conforme os scopes/rotas da identidade. Administração, webhooks e credenciais de IA ficam fora desse perfil.
 
 A configuração opcional `BOTOZAP_MCP_OAUTH_CLIENT_PROFILES` aceita pares UUID:perfil separados por vírgula, por exemplo:
 

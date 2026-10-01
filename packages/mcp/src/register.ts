@@ -144,7 +144,7 @@ export function createRegister(
     : new Set(accounts.split(",").map(id => id.trim()).filter(Boolean));
   const supportsUi = () => { const mimeTypes = getUiCapability(server.server.getClientCapabilities())?.mimeTypes; return Array.isArray(mimeTypes) && mimeTypes.includes(RESOURCE_MIME_TYPE); };
   const uiAllowed = (value: ApiIdentity) => !!options.uiEnabled && supportsUi() && (allowedAccounts === null || allowedAccounts.has(value.account_id));
-  const uiTools = new Set(["open_review_panel", "stage_review_reply", "stage_review_template", "review_template_variables", "open_agent_cases", "stage_appointment_booking", "open_live_conversation", "open_botozap"]);
+  const uiTools = new Set(["get_channel_account","open_review_panel", "stage_review_reply", "stage_review_template", "review_template_variables", "open_agent_cases", "stage_appointment_booking", "open_live_conversation", "open_botozap"]);
   const listeners: Array<(enabled: boolean) => void> = [];
   const screenMeta = (name: string) => {
     if (name === "open_review_panel") return reviewToolMetadata();
@@ -157,7 +157,7 @@ export function createRegister(
     if (name === "stage_appointment_booking") return screenMetadata("booking");
     return { ui: { visibility: ["model", "app"] } };
   };
-  const metadata = (name: string, value: ApiIdentity) => ({...screenMeta(name), ...uiInvocation(name), ...(assistant(value) && name === 'list_users' ? {ui:{visibility:['app']}} : {})});
+  const metadata = (name: string, value: ApiIdentity) => ({...screenMeta(name), ...uiInvocation(name), ...(assistant(value) && ['list_users','get_channel_account'].includes(name) ? {ui:{visibility:['app']}} : {})});
   const tools: Array<{ name: string; description: string; tool: RegisteredTool; policy: ReturnType<typeof getToolPolicy> }> = [];
   const register: Register = function register(
     name: string,

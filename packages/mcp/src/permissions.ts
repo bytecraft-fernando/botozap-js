@@ -65,6 +65,7 @@ write(["update_customer", "update_setup_link"], "customers:write", false,
   { destructiveHint: true, openWorldHint: false });
 write(["delete_customer"], "customers:write", false,
   { destructiveHint: true, openWorldHint: false });
+read(["get_channel_account"], "numbers:read", false);
 read(["list_phone_numbers"], "numbers:read", true);
 read(["get_phone_number"], "numbers:read", false);
 // Health probes Graph and persists token_status/token_checked_at.

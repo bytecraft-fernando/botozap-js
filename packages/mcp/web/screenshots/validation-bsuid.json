@@ -1,0 +1,69 @@
+{
+  "screenshots": 8,
+  "results": [
+    {
+      "file": "bsuid-instagram-inline-desktop-light.png",
+      "axeViolations": 0,
+      "hostOverflow": false,
+      "iframeOverflow": false,
+      "noEmptyCard": true,
+      "hostBorder": true,
+      "noDoubleBorder": true
+    },
+    {
+      "file": "bsuid-instagram-fullscreen-desktop-light.png",
+      "axeViolations": 0,
+      "hostOverflow": false,
+      "iframeOverflow": false,
+      "noEmptyCard": true
+    },
+    {
+      "file": "bsuid-instagram-inline-mobile-light.png",
+      "axeViolations": 0,
+      "hostOverflow": false,
+      "iframeOverflow": false,
+      "noEmptyCard": true,
+      "hostBorder": true,
+      "noDoubleBorder": true
+    },
+    {
+      "file": "bsuid-instagram-fullscreen-mobile-light.png",
+      "axeViolations": 0,
+      "hostOverflow": false,
+      "iframeOverflow": false,
+      "noEmptyCard": true
+    },
+    {
+      "file": "bsuid-instagram-inline-desktop-dark.png",
+      "axeViolations": 0,
+      "hostOverflow": false,
+      "iframeOverflow": false,
+      "noEmptyCard": true,
+      "hostBorder": true,
+      "noDoubleBorder": true
+    },
+    {
+      "file": "bsuid-instagram-fullscreen-desktop-dark.png",
+      "axeViolations": 0,
+      "hostOverflow": false,
+      "iframeOverflow": false,
+      "noEmptyCard": true
+    },
+    {
+      "file": "bsuid-instagram-inline-mobile-dark.png",
+      "axeViolations": 0,
+      "hostOverflow": false,
+      "iframeOverflow": false,
+      "noEmptyCard": true,
+      "hostBorder": true,
+      "noDoubleBorder": true
+    },
+    {
+      "file": "bsuid-instagram-fullscreen-mobile-dark.png",
+      "axeViolations": 0,
+      "hostOverflow": false,
+      "iframeOverflow": false,
+      "noEmptyCard": true
+    }
+  ]
+}

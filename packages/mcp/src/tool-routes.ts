@@ -112,3 +112,5 @@ routes(["stage_appointment_booking"], "GET /v1/conversations/:id", "GET /v1/phon
 
 routes(["open_live_conversation"], "GET /v1/conversations/:id", "GET /v1/messages", "GET /v1/events");
 routes(["open_botozap"], "GET /v1/customers");
+
+routes(['get_channel_account'], 'GET /v1/channel_accounts/:id');

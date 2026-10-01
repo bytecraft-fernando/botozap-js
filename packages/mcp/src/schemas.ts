@@ -99,7 +99,7 @@ export const cursorPagingSchema = z
     next: z.string().nullable(),
     previous: z.string().nullable(),
   })
-  .strict() satisfies z.ZodType<CursorPaging>;
+  .strip() satisfies z.ZodType<CursorPaging>;
 
 export const offsetMetaSchema = z
   .object({
@@ -108,7 +108,7 @@ export const offsetMetaSchema = z
     total_pages: z.number().int().nonnegative(),
     total_count: z.number().int().nonnegative(),
   })
-  .strict() satisfies z.ZodType<OffsetMeta>;
+  .strip() satisfies z.ZodType<OffsetMeta>;
 
 function itemResultSchemaFor<Item extends z.ZodTypeAny>(itemSchema: Item) {
   return z.object({ data: itemSchema }).strip();
@@ -171,7 +171,7 @@ export const messageSchema = z
     id: internalUuidSchema.describe("UUID interno da Mensagem no BotoZap."),
     wamid: z.string().nullable().describe("ID da Mensagem na Meta, quando disponível."),
     conversation_id: internalUuidSchema.nullable(),
-    phone_number_id: internalPhoneNumberIdSchema,
+    phone_number_id: internalPhoneNumberIdSchema.nullable(),
     contact_id: internalUuidSchema.nullable(),
     direction: z.enum(["inbound", "outbound"]),
     type: z.string().describe("Tipo da Mensagem: text, image, template etc."),
@@ -186,7 +186,7 @@ export const messageSchema = z
     wa_timestamp: z.string().nullable(),
     created_at: z.string(),
   })
-  .strip() satisfies z.ZodType<Message>;
+  .strip() satisfies z.ZodType<Omit<Message, "phone_number_id"> & {phone_number_id: string | null}>;
 
 export const listMessagesResultSchema = cursorListResultSchemaFor(messageSchema);
 
@@ -209,7 +209,7 @@ export const contactSchema = z
     user_id: z.string().nullable(),
     username: z.string().nullable(),
     parent_user_id: z.string().nullable(),
-    phone_number_id: internalPhoneNumberIdSchema,
+    phone_number_id: internalPhoneNumberIdSchema.nullable(),
     last_seen_at: z.string().nullable(),
     created_at: z.string(),
     notes: z.string().nullable(),
@@ -226,7 +226,7 @@ export const contactSchema = z
       })
       .nullable(),
   })
-  .strip() satisfies z.ZodType<Contact>;
+  .strip() satisfies z.ZodType<Omit<Contact, "phone_number_id"> & {phone_number_id: string | null}>;
 
 export const listContactsResultSchema = cursorListResultSchemaFor(contactSchema);
 
@@ -246,7 +246,7 @@ export const conversationSchema = z
       content: true, event_at: true, wa_timestamp: true, created_at: true,
     }).nullable().optional(),
     id: internalUuidSchema.describe("UUID interno da Conversa no BotoZap."),
-    phone_number_id: internalPhoneNumberIdSchema,
+    phone_number_id: internalPhoneNumberIdSchema.nullable(),
     phone_number_meta_id: metaPhoneNumberIdSchema.nullable(),
     display_phone_number: z.string().nullable(),
     contact_id: internalUuidSchema,
@@ -261,7 +261,8 @@ export const conversationSchema = z
           .optional()
           .describe("Identidade canônica do Contato: telefone ou BSUID."),
       })
-      .strict(),
+      .strip(),
+    agent_paused_at: z.string().nullable().optional(),
     status: z.enum(["active", "ended"]),
     window_expires_at: z.string().nullable(),
     entry_point: z
@@ -295,7 +296,7 @@ export const conversationSchema = z
     last_read_at: z.string().nullable(),
     created_at: z.string(),
   })
-  .strip() satisfies z.ZodType<Conversation>;
+  .strip() satisfies z.ZodType<Omit<Conversation, "phone_number_id"> & {phone_number_id: string | null}>;
 
 export const listConversationsResultSchema =
   cursorListResultSchemaFor(conversationSchema);

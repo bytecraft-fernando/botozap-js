@@ -1,3 +1,4 @@
+import {BotoZapError} from '../client.js';
 import { sendIntentKey } from "../send-intent.js";
 /** Ferramentas de conversas: listar, ler e atualizar status. */
 import { z } from "zod";
@@ -26,10 +27,15 @@ export function registerConversationTools(register: Register): void {
         .describe("Conteúdo da resposta."),
     },
     sendMessageResultSchema,
-    (client, args) =>
-      client.conversations.reply(String(args.conversation_id), {
-        text: (args.text as { body: string }).body,
-      }, { idempotencyKey: args.idempotency_key as string | undefined }),
+    async (client, args) => {
+      const id = String(args.conversation_id);
+      const conversation = await client.conversations.get(id);
+      const channelId=(conversation.channel_account as {id?:string}|null)?.id;
+      const from=conversation.channel==='instagram'?channelId:conversation.phone_number_id;
+      const to=conversation.contact?.wa_id||conversation.contact?.phone;
+      if(!from||!to)throw new BotoZapError('conversation_recipient_unavailable','Conversa sem origem ou destinatário utilizável.',422);
+      return client.messages.send({from,to,text:(args.text as {body:string}).body},{idempotencyKey:args.idempotency_key as string|undefined});
+    },
   );
 
   register(
