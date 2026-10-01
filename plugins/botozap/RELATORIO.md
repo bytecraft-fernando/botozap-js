@@ -42,3 +42,9 @@ Inventário exato (9):
 Mantidos os campos/limites e entrypoints conferidos anteriormente na documentação oficial de [submissão](https://developers.openai.com/plugins/deploy/submission) e [Extensions](https://developers.openai.com/plugins/build/extensions). Nenhum campo novo de manifest ou entrypoint fictício; thread/global continuam no servidor. ZIP exclui scripts, docs, contratos, screenshots, .env e materiais privados.
 
 PR pronto para revisão não significa submissão pronta. Ainda faltam gravação real, execução dos casos com conta dedicada, verificação da implantação/host/conta, cobertura das políticas, publisher/scans/atestações e acesso seguro do revisor. `--submission-ready` continua bloqueando; nada foi enviado ao portal.
+
+## Atualização 0.2.1 — fixture real e infraestrutura (01/10/2026)
+
+Cinco positivos simplificados: P01 pendências/resposta confirmada; P02 confirmacao_pedido aprovado; P03 criação direta de template com permissão; P04 alertas não resolvidos/pausadas/casos; P05 plantão após envio controlado. Três negativos: administração/credencial, contornar permissão e ID alheio/inexistente. Tradução e fixture Meta Reviewer em pilot-materials.md (fora do ZIP); sem agendamento, pois zero serviços; sem telefone ou credenciais no ZIP. Todos os casos seguem não executados.
+
+`package.py --zip /tmp/botozap-plugin-0.2.1.zip` e rebuild produziram arquivos idênticos, **764331 bytes**, SHA-256 `89f51eb281a929a7a136f3a07022d61341e4972d2998724b6dc5e48800414614`. **9 testes Python** passaram. Inventário exato permanece nos nove arquivos listados acima (assets/icon.png, mcp.json, plugin.json e seis SKILL.md). Relatório de infraestrutura/citações: [RELATORIO-SUBMISSION-INFRA.md](../../packages/mcp/RELATORIO-SUBMISSION-INFRA.md). Sem deploy/npm/portal; pacote válido não significa pronto para submissão.

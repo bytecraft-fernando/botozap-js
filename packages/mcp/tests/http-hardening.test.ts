@@ -3,7 +3,7 @@ import {
   type IncomingHttpHeaders,
   type RequestOptions,
 } from "node:http";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   assertSecureHttpBind,
   buildTrustedProxyList,
@@ -19,6 +19,7 @@ const GARBAGE_BODY = "isto-nao-e-json";
 const openServers: Array<{ close(): Promise<void> }> = [];
 
 afterEach(async () => {
+  vi.unstubAllEnvs();
   await Promise.allSettled(openServers.splice(0).map((server) => server.close()));
 });
 
@@ -362,7 +363,7 @@ async function rawHttp(
     headers?: Record<string, string>;
     body?: string;
     setHost?: boolean;
-  },
+  } = {},
 ): Promise<{
   status: number;
   body: string;
@@ -401,3 +402,23 @@ async function rawHttp(
     req.end();
   });
 }
+
+describe('OpenAI domain challenge',()=>{
+  const challenge=(url:URL)=>new URL('/.well-known/openai-apps-challenge',url);
+  it('serves the exact token without auth, with no-store and empty HEAD',async()=>{
+    vi.stubEnv('OPENAI_APPS_CHALLENGE','literal-token\nwith-utf8-é');const server=await startRemote();
+    const get=await rawHttp(challenge(server.url));expect(get.status).toBe(200);expect(get.body).toBe('literal-token\nwith-utf8-é');expect(get.headers['content-type']).toBe('text/plain; charset=utf-8');expect(get.headers['cache-control']).toBe('no-store');
+    const head=await rawHttp(challenge(server.url),{method:'HEAD'});expect(head.status).toBe(200);expect(head.body).toBe('');expect(head.headers['content-length']).toBe(String(Buffer.byteLength(get.body)));
+    expect((await rawHttp(challenge(server.url),{method:'POST'})).status).toBe(404);
+  });
+  it.each([undefined,''])('returns 404 when token is absent or empty',async token=>{
+    vi.stubEnv('OPENAI_APPS_CHALLENGE',token);const server=await startRemote();const result=await rawHttp(challenge(server.url));expect(result.status).toBe(404);expect(result.body).toBe('');expect(result.headers['cache-control']).toBe('no-store');expect((await rawHttp(challenge(server.url),{method:'HEAD'})).status).toBe(404);
+  });
+  it('preserves allowed host, origin, proxy and rate-limit guards',async()=>{
+    vi.stubEnv('OPENAI_APPS_CHALLENGE','never-log-me');const server=await startRemote({rateLimitPerClientPerMinute:1});
+    expect((await rawHttp(challenge(server.url),{headers:{host:'attacker.example'}})).status).toBe(403);
+    const originServer=await startRemote();expect((await rawHttp(challenge(originServer.url),{headers:{origin:'https://attacker.example'}})).status).toBe(403);
+    const proxy=await startRemote({trustedProxyCidrs:['203.0.113.0/24']});expect((await rawHttp(challenge(proxy.url))).status).toBe(403);
+    const limited=await startRemote({rateLimitPerClientPerMinute:1});expect((await rawHttp(challenge(limited.url))).status).toBe(200);expect((await rawHttp(challenge(limited.url))).status).toBe(429);
+  });
+});
