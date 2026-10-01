@@ -89,7 +89,8 @@
             }
           ]
         },
-        "commerce": false
+        "commerce": false,
+        "demo_recording_url": "https://youtu.be/4YqLZTNfJvI"
       },
       "publication": {
         "countries": [
