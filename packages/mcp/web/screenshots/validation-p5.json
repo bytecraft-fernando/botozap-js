@@ -1,0 +1,69 @@
+{
+  "screenshots": 8,
+  "results": [
+    {
+      "file": "p5-template-reviewer-inline-desktop-light.png",
+      "axeViolations": 0,
+      "hostOverflow": false,
+      "iframeOverflow": false,
+      "noEmptyCard": true,
+      "hostBorder": true,
+      "noDoubleBorder": true
+    },
+    {
+      "file": "p5-template-reviewer-fullscreen-desktop-light.png",
+      "axeViolations": 0,
+      "hostOverflow": false,
+      "iframeOverflow": false,
+      "noEmptyCard": true
+    },
+    {
+      "file": "p5-template-reviewer-inline-mobile-light.png",
+      "axeViolations": 0,
+      "hostOverflow": false,
+      "iframeOverflow": false,
+      "noEmptyCard": true,
+      "hostBorder": true,
+      "noDoubleBorder": true
+    },
+    {
+      "file": "p5-template-reviewer-fullscreen-mobile-light.png",
+      "axeViolations": 0,
+      "hostOverflow": false,
+      "iframeOverflow": false,
+      "noEmptyCard": true
+    },
+    {
+      "file": "p5-template-reviewer-inline-desktop-dark.png",
+      "axeViolations": 0,
+      "hostOverflow": false,
+      "iframeOverflow": false,
+      "noEmptyCard": true,
+      "hostBorder": true,
+      "noDoubleBorder": true
+    },
+    {
+      "file": "p5-template-reviewer-fullscreen-desktop-dark.png",
+      "axeViolations": 0,
+      "hostOverflow": false,
+      "iframeOverflow": false,
+      "noEmptyCard": true
+    },
+    {
+      "file": "p5-template-reviewer-inline-mobile-dark.png",
+      "axeViolations": 0,
+      "hostOverflow": false,
+      "iframeOverflow": false,
+      "noEmptyCard": true,
+      "hostBorder": true,
+      "noDoubleBorder": true
+    },
+    {
+      "file": "p5-template-reviewer-fullscreen-mobile-dark.png",
+      "axeViolations": 0,
+      "hostOverflow": false,
+      "iframeOverflow": false,
+      "noEmptyCard": true
+    }
+  ]
+}

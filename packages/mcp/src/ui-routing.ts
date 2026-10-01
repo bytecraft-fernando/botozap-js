@@ -4,6 +4,7 @@ const followUpRule = ' open_botozap e list_radar são alternativas: nunca chame 
 const followUpTools = new Set(['open_botozap', 'list_radar', 'open_review_panel', 'stage_review_reply']);
 const monitoringRule = ' Pedidos de acompanhar, monitorar, ver status ou "follow" usam SOMENTE open_live_conversation: nunca enviar, reenviar ou preparar nova mensagem nesses pedidos, mesmo após um envio confirmado. message_id é opcional e, sem ele, acompanha a última mensagem enviada na conversa.';
 const monitoringTools = new Set(['open_live_conversation','send_message','reply_to_conversation','stage_review_reply']);
+const administrationRule = ' Webhooks, credenciais de IA e configurações administrativas são feitos exclusivamente no painel BotoZap: https://botozap.com.br. Oriente a abrir o painel; nunca sugira habilitar ou expor ações administrativas no plugin e nunca peça chaves, tokens ou senhas no chat.';
 const guidance: Record<string, string> = {
   open_botozap: 'Para "o que tenho pendente", resumo do dia ou ver pendências, abra esta UI de Pendências sem encadear consultas exploratórias.',
   open_live_conversation: 'Leia o status atual do recibo e os eventos posteriores da conversa autorizada; acompanhar não envia.',
@@ -19,7 +20,7 @@ const guidance: Record<string, string> = {
   create_template: 'Criação de template novo continua direta com permissão do ChatGPT. stage_review_template serve apenas para enviar um template já aprovado, não para criar.',
 };
 export function uiDescription(name: string, original: string, enabled: boolean) {
-  return enabled && guidance[name] ? original + ' ' + guidance[name] + (followUpTools.has(name) ? followUpRule : '') + rule + (monitoringTools.has(name) ? monitoringRule : '') : original;
+  return enabled && guidance[name] ? original + ' ' + guidance[name] + (followUpTools.has(name) ? followUpRule : '') + rule + (monitoringTools.has(name) ? monitoringRule : '') + administrationRule : original;
 }
 const labels: Record<string, [string,string]> = {
   open_botozap:['Abrindo Pendências…','Pendências abertas'], open_review_panel:['Abrindo Radar…','Radar aberto'],

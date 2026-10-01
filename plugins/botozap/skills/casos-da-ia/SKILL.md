@@ -25,3 +25,5 @@ description: Revise casos, alertas não resolvidos (abertos e reconhecidos) e co
 - Na rota direta, respeite a permissão do ChatGPT; na rota de preparação/revisão, espere a confirmação explícita na UI. Não execute mutações em paralelo com a ação da UI.
 - Administração, credenciais de IA, integrações e webhooks são exclusivos do painel web BotoZap. Não peça tokens/senhas no chat nem chame tools administrativas, mesmo que apareçam no catálogo.
 - Incerto: não repetir, não trocar chave/conexão; orientar conferir histórico/agenda. Recusado confirmado: corrigir a causa e pedir nova revisão explícita. Aceito não significa entregue/lido.
+
+Webhooks, credenciais de IA e configurações administrativas são feitos exclusivamente no painel BotoZap: https://botozap.com.br. Oriente a abrir o painel; nunca sugira habilitar/expor essas ações no plugin e nunca peça chave de API, token ou senha no chat.

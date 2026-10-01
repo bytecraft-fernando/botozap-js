@@ -1,5 +1,13 @@
 # @botozap/mcp
 
+## 0.8.3
+
+### Correções
+
+- Corrige a tela de template aprovado para filtrar pela conexão WABA do número autorizado, em vez de passar um UUID interno como ID Meta. Pré-seleciona o template solicitado por ID ou nome e preenche sugestões por ambos, com suporte aos parâmetros posicionais e nomeados. Janela aberta recebe rótulo adequado e permite preparar templates aprovados.
+
+  Orienta administração, webhooks e credenciais de IA exclusivamente para o painel BotoZap, sem sugerir expor ações no plugin ou pedir segredos no chat.
+
 ## 0.8.2
 
 ### Correções
