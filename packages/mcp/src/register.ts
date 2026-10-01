@@ -1,3 +1,4 @@
+import {assistantDescriptor, catalogAllows, catalogProfile, parseClientProfiles} from './catalog-profile.js';
 import { uiDescription, uiInvocation } from './ui-routing.js';
 import { globalToolMetadata } from './resources/global-panel.js';
 import { getUiCapability, RESOURCE_MIME_TYPE } from "@modelcontextprotocol/ext-apps/server";
@@ -131,6 +132,12 @@ export function createRegister(
   options: { uiEnabled?: boolean } = {},
 ) {
   let currentIdentity = identity;
+  const profiles = parseClientProfiles(process.env.BOTOZAP_MCP_OAUTH_CLIENT_PROFILES);
+  const assistant = (value: ApiIdentity) => catalogProfile(value, profiles) === 'assistant';
+  const descriptor = (name: string, original: string, policy: ReturnType<typeof getToolPolicy>, value: ApiIdentity) => {
+    const base = uiDescription(name, original, uiAllowed(value));
+    return assistant(value) ? assistantDescriptor(name, base, policy) : {description: base, annotations: {readOnlyHint:policy.readOnlyHint,destructiveHint:policy.destructiveHint,openWorldHint:policy.openWorldHint}};
+  };
   const accounts = process.env.BOTOZAP_MCP_UI_ACCOUNTS;
   const allowedAccounts = accounts === undefined
     ? null
@@ -150,7 +157,7 @@ export function createRegister(
     if (name === "stage_appointment_booking") return screenMetadata("booking");
     return { ui: { visibility: ["model", "app"] } };
   };
-  const metadata = (name: string) => ({...screenMeta(name), ...uiInvocation(name)});
+  const metadata = (name: string, value: ApiIdentity) => ({...screenMeta(name), ...uiInvocation(name), ...(assistant(value) && name === 'list_users' ? {ui:{visibility:['app']}} : {})});
   const tools: Array<{ name: string; description: string; tool: RegisteredTool; policy: ReturnType<typeof getToolPolicy> }> = [];
   const register: Register = function register(
     name: string,
@@ -166,15 +173,10 @@ export function createRegister(
     const tool = server.registerTool(
       name,
       {
-        description: uiDescription(name, description, uiAllowed(currentIdentity)),
+        ...descriptor(name, description, policy, currentIdentity),
         ...(name === "open_botozap" ? { title: "Pendências", icons: [{ src: "data:image/svg+xml," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><path d="M4 4h12v9H9l-5 3V4Z" fill="none" stroke="currentColor" stroke-width="1.33"/></svg>'), mimeType:"image/svg+xml", sizes:["20x20"] }] } : {}),
         inputSchema,
-        ...(uiAllowed(currentIdentity) ? { _meta: metadata(name) } : {}),
-        annotations: {
-          readOnlyHint: policy.readOnlyHint,
-          destructiveHint: policy.destructiveHint,
-          openWorldHint: policy.openWorldHint,
-        },
+        ...(uiAllowed(currentIdentity) ? { _meta: metadata(name, currentIdentity) } : {}),
         ...(outputSchema
           ? { outputSchema: compatibleOutputSchema(outputSchema) }
           : {}),
@@ -182,7 +184,7 @@ export function createRegister(
       async (args): Promise<CallToolResult> => {
         try {
           const authority = requestAuthContext.getStore()?.identity ?? currentIdentity;
-          if (!isToolAllowed(policy, authority) || (uiTools.has(name) && !uiAllowed(authority))) {
+          if (!catalogAllows(name, authority, profiles) || !isToolAllowed(policy, authority) || (uiTools.has(name) && !uiAllowed(authority))) {
             throw new BotoZapError("forbidden_scope", "Esta autorização não permite a ferramenta.", 403);
           }
           const handlerResult = await handler(
@@ -233,7 +235,7 @@ export function createRegister(
       },
     );
     tools.push({ name, description, tool, policy });
-    if (!isToolAllowed(policy, currentIdentity) || (uiTools.has(name) && !uiAllowed(currentIdentity))) tool.disable();
+    if (!catalogAllows(name, currentIdentity, profiles) || !isToolAllowed(policy, currentIdentity) || (uiTools.has(name) && !uiAllowed(currentIdentity))) tool.disable();
   };
   Object.defineProperty(register, "uiEnabled", { get: () => uiAllowed(currentIdentity) });
   const previousInitialized = server.server.oninitialized;
@@ -245,9 +247,12 @@ export function createRegister(
     updateIdentity(next: ApiIdentity) {
       currentIdentity = next;
       for (const { name, description, tool, policy } of tools) {
-        tool.description = uiDescription(name, description, uiAllowed(next));
-        tool._meta = uiAllowed(next) ? metadata(name) : undefined;
-        const allowed = isToolAllowed(policy, next) && (!uiTools.has(name) || uiAllowed(next));
+        const copy = descriptor(name, description, policy, next);
+        tool.description = copy.description;
+        tool.title = 'title' in copy ? copy.title : name === 'open_botozap' ? 'Pendências' : undefined;
+        tool.annotations = copy.annotations;
+        tool._meta = uiAllowed(next) ? metadata(name, next) : undefined;
+        const allowed = catalogAllows(name, next, profiles) && isToolAllowed(policy, next) && (!uiTools.has(name) || uiAllowed(next));
         if (tool.enabled !== allowed) allowed ? tool.enable() : tool.disable();
       }
       for (const listener of listeners) listener(uiAllowed(next));

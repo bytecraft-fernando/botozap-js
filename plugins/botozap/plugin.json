@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "botozap",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "Review WhatsApp conversations, approved template messages, AI handoffs and appointments in your BotoZap account.",
   "author": {
     "name": "Bytecraft",
@@ -19,10 +19,10 @@
     "com.openai": {
       "interface": {
         "displayName": "BotoZap",
-        "shortDescription": "Review WhatsApp conversations",
-        "longDescription": "For teams using BotoZap in Brazil. Review prioritized follow-ups and conversation history, prepare replies and complete approved template messages with preview-first editing, review AI handoffs, choose appointment slots, and follow a conversation after an accepted send. Open BotoZap from the global entry when supported by the host. UI availability depends on the server version, host capabilities, account enablement and permissions. Complete explicit requests use direct tools with ChatGPT permission. Vague requests, choices and preparation/review use UI tools with confirmation in the UI. Create template definitions directly with ChatGPT permission; the template UI only sends approved templates. Without UI, review drafts in the web panel; complete direct requests still require ChatGPT permission. Administration, AI credentials and webhooks remain in the web panel. An authorized BotoZap account and WhatsApp channel are required. API acceptance does not prove delivery or reading.",
+        "shortDescription": "WhatsApp CRM for your business",
+        "longDescription": "BotoZap is a WhatsApp CRM for Brazilian businesses. Connect your account to see what needs your attention today, read conversation history, prepare replies and approved WhatsApp templates and send them after you confirm, handle conversations where the AI agent needs a human, and create new templates. Every send requires your confirmation; account settings, webhooks and AI credentials stay in the BotoZap dashboard.",
         "developerName": "Bytecraft",
-        "category": "Productivity",
+        "category": "Business & Operations",
         "capabilities": [
           "Read",
           "Write"
@@ -95,11 +95,11 @@
         "countries": [
           "BR"
         ],
-        "release_notes": "0.2.1 candidate: five simplified reviewer scenarios for the Meta Reviewer fixture (reply, approved template, direct template creation, AI handoffs and live monitoring); no appointment test. Cases are not run; submission gates remain pending.",
+        "release_notes": "First release: review today's follow-ups, reply to WhatsApp conversations, send approved templates, handle AI agent handoffs and follow a conversation live — always with your confirmation before sending.",
         "translations": {
           "pt-BR": {
-            "subtitle": "Revise conversas no WhatsApp",
-            "description": "Para equipes BotoZap no Brasil. Revise pendências e histórico, prepare respostas e mensagens com templates aprovados com prévia primeiro, avalie casos da IA, escolha horários e acompanhe uma conversa após envio aceito. A entrada global depende do host. UI depende da versão do servidor, host, habilitação da Conta e permissões. Pedidos completos usam tools diretas com permissão do ChatGPT; pedidos vagos, escolhas e preparação/revisão usam UI com confirmação. Criar template é direto; a UI só envia aprovado. Sem UI, revisão no painel; pedidos completos mantêm a rota direta. Administração, credenciais de IA e webhooks ficam no painel web. Conta e canal WhatsApp autorizados são necessários. Aceite não comprova entrega ou leitura."
+            "subtitle": "CRM de WhatsApp para o seu negócio",
+            "description": "BotoZap é um CRM de WhatsApp para negócios brasileiros. Conecte sua conta para ver o que precisa da sua atenção hoje, ler o histórico de conversas, preparar respostas e templates aprovados do WhatsApp e enviá-los após sua confirmação, atender conversas em que o agente de IA precisa de uma pessoa e criar novos templates. Todo envio exige sua confirmação; configurações da conta, webhooks e credenciais de IA ficam no painel do BotoZap."
           }
         }
       }

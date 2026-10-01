@@ -70,6 +70,18 @@ class PackageTests(unittest.TestCase):
         self.manifest(lambda m:m['extensions']['com.openai']['interface'].update(shortDescription='x'*31))
         self.assertNotEqual(self.run_package().returncode,0)
 
+    def test_approved_translation_and_missing_video_warn_without_fake_url(self):
+        result = self.run_package()
+        self.assertEqual(result.returncode, 0)
+        report = json.loads(result.stdout)
+        self.assertEqual(len(report['warnings']), 2)
+        self.assertTrue(any('34 characters' in w for w in report['warnings']))
+        self.assertTrue(any('demo_recording_url absent' in w for w in report['warnings']))
+        manifest = json.loads((self.root/'plugin.json').read_text())
+        self.assertNotIn('demo_recording_url', manifest['extensions']['com.openai']['review'])
+        self.manifest(lambda m:m['extensions']['com.openai']['publication']['translations']['pt-BR'].update(subtitle='x'*34))
+        self.assertNotEqual(self.run_package().returncode, 0)
+
     def test_real_reviewer_cases_fit_fixture_without_appointments_or_contact_phone(self):
         manifest=json.loads((self.root/'plugin.json').read_text())
         cases=manifest['extensions']['com.openai']['review']['test_cases']
