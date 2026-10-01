@@ -1,3 +1,4 @@
+import { formatPhone } from '../ui-helpers.js';
 import type { Bridge } from '../panel.js';
 import { shell,node,button,call,type Row } from './screen-kit.js';
 import './live.css';
@@ -29,7 +30,7 @@ export function mountLive(root:HTMLElement,bridge:LiveBridge) {
     const count=seen.size;for(const event of data.events??[]){if(!Number.isFinite(Date.parse(event.at)))continue;seen.set(event.id,event);}
     idle=seen.size>count?0:Math.min(idle+1,4);
     const sent=(data.events??[]).filter((e:Row)=>['sent','delivered','read'].includes(e.kind)).at(0);if(sent)started=Math.min(started,Date.parse(sent.at));
-    const heading=ui.main.querySelector('h1')!;heading.textContent=data.contact_name??'Conversa';render();
+    const heading=ui.main.querySelector('h1')!;heading.textContent=formatPhone(data.contact_name)||'Conversa';render();
     if(!data.session_active)end('Esta conversa terminou. O acompanhamento foi encerrado.');
   }
   async function poll(){
