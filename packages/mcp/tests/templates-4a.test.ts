@@ -97,12 +97,12 @@ it('agenda agrupa os dias; Com Meet não repete o aviso em cada card', async () 
     expect(document.querySelector('.slot-card')?.textContent).not.toContain('sujeito à conexão');
     expect(document.querySelector('.slot-card')?.textContent).not.toContain('Hoje');
 });
-it.each([['cases', '24 conversas hoje (UTC)'], ['cases-unique', '17 clientes hoje']])('métrica %s tem a unidade e o fuso corretos', async (scenario, text) => {
+it.each([['cases', '24 conversas hoje (UTC)'], ['cases-unique', '17 clientes atendidos hoje']])('métrica %s tem a unidade e o fuso corretos', async (scenario, text) => {
     const bridge = { call: vi.fn(async (n: string, a: any) => casesTool(n, a, scenario)), context: vi.fn(async () => { }) };
     mountCases(document.body, bridge as any).bootstrap(casesStage(scenario));
     await vi.waitFor(() => expect(document.body.textContent).toContain(text));
     if (scenario === 'cases-unique')
-        expect(document.body.textContent).toContain('America/Manaus');
+        expect(document.body.textContent).not.toContain('America/Manaus');
 });
 it('códigos seguem tamanho aceito, sem inventar mínimo OTP ou restringir cupom a ASCII', () => {
     expect(validateTemplateValues(completeTemplates[4]!, { body_1: '1' })).toEqual({});

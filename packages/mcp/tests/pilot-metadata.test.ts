@@ -48,9 +48,9 @@ it('versioned tool URIs and compatibility aliases match only current registered 
 
 it('agent inbox requires both conversations route and scope, in addition to alerts and cases',async()=>{
  const routes=['GET /v1/ai/cases','GET /v1/ai/alerts'];const oauth={...fullAccessIdentity,auth_type:'oauth',user_id:'user',client_id:'client',grant_id:'grant',allowed_routes:routes};
- const missingRoute=await connect(true,oauth),missingScope=await connect(true,{...oauth,allowed_routes:[...routes,'GET /v1/conversations'],scopes:['agents:read']});
+ const missingRoute=await connect(true,oauth),missingScope=await connect(true,{...oauth,allowed_routes:[...routes,'GET /v1/conversations','GET /v1/customers'],scopes:['agents:read']});
  for(const {client} of [missingRoute,missingScope])expect((await client.listTools()).tools.some(t=>t.name==='open_agent_cases')).toBe(false);
- const permitted=await connect(true,{...oauth,allowed_routes:[...routes,'GET /v1/conversations'],scopes:['agents:read','conversations:read']});expect((await permitted.client.listTools()).tools.some(t=>t.name==='open_agent_cases')).toBe(true);
+ const permitted=await connect(true,{...oauth,allowed_routes:[...routes,'GET /v1/conversations','GET /v1/customers'],scopes:['agents:read','conversations:read','customers:read']});expect((await permitted.client.listTools()).tools.some(t=>t.name==='open_agent_cases')).toBe(true);
 });
 
-it('read-only agent identity cannot expose resume and does not read unauthorized message previews',async()=>{const {client,fetch}=await connect(true,{...fullAccessIdentity,scopes:['agents:read','conversations:read']});const result=await client.callTool({name:'open_agent_cases',arguments:{customer_id:'00000000-0000-4000-8000-000000000001'}});expect(result.isError).not.toBe(true);expect(result.structuredContent).toMatchObject({can_resume:false});expect(fetch.mock.calls.some(([input])=>new URL(String(input)).pathname.endsWith('/messages'))).toBe(false);});
+it('read-only agent identity cannot expose resume and does not read unauthorized message previews',async()=>{const {client,fetch}=await connect(true,{...fullAccessIdentity,scopes:['agents:read','conversations:read','customers:read']});const result=await client.callTool({name:'open_agent_cases',arguments:{customer_id:'00000000-0000-4000-8000-000000000001'}});expect(result.isError).not.toBe(true);expect(result.structuredContent).toMatchObject({can_resume:false});expect(fetch.mock.calls.some(([input])=>new URL(String(input)).pathname.endsWith('/messages'))).toBe(false);});
