@@ -1,5 +1,15 @@
 # @botozap/mcp
 
+## 0.8.1
+
+### Correções
+
+- Corrige os schemas de contatos, conversas e mensagens para aceitar `phone_number_id` nulo no Instagram e preservar identidades WhatsApp com BSUID sem telefone. Remove campos aditivos de objetos tipados e paginação antes de devolver o resultado validado ao cliente MCP.
+
+  Resolve revisão e envio pela conta de canal autorizada no Instagram, preserva o destinatário canônico e a confirmação explícita e adapta a exibição de identidade e as ações exclusivas do WhatsApp ao canal da conversa.
+
+- Orienta `open_botozap` e `list_radar` como alternativas com UI habilitada, evitando telas duplicadas de Pendências. Pedidos de pendências e resposta usam no máximo uma tela de pendências antes do card; se preparar resposta é o objetivo principal e o radar está vazio, seguem direto ao card, com descoberta de IDs por consultas sem UI.
+
 ## 0.8.0
 
 ### Novidades
