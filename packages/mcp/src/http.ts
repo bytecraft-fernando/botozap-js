@@ -325,7 +325,8 @@ async function handleRequest(
     writeProtectedResourceMetadata(response, oauth);
     return;
   }
-  if (url.pathname !== "/mcp") {
+  const appsChallenge = url.pathname === "/.well-known/openai-apps-challenge";
+  if (url.pathname !== "/mcp" && !appsChallenge) {
     jsonRpcError(response, 404, -32001, "Endpoint MCP não encontrado.");
     return;
   }
@@ -342,6 +343,17 @@ async function handleRequest(
   }
   if (lifecycle.closing) {
     jsonRpcError(response, 503, -32000, "Servidor MCP em encerramento.");
+    return;
+  }
+
+  if (appsChallenge) {
+    response.setHeader("Cache-Control", "no-store");
+    const token = process.env.OPENAI_APPS_CHALLENGE;
+    if (!["GET", "HEAD"].includes(request.method ?? "") || !token) {
+      response.writeHead(404); response.end(); return;
+    }
+    response.writeHead(200, { "Content-Type": "text/plain; charset=utf-8", "Content-Length": Buffer.byteLength(token) });
+    response.end(request.method === "HEAD" ? undefined : token);
     return;
   }
 

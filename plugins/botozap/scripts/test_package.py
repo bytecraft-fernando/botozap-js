@@ -70,4 +70,17 @@ class PackageTests(unittest.TestCase):
         self.manifest(lambda m:m['extensions']['com.openai']['interface'].update(shortDescription='x'*31))
         self.assertNotEqual(self.run_package().returncode,0)
 
-if __name__=='__main__':unittest.main()
+    def test_real_reviewer_cases_fit_fixture_without_appointments_or_contact_phone(self):
+        manifest=json.loads((self.root/'plugin.json').read_text())
+        cases=manifest['extensions']['com.openai']['review']['test_cases']
+        positive=json.dumps(cases['positive'],ensure_ascii=False)
+        self.assertEqual(len(cases['positive']),5)
+        self.assertEqual(len(cases['negative']),3)
+        self.assertNotIn('appointment',positive.lower())
+        self.assertIn('Fernando Gomes',positive)
+        self.assertIn('confirmacao_pedido',positive)
+        self.assertIn('acknowledged',positive)
+        self.assertNotIn('reviewer@botozap.com.br',json.dumps(manifest))
+        self.assertNotRegex(positive,r'\+55\s*\d{2}')
+
+if __name__=='__main__' :unittest.main()

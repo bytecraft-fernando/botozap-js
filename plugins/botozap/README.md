@@ -1,4 +1,4 @@
-# BotoZap — pacote candidato 0.2.0
+# BotoZap — pacote candidato 0.2.1
 
 Pacote portátil atualizado para as oito telas: pendências/carrossel, resposta pronta, Radar/conversa, template aprovado, plantão ao vivo, casos da IA, agendamento e entrada global. A identidade, endpoint OAuth e ícone existentes foram preservados. Base em inglês, tradução pt-BR e targeting BR mantidos.
 
@@ -10,10 +10,10 @@ Na raiz do repositório, Python 3.9+ (sem instalar dependências):
 
 ```sh
 python3 plugins/botozap/scripts/package.py
-python3 plugins/botozap/scripts/package.py --zip /tmp/botozap-plugin-0.2.0.zip
+python3 plugins/botozap/scripts/package.py --zip /tmp/botozap-plugin-0.2.1.zip
 python3 plugins/botozap/scripts/test_package.py
-unzip -l /tmp/botozap-plugin-0.2.0.zip
-shasum -a 256 /tmp/botozap-plugin-0.2.0.zip
+unzip -l /tmp/botozap-plugin-0.2.1.zip
+shasum -a 256 /tmp/botozap-plugin-0.2.1.zip
 ```
 
 A validação lê o catálogo real no código integrado de main, incluindo a fixture 0.6.0 e as declarações de tools. Falha se qualquer tool de UI estiver ausente; não acrescenta contratos planejados ao catálogo. `ui-contracts.json` registra a base integrada `f586343`. Isso valida código local, não disponibilidade remota no ChatGPT.
@@ -27,3 +27,5 @@ Os cinco positivos e três negativos estão em inglês no manifest e traduzidos 
 Faltam execução na Conta dedicada com as versões UI integradas, gravação real pública, verificação de publisher/scans/atestações e acesso seguro do revisor. Os quatro links públicos existem; a cobertura específica de dados compartilhados com ChatGPT ainda precisa de revisão pelo responsável. Suporte foi conferido por conteúdo em 30/09/2026, não só por HTTP 200.
 
 Veja a auditoria da documentação oficial, dependências, hash e inventário no [RELATORIO.md](RELATORIO.md). Este trabalho não faz npm, deploy, troca de flags ou operações no portal.
+
+A conta real Meta Reviewer tem um negócio, um número, 12 contatos, seis templates APPROVED e nenhum serviço de agenda. Os testes revisados não incluem agendamento; P01/P05 admitem janela fechada e P02 usa confirmacao_pedido. Dados de acesso ficam fora do ZIP e só entram nos campos seguros do portal.
