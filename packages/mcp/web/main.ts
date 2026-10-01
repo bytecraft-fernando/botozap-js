@@ -19,7 +19,7 @@ const bridge = {
     if(app.getHostContext()?.availableDisplayModes?.includes(mode)) try{return await app.requestDisplayMode({mode});}catch{}
     return {mode:'inline'};
   },
-  template: (value: Record<string, any>) => { panel = mountTemplate(root, bridge, value); void bridge.displayMode('fullscreen').then(result => panel.setMode?.(result.mode)); },
+  template: (value: Record<string, any>) => { panel = mountTemplate(root, bridge, value); panel.setMode?.(app.getHostContext()?.displayMode ?? 'inline'); },
   call: (name: string, args: Record<string, unknown>) => app.callServerTool({ name, arguments: args }),
   context: (value: unknown) => !app.getHostCapabilities()?.updateModelContext ? Promise.resolve({}) : app.updateModelContext({ content: [{ type: 'text', text: JSON.stringify(value) }] }),
   message: (text: string) => !app.getHostCapabilities()?.message ? Promise.reject(new Error('Peça ao assistente uma resposta para esta pendência; este host não oferece mensagens ao modelo.')) : app.sendMessage({ role: 'user', content: [{ type: 'text', text }] }),

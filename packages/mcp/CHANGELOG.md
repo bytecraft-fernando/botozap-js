@@ -1,5 +1,13 @@
 # @botozap/mcp
 
+## 0.8.2
+
+### Correções
+
+- Corrige o plantão sem `message_id`: acompanha a última mensagem enviada na conversa e mostra imediatamente o status atual do recibo, sem depender de eventos novos. Informa quando nenhuma mensagem enviada foi encontrada e preserva a leitura de respostas e digitação autorizadas.
+
+  Orienta pedidos de acompanhar, monitorar, ver status ou "follow" somente para leitura, sem enviar, reenviar ou preparar outra mensagem. Todas as telas preferem abrir inline; a expansão exige clique explícito, inclusive ao trocar para template ou revisão de atendimento.
+
 ## 0.8.1
 
 ### Correções

@@ -13,10 +13,11 @@ description: Acompanhe uma conversa BotoZap depois de um envio aceito, com statu
 - Sem UI, continue com consultas; para preparar/revisar, apresente o rascunho e encaminhe a revisão ao painel web. Pedidos completos continuam na rota direta com permissão do ChatGPT. Incerto não autoriza repetir nem gerar outra chave; confira histórico/agenda. Use `prepare_send_intent` para envio direto e preserve a chave por intenção; agenda usa `idempotency_key`.
 
 
-- Após um recibo aceito e pedido do usuário para acompanhar, chame `open_live_conversation` com `conversation_id` e `message_id` retornados. `after` é cursor decimal retornado (inicial 0), nunca timestamp. Essa tool só lê.
+- Pedidos de acompanhar, monitorar, ver status ou "follow" usam SOMENTE `open_live_conversation`. Nunca envie, reenvie ou prepare nova mensagem nesses pedidos, mesmo após um envio confirmado; não use `send_message`, `reply_to_conversation` ou `stage_review_reply` para acompanhar.
+- Após um recibo aceito e pedido do usuário para acompanhar, chame `open_live_conversation` com `conversation_id`; `message_id` é opcional e, sem ele, acompanha a última outbound enviada na conversa, mostrando seu status atual imediatamente. Prefira o ID do recibo quando disponível. `after` é cursor decimal retornado (inicial 0), nunca timestamp. Essa tool só lê; nenhuma outbound encontrada não autoriza enviar.
 - Diferencie aceite, envio, entrega e leitura conforme evidência do canal. Mostre digitação/resposta só quando retornadas para a conversa autorizada; não invente eventos ou prometa recebimento futuro.
 - PiP depende da capacidade do host. Se indisponível, continue no modo permitido ou no painel web; não simule uma janela flutuante inexistente. Não envie novamente para atualizar status.
-- Para abrir o BotoZap fora de uma conversa, use `open_botozap` sem parâmetros quando disponível (entrada global/fullscreen). Selecione o negócio na UI e resolva links profundos só contra objetos autorizados. Não invente URI de deep link nem IDs; um link não concede acesso.
+- Todas as telas abrem inline; tela cheia só após clique explícito em expandir. Para abrir o BotoZap fora de uma conversa, use `open_botozap` sem parâmetros quando disponível (entrada global). Selecione o negócio na UI e resolva links profundos só contra objetos autorizados. Não invente URI de deep link nem IDs; um link não concede acesso.
 
 ## Limites comuns
 

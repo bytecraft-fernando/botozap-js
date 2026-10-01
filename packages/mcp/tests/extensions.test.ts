@@ -95,7 +95,7 @@ describe("optional review extensions", () => {
     const replyResource = await client.readResource({ uri: uiContent('reply').uri });
     expect(replyResource.contents[0]._meta).toMatchObject({ "openai/ui": { availableDisplayModes: ["inline", "fullscreen"], preferredDisplayMode: "inline" }, ui: { csp: { connectDomains: [], resourceDomains: [] } } });
     const resource = await client.readResource({ uri: uiContent('review').uri });
-    expect(resource.contents[0]._meta).toMatchObject({ "openai/ui": { availableDisplayModes: ["inline", "fullscreen"], preferredDisplayMode: "fullscreen" } });
+    expect(resource.contents[0]._meta).toMatchObject({ "openai/ui": { availableDisplayModes: ["inline", "fullscreen"], preferredDisplayMode: "inline" } });
     expect(resource.contents[0]).toMatchObject({ mimeType: "text/html;profile=mcp-app", _meta: { ui: { csp: { connectDomains: [], resourceDomains: [], frameDomains: [] } } } });
     expect(JSON.stringify(resource)).not.toContain("bz_live_secret");
   });

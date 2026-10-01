@@ -13,6 +13,15 @@ async function connect(enabled=true, identity:any=fullAccessIdentity){
  const [ct,st]=InMemoryTransport.createLinkedPair();await Promise.all([server.connect(st),client.connect(ct)]);clients.push(client);return {client,fetch};
 }
 afterEach(async()=>{await Promise.allSettled(clients.splice(0).map(c=>c.close()));vi.unstubAllEnvs();});
+it('monitoring guidance is read-only on all relevant tools and absent without negotiated UI',async()=>{
+ const {client}=await connect();const tools=(await client.listTools()).tools;
+ for(const name of ['open_live_conversation','send_message','reply_to_conversation','stage_review_reply']){
+  expect(tools.find(t=>t.name===name)?.description).toContain('usam SOMENTE open_live_conversation');
+  expect(tools.find(t=>t.name===name)?.description).toContain('nunca enviar, reenviar ou preparar nova mensagem');
+  expect(tools.find(t=>t.name===name)?.description).toContain('message_id é opcional');
+  expect(uiDescription(name,'original',false)).toBe('original');
+ }
+});
 it('negotiated follow-up tools describe one pending screen followed by the reply card, without empty-screen detours',async()=>{
  const {client}=await connect();const tools=(await client.listTools()).tools;
  for(const name of ['open_botozap','list_radar','open_review_panel','stage_review_reply']){
@@ -33,7 +42,7 @@ it('follow-up guidance preserves original descriptions without UI and outside th
 });
 it('every UI resource carries standard and ChatGPT CSP with only first-party redirects',async()=>{
  const {client}=await connect();const resources=(await client.listResources()).resources.filter(r=>r.uri.startsWith('ui://'));expect(resources).toHaveLength(8);
- for(const resource of resources){const result=await client.readResource({uri:resource.uri});for(const content of result.contents){expect(content._meta?.ui).toMatchObject({csp:{connectDomains:[],resourceDomains:[],frameDomains:[]}});expect(content._meta?.['openai/widgetCSP']).toEqual({connect_domains:[],resource_domains:[],frame_domains:[],redirect_domains:['https://botozap.com.br']});}}
+ for(const resource of resources){expect(resource._meta?.['openai/ui']).toMatchObject({preferredDisplayMode:'inline'});const result=await client.readResource({uri:resource.uri});for(const content of result.contents){expect(content.text).toContain('data-initial-mode="inline"');expect(content._meta?.ui).toMatchObject({csp:{connectDomains:[],resourceDomains:[],frameDomains:[]}});expect(content._meta?.['openai/widgetCSP']).toEqual({connect_domains:[],resource_domains:[],frame_domains:[],redirect_domains:['https://botozap.com.br']});}}
 });
 it('UI invocation labels are Portuguese and within the host limit',async()=>{
  const {client}=await connect();for(const tool of (await client.listTools()).tools.filter(t=>(t._meta?.ui as any)?.resourceUri||t.name==='review_template_variables')){

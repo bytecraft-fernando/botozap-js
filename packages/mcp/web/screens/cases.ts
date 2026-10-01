@@ -30,7 +30,7 @@ export function mountCases(root:HTMLElement,bridge:Bridge) {
       const number=(await call(bridge,conversation.channel==='instagram'?'get_channel_account':'get_phone_number',{id:conversation.channel==='instagram'?conversation.channel_account?.id:conversation.phone_number_id})).data;
       if(token!==selection)return;
       if(!number.customer_id||!(row.customer_ids?.length?row.customer_ids:[context.customer_id]).includes(number.customer_id))throw new Error('Conversa fora do negócio selecionado.');
-      delete root.dataset.actionPlacement;activeReview=mountReview(root,bridge);root.dataset.focus='conversation';activeReview.setMode('fullscreen');mode='fullscreen';
+      delete root.dataset.actionPlacement;activeReview=mountReview(root,bridge);root.dataset.focus='conversation';activeReview.setMode(mode==='fullscreen'?'fullscreen':'inline');
       activeReview.bootstrap({structuredContent:{customer_id:number.customer_id,conversation,draft:{text:'',idempotency_key:crypto.randomUUID()}}});
       const nav=node('div','','case-review-nav');nav.append(button('Voltar aos atendimentos',()=>{activeReview=undefined;void load({structuredContent:context});}));
       if(conversation.agent_paused_at&&context.can_resume){
@@ -43,7 +43,7 @@ export function mountCases(root:HTMLElement,bridge:Bridge) {
           },true));
         });nav.append(resume);
       }
-      root.querySelector('main')!.prepend(nav);await bridge.displayMode?.('fullscreen');
+      root.querySelector('main')!.prepend(nav);
     }catch(error){ui.state('Confira seu acesso',(error as Error).message);}finally{busy=false;}
   }
   async function load(result:Row) {
