@@ -2,7 +2,7 @@ import { contactLabel, formatPhone } from '../ui-helpers.js';
 import type { Bridge } from '../panel.js';
 import { shell,node,button,call,ScreenError,skeleton,type Row } from './screen-kit.js';
 export function mountBooking(root:HTMLElement,bridge:Bridge) {
-  const ui=shell(root,'Marcar horário','Escolha um horário que funcione');skeleton(ui.content);
+  const ui=shell(root,'Marcar horário','Escolha um horário que funcione', bridge);skeleton(ui.content);
   let context:Row, selected:Row, frozen=false,busy=false,key='',noticeKey='',owner='Responsável do horário';
   const fmt=(value:string,options:Intl.DateTimeFormatOptions)=>new Intl.DateTimeFormat('pt-BR',{timeZone:context.availability.time_zone,...options}).format(new Date(value));
   const noticeText=()=>`${context.conversation.contact?.name?.split(' ')[0]??'Olá'}, seu horário para ${context.service.name} ficou marcado para ${fmt(selected.starts_at,{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}. Até lá!`;

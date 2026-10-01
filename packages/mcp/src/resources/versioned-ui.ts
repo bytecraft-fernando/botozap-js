@@ -6,14 +6,14 @@ const views = ['review','reply','radar-cards','template','cases','booking','live
 export type UiView = typeof views[number];
 /** Hash the exact HTML served and the complete resource metadata, never identity data. */
 export function versionedUiContent(view: UiView, html: string, meta: Record<string,unknown>) {
-  const mode=view==='review'?'fullscreen':'inline';
+  const mode='inline';
   const renderView=view==='radar-cards'?'carousel':['review','reply'].includes(view)?'review':view;
   const text=html.replace('id="app"',`id="app" data-initial-mode="${mode}" data-view="${renderView}"`);
   const hash=createHash('sha256').update(text).update('\0').update(JSON.stringify(meta)).digest('hex').slice(0,10);
   return {uri:`ui://botozap/${view}/${hash}.html`,mimeType:RESOURCE_MIME_TYPE,text,_meta:meta};
 }
 function metadata(view: UiView) {
-  return {'openai/ui':{availableDisplayModes:['inline','fullscreen'],preferredDisplayMode:['review','global'].includes(view)?'fullscreen':'inline'},...uiResourceMetadata(view!=='review')};
+  return {'openai/ui':{availableDisplayModes:['inline','fullscreen'],preferredDisplayMode:'inline'},...uiResourceMetadata(view!=='review')};
 }
 let contents: Map<UiView,ReturnType<typeof versionedUiContent>> | undefined;
 let startup: Promise<void> | undefined;

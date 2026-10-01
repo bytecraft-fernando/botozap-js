@@ -6,7 +6,7 @@ import { templateFields, templateParameters, validateTemplateValues, templateUns
 import { renderTemplatePreview } from './template-renderer.js';
 import { shell, node, button, field, call, ScreenError, skeleton, type Row } from './screen-kit.js';
 export function mountTemplate(root: HTMLElement, bridge: Bridge, initial?: Row) {
-    const ui = shell(root, 'Fora da janela', 'Uma mensagem aprovada, com contexto');
+    const ui = shell(root, 'Fora da janela', 'Uma mensagem aprovada, com contexto', bridge);
     skeleton(ui.content);
     let context: Row, templates: Row[] = [], selected: Row, values: Record<string, string> = {}, frozen = false, sending = false, key = '', definition = '', mode = 'draft';
     let destination = '';

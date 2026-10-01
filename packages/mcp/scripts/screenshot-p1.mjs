@@ -36,6 +36,7 @@ try{for(const theme of ['light','dark'])for(const [device,width,height] of [['de
   const axe=await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa','wcag21aa']).analyze();assert.deepEqual(axe.violations.map(v=>({id:v.id,targets:v.nodes.map(n=>n.target)})),[],screen+'/'+value+' axe');assert.deepEqual(errors,[]);
   const file=`${prefix}-${screen}-${value}-${device}-${theme}.png`;await page.screenshot({path:dir+file});results.push({file,axeViolations:0,hostOverflow,iframeOverflow,noEmptyCard:true,...(value==='inline'?{hostBorder:true,noDoubleBorder:true}:{})});console.log(file);
  }
+ await page.waitForTimeout(200);assert.equal(await page.locator('iframe').last().evaluate(el=>el.classList.contains('is-fullscreen')),false,screen+' opens inline without an automatic expansion');
  await mode('inline');await capture('inline');await mode('fullscreen');await capture('fullscreen');
  if(['p2','p3'].includes(screen)){
   assert.equal(await app().locator('.case-row').count(),8);assert.ok((await app().locator('main').innerText()).includes('Reconhecido'));assert.ok((await app().locator('main').innerText()).includes('+55 11 98966-9559'));

@@ -5,6 +5,7 @@ import {buildServer} from '../src/server.js';
 import {readLiveConversation} from '../src/resources/live-panel.js';
 import {fullAccessIdentity} from './helpers/identity.js';
 import {conversationId,conversation,customerId} from '../web/demo-data.js';
+import {reviewerContract} from './fixtures/app-reviewer.js';
 const clients:Client[]=[];
 async function connect(enabled=true,ui=true,identity=fullAccessIdentity){
  const fetch=vi.fn(async()=>Response.json({data:[],meta:{page:1,per_page:100,total_count:0,total_pages:1}}));
@@ -13,6 +14,19 @@ async function connect(enabled=true,ui=true,identity=fullAccessIdentity){
  const [ct,st]=InMemoryTransport.createLinkedPair();await Promise.all([server.connect(st),client.connect(ct)]);clients.push(client);return {client,fetch};
 }
 afterEach(async()=>{vi.unstubAllEnvs();await Promise.allSettled(clients.splice(0).map(c=>c.close()));});
+it('without message_id reads the latest outbound receipt immediately even when the event stream is empty',async()=>{
+ const message={...reviewerContract.messages[0],direction:'outbound',status:'read'};
+ const client={conversations:{get:vi.fn(async()=>({...reviewerContract.conversations[0],status:'active'}))},messages:{list:vi.fn(async(args:any)=>({data:args.direction?[message]:[{...message,id:'older',status:'sent',created_at:'2020-01-01T00:00:00Z'},message]}))},events:{list:vi.fn(async()=>({data:[],paging:{cursor:'950',has_more:false}}))}};
+ const result=await readLiveConversation(client as any,message.conversation_id,'900');
+ expect(result).toMatchObject({message_id:message.id,receipt_found:true,receipt_status:'read',cursor:'950'});
+ expect(result.events.map(e=>e.kind)).toEqual(['sent','delivered','read']);
+ expect(client.messages.list).toHaveBeenCalledWith({conversation_id:message.conversation_id,direction:'outbound',sort:'created_at',limit:1});
+ expect(Object.keys(client)).toEqual(['conversations','messages','events']);
+});
+it('no outbound yields an explicit missing receipt without inventing delivery events',async()=>{
+ const client={conversations:{get:vi.fn(async()=>conversation())},messages:{list:vi.fn(async()=>({data:[]}))},events:{list:vi.fn(async()=>({data:[],paging:{cursor:'1',has_more:false}}))}};
+ expect(await readLiveConversation(client as any,conversationId,'0')).toMatchObject({receipt_found:false,events:[]});
+});
 it('new tools and resources need flags, account and negotiated MCP Apps',async()=>{
  for(const [enabled,ui]of [[false,true],[true,false]]){const h=await connect(enabled,ui);expect((await h.client.listTools()).tools.map(t=>t.name)).not.toEqual(expect.arrayContaining(['open_live_conversation','open_botozap']));expect((await h.client.listResources()).resources.some(r=>r.uri.includes('/live/')||r.uri.includes('/global/'))).toBe(false);}
  const h=await connect();const tools=(await h.client.listTools()).tools;

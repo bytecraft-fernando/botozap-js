@@ -5,6 +5,14 @@ import {mountLive} from '../web/screens/live.js';
 import {conversationId,conversation,bootstrap,customerId} from '../web/demo-data.js';
 beforeEach(()=>{document.body.innerHTML='<div id="app"></div>';HTMLElement.prototype.scrollIntoView=vi.fn();});
 afterEach(()=>vi.useRealTimers());
+it('pins the initial receipt in later polls and clearly explains missing outbound messages',async()=>{
+ vi.useFakeTimers();const root=document.querySelector<HTMLElement>('#app')!;const call=vi.fn(async()=>({structuredContent:{conversation_id:conversationId,session_active:true,cursor:'3',events:[]}}));
+ const live=mountLive(root,{call,context:vi.fn(async()=>{})});live.input({conversation_id:conversationId});
+ live.bootstrap({structuredContent:{conversation_id:conversationId,message_id:'last-outbound',receipt_found:true,receipt_status:'read',session_active:true,cursor:'2',events:[{id:'read',kind:'read',at:new Date().toISOString()}]}});
+ expect(root.textContent).toContain('Lida ✓✓');await vi.advanceTimersByTimeAsync(2000);expect(call).toHaveBeenCalledWith('open_live_conversation',{conversation_id:conversationId,message_id:'last-outbound',after:'2'});live.dispose();
+ const empty=mountLive(root,{call,context:vi.fn(async()=>{})});empty.input({conversation_id:conversationId});empty.bootstrap({structuredContent:{conversation_id:conversationId,receipt_found:false,session_active:true,cursor:'0',events:[]}});
+ expect(root.textContent).toContain('Nenhuma mensagem enviada');expect(root.textContent).not.toContain('Aguardando eventos');empty.dispose();
+});
 it('strictly parses home, UUID conversation and typed pending routes',()=>{
  expect(parseDeepLink('/')).toEqual({kind:'home'});expect(parseDeepLink(`/conversa/${conversationId}`)).toEqual({kind:'conversa',id:conversationId});expect(parseDeepLink(`/pendencia/${conversationId}?type=demand`)).toMatchObject({kind:'pendencia',entity:'demand'});
  for(const value of [undefined,'https://evil.test','//evil.test','/conversa/invalid',`/conversa/${conversationId}#fragment`,`/conversa/${conversationId}?type=demand`,`/CONVERSA/${conversationId}?type=demand`,`/conversa/${conversationId}?path=other`,`/%2e%2e/conversa/${conversationId}`,`/../conversa/${conversationId}`,`/conversa/${conversationId}?type=demand&type=opportunity`])expect(parseDeepLink(value)).toBeNull();

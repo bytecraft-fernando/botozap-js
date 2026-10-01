@@ -11,9 +11,11 @@ export async function readLiveConversation(client: Client, id: string, after: st
   const conversation = await client.conversations.get(id);
   if (conversation.id !== id) throw new BotoZapError("invalid_conversation", "Conversa não confirmada.",403);
   const messages = (await client.messages.list({conversation_id:id,limit:100})).data.filter(m=>m.conversation_id===id);
+  const latest = messageId ? undefined : (await client.messages.list({conversation_id:id,direction:'outbound',sort:'created_at',limit:1})).data.find(m=>m.conversation_id===id && m.direction==='outbound');
   const page = await client.events.list({after,limit:100});
   const events: Array<z.infer<typeof eventSchema>> = [];
-  const receipt = messages.find(m=>m.direction==='outbound' && (m.id===messageId || m.wamid===messageId));
+  const receipt = messageId ? messages.find(m=>m.direction==='outbound' && (m.id===messageId || m.wamid===messageId)) : latest;
+  if(receipt && !messages.some(m=>m.id===receipt.id))messages.push(receipt);
   for (const message of messages) {
     const at = message.created_at;
     if (typeof at !== 'string' || !Number.isFinite(Date.parse(at))) continue;
@@ -22,7 +24,7 @@ export async function readLiveConversation(client: Client, id: string, after: st
       const text = message.revoked_at ? 'Mensagem removida pelo remetente' : content?.text?.body ?? content?.body;
       events.push({id:`${message.id}:reply`,at,kind:'reply',text:typeof text==='string'?text.slice(0,500):'Mensagem recebida'});
     }
-    if (message===receipt) {
+    if (message.id===receipt?.id) {
       const level=['sent','delivered','read'].indexOf(String(message.status));
       for (const kind of (['sent','delivered','read'] as const).slice(0,level+1)) events.push({id:`${message.id}:${kind}`,at,kind});
     }
@@ -31,16 +33,16 @@ export async function readLiveConversation(client: Client, id: string, after: st
     const message = messages.find(m=>m.id===event.message_resource_id || (m.wamid && (m.wamid===event.message_id || m.wamid===event.external_id)));
     // Only explicit, conversation-scoped typing events have no message receipt.
     if (event.type.endsWith('.typing') && event.data.conversation_id===id) events.push({id:event.id,at:event.occurred_at,kind:'typing'});
-    if (message===receipt && receipt && ['delivered','read'].some(s=>event.type.endsWith(`.${s}`))) {
+    if (message?.id===receipt?.id && receipt && ['delivered','read'].some(s=>event.type.endsWith(`.${s}`))) {
       events.push({id:event.id,at:event.occurred_at,kind:event.type.endsWith('.read')?'read':'delivered'});
     }
   }
-  return {conversation_id:id,contact_name:conversation.contact?.name??'Contato',session_active:conversation.status==='active',cursor:page.paging.cursor,has_more:page.paging.has_more,events:events.sort((a,b)=>a.at.localeCompare(b.at)).slice(-100)};
+  return {conversation_id:id,contact_name:conversation.contact?.name??'Contato',session_active:conversation.status==='active',receipt_found:!!receipt,...(receipt?{message_id:receipt.id,receipt_status:String(receipt.status)}:{}),cursor:page.paging.cursor,has_more:page.paging.has_more,events:events.sort((a,b)=>a.at.localeCompare(b.at)).slice(-100)};
 }
 export function registerLivePanel(server:McpServer,register:Register) {
   registerScreenResource(server,register,'live');
   register('open_live_conversation','Acompanha uma conversa autorizada após um envio aceito. Leitura com cursor, sem envio ou credenciais na UI.',
     {conversation_id:z.string().uuid(),after:z.string().regex(/^\d+$/).max(20).default('0'),message_id:z.string().min(1).max(512).optional()},
-    z.object({conversation_id:z.string().uuid(),contact_name:z.string(),session_active:z.boolean(),cursor:z.string().regex(/^\d+$/),has_more:z.boolean(),events:z.array(eventSchema)}),
+    z.object({conversation_id:z.string().uuid(),contact_name:z.string(),session_active:z.boolean(),receipt_found:z.boolean(),message_id:z.string().optional(),receipt_status:z.string().optional(),cursor:z.string().regex(/^\d+$/),has_more:z.boolean(),events:z.array(eventSchema)}),
     (client,args)=>readLiveConversation(client,String(args.conversation_id),String(args.after),args.message_id as string|undefined));
 }
