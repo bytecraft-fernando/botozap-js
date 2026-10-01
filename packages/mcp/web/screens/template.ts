@@ -1,3 +1,4 @@
+import { formatPhone } from '../ui-helpers.js';
 import './template.css';
 import { templateFieldName, technicalTemplateField, templateModelSummary } from './template-language.js';
 import type { Bridge } from '../panel.js';
@@ -215,7 +216,7 @@ export function mountTemplate(root: HTMLElement, bridge: Bridge, initial?: Row) 
             selector.value = templates.some(t => t.id === data.preferred_template_id) ? data.preferred_template_id : templates[0]?.id;
             selector.onchange = () => void selectTemplate();
             metadata.replaceChildren();
-            for (const [name, value] of [['De', data.number?.display_phone_number || data.conversation.display_phone_number || 'Número de origem'], ['Para', `${data.conversation.contact?.name ?? 'Contato'} · ${data.conversation.contact?.phone ?? data.conversation.contact?.wa_id ?? ''}`]])
+            for (const [name, value] of [['De', formatPhone(data.number?.display_phone_number || data.conversation.display_phone_number) || 'Número de origem'], ['Para', `${data.conversation.contact?.name ?? 'Contato'} · ${formatPhone(data.conversation.contact?.phone ?? data.conversation.contact?.wa_id)}`]])
                 metadata.append(node('dt', name), node('dd', value));
             const editor = node('div', '', 'template-editor');
             editor.append(preview, notices, node('p','Peça ajustes na conversa ou edite os campos.','template-help'), edit);

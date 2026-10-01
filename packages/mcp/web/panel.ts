@@ -1,6 +1,6 @@
 import { externalLink, pendingUrl } from './pending-link.js';
 import { installFullscreenLayout } from './screens/fullscreen-layout.js';
-import { initials, maskedPhone, relative, bucketLabel, quantity } from './ui-helpers.js';
+import { initials, formatPhone, relative, bucketLabel, quantity } from './ui-helpers.js';
 type Row = Record<string, any>;
 export interface Bridge {
   openExternal?(url: string): Promise<unknown>;
@@ -58,12 +58,12 @@ export function mountReview(root: HTMLElement, bridge: Bridge) {
   function card() {
     const c = conversation; if (!c) return;
     el('card-summary').replaceChildren();
-    const name = text(c.contact?.name) || 'Contato';
+    const name = formatPhone(c.contact?.name) || 'Contato';
     el('avatar').textContent = initials(name); el('contact-name').textContent = name;
-    el('contact-phone').textContent = `WhatsApp · ${maskedPhone(text(c.contact?.phone) || text(c.contact?.wa_id))}`;
+    el('contact-phone').textContent = `WhatsApp · ${formatPhone(text(c.contact?.phone) || text(c.contact?.wa_id))}`;
     const minutes = Math.max(0, Math.ceil((Date.parse(c.window_expires_at ?? '')-Date.now())/60000));
     const window = isOpen() ? `Janela fecha em ${minutes >= 60 ? `${Math.ceil(minutes/60)}h` : `${minutes} min`}` : 'Janela fechada';
-    const chips = [customers.find(r => r.id === business.value)?.name || business.value, `Origem ${text(c.display_phone_number) || text(c.channel_account?.display) || c.phone_number_id}`, window];
+    const chips = [customers.find(r => r.id === business.value)?.name || business.value, `Origem ${formatPhone(c.display_phone_number) || text(c.channel_account?.display) || c.phone_number_id}`, window];
     chips.forEach((value, index) => { const span = document.createElement('span'); span.className = `chip ${index === 2 ? 'window-chip' : ''} ${index === 2 && minutes <= 60 ? 'window-warning' : ''}`; span.textContent = value; el('card-summary').append(span); });
     const wait = relative(c.last_message_at || messages.filter(m => m.direction === 'inbound').at(-1)?.created_at);
     el('conversation-urgency').textContent = selected?.bucket ? `${bucketLabel(selected.bucket)} · ${wait ? `Esperando ${wait}` : 'Aguardando resposta'}` : wait ? `Esperando ${wait}` : '';
@@ -164,7 +164,7 @@ export function mountReview(root: HTMLElement, bridge: Bridge) {
       const history = await call('list_messages', { conversation_id: id, limit: 20 });
       if (token !== generation) return;
       conversation = detail.data; messages = history.data; historyCursor = history.paging?.next ? history.paging.cursors.after : undefined;
-      const c = conversation!; el('recipient').textContent = `${text(c.contact?.name)} · ${text(c.contact?.phone) || text(c.contact?.wa_id) || text(c.contact?.username)} · ${text(c.channel) || 'WhatsApp'} · ${text(c.channel_account?.display) || text(c.display_phone_number) || c.phone_number_id}`;
+      const c = conversation!; el('recipient').textContent = `${formatPhone(c.contact?.name)} · ${formatPhone(c.contact?.phone || c.contact?.wa_id || c.contact?.username)} · ${text(c.channel) || 'WhatsApp'} · ${text(c.channel_account?.display) || formatPhone(c.display_phone_number) || c.phone_number_id}`;
       el('window').textContent = isOpen() ? `Janela aberta até ${date(c.window_expires_at)}` : 'Janela fechada'; el('window').className = `badge ${isOpen() ? 'success' : 'warning'}`;
       const pending = intents.get(id);
       locked = false; draft.disabled = !isOpen() || !!pending?.uncertain; renderHistory(); card(); setState(pending?.uncertain ? 'uncertain' : isOpen() ? 'draft' : 'closed');
@@ -188,7 +188,7 @@ export function mountReview(root: HTMLElement, bridge: Bridge) {
     if (!existing || existing.body !== reviewBody || existing.destination !== destination(conversation)) intents.set(conversation.id, { body: reviewBody, key: crypto.randomUUID(), uncertain: false, destination: destination(conversation) });
     el('send').textContent = intents.get(conversation.id)?.uncertain ? 'Repetir a mesma tentativa' : 'Enviar';
     el<HTMLButtonElement>('edit').disabled = !!intents.get(conversation.id)?.uncertain;
-    const c = conversation; const pairs = [['Negócio', customers.find(r => r.id === business.value)?.name || business.value], ['Destinatário', `${text(c.contact?.name)} · ${text(c.contact?.phone) || text(c.contact?.wa_id) || text(c.contact?.username)}`], ['Canal', `${text(c.channel) || 'WhatsApp'} · ${text(c.channel_account?.display) || text(c.display_phone_number) || c.phone_number_id}`]];
+    const c = conversation; const pairs = [['Negócio', customers.find(r => r.id === business.value)?.name || business.value], ['Destinatário', `${formatPhone(c.contact?.name)} · ${formatPhone(c.contact?.phone || c.contact?.wa_id || c.contact?.username)}`], ['Canal', `${text(c.channel) || 'WhatsApp'} · ${text(c.channel_account?.display) || formatPhone(c.display_phone_number) || c.phone_number_id}`]];
     for (const [key, value] of pairs) { const dt = document.createElement('dt'), dd = document.createElement('dd'); dt.textContent = key; dd.textContent = value; el('summary').append(dt, dd); }
     el<HTMLInputElement>('consent').checked = false; el<HTMLButtonElement>('send').disabled = true; el('confirmation').hidden = false; if (root.dataset.mode === 'fullscreen') el('confirmation').scrollIntoView({ block: 'center' }); el<HTMLInputElement>('consent').focus({ preventScroll: true });
   };

@@ -1,3 +1,4 @@
+import { formatPhone } from '../ui-helpers.js';
 import type { Bridge } from '../panel.js';
 import { shell,node,button,call,ScreenError,skeleton,type Row } from './screen-kit.js';
 export function mountBooking(root:HTMLElement,bridge:Bridge) {
@@ -5,7 +6,7 @@ export function mountBooking(root:HTMLElement,bridge:Bridge) {
   let context:Row, selected:Row, frozen=false,busy=false,key='',noticeKey='',owner='Responsável do horário';
   const fmt=(value:string,options:Intl.DateTimeFormatOptions)=>new Intl.DateTimeFormat('pt-BR',{timeZone:context.availability.time_zone,...options}).format(new Date(value));
   const noticeText=()=>`${context.conversation.contact?.name?.split(' ')[0]??'Olá'}, seu horário para ${context.service.name} ficou marcado para ${fmt(selected.starts_at,{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}. Até lá!`;
-  function confirm(slot:Row){if(frozen)return;selected=slot;key=crypto.randomUUID();noticeKey='';const meta=node('dl','','screen-metadata');for(const [name,value] of [['Contato',context.conversation.contact?.name??'Contato'],['Serviço',context.service.name],['Horário',`${fmt(slot.starts_at,{weekday:'long',day:'numeric',month:'short'})} · ${fmt(slot.starts_at,{hour:'2-digit',minute:'2-digit'})}–${fmt(slot.ends_at,{hour:'2-digit',minute:'2-digit'})}`],['Com',owner]])meta.append(node('dt',name),node('dd',value));
+  function confirm(slot:Row){if(frozen)return;selected=slot;key=crypto.randomUUID();noticeKey='';const meta=node('dl','','screen-metadata');for(const [name,value] of [['Contato',formatPhone(context.conversation.contact?.name||context.conversation.contact?.phone)||'Contato'],['Serviço',context.service.name],['Horário',`${fmt(slot.starts_at,{weekday:'long',day:'numeric',month:'short'})} · ${fmt(slot.starts_at,{hour:'2-digit',minute:'2-digit'})}–${fmt(slot.ends_at,{hour:'2-digit',minute:'2-digit'})}`],['Com',owner]])meta.append(node('dt',name),node('dd',value));
     ui.content.replaceChildren(meta,node('p','Aviso ao cliente','eyebrow'),node('p',noticeText(),'screen-preview'));ui.actions.replaceChildren(button('Outro horário',()=>render()),button('Confirmar',()=>void book(),true));ui.state('Confirmando',`Confirmar marca o compromisso e envia este aviso pelo WhatsApp.${context.meeting_requested?' O Meet depende de uma conexão ativa do responsável.':''}`);
   }
   function render(){ui.actions.replaceChildren();const container=node('div','','booking-days');container.setAttribute('role','region');container.setAttribute('aria-label','Horários disponíveis');container.tabIndex=0;

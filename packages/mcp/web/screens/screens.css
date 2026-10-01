@@ -8,3 +8,5 @@
 .template-parameter-format{grid-column:1/-1;font-size:12px}.template-parameter-format summary{cursor:pointer;min-height:30px}.template-parameter-format select{width:100%;margin:6px 0}.template-parameter-format:focus-within{outline:2px solid var(--ring);outline-offset:4px}
 .template-editor>*{min-width:0}.template-carousel{max-width:100%}.template-parameter-format summary{overflow-wrap:anywhere}
 @media(max-width:650px){.host-controls select{min-width:0}}
+
+.case-list{display:grid;gap:0;margin:18px 0}.case-list .case-row{display:grid;gap:5px;text-align:left;width:100%;border:0;border-bottom:1px solid var(--border);border-radius:0;padding:14px 0;white-space:normal;overflow-wrap:anywhere;background:transparent;color:var(--foreground)}.case-row strong{font-size:14px}.case-reason,.case-preview{font-size:12px;line-height:1.5}.case-preview,.case-row small{color:var(--muted-foreground)}.case-review-nav{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:20px}.case-review-nav p{width:100%}

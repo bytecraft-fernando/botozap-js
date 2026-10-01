@@ -7,7 +7,7 @@ const browser=await chromium.launch(),results=[],prefix=process.env.CAPTURE_PREF
 const screens=(process.env.CAPTURE_SCREENS??'carousel,reply,radar,global,template,cases,booking,live,unlinked,unlinked-panel,alerts').split(',');
 try{for(const theme of ['light','dark'])for(const [device,width,height] of [['desktop',1440,1050],['mobile',390,844]])for(const screen of screens){
  const context=await browser.newContext({viewport:{width,height},reducedMotion:'reduce'}),page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
- const scenario={carousel:'normal',reply:'draft',radar:'draft',global:'pilot-global',template:'template-carousel',cases:'cases',booking:'booking',live:'live',unlinked:'pilot-unlinked','unlinked-panel':'pilot-unlinked',alerts:'pilot-alerts',paused:'pilot-alerts'}[screen];
+ const scenario={carousel:'normal',reply:'draft',radar:'draft',global:'pilot-global',template:'template-carousel',cases:'cases',booking:'booking',live:'live',unlinked:'pilot-unlinked','unlinked-panel':'pilot-unlinked',alerts:'pilot-alerts',paused:'pilot-alerts',p2:'cases-p2'}[screen];
  await page.goto(`${origin}/chat?theme=${theme}&scenario=${scenario}`);await page.locator('html[data-demo-ready=true]').waitFor();
  const app=()=>page.frameLocator('iframe').last();
  const prompt=async(text)=>{await page.locator('#prompt').fill(text);await page.locator('#composer').evaluate(f=>f.requestSubmit());};
@@ -16,7 +16,7 @@ try{for(const theme of ['light','dark'])for(const [device,width,height] of [['de
  if(screen==='template'){await app().getByRole('button',{name:'Usar template aprovado',exact:true}).click();await app().locator('#app[data-state=Rascunho]').waitFor();}
  if(screen==='live'){await app().getByRole('button',{name:'Enviar',exact:true}).click();await app().locator('#consent').check();await app().getByRole('button',{name:'Enviar',exact:true}).click();await page.waitForTimeout(1000);await prompt('Abra o plantão ao vivo');await app().locator('.live-event').first().waitFor();}
  if(screen==='global'){await app().locator('.radar-item').first().waitFor();assert.equal(await app().locator('#business').inputValue(),'00000000-0000-4000-8000-000000000001','one business auto-selected');}
- if(['alerts','paused'].includes(screen))await app().locator('#app[data-state="Alerta crítico"]').waitFor();
+ if(['alerts','paused','p2'].includes(screen))await app().locator('#app[data-state="Alerta crítico"]').waitFor();
  if(screen==='paused'){await app().locator('.case-choices').getByRole('button',{name:'Marina Oliveira',exact:true}).click();await app().locator('#app[data-state="Agente pausado"]').waitFor();assert.equal(await app().getByRole('button',{name:'Assumir',exact:true}).count(),0);await app().getByRole('button',{name:'Revisar conversa',exact:true}).waitFor();}
  if(screen==='cases')await app().getByRole('button',{name:'Assumir',exact:true}).waitFor();
  if(screen==='booking')await app().getByRole('button',{name:'Marcar',exact:true}).first().waitFor();
@@ -36,6 +36,12 @@ try{for(const theme of ['light','dark'])for(const [device,width,height] of [['de
   const file=`${prefix}-${screen}-${value}-${device}-${theme}.png`;await page.screenshot({path:dir+file});results.push({file,axeViolations:0,hostOverflow,iframeOverflow,noEmptyCard:true,...(value==='inline'?{hostBorder:true,noDoubleBorder:true}:{})});console.log(file);
  }
  await mode('inline');await capture('inline');await mode('fullscreen');await capture('fullscreen');
+ if(screen==='p2'){
+  assert.equal(await app().locator('.case-row').count(),9);assert.ok((await app().locator('main').innerText()).includes('Reconhecido'));assert.ok((await app().locator('main').innerText()).includes('+55 11 98966-9559'));
+  await app().getByRole('button',{name:'Revisar conversa',exact:true}).click();await app().locator('#draft:not([disabled])').waitFor();await app().locator('#history').filter({hasText:'Se eu fechar'}).waitFor();await capture('review');
+  await app().getByRole('button',{name:'Retomar IA',exact:true}).click();await app().getByRole('button',{name:'Confirmar retomada',exact:true}).waitFor();await capture('resume-confirm');await app().getByRole('button',{name:'Confirmar retomada',exact:true}).click();await app().getByText('IA retomada.',{exact:false}).waitFor();await capture('resumed');
+ }
+
  if(screen==='global'){await mode('inline');await capture('inline-return');}
  await context.close();
 }}finally{await browser.close();}

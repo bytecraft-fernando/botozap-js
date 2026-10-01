@@ -9,3 +9,11 @@ export function relative(value: unknown) {
 export const bucketLabel = (bucket: unknown) => ({ critical: 'Crítico', at_risk: 'Atenção', scheduled: 'Programado' } as Record<string,string>)[string(bucket)] || 'Acompanhamento';
 
 export function quantity(count: number, singular: string, plural: string) { return `${count} ${count === 1 ? singular : plural}`; }
+
+/** Preserve non-phone identifiers; format Brazilian E.164 without guessing missing digits. */
+export function formatPhone(value: unknown): string {
+  const raw=string(value).trim(),digits=raw.replace(/\D/g,'');
+  if(!/^\+?[\d\s().-]+$/.test(raw))return raw;
+  const match=/^55(\d{2})(\d{4,5})(\d{4})$/.exec(digits);
+  return match?`+55 ${match[1]} ${match[2]}-${match[3]}`:raw;
+}
