@@ -52,12 +52,18 @@ export function registerChannelAccounts(program: Command): void {
         per_page: toInt(opts.perPage),
       });
       if (format === "json") return printJson(res);
-      printTable(res.data, [
+      // Token da conexão: bloco `instagram` ou `whatsapp`, conforme o canal.
+      const rows = res.data.map((account) => ({
+        ...account,
+        token: account.instagram?.token_status ?? account.whatsapp?.token_status ?? null,
+      }));
+      printTable(rows, [
         { header: "ID", key: "id", max: 36 },
         { header: "CANAL", key: "channel" },
         { header: "NOME", key: "display" },
         { header: "ID NA META", key: "external_id" },
         { header: "STATUS", key: "status" },
+        { header: "TOKEN", key: "token" },
         { header: "CLIENTE", key: "customer_id", max: 36 },
       ]);
       printOffsetFooter(res.meta);

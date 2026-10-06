@@ -14,7 +14,9 @@ aceitam `quick_replies`; `conversations.reply` usa a Conta de canal como origem
 em Conversas do Instagram; `conversations.list` filtra por `channel` e
 `channel_account_id`. Novo recurso `channelAccounts` (`list`, `get` e Regras de
 comentário: `listCommentRules`, `getCommentRule`, `createCommentRule`,
-`updateCommentRule`).
+`updateCommentRule`). `ChannelAccount.instagram` traz a saúde da conexão
+(`token_status`, `token_expires_at`, `token_refreshed_at`); `Message` tipa
+`content.edited` (`{ count, at }`), `revoked_at`, `channel` e `external_id`.
 
 CLI: `messages send --quick-reply`/`--quick-replies-json`, novo
 `messages send-media` (WhatsApp ou Instagram), `conversations list --channel

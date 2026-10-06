@@ -222,7 +222,7 @@ Nomes em inglês (snake_case, melhor para tool-calling); descrições em PT-BR.
 **Clientes** — `list_customers`, `get_customer`, `create_customer`, `update_customer`, `delete_customer`
 **Links de setup** — `list_setup_links`, `create_setup_link`, `update_setup_link` (redirects `https`: concluído → `success_redirect_url` com `status=completed`; link esgotado → `failure_redirect_url` com `status=failed`; cliente volta num erro recuperável → `failure_redirect_url` com `status=cancelled`, link segue válido; todo destino recebe `setup_link_id`)
 **Números** — `list_phone_numbers`, `get_phone_number`, `update_phone_number` (só o `label`, nome local), `phone_number_health`
-**Contas de canal** — `list_channel_accounts` (Números do WhatsApp e Contas do Instagram; filtros `channel` e `customer_id`), `get_channel_account` (no catálogo completo, com ou sem UI)
+**Contas de canal** — `list_channel_accounts` (Números do WhatsApp e Contas do Instagram; filtros `channel` e `customer_id`; o bloco `instagram` traz `token_status` da conexão), `get_channel_account` (no catálogo completo, com ou sem UI)
 **Regras de comentário (Instagram)** — `list_comment_rules`, `get_comment_rule`, `create_comment_rule`, `update_comment_rule` (scopes `comment-rules:read`/`comment-rules:write`; uma regra ativa dispara directs automáticos; não há exclusão, desative com `is_active: false`)
 **Templates** — `list_templates`, `get_template`, `create_template`
 **Webhooks** — `list_webhooks`, `get_webhook`, `create_webhook`, `update_webhook`, `delete_webhook`, `test_webhook` (`events` aceita a categoria opt-in `app_messages`)

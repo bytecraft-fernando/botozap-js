@@ -136,8 +136,36 @@ export interface Customer {
  */
 export type MessageSource = "api" | "app" | "history" | "broadcast" | (string & {});
 
+/** Marca de edição gravada em `content.edited` (hoje, mensagens do Instagram). */
+export interface MessageEdit {
+  /** Quantas vezes a mensagem foi editada. */
+  count: number;
+  /** Quando foi a última edição (ISO 8601). */
+  at: string;
+}
+
+/**
+ * Conteúdo de uma Mensagem. A forma varia por tipo e canal; o SDK só tipa os
+ * campos transversais.
+ */
+export interface MessageContent {
+  /** Texto (forma do Instagram); no WhatsApp o texto vem em `text.body`. */
+  body?: string;
+  /** Presente quando o contato editou a mensagem: o conteúdo já é o editado. */
+  edited?: MessageEdit;
+  [key: string]: unknown;
+}
+
 export interface Message {
   id: string;
+  /** Canal da Mensagem (`whatsapp` ou `instagram`). */
+  channel?: MessageChannel;
+  /** Identificador no canal: `wamid` no WhatsApp, `mid` no Instagram. */
+  external_id?: string | null;
+  /** Conteúdo; `content.edited` aparece quando o contato editou a mensagem. */
+  content?: MessageContent;
+  /** Quando o remetente apagou a mensagem; `null` quando não apagada. */
+  revoked_at?: string | null;
   /** Origem da mensagem (ver `MessageSource`). */
   source?: MessageSource;
   /** Chegada à BotoZap (ISO 8601); chave de `sort=created_at`. */
@@ -307,6 +335,13 @@ export interface BotoZapEvent {
   id: string;
   /** Cursor monotônico e contíguo, serializado como string. */
   cursor: string;
+  /**
+   * Tipo do Evento (ex.: `whatsapp.message.received`,
+   * `instagram.message.received`). No Instagram, `instagram.message.edited`
+   * traz o texto novo em `data.edit` e o conteúdo atualizado (com
+   * `content.edited`) em `data.message`; `instagram.message.revoked` traz
+   * `data.message.revoked_at`, sem o conteúdo apagado. Valores novos podem surgir.
+   */
   type: string;
   /**
    * WAMID da mensagem do WhatsApp que originou o Evento. `null` fora do

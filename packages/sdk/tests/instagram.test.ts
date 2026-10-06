@@ -144,6 +144,21 @@ describe("SDK — Instagram", () => {
     expect(calls).toHaveLength(1);
   });
 
+  it("expõe o bloco instagram da Conta de canal e content.edited da Mensagem", async () => {
+    const instagram = {
+      instagram_account_id: "17841400000000001", username: "loja", name: "Loja", instagram_connection_id: null,
+      connection_status: "active", token_status: "expired", token_expires_at: null, token_refreshed_at: null,
+    };
+    const { boto } = client([
+      { body: { data: { id: CHANNEL_ACCOUNT, channel: "instagram", instagram } } },
+      { body: { data: { id: "m1", channel: "instagram", external_id: "mid.1", content: { body: "novo", edited: { count: 2, at: "2026-10-06T12:00:00Z" } }, revoked_at: null } } },
+    ]);
+    const account = await boto.channelAccounts.get(CHANNEL_ACCOUNT);
+    expect(account.instagram?.token_status).toBe("expired");
+    const message = await boto.messages.get("m1");
+    expect(message.content?.edited?.count).toBe(2);
+  });
+
   it("conversations.list repassa os filtros channel e channel_account_id", async () => {
     const { boto, calls } = client([{ body: { data: [], paging: { next: null, previous: null } } }]);
     await boto.conversations.list({ channel: "instagram", channel_account_id: CHANNEL_ACCOUNT });

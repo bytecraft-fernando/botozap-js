@@ -2,6 +2,22 @@ import type { BotoZap } from "../client.js";
 import type { MessageChannel, OffsetList, OffsetParams } from "../types.js";
 
 /**
+ * Saúde do token de uma Conta do Instagram: `ok`; `expiring` (vence em até 7
+ * dias, a renovação automática ainda tenta); `expired`; `invalid` (a Meta
+ * recusou o token); `revoked` (conta desconectada); `unknown` (conexão
+ * pendente). Com `expired`, `invalid` ou `revoked` os envios falham até
+ * reconectar a conta.
+ */
+export type InstagramTokenStatus =
+  | "ok"
+  | "expiring"
+  | "expired"
+  | "invalid"
+  | "revoked"
+  | "unknown"
+  | (string & {});
+
+/**
  * Conta de canal: o endpoint concreto de um Cliente num canal — o Número no
  * WhatsApp, a Conta do Instagram no Instagram. O `id` (UUID) serve de `from`
  * no envio e de filtro `channel_account_id` nas listagens.
@@ -30,6 +46,20 @@ export interface ChannelAccount {
     waba_id: string | null;
     connection_status: string | null;
     token_status: string | null;
+  };
+  /** Detalhes e saúde da conexão; só em Contas de canal do Instagram. Nunca traz o token. */
+  instagram?: {
+    /** Id da conta profissional na Meta (o mesmo `external_id`). */
+    instagram_account_id: string;
+    username: string | null;
+    name: string | null;
+    instagram_connection_id: string | null;
+    connection_status: string | null;
+    token_status: InstagramTokenStatus | null;
+    /** Validade do token atual (60 dias, renovado sozinho a cada ~30). */
+    token_expires_at: string | null;
+    /** Última renovação bem-sucedida do token. */
+    token_refreshed_at: string | null;
   };
   [key: string]: unknown;
 }

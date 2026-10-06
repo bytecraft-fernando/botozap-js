@@ -113,6 +113,18 @@ describe("CLI — Instagram", () => {
     expect(request().query).toMatchObject({ channel: "instagram", channel_account_id: ACCOUNT });
   });
 
+  it("channel-accounts list mostra a saúde do token do Instagram e do WhatsApp", async () => {
+    fetch.mockImplementationOnce(async () => Response.json({ data: [
+      { id: ACCOUNT, channel: "instagram", display: "@loja", status: "active", instagram: { token_status: "expiring" } },
+      { id: "wa", channel: "whatsapp", display: "+55", status: "active", whatsapp: { token_status: "valid" } },
+    ], meta }));
+    const r = await run(registerChannelAccounts, ["channel-accounts", "list", ...base]);
+    expect(r.error).toBeUndefined();
+    expect(r.stdout).toContain("TOKEN");
+    expect(r.stdout).toContain("expiring");
+    expect(r.stdout).toContain("valid");
+  });
+
   it("channel-accounts list/get usam /v1/channel_accounts", async () => {
     fetch.mockImplementationOnce(async () => Response.json({ data: [], meta }));
     fetch.mockImplementationOnce(async () => Response.json({ data: { id: ACCOUNT, channel: "instagram" } }));

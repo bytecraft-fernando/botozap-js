@@ -97,6 +97,8 @@ export type {
   OffsetParams,
   Customer,
   Message,
+  MessageContent,
+  MessageEdit,
   Broadcast,
   BroadcastRecipient,
   Contact,

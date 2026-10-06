@@ -155,7 +155,7 @@ botozap messages send --to 17841400000000123 --text "Qual seu e-mail?" \
   --quick-replies-json '[{"content_type":"user_email"}]'
 
 # Contas de canal e conversas de uma origem
-botozap channel-accounts list --channel instagram
+botozap channel-accounts list --channel instagram   # coluna TOKEN: saúde da conexão
 botozap conversations list --channel instagram --channel-account-id <uuid>
 
 # Regras de comentário do Instagram (comment-rules:read / comment-rules:write)

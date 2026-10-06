@@ -635,6 +635,23 @@ export const channelAccountSchema = z
       .strip()
       .optional()
       .describe("Detalhes do Número; só em Contas de canal do WhatsApp."),
+    instagram: z
+      .object({
+        instagram_account_id: z.string(),
+        username: z.string().nullable(),
+        name: z.string().nullable(),
+        instagram_connection_id: internalUuidSchema.nullable(),
+        connection_status: z.string().nullable(),
+        token_status: z
+          .string()
+          .nullable()
+          .describe("ok, expiring, expired, invalid, revoked ou unknown; com expired/invalid/revoked os envios falham até reconectar."),
+        token_expires_at: z.string().nullable(),
+        token_refreshed_at: z.string().nullable(),
+      })
+      .strip()
+      .optional()
+      .describe("Detalhes e saúde do token da conexão; só em Contas de canal do Instagram. Nunca traz o token."),
   })
   .strip();
 

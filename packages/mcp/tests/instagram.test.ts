@@ -96,7 +96,8 @@ describe("MCP — Instagram", () => {
   });
 
   it("list_channel_accounts, get_channel_account e Regras de comentário usam as rotas /v1", async () => {
-    const account = { id: ACCOUNT, channel: "instagram", customer_id: CUSTOMER, display: "@loja", status: "active", sandbox: false, external_id: "17841400000000999", created_at: NOW, updated_at: NOW };
+    const account = { id: ACCOUNT, channel: "instagram", customer_id: CUSTOMER, display: "@loja", status: "active", sandbox: false, external_id: "17841400000000999", created_at: NOW, updated_at: NOW,
+      instagram: { instagram_account_id: "17841400000000999", username: "loja", name: "Loja", instagram_connection_id: CUSTOMER, connection_status: "active", token_status: "expiring", token_expires_at: NOW, token_refreshed_at: null } };
     const { client, calls } = await connect([
       { body: { data: [account], meta } },
       { body: { data: account } },
@@ -114,6 +115,7 @@ describe("MCP — Instagram", () => {
       await client.callTool({ name: "update_comment_rule", arguments: { channel_account_id: ACCOUNT, rule_id: RULE, is_active: false } }),
     ];
     for (const r of results) expect(r.isError, JSON.stringify(r.content)).toBeFalsy();
+    expect((results[0]!.structuredContent as any).data[0].instagram).toEqual(account.instagram);
     expect(calls.map((c) => `${c.method} ${c.path}`)).toEqual([
       "GET /v1/channel_accounts?channel=instagram",
       `GET /v1/channel_accounts/${ACCOUNT}`,

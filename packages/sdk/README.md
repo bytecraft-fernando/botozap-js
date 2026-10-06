@@ -169,6 +169,8 @@ No Instagram não existe `caption` em mídia (`unsupported_caption`).
 // Números do WhatsApp e Contas do Instagram lado a lado
 const { data: contas } = await boto.channelAccounts.list({ channel: "instagram" });
 const conta = await boto.channelAccounts.get(contas[0]!.id); // UUID ou id na Meta
+// Saúde da conexão do Instagram (o token nunca é exposto)
+conta.instagram?.token_status; // "ok" | "expiring" | "expired" | "invalid" | "revoked" | "unknown"
 
 // Conversas de uma origem específica
 await boto.conversations.list({ channel: "instagram", channel_account_id: conta.id });
@@ -187,6 +189,12 @@ await boto.channelAccounts.updateCommentRule(conta.id, regra.id, { is_active: fa
 posts. Criar ou ativar exige plano com Regras de comentário (`422
 plan_restricted`); a mesma palavra-chave no mesmo alvo é `409 duplicate_rule`.
 Não há exclusão pela API: desative com `is_active: false`.
+
+Com `token_status` `expired`, `invalid` ou `revoked`, os envios pela conta
+falham até reconectá-la em Canais. Mensagens do Instagram editadas pelo contato
+trazem o conteúdo atualizado com `content.edited` (`{ count, at }`); as apagadas,
+`revoked_at`. Os Eventos `instagram.message.edited` e `instagram.message.revoked`
+chegam pelo webhook e por `events.list`.
 
 ## Clientes e templates
 
