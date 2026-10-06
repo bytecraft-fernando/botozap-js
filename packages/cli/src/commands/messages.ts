@@ -1,6 +1,6 @@
 import { Command } from "commander";
 import { readFileSync } from "node:fs";
-import type { InteractivePayload, Message, SendResult } from "@botozap/sdk";
+import type { InteractivePayload, Message, QuickReply, SendMediaParams, SendResult } from "@botozap/sdk";
 import { context, toInt } from "./shared.js";
 import {
   printJson,
@@ -35,6 +35,37 @@ function parseInline(raw: string): unknown {
   }
 }
 
+/** Acumula `--quick-reply` repetido: "título" ou "título=payload". */
+function collectQuickReply(value: string, previous: QuickReply[] = []): QuickReply[] {
+  const index = value.indexOf("=");
+  const title = (index === -1 ? value : value.slice(0, index)).trim();
+  const payload = index === -1 ? undefined : value.slice(index + 1);
+  if (!title) throw new Error("--quick-reply exige um título (\"título\" ou \"título=payload\").");
+  return [...previous, payload ? { title, payload } : { title }];
+}
+
+/** `--quick-replies-json`: lista completa no formato da API (inclui content_type). */
+function parseQuickRepliesJson(raw: string): QuickReply[] {
+  let value: unknown;
+  try {
+    value = JSON.parse(raw);
+  } catch {
+    throw new Error("--quick-replies-json não é um JSON válido.");
+  }
+  if (!Array.isArray(value)) throw new Error("--quick-replies-json deve ser uma lista JSON.");
+  return value as QuickReply[];
+}
+
+/** Campos do recibo: `wamid` no WhatsApp, `channel` + `external_id` fora dele. */
+function receiptFields(result: SendResult, extra: string[] = []): string[] {
+  const identity = result.wamid === null || result.channel
+    ? ["channel", "external_id"]
+    : ["wamid"];
+  return ["id", ...identity, "to", "status", ...extra];
+}
+
+const MEDIA_TYPES = ["image", "video", "audio", "document"] as const;
+
 function parseSort(raw?: string): "created_at" | "event_at" | undefined {
   if (raw === undefined) return undefined;
   if (raw === "created_at" || raw === "event_at") return raw;
@@ -44,23 +75,47 @@ function parseSort(raw?: string): "created_at" | "event_at" | undefined {
 export function registerMessages(program: Command): void {
   const messages = program
     .command("messages")
-    .description("Enviar e consultar mensagens de WhatsApp");
+    .description("Enviar e consultar mensagens de WhatsApp e Instagram");
 
   messages
     .command("send")
-    .description("Envia uma mensagem (texto simples ou payload completo)")
-    .option("--to <wa_id>", "destinatário (número E.164 sem +, ex.: 5511999999999)")
+    .description("Envia uma mensagem (texto simples ou payload completo) pelo WhatsApp ou Instagram")
+    .option(
+      "--to <destinatario>",
+      "destinatário: telefone E.164 (ex.: 5511999999999) ou BSUID no WhatsApp; IGSID no Instagram",
+    )
     .option("--text <body>", "corpo de uma mensagem de texto")
-    .option("--from <phone_number_id>", "número de origem (opcional)")
+    .option(
+      "--from <origem>",
+      "origem (opcional): phone_number_id ou UUID do Número; no Instagram, id da conta na Meta ou UUID da Conta de canal",
+    )
+    .option(
+      "--quick-reply <titulo[=payload]>",
+      "opção de resposta (só Instagram, com --text; repita até 13 vezes; título até 20 caracteres)",
+      collectQuickReply,
+    )
+    .option(
+      "--quick-replies-json <json>",
+      "lista completa de opções de resposta no formato da API (aceita content_type user_phone_number/user_email)",
+    )
     .option("--input <arquivo>", "arquivo JSON com o corpo bruto da mensagem")
     .option("--stdin", "lê o corpo bruto da mensagem do stdin")
     .action(async (opts, cmd: Command) => {
       const { client, format } = context(cmd);
+      if (opts.quickReply && opts.quickRepliesJson) {
+        throw new Error("Use --quick-reply OU --quick-replies-json, não os dois.");
+      }
+      const quickReplies: QuickReply[] | undefined = opts.quickRepliesJson
+        ? parseQuickRepliesJson(opts.quickRepliesJson)
+        : opts.quickReply;
 
       // POST /messages responde o objeto DIRETO (sem envelope `data`); ambos os
-      // caminhos devolvem o mesmo shape { id, wamid, to, status }.
+      // caminhos devolvem o mesmo shape { id, wamid|external_id, to, status }.
       let result: SendResult;
       if (opts.input || opts.stdin) {
+        if (quickReplies) {
+          throw new Error("Com --input/--stdin, inclua quick_replies no próprio JSON.");
+        }
         // Payload cru: contrato de baixo nível do SDK (`request`), sem montar o corpo.
         const body = readRawBody(opts.input, opts.stdin);
         result = await client.request<SendResult>("POST", "/messages", { body });
@@ -74,24 +129,58 @@ export function registerMessages(program: Command): void {
           to: opts.to,
           text: opts.text,
           ...(opts.from ? { from: opts.from } : {}),
+          ...(quickReplies ? { quick_replies: quickReplies } : {}),
         });
       }
 
       if (format === "json") return printJson(result);
       printLine("Mensagem enfileirada.");
-      printDetail(result as unknown as Record<string, unknown>, [
-        "id",
-        "wamid",
-        "to",
-        "status",
-      ]);
+      printDetail(result as unknown as Record<string, unknown>, receiptFields(result));
     });
 
-  const printSent = (result: SendResult, format: string, fields: string[] = ["id", "wamid", "to", "status"]) => {
+  const printSent = (result: SendResult, format: string) => {
     if (format === "json") return printJson(result);
     printLine("Mensagem enfileirada.");
-    printDetail(result as unknown as Record<string, unknown>, fields);
+    printDetail(result as unknown as Record<string, unknown>, receiptFields(result));
   };
+
+  messages
+    .command("send-media")
+    .description("Envia image, video, audio ou document por URL https pública (WhatsApp ou Instagram)")
+    .requiredOption(
+      "--to <destinatario>",
+      "destinatário: telefone E.164 ou BSUID no WhatsApp; IGSID no Instagram",
+    )
+    .requiredOption("--type <tipo>", "image | video | audio | document")
+    .requiredOption("--link <url>", "URL https pública do arquivo")
+    .option("--caption <texto>", "legenda (image, video ou document; o Instagram não aceita legenda)")
+    .option("--filename <nome>", "nome do arquivo (só document)")
+    .option(
+      "--from <origem>",
+      "origem (opcional): phone_number_id ou UUID do Número; no Instagram, id da conta na Meta ou UUID da Conta de canal",
+    )
+    .action(async (opts, cmd: Command) => {
+      const { client, format } = context(cmd);
+      const type = opts.type as (typeof MEDIA_TYPES)[number];
+      if (!MEDIA_TYPES.includes(type)) {
+        throw new Error("--type deve ser image, video, audio ou document.");
+      }
+      if (opts.caption !== undefined && type === "audio") {
+        throw new Error("--caption não é aceito em audio.");
+      }
+      if (opts.filename !== undefined && type !== "document") {
+        throw new Error("--filename só é aceito com --type document.");
+      }
+      const params = {
+        to: opts.to,
+        type,
+        link: opts.link,
+        ...(opts.from ? { from: opts.from } : {}),
+        ...(opts.caption !== undefined ? { caption: opts.caption } : {}),
+        ...(opts.filename !== undefined ? { filename: opts.filename } : {}),
+      } as SendMediaParams;
+      printSent(await client.messages.sendMedia(params), format);
+    });
 
   messages
     .command("send-interactive")
@@ -143,12 +232,15 @@ export function registerMessages(program: Command): void {
 
   messages
     .command("react")
-    .description("Reage a uma mensagem recebida (use --remove para retirar a reação)")
-    .requiredOption("--to <wa_id>", "destinatário (o contato)")
-    .requiredOption("--message-id <id>", "UUID interno ou wamid da mensagem recebida")
+    .description("Reage a uma mensagem recebida no WhatsApp ou Instagram (use --remove para retirar a reação)")
+    .requiredOption("--to <destinatario>", "destinatário (o contato): telefone/BSUID no WhatsApp, IGSID no Instagram")
+    .requiredOption(
+      "--message-id <id>",
+      "mensagem recebida: UUID interno ou wamid no WhatsApp; mid (external_id) no Instagram",
+    )
     .option("--emoji <emoji>", "emoji da reação")
     .option("--remove", "retira a reação (emoji vazio)")
-    .option("--from <phone_number_id>", "número de origem (opcional)")
+    .option("--from <origem>", "origem (opcional): Número no WhatsApp; id da conta na Meta ou UUID da Conta de canal no Instagram")
     .action(async (opts, cmd: Command) => {
       const { client, format } = context(cmd);
       if (!opts.remove && !opts.emoji) throw new Error("Informe --emoji ou --remove.");
@@ -160,13 +252,10 @@ export function registerMessages(program: Command): void {
       });
       if (format === "json") return printJson(result);
       printLine(opts.remove ? "Reação retirada." : "Reação enviada.");
-      printDetail({ ...result, ...(result.reaction ?? {}) } as unknown as Record<string, unknown>, [
-        "wamid",
-        "to",
-        "status",
-        "action",
-        "emoji",
-      ]);
+      printDetail(
+        { ...result, ...(result.reaction ?? {}), wamid: result.wamid } as unknown as Record<string, unknown>,
+        [...receiptFields(result).filter((f) => f !== "id"), "action", "emoji"],
+      );
     });
 
   messages
