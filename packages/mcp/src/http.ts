@@ -315,8 +315,9 @@ async function handleRequest(
   identityCache: ProcessIdentityCache,
 ): Promise<void> {
   const url = new URL(request.url ?? "/", "http://mcp.invalid");
-  if (url.pathname === "/healthz" && request.method === "GET") {
-    writeHealthz(response);
+  // HEAD também: monitores externos (UptimeRobot grátis) checam só com HEAD.
+  if (url.pathname === "/healthz" && (request.method === "GET" || request.method === "HEAD")) {
+    writeHealthz(response, request.method === "HEAD");
     return;
   }
   if (oauth && request.method === "GET" &&
@@ -752,9 +753,9 @@ async function reclaimOldestReplaceableSession(
   return true;
 }
 
-function writeHealthz(response: ServerResponse): void {
+function writeHealthz(response: ServerResponse, headOnly = false): void {
   response.writeHead(200, { "Content-Type": "application/json; charset=utf-8" });
-  response.end(JSON.stringify({ ok: true }));
+  response.end(headOnly ? undefined : JSON.stringify({ ok: true }));
 }
 
 function acceptMcpHttpHeaders(

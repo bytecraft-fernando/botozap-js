@@ -169,6 +169,13 @@ describe("GET /healthz", () => {
     expect(response.body).not.toContain(SECRET);
     expect(response.headers["www-authenticate"]).toBeUndefined();
   });
+
+  it("responde 200 a HEAD, sem corpo (monitor externo)", async () => {
+    const remote = await startRemote();
+    const response = await rawHttp(new URL("/healthz", remote.url), { method: "HEAD", headers: {} });
+    expect(response.status).toBe(200);
+    expect(response.body).toBe("");
+  });
 });
 
 describe("Host e Origin em /mcp", () => {
