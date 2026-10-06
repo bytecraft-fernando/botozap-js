@@ -25,6 +25,7 @@ import { Contacts } from "./resources/contacts.js";
 import { Conversations } from "./resources/conversations.js";
 import { Webhooks } from "./resources/webhooks.js";
 import { PhoneNumbers } from "./resources/phone-numbers.js";
+import { ChannelAccounts } from "./resources/channel-accounts.js";
 import { Media } from "./resources/media.js";
 import { Events } from "./resources/events.js";
 import { Usage } from "./resources/usage.js";
@@ -70,6 +71,8 @@ export class BotoZap {
   readonly conversations: Conversations;
   readonly webhooks: Webhooks;
   readonly phoneNumbers: PhoneNumbers;
+  /** Contas de canal (WhatsApp e Instagram) e Regras de comentário do Instagram. */
+  readonly channelAccounts: ChannelAccounts;
   readonly contactStages: ContactStages;
   readonly contactFields: ContactFields;
   readonly calendar: Calendar;
@@ -127,6 +130,7 @@ export class BotoZap {
     this.conversations = new Conversations(this);
     this.webhooks = new Webhooks(this);
     this.phoneNumbers = new PhoneNumbers(this);
+    this.channelAccounts = new ChannelAccounts(this);
     this.media = new Media(this);
     this.events = new Events(this);
     this.usage = new Usage(this);

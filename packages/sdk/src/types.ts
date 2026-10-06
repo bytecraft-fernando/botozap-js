@@ -1,35 +1,65 @@
 /** Status de uma mensagem no envio. A API pode evoluir os valores. */
 export type MessageStatus = "sent" | "delivered" | "read" | "failed" | string;
 
+/** Canal de uma mensagem/Conta de canal. Valores novos podem surgir. */
+export type MessageChannel = "whatsapp" | "instagram" | (string & {});
+
 /**
  * Retorno de POST /v1/messages. Esta rota responde o objeto DIRETO (sem o
  * envelope `{ data }`), por isso o método `messages.send` devolve `SendResult`
  * cru. Todas as OUTRAS rotas de item vêm embrulhadas em `{ data }` (helper `ok`).
+ *
+ * No WhatsApp o identificador da Meta é `wamid`. Fora dele (Instagram) `wamid`
+ * vem `null` e o identificador do canal é `external_id` (o `mid` da Meta),
+ * acompanhado de `channel`. Ramifique por `channel`/`external_id`, não pela
+ * presença de `wamid`.
  */
 export interface SendResult {
+  /** UUID interno da Mensagem; `null` quando a gravação best-effort falhou (ou a reação não tem alvo no histórico). */
   id: string | null;
-  wamid: string;
+  /** ID da mensagem no WhatsApp; `null` fora do WhatsApp. */
+  wamid: string | null;
+  /** Identificador da mensagem no canal (o `mid` no Instagram). Ausente em respostas do WhatsApp. */
+  external_id?: string | null;
+  /** Canal do envio. Ausente em respostas do WhatsApp (o canal implícito). */
+  channel?: MessageChannel;
   to: string;
   /** Destinatário efetivamente usado após normalização de telefone/BSUID. */
   sent_to?: string;
   status: MessageStatus;
   /** Presente apenas quando a chave é do ambiente sandbox. */
   sandbox?: boolean;
-  /** Só em `type: "reaction"`: alvo e ação (`react`/`unreact`). */
-  type?: "reaction";
+  /** Avisos não bloqueantes (ex.: consentimento do Contato). */
+  warnings?: { code: string; message: string }[];
+  /**
+   * Tipo do envio. WhatsApp: só em `"reaction"`. Instagram: `"text"` ou o tipo
+   * da mídia; ausente em reação.
+   */
+  type?: "reaction" | "text" | "image" | "video" | "audio" | "document" | (string & {});
+  /** Só em reação: alvo e ação (`react`/`unreact`). */
   reaction?: SendReactionResult;
 }
 
 /** Eco de `POST /v1/messages` com `type: "reaction"`. */
 export interface SendReactionResult {
-  /** UUID interno da mensagem alvo. */
+  /** WhatsApp: UUID interno da mensagem alvo. Instagram: o `mid` do alvo. */
   message_id: string;
-  /** wamid da mensagem alvo. */
-  wamid: string;
+  /** wamid da mensagem alvo (só no WhatsApp). */
+  wamid?: string;
   /** `""` quando a reação foi retirada. */
   emoji: string;
   action: "react" | "unreact";
 }
+
+/**
+ * Opção de resposta (quick reply) de um direct do Instagram. `text` (padrão)
+ * exige `title` (até 20 caracteres) e aceita `payload` (até 1000; sem ele volta
+ * o próprio título). `user_phone_number`/`user_email` são preenchidos pelo
+ * Instagram com o dado de quem tocou: não mande `title` nem `payload`.
+ */
+export type QuickReply =
+  | { content_type?: "text"; title: string; payload?: string }
+  | { content_type: "user_phone_number" | "user_email" };
 
 /** Componente de template do WhatsApp (header, body, button…). */
 export interface TemplatePayload {
@@ -160,14 +190,27 @@ export interface ConversationReferral {
   received_at: string | null;
 }
 
+/** Bloco `channel_account` embutido em Conversas, Contatos e Mensagens. */
+export interface ChannelAccountRef {
+  /** UUID interno da Conta de canal (serve de `from` no envio). */
+  id: string;
+  channel: MessageChannel;
+  /** Telefone formatado no WhatsApp, @username no Instagram; pode ser nulo. */
+  display: string | null;
+}
+
 export interface Conversation {
   id: string;
   /** Pausa do agente aguardando humano (ISO 8601); null quando não pausado. */
   agent_paused_at?: string | null;
-  /** UUID interno do Número da própria Conversa. */
-  phone_number_id?: string;
+  /** Canal da Conversa (`whatsapp` ou `instagram`). */
+  channel?: MessageChannel;
+  /** Conta de canal por onde a Conversa acontece (Número ou Conta do Instagram). */
+  channel_account?: ChannelAccountRef | null;
+  /** UUID interno do Número da própria Conversa; `null` fora do WhatsApp. */
+  phone_number_id?: string | null;
   contact?: {
-    /** Identidade canônica do Contato: telefone ou BSUID. */
+    /** Identidade canônica do Contato: telefone ou BSUID no WhatsApp, IGSID no Instagram. */
     wa_id?: string | null;
     phone?: string | null;
     [key: string]: unknown;

@@ -61,6 +61,10 @@ const result = await boto.messages.send({
 console.log(result.wamid, result.status);
 ```
 
+No Instagram o recibo traz `wamid: null`, `channel: "instagram"` e o `mid` da
+Meta em `external_id`. Para correlacionar envios de qualquer canal, use
+`result.external_id ?? result.wamid`.
+
 A conta é derivada da chave de API. Você nunca passa um id de conta: o isolamento multi-tenant é garantido no servidor.
 
 ## Mensagens
@@ -91,7 +95,8 @@ await boto.messages.send({
   from: "uuid-ou-phone_number_id",
 });
 
-// Responder sem combinar manualmente Contato e Número
+// Responder sem combinar manualmente Contato e origem: no WhatsApp sai pelo
+// Número da Conversa; no Instagram, pela Conta de canal (channel_account.id).
 await boto.conversations.reply("uuid-da-conversa", {
   text: "Resposta do agente",
 });
@@ -127,6 +132,20 @@ const r = await boto.messages.sendReaction({
 });
 r.reaction?.action; // "react" | "unreact"
 
+// Instagram: o mesmo endpoint, com o IGSID do contato em `to`. `from` aceita o
+// id da conta na Meta ou o UUID da Conta de canal (channelAccounts.list).
+const ig = await boto.messages.send({
+  to: "17841400000000123",
+  text: "Tenho estes horários no sábado:",
+  // Opções de resposta: só Instagram, só com texto, até 13 (título ≤ 20).
+  quick_replies: [
+    { title: "9h", payload: "sabado_09" },
+    { title: "10h30", payload: "sabado_1030" },
+  ],
+});
+ig.wamid; // null
+ig.external_id; // "aWdEZ...mlk" (mid)
+
 // Listar na ordem real das mensagens (histórico importado incluído)
 const page = await boto.messages.list({ sort: "event_at", limit: 50 });
 page.data[0]?.source; // "api" | "app" | "history" | "broadcast"
@@ -137,6 +156,37 @@ aberta. A API valida o `interactive` (limites da Cloud API) e recusa com `422
 invalid_request`; reação recusa com `invalid_reaction`, `missing_reaction_target`,
 `reaction_target_not_found`, `reaction_target_invalid` ou `reaction_target_expired`.
 O cursor de `messages.list` vale só para o `sort` que o gerou.
+
+`quick_replies` só existe no Instagram e só com texto, dentro da janela de 24h:
+no WhatsApp a API recusa com `channel_not_supported`; acima de 13 opções,
+`too_many_quick_replies`; título acima de 20 caracteres,
+`quick_reply_title_too_long`; fora da janela, `quick_replies_window_closed`.
+No Instagram não existe `caption` em mídia (`unsupported_caption`).
+
+## Contas de canal e Regras de comentário
+
+```ts
+// Números do WhatsApp e Contas do Instagram lado a lado
+const { data: contas } = await boto.channelAccounts.list({ channel: "instagram" });
+const conta = await boto.channelAccounts.get(contas[0]!.id); // UUID ou id na Meta
+
+// Conversas de uma origem específica
+await boto.conversations.list({ channel: "instagram", channel_account_id: conta.id });
+
+// Regras de comentário (comment-rules:read / comment-rules:write)
+const regra = await boto.channelAccounts.createCommentRule(conta.id, {
+  keyword: "preço",
+  dm_text: "Oi! Te mandei os valores por aqui.",
+  reply_text: "Te chamei no direct!",
+});
+await boto.channelAccounts.listCommentRules(conta.id);
+await boto.channelAccounts.updateCommentRule(conta.id, regra.id, { is_active: false });
+```
+
+`keyword` vazia vale para qualquer comentário e `media_id` vazio para todos os
+posts. Criar ou ativar exige plano com Regras de comentário (`422
+plan_restricted`); a mesma palavra-chave no mesmo alvo é `409 duplicate_rule`.
+Não há exclusão pela API: desative com `is_active: false`.
 
 ## Clientes e templates
 
@@ -215,8 +265,8 @@ if (page.paging.next) {
   page = await boto.contacts.list({ limit: 50, after: page.paging.next });
 }
 
-// Offset/página (customers, templates, broadcasts, phoneNumbers, users,
-// conversations.listAssignments): params { page, per_page }.
+// Offset/página (customers, templates, broadcasts, phoneNumbers,
+// channelAccounts, users, conversations.listAssignments): params { page, per_page }.
 const { data, meta } = await boto.templates.list({ page: 2, per_page: 20 });
 console.log(meta.total_count, meta.total_pages);
 ```
@@ -295,13 +345,14 @@ new BotoZap({
 
 O SDK cobre os recursos da API `/v1`:
 
-- `messages` — enviar texto, template e mídia por link, **listar** e buscar por id
+- `messages` — enviar texto (com `quick_replies` no Instagram), template e mídia por link, **listar** e buscar por id
 - `customers` — listar, buscar, criar, **atualizar**, **remover**, e **links de setup** (listar/criar/atualizar)
 - `templates` — listar, buscar, **criar**
 - `broadcasts` — criar, destinatários, agendar, enviar, cancelar
 - `contacts` — listar, buscar, criar, atualizar, remover; `display_name` é o nome que a empresa dá ao Contato (1–200 caracteres; `null` limpa), separado do `profile_name` que vem do canal
-- `conversations` — listar, buscar, atualizar, atribuições; leituras trazem `entry_point` (`ctwa`/`organic`/`null`), `referral` do último clique em anúncio Click-to-WhatsApp, `fep_expires_at` (fim da janela grátis informado pela Meta) e `fep_reply_by` (estimativa do prazo para responder)
+- `conversations` — listar (filtros `channel` e `channel_account_id`), buscar, atualizar, responder, atribuições; leituras trazem `entry_point` (`ctwa`/`organic`/`null`), `referral` do último clique em anúncio Click-to-WhatsApp, `fep_expires_at` (fim da janela grátis informado pela Meta) e `fep_reply_by` (estimativa do prazo para responder)
 - `webhooks` — CRUD e teste; `customer_id` opcional limita as entregas a um Cliente da Conta (`null` no update remove o filtro)
+- `channelAccounts` — listar e buscar Contas de canal (WhatsApp e Instagram); **Regras de comentário** do Instagram (listar, buscar, criar, atualizar)
 - `phoneNumbers` — listar, buscar, **atualizar o `label`** (nome local, até 100 caracteres; `null` limpa), remover, saúde
 - `media` — subir arquivo (obter um media_id) e **buscar metadados + URL de download** de uma mídia recebida
 - `events` — reler inbound e mudanças de status pelo cursor durável da Conta/ambiente

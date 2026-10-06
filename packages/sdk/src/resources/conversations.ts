@@ -8,6 +8,8 @@ import type {
   CursorParams,
   OffsetList,
   OffsetParams,
+  MessageChannel,
+  QuickReply,
   SendResult,
 } from "../types.js";
 
@@ -27,6 +29,10 @@ export interface ListConversationsParams extends CursorParams {
   contact?: string;
   /** Alias de busca por contato (usado quando `contact` não é informado). */
   phone_number?: string;
+  /** Canal da Conversa: `whatsapp` ou `instagram` (outro valor é 422). */
+  channel?: MessageChannel;
+  /** UUID da Conta de canal (Número ou Conta do Instagram) de origem. */
+  channel_account_id?: string;
 }
 
 export interface CreateAssignmentParams {
@@ -38,6 +44,8 @@ export interface CreateAssignmentParams {
 export interface ReplyConversationParams {
   /** Corpo da resposta livre dentro da janela de 24h. */
   text: string;
+  /** Opções de resposta (só em Conversas do Instagram; ver `messages.send`). */
+  quick_replies?: QuickReply[];
 }
 
 /** Conversas (read + status) e atribuições a membros. */
@@ -74,6 +82,8 @@ export class Conversations {
           status: params.status,
           contact: params.contact,
           phone_number: params.phone_number,
+          channel: params.channel,
+          channel_account_id: params.channel_account_id,
         },
       },
     );
@@ -87,9 +97,11 @@ export class Conversations {
   }
 
   /**
-   * Responde uma Conversa sem o chamador precisar combinar Contato e Número.
-   * A leitura e o envio usam a mesma chave; o POST /messages revalida Conta,
-   * ambiente, identidade, janela, quota e billing antes de chamar a Meta.
+   * Responde uma Conversa sem o chamador precisar combinar Contato e origem.
+   * No WhatsApp a origem é o Número da Conversa; no Instagram, a Conta de
+   * canal (`channel_account.id`). A leitura e o envio usam a mesma chave; o
+   * POST /messages revalida Conta, ambiente, identidade, janela, quota e
+   * billing antes de chamar a Meta.
    */
   async reply(
     id: string,
@@ -97,11 +109,16 @@ export class Conversations {
     options: SendOptions = {},
   ): Promise<SendResult> {
     const conversation = await this.get(id);
-    const from = conversation.phone_number_id;
+    const from =
+      conversation.channel === "instagram"
+        ? conversation.channel_account?.id
+        : conversation.phone_number_id;
     if (typeof from !== "string" || !from.trim()) {
       throw new BotoZapError(
         "malformed_response",
-        "Conversa sem UUID interno do Número de origem.",
+        conversation.channel === "instagram"
+          ? "Conversa do Instagram sem UUID da Conta de canal de origem."
+          : "Conversa sem UUID interno do Número de origem.",
         0,
       );
     }
@@ -121,7 +138,15 @@ export class Conversations {
       );
     }
 
-    return this.client.messages.send({ to, text: params.text, from }, options);
+    return this.client.messages.send(
+      {
+        to,
+        text: params.text,
+        from,
+        ...(params.quick_replies !== undefined ? { quick_replies: params.quick_replies } : {}),
+      },
+      options,
+    );
   }
 
   update(id: string, params: Record<string, unknown>): Promise<Conversation> {
