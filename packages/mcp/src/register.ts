@@ -144,6 +144,9 @@ export function createRegister(
     : new Set(accounts.split(",").map(id => id.trim()).filter(Boolean));
   const supportsUi = () => { const mimeTypes = getUiCapability(server.server.getClientCapabilities())?.mimeTypes; return Array.isArray(mimeTypes) && mimeTypes.includes(RESOURCE_MIME_TYPE); };
   const uiAllowed = (value: ApiIdentity) => !!options.uiEnabled && supportsUi() && (allowedAccounts === null || allowedAccounts.has(value.account_id));
+  // get_channel_account é helper de tela no perfil assistant; no catálogo
+  // completo (API key) é uma leitura comum e não depende de UI.
+  const uiGated = (name: string, value: ApiIdentity) => uiTools.has(name) && (name !== "get_channel_account" || assistant(value));
   const uiTools = new Set(["get_channel_account","open_review_panel", "stage_review_reply", "stage_review_template", "review_template_variables", "open_agent_cases", "stage_appointment_booking", "open_live_conversation", "open_botozap"]);
   const listeners: Array<(enabled: boolean) => void> = [];
   const screenMeta = (name: string) => {
@@ -184,7 +187,7 @@ export function createRegister(
       async (args): Promise<CallToolResult> => {
         try {
           const authority = requestAuthContext.getStore()?.identity ?? currentIdentity;
-          if (!catalogAllows(name, authority, profiles) || !isToolAllowed(policy, authority) || (uiTools.has(name) && !uiAllowed(authority))) {
+          if (!catalogAllows(name, authority, profiles) || !isToolAllowed(policy, authority) || (uiGated(name, authority) && !uiAllowed(authority))) {
             throw new BotoZapError("forbidden_scope", "Esta autorização não permite a ferramenta.", 403);
           }
           const handlerResult = await handler(
@@ -235,7 +238,7 @@ export function createRegister(
       },
     );
     tools.push({ name, description, tool, policy });
-    if (!catalogAllows(name, currentIdentity, profiles) || !isToolAllowed(policy, currentIdentity) || (uiTools.has(name) && !uiAllowed(currentIdentity))) tool.disable();
+    if (!catalogAllows(name, currentIdentity, profiles) || !isToolAllowed(policy, currentIdentity) || (uiGated(name, currentIdentity) && !uiAllowed(currentIdentity))) tool.disable();
   };
   Object.defineProperty(register, "uiEnabled", { get: () => uiAllowed(currentIdentity) });
   const previousInitialized = server.server.oninitialized;
@@ -252,7 +255,7 @@ export function createRegister(
         tool.title = 'title' in copy ? copy.title : name === 'open_botozap' ? 'Pendências' : undefined;
         tool.annotations = copy.annotations;
         tool._meta = uiAllowed(next) ? metadata(name, next) : undefined;
-        const allowed = catalogAllows(name, next, profiles) && isToolAllowed(policy, next) && (!uiTools.has(name) || uiAllowed(next));
+        const allowed = catalogAllows(name, next, profiles) && isToolAllowed(policy, next) && (!uiGated(name, next) || uiAllowed(next));
         if (tool.enabled !== allowed) allowed ? tool.enable() : tool.disable();
       }
       for (const listener of listeners) listener(uiAllowed(next));

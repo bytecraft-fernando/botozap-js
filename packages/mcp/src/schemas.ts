@@ -131,7 +131,16 @@ export const sendMessageResultSchema = z
     id: internalUuidSchema
       .nullable()
       .describe("UUID interno da Mensagem; null se a persistência best-effort falhou."),
-    wamid: z.string().describe("ID da Mensagem atribuído pelo WhatsApp/Meta."),
+    wamid: z
+      .string()
+      .nullable()
+      .describe("ID da Mensagem atribuído pelo WhatsApp/Meta; null fora do WhatsApp (use external_id)."),
+    external_id: z
+      .string()
+      .nullable()
+      .optional()
+      .describe("Identificador da Mensagem no canal (o mid no Instagram)."),
+    channel: z.string().optional().describe("Canal do envio; ausente no WhatsApp."),
     to: z.string().describe("Destinatário solicitado pelo cliente."),
     sent_to: z
       .string()
@@ -140,11 +149,11 @@ export const sendMessageResultSchema = z
     status: z.string().describe("Status inicial do envio."),
     sandbox: z.boolean().optional(),
     warnings: z.array(z.object({ code: z.string(), message: z.string() }).strip()).optional(),
-    type: z.literal("reaction").optional(),
+    type: z.string().optional().describe("WhatsApp: só em reação. Instagram: text ou o tipo da mídia."),
     reaction: z
       .object({
-        message_id: internalUuidSchema,
-        wamid: z.string(),
+        message_id: z.string().describe("WhatsApp: UUID interno do alvo. Instagram: mid do alvo."),
+        wamid: z.string().optional(),
         emoji: z.string(),
         action: z.enum(["react", "unreact"]),
       })
@@ -597,3 +606,58 @@ export const metaCostReportSchema = z
   .strip() satisfies z.ZodType<MetaCostReport>;
 
 export const metaCostsResultSchema = itemResultSchemaFor(metaCostReportSchema);
+
+/** Conta de canal pública (GET /v1/channel_accounts): Número ou Conta do Instagram. */
+export const channelAccountSchema = z
+  .object({
+    id: internalUuidSchema.describe("UUID interno da Conta de canal; serve de `from` no envio."),
+    channel: z.string().describe("whatsapp ou instagram."),
+    customer_id: internalUuidSchema,
+    display: z.string().nullable().describe("Telefone formatado no WhatsApp, @username no Instagram."),
+    status: z.string(),
+    sandbox: z.boolean(),
+    external_id: z.string().describe("Id na Meta: phone_number_id no WhatsApp, id da conta no Instagram."),
+    created_at: z.string(),
+    updated_at: z.string(),
+    whatsapp: z
+      .object({
+        id: internalUuidSchema.nullable(),
+        phone_number_id: z.string(),
+        display_phone_number: z.string().nullable(),
+        verified_name: z.string().nullable(),
+        quality_rating: z.string().nullable(),
+        type: z.string().nullable(),
+        waba_connection_id: internalUuidSchema.nullable(),
+        waba_id: z.string().nullable(),
+        connection_status: z.string().nullable(),
+        token_status: z.string().nullable(),
+      })
+      .strip()
+      .optional()
+      .describe("Detalhes do Número; só em Contas de canal do WhatsApp."),
+  })
+  .strip();
+
+export const listChannelAccountsResultSchema = offsetListResultSchemaFor(channelAccountSchema);
+
+/** Regra de comentário do Instagram (GET /v1/channel_accounts/:id/comment-rules). */
+export const commentRuleSchema = z
+  .object({
+    id: internalUuidSchema,
+    channel_account_id: internalUuidSchema,
+    keyword: z.string().nullable().describe("Palavra-chave; null = qualquer comentário."),
+    dm_text: z.string().describe("Direct enviado a quem comentou."),
+    reply_text: z.string().nullable().describe("Resposta pública ao comentário; null = sem resposta."),
+    media_id: z.string().nullable().describe("Id do post; null = todos os posts."),
+    is_active: z.boolean().describe("Configuração gravada; o efeito real está em status."),
+    status: z.string().describe("active, inactive ou paused_plan (ativa, mas pausada pelo plano)."),
+    paused_by_plan: z.boolean(),
+    notice: z.string().nullable().describe("Aviso não bloqueante (regra ampla demais)."),
+    created_at: z.string(),
+    updated_at: z.string(),
+  })
+  .strip();
+
+export const listCommentRulesResultSchema = offsetListResultSchemaFor(commentRuleSchema);
+
+export const commentRuleResultSchema = itemResultSchemaFor(commentRuleSchema);

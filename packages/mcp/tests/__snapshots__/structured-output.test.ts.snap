@@ -1785,6 +1785,10 @@ exports[`MCP — output schemas e structured content > anuncia schemas não vazi
       "$schema": "http://json-schema.org/draft-07/schema#",
       "additionalProperties": false,
       "properties": {
+        "channel": {
+          "description": "Canal do envio; ausente no WhatsApp.",
+          "type": "string",
+        },
         "error": {
           "additionalProperties": false,
           "description": "Erro estruturado sem credenciais, tokens ou headers de request.",
@@ -1827,6 +1831,13 @@ exports[`MCP — output schemas e structured content > anuncia schemas não vazi
           ],
           "type": "object",
         },
+        "external_id": {
+          "description": "Identificador da Mensagem no canal (o mid no Instagram).",
+          "type": [
+            "string",
+            "null",
+          ],
+        },
         "id": {
           "anyOf": [
             {
@@ -1855,7 +1866,8 @@ exports[`MCP — output schemas e structured content > anuncia schemas não vazi
               "type": "string",
             },
             "message_id": {
-              "$ref": "#/properties/id/anyOf/0",
+              "description": "WhatsApp: UUID interno do alvo. Instagram: mid do alvo.",
+              "type": "string",
             },
             "wamid": {
               "type": "string",
@@ -1863,7 +1875,6 @@ exports[`MCP — output schemas e structured content > anuncia schemas não vazi
           },
           "required": [
             "message_id",
-            "wamid",
             "emoji",
             "action",
           ],
@@ -1885,12 +1896,15 @@ exports[`MCP — output schemas e structured content > anuncia schemas não vazi
           "type": "string",
         },
         "type": {
-          "const": "reaction",
+          "description": "WhatsApp: só em reação. Instagram: text ou o tipo da mídia.",
           "type": "string",
         },
         "wamid": {
-          "description": "ID da Mensagem atribuído pelo WhatsApp/Meta.",
-          "type": "string",
+          "description": "ID da Mensagem atribuído pelo WhatsApp/Meta; null fora do WhatsApp (use external_id).",
+          "type": [
+            "string",
+            "null",
+          ],
         },
         "warnings": {
           "items": {

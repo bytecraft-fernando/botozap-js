@@ -33,6 +33,14 @@ function review() {
 }
 beforeEach(() => { document.body.innerHTML = ""; HTMLElement.prototype.scrollIntoView = vi.fn(); });
 describe("review UI safety", () => {
+  it("accepts an Instagram receipt (wamid null + external_id) and tracks it by mid", async () => {
+    const h = harness(vi.fn(async () => data({ id: null, wamid: null, external_id: "mid.accepted", channel: "instagram", status: "sent" })));
+    await select(); review(); $("send").click();
+    await vi.waitFor(() => expect(document.body.dataset.state).toBe("accepted"));
+    expect($("notice").textContent).toContain("mid.accepted");
+    h.panel.bootstrap(data({ data: [{ id: "receipt", wamid: null, external_id: "mid.accepted", conversation_id: "conversation", direction: "outbound", status: "delivered" }], paging: { next: null } }));
+    expect(document.body.dataset.state).toBe("delivered");
+  });
   it("omits the account slug, accepts a display name and tracks selection for the shared footer", async () => {
     const h = harness();
     expect($("identity").hidden).toBe(true); expect($("identity").textContent).toBe("");

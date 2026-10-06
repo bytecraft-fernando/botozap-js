@@ -7,7 +7,7 @@ exports[`MCP — send_media_message > anuncia o contrato de mídia e seus limite
     "additionalProperties": false,
     "properties": {
       "caption": {
-        "description": "Legenda para image, video ou document; audio não aceita.",
+        "description": "Legenda para image, video ou document; audio não aceita. O Instagram não aceita legenda.",
         "maxLength": 1024,
         "minLength": 1,
         "type": "string",
@@ -18,7 +18,7 @@ exports[`MCP — send_media_message > anuncia o contrato de mídia e seus limite
         "type": "string",
       },
       "from": {
-        "description": "ID Meta ou UUID interno do Número de origem (obrigatório se a conta tem >1 número).",
+        "description": "Origem: ID Meta ou UUID interno do Número (WhatsApp); id da conta na Meta ou UUID da Conta de canal (Instagram). Obrigatório quando há mais de uma origem do mesmo canal.",
         "type": "string",
       },
       "idempotency_key": {
@@ -36,7 +36,7 @@ exports[`MCP — send_media_message > anuncia o contrato de mídia e seus limite
         "type": "string",
       },
       "to": {
-        "description": "Destinatário: telefone E.164 (ex.: 5511999999999) ou wa_id.",
+        "description": "Destinatário: telefone E.164 (ex.: 5511999999999) ou wa_id no WhatsApp; IGSID do contato no Instagram.",
         "type": "string",
       },
       "type": {
@@ -61,6 +61,10 @@ exports[`MCP — send_media_message > anuncia o contrato de mídia e seus limite
     "$schema": "http://json-schema.org/draft-07/schema#",
     "additionalProperties": false,
     "properties": {
+      "channel": {
+        "description": "Canal do envio; ausente no WhatsApp.",
+        "type": "string",
+      },
       "error": {
         "additionalProperties": false,
         "description": "Erro estruturado sem credenciais, tokens ou headers de request.",
@@ -103,6 +107,13 @@ exports[`MCP — send_media_message > anuncia o contrato de mídia e seus limite
         ],
         "type": "object",
       },
+      "external_id": {
+        "description": "Identificador da Mensagem no canal (o mid no Instagram).",
+        "type": [
+          "string",
+          "null",
+        ],
+      },
       "id": {
         "anyOf": [
           {
@@ -131,7 +142,8 @@ exports[`MCP — send_media_message > anuncia o contrato de mídia e seus limite
             "type": "string",
           },
           "message_id": {
-            "$ref": "#/properties/id/anyOf/0",
+            "description": "WhatsApp: UUID interno do alvo. Instagram: mid do alvo.",
+            "type": "string",
           },
           "wamid": {
             "type": "string",
@@ -139,7 +151,6 @@ exports[`MCP — send_media_message > anuncia o contrato de mídia e seus limite
         },
         "required": [
           "message_id",
-          "wamid",
           "emoji",
           "action",
         ],
@@ -161,12 +172,15 @@ exports[`MCP — send_media_message > anuncia o contrato de mídia e seus limite
         "type": "string",
       },
       "type": {
-        "const": "reaction",
+        "description": "WhatsApp: só em reação. Instagram: text ou o tipo da mídia.",
         "type": "string",
       },
       "wamid": {
-        "description": "ID da Mensagem atribuído pelo WhatsApp/Meta.",
-        "type": "string",
+        "description": "ID da Mensagem atribuído pelo WhatsApp/Meta; null fora do WhatsApp (use external_id).",
+        "type": [
+          "string",
+          "null",
+        ],
       },
       "warnings": {
         "items": {

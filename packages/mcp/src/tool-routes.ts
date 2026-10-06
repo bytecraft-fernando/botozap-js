@@ -114,3 +114,8 @@ routes(["open_live_conversation"], "GET /v1/conversations/:id", "GET /v1/message
 routes(["open_botozap"], "GET /v1/customers");
 
 routes(['get_channel_account'], 'GET /v1/channel_accounts/:id');
+routes(["list_channel_accounts"], "GET /v1/channel_accounts");
+routes(["list_comment_rules"], "GET /v1/channel_accounts/:id/comment-rules");
+routes(["get_comment_rule"], "GET /v1/channel_accounts/:id/comment-rules/:ruleId");
+routes(["create_comment_rule"], "POST /v1/channel_accounts/:id/comment-rules");
+routes(["update_comment_rule"], "PATCH /v1/channel_accounts/:id/comment-rules/:ruleId");
