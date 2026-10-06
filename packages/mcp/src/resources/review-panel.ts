@@ -13,6 +13,7 @@ import type { OpenAIUiToolMetadata } from "@openai/mcp-extensions/server";
 import { BotoZapError } from "../client.js";
 import { z } from "zod";
 import type { Register } from "../register.js";
+import { registerGetChannelAccount } from "../tools/channel-accounts.js";
 import { conversationSchema, listCustomersResultSchema } from "../schemas.js";
 
 export const radarToolMetadata = () => uiToolMetadata('radar-cards');
@@ -38,7 +39,7 @@ export function registerReviewPanel(server: McpServer, register: Register): void
       if (resource.enabled !== enabled) enabled ? resource.enable() : resource.disable();
     });
   }
-  register('get_channel_account', 'Consulta a conta de canal autorizada para resolver o negócio de uma conversa.', {id:z.string().uuid()}, z.object({data:z.record(z.unknown())}), async(client,args)=>({data:await client.requestItem('GET',`/channel_accounts/${encodeURIComponent(String(args.id))}`)}));
+  registerGetChannelAccount(register);
   register(
     "stage_review_reply",
     "Prepara um rascunho editável no painel de revisão após confirmar acesso à conversa. Não envia mensagem.",

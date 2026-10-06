@@ -65,6 +65,11 @@ os testes de descoberta exercitam o contrato real de introspecção com HTTP sim
 
 ## Compatibilidade das respostas e ordem de publicação
 
+Recibos de envio (`send_message`, `send_media_message`, `reply_to_conversation`)
+seguem a API: no WhatsApp trazem `wamid`; no Instagram, `wamid: null`, `channel:
+"instagram"` e o `mid` em `external_id` (em reação, `reaction.message_id` é o
+`mid` do alvo). O output schema aceita as duas formas.
+
 Respostas tipadas publicam somente os campos declarados pelo schema, tanto no
 JSON textual quanto em `structuredContent`. `list_users.data[].id` e o alias
 `data[].user_id` continuam disponíveis. A auditoria dos endpoints revisados não
@@ -213,10 +218,12 @@ Nomes em inglês (snake_case, melhor para tool-calling); descrições em PT-BR.
 **Mensagens** — `send_message` (`text`, `template`, `interactive` button/list/cta_url, `location`, `reaction`), `list_messages` (`sort`: `created_at` ou `event_at`; cada item traz `source`), `get_message`
 **Conversas** — `reply_to_conversation`, `list_conversations`, `get_conversation`, `update_conversation` (leituras trazem `entry_point`, `referral` Click-to-WhatsApp, `fep_expires_at` e `fep_reply_by`)
 **Contatos** — `list_contacts`, `get_contact`, `create_contact`, `update_contact`, `delete_contact` (`display_name` é o nome dado pela empresa; `null` limpa)
-**Mídia** — `send_media_message`, `ingest_media`
+**Mídia** — `send_media_message` (WhatsApp ou Instagram: `to` aceita o IGSID; o Instagram não aceita `caption`), `ingest_media` (só WhatsApp)
 **Clientes** — `list_customers`, `get_customer`, `create_customer`, `update_customer`, `delete_customer`
 **Links de setup** — `list_setup_links`, `create_setup_link`, `update_setup_link` (redirects `https`: concluído → `success_redirect_url` com `status=completed`; link esgotado → `failure_redirect_url` com `status=failed`; cliente volta num erro recuperável → `failure_redirect_url` com `status=cancelled`, link segue válido; todo destino recebe `setup_link_id`)
 **Números** — `list_phone_numbers`, `get_phone_number`, `update_phone_number` (só o `label`, nome local), `phone_number_health`
+**Contas de canal** — `list_channel_accounts` (Números do WhatsApp e Contas do Instagram; filtros `channel` e `customer_id`; o bloco `instagram` traz `token_status` da conexão), `get_channel_account` (no catálogo completo, com ou sem UI)
+**Regras de comentário (Instagram)** — `list_comment_rules`, `get_comment_rule`, `create_comment_rule`, `update_comment_rule` (scopes `comment-rules:read`/`comment-rules:write`; uma regra ativa dispara directs automáticos; não há exclusão, desative com `is_active: false`)
 **Templates** — `list_templates`, `get_template`, `create_template`
 **Webhooks** — `list_webhooks`, `get_webhook`, `create_webhook`, `update_webhook`, `delete_webhook`, `test_webhook` (`events` aceita a categoria opt-in `app_messages`)
 **Entregas de webhook** — `list_webhook_deliveries` (status `limited` = cortada pelo limite de repasse do Free)

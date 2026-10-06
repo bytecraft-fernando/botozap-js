@@ -16,11 +16,11 @@ const sendMediaShape = {
   idempotency_key: sendIntentKey.optional(),
   to: z
     .string()
-    .describe("Destinatário: telefone E.164 (ex.: 5511999999999) ou wa_id."),
+    .describe("Destinatário: telefone E.164 (ex.: 5511999999999) ou wa_id no WhatsApp; IGSID do contato no Instagram."),
   from: z
     .string()
     .optional()
-    .describe("ID Meta ou UUID interno do Número de origem (obrigatório se a conta tem >1 número)."),
+    .describe("Origem: ID Meta ou UUID interno do Número (WhatsApp); id da conta na Meta ou UUID da Conta de canal (Instagram). Obrigatório quando há mais de uma origem do mesmo canal."),
   type: z
     .enum(["image", "video", "audio", "document"])
     .describe("Tipo da mídia a enviar."),
@@ -37,7 +37,7 @@ const sendMediaShape = {
     .min(1)
     .max(MEDIA_CAPTION_MAX)
     .optional()
-    .describe("Legenda para image, video ou document; audio não aceita."),
+    .describe("Legenda para image, video ou document; audio não aceita. O Instagram não aceita legenda."),
   filename: z
     .string()
     .max(MEDIA_FILENAME_MAX)
@@ -97,7 +97,7 @@ export const sendMediaSchema = z.discriminatedUnion("type", [
 export function registerMediaTools(register: Register): void {
   register(
     "send_media_message",
-    "Recomendado: use prepare_send_intent uma vez e reutilize idempotency_key em retries. Recusas confirmadas liberam a chave; após aguardar/corrigir, repita com a mesma chave. Resultado desconhecido exige conferir o histórico. Chamadas sem chave continuam aceitas, com o comportamento anterior sem deduplicação. Envia image, video, audio ou document por URL https pelo endpoint canônico de mensagens; isso pode entregar uma mensagem real ao destinatário. image/video/document aceitam caption; audio não. filename é exclusivo de document. O processo MCP não baixa o arquivo. Retorna `id` (UUID interno do BotoZap) e `wamid` (ID da Meta), além de `to` e `status`.",
+    "Recomendado: use prepare_send_intent uma vez e reutilize idempotency_key em retries. Recusas confirmadas liberam a chave; após aguardar/corrigir, repita com a mesma chave. Resultado desconhecido exige conferir o histórico. Chamadas sem chave continuam aceitas, com o comportamento anterior sem deduplicação. Envia image, video, audio ou document por URL https pelo endpoint canônico de mensagens, no WhatsApp ou no Instagram (`to` = IGSID); isso pode entregar uma mensagem real ao destinatário. image/video/document aceitam caption no WhatsApp; audio não, e o Instagram não aceita caption (422 unsupported_caption). filename é exclusivo de document. O processo MCP não baixa o arquivo. Retorna `id` (UUID interno do BotoZap), `wamid` (ID da Meta no WhatsApp; null no Instagram) e, fora do WhatsApp, `channel` e `external_id` (o mid), além de `to` e `status`.",
     sendMediaShape,
     sendMessageResultSchema,
     (client, args) => {

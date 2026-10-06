@@ -213,8 +213,9 @@ export function mountReview(root: HTMLElement, bridge: Bridge) {
       intent.firstAttemptAt ??= Date.now();
       posted = true;
       const result = await call('reply_to_conversation', { conversation_id: id, text: { body: intent.body }, idempotency_key: intent.key });
-      if (!text(result.id) && !text(result.wamid)) throw new Error('Resultado sem confirmação');
-      acceptedId = text(result.id) || text(result.wamid); setState('accepted'); notice(`Resposta aceita pelo BotoZap. Aceite não confirma entrega nem leitura.${text(result.status) ? ` Status: ${text(result.status)}.` : ''} ID: ${text(result.id) || text(result.wamid)}`, 'success');
+      const receiptId = text(result.id) || text(result.wamid) || text(result.external_id);
+      if (!receiptId) throw new Error('Resultado sem confirmação');
+      acceptedId = receiptId; setState('accepted'); notice(`Resposta aceita pelo BotoZap. Aceite não confirma entrega nem leitura.${text(result.status) ? ` Status: ${text(result.status)}.` : ''} ID: ${receiptId}`, 'success');
       intents.delete(id); locked = false; draft.value = ''; draft.disabled = !isOpen(); el('length').textContent = '0 / 4096'; el('confirmation').hidden = true; el('review').textContent = root.dataset.mode === 'inline' ? 'Enviar' : 'Revisar envio';
     } catch (error) {
       locked = false; el<HTMLInputElement>('consent').checked = false;
@@ -252,7 +253,7 @@ export function mountReview(root: HTMLElement, bridge: Bridge) {
     setMode,
     bootstrap(result: unknown) {
       try { const data = decode(result);
-        if (Array.isArray(data.data) && data.paging && acceptedId) { const receipt = data.data.find((m: Row) => (m.id === acceptedId || m.wamid === acceptedId) && m.conversation_id === conversation?.id && m.direction === 'outbound'); if (receipt && ['delivered', 'read'].includes(receipt.status)) { if (root.dataset.state !== 'read') setState(receipt.status); notice(''); } return; }
+        if (Array.isArray(data.data) && data.paging && acceptedId) { const receipt = data.data.find((m: Row) => (m.id === acceptedId || m.wamid === acceptedId || m.external_id === acceptedId) && m.conversation_id === conversation?.id && m.direction === 'outbound'); if (receipt && ['delivered', 'read'].includes(receipt.status)) { if (root.dataset.state !== 'read') setState(receipt.status); notice(''); } return; }
         if (data.draft && data.conversation && data.customer_id) {
           if (sending) return;
           acceptedId = '';

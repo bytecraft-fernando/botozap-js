@@ -4,6 +4,7 @@ import type {
   CursorList,
   CursorParams,
   Message,
+  QuickReply,
   SendResult,
   TemplatePayload,
 } from "../types.js";
@@ -32,12 +33,24 @@ export interface ListMessagesParams extends CursorParams {
 }
 
 export interface SendTextParams {
-  /** Número de destino em E.164, ex: "+5531988887777". */
+  /**
+   * Destinatário: telefone E.164 (ex.: "+5531988887777") ou BSUID no WhatsApp;
+   * IGSID do contato no Instagram. O canal sai da forma do endereço (ou do `from`).
+   */
   to: string;
   /** Corpo do texto. */
   text: string;
-  /** ID Meta ou UUID interno do Número de origem (obrigatório se houver mais de um). */
+  /**
+   * Origem: ID Meta ou UUID interno do Número (WhatsApp), id da conta na Meta
+   * ou UUID da Conta de canal (Instagram). Obrigatório quando há mais de uma
+   * origem do mesmo canal.
+   */
   from?: string;
+  /**
+   * Opções de resposta (só Instagram, só com texto, até 13, dentro da janela de
+   * 24h). No WhatsApp a API recusa com 422 `channel_not_supported`.
+   */
+  quick_replies?: QuickReply[];
 }
 
 export interface SendTemplateParams {
@@ -79,6 +92,11 @@ export interface SendDocumentParams {
   from?: string;
 }
 
+/**
+ * Mídia por URL pública. `to` aceita telefone/BSUID (WhatsApp) ou IGSID
+ * (Instagram); `from` aceita a origem de qualquer canal. No Instagram não
+ * existe `caption`: a API recusa com 422 `unsupported_caption`.
+ */
 export type SendMediaParams =
   | SendImageParams
   | SendVideoParams
@@ -151,7 +169,10 @@ export interface SendLocationParams {
 
 export interface SendReactionParams {
   to: string;
-  /** UUID interno ou wamid da mensagem RECEBIDA do contato (até 30 dias). */
+  /**
+   * Mensagem RECEBIDA do contato: UUID interno ou wamid no WhatsApp (até 30
+   * dias); o `mid` (`external_id`) no Instagram.
+   */
   message_id: string;
   /** Emoji da reação; `""` retira a reação. */
   emoji: string;
@@ -176,6 +197,7 @@ export class Messages {
         type: "text",
         text: { body: params.text },
         from: params.from,
+        ...(params.quick_replies !== undefined ? { quick_replies: params.quick_replies } : {}),
       },
     });
     return assertSendResult(result);
@@ -247,8 +269,8 @@ export class Messages {
   }
 
   /**
-   * Reage a uma mensagem recebida (WhatsApp). `emoji: ""` retira a reação.
-   * O retorno traz `reaction` com o alvo e a ação.
+   * Reage a uma mensagem recebida (WhatsApp ou Instagram). `emoji: ""` retira
+   * a reação. O retorno traz `reaction` com o alvo e a ação.
    */
   async sendReaction(params: SendReactionParams, options: SendOptions = {}): Promise<SendResult> {
     return postMessage(
@@ -303,16 +325,25 @@ async function postMessage(
   return assertSendResult(result);
 }
 
+/**
+ * Valida o recibo de envio. WhatsApp devolve `wamid`; Instagram devolve
+ * `wamid: null` com `external_id` (o `mid`). Um dos dois identificadores do
+ * canal precisa vir como string: sem nenhum, o aceite não é comprovável.
+ */
 function assertSendResult(value: SendResult): SendResult {
+  const hasWamid = typeof value?.wamid === "string";
+  const hasExternalId =
+    value?.wamid === null && typeof value.external_id === "string" && value.external_id !== "";
   if (
-    typeof value.wamid !== "string" ||
+    !value ||
+    !(hasWamid || hasExternalId) ||
     typeof value.to !== "string" ||
     typeof value.status !== "string" ||
     (value.id !== null && typeof value.id !== "string")
   ) {
     throw new BotoZapError(
       "malformed_response",
-      "resposta de envio sem id/wamid/to/status válidos",
+      "resposta de envio sem id/wamid (ou external_id)/to/status válidos",
       0,
     );
   }

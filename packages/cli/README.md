@@ -1,7 +1,7 @@
 # @botozap/cli
 
 CLI dev-first para a **API pública do BotoZap** — a plataforma multi-tenant sobre a
-WhatsApp Cloud API oficial (a "Kapso brasileira"). Envie mensagens, gerencie contatos,
+WhatsApp Cloud API oficial (a "Kapso brasileira"), também com o Instagram. Envie mensagens, gerencie contatos,
 clientes, números, templates e webhooks direto do terminal ou de scripts.
 
 A CLI é uma casca fina sobre o SDK oficial [`@botozap/sdk`](../sdk) — toda chamada de
@@ -97,13 +97,15 @@ botozap messages list -o json | jq '.data[].id'
 ## Comandos
 
 ```
-botozap messages      send | list | get
+botozap messages      send | send-media | send-interactive | send-location | react | list | get
 botozap conversations list | get | update
 botozap contacts      list | get | create | update | delete
 botozap media         ingest
 botozap customers     list | get | create | update | delete
 botozap setup-links   list | create | update      (--customer <id>)
 botozap numbers       list | get | update | health
+botozap channel-accounts list | get
+botozap channel-accounts comment-rules list | get | create | update   (Instagram)
 botozap templates     list | get | create
 botozap webhooks      list | get | create | update | delete | test
 botozap deliveries    list                          (webhook_deliveries)
@@ -138,6 +140,29 @@ botozap messages send-location --to 5511999999999 --latitude -3.119 --longitude 
 botozap messages react --to 5511999999999 --message-id <uuid-ou-wamid> --emoji 👍
 botozap messages react --to 5511999999999 --message-id <uuid-ou-wamid> --remove
 
+# Mídia por link (WhatsApp ou Instagram; o Instagram não aceita --caption)
+botozap messages send-media --to 5511999999999 --type image --link https://exemplo.com/foto.jpg --caption "Seu pedido"
+
+# Instagram: --to é o IGSID do contato; --from aceita o id da conta na Meta ou o
+# UUID da Conta de canal. O recibo traz wamid null e o mid em external_id.
+botozap messages send --to 17841400000000123 --text "Tenho estes horários:" \
+  --quick-reply "9h=sabado_09" --quick-reply "10h30=sabado_1030"
+botozap messages send-media --to 17841400000000123 --type image --link https://exemplo.com/foto.jpg
+botozap messages react --to 17841400000000123 --message-id <mid> --emoji ❤️
+# Opções de resposta: só Instagram, só com --text, até 13 (título ≤ 20 caracteres),
+# dentro da janela de 24h. Formato completo (content_type user_email/user_phone_number):
+botozap messages send --to 17841400000000123 --text "Qual seu e-mail?" \
+  --quick-replies-json '[{"content_type":"user_email"}]'
+
+# Contas de canal e conversas de uma origem
+botozap channel-accounts list --channel instagram   # coluna TOKEN: saúde da conexão
+botozap conversations list --channel instagram --channel-account-id <uuid>
+
+# Regras de comentário do Instagram (comment-rules:read / comment-rules:write)
+botozap channel-accounts comment-rules list <conta>
+botozap channel-accounts comment-rules create <conta> --keyword preço --dm-text "Te mandei os valores!" --reply-text "Te chamei no direct!"
+botozap channel-accounts comment-rules update <conta> <regra> --active false   # não há exclusão
+
 # Listar mensagens com filtro e paginação por cursor (coluna ORIGEM = source)
 botozap messages list --direction inbound --limit 20
 botozap messages list --after <cursor>
@@ -153,7 +178,7 @@ botozap conversations update <id> --status ended
 botozap contacts create --wa-id 5511999999999 --display-name "Maria (loja centro)"
 botozap contacts update <id> --clear-display-name
 
-# Ingerir mídia por URL
+# Ingerir mídia por URL (WhatsApp: sobe para a Meta pelo Número; não envia mensagem)
 botozap media ingest --phone-number-id <id> --source https://exemplo.com/foto.jpg
 
 # Clientes (offset)

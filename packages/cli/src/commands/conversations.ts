@@ -19,6 +19,8 @@ export function registerConversations(program: Command): void {
     .option("--phone-number-id <id>", "filtra por número")
     .option("--status <status>", "active | ended")
     .option("--phone-number <e164>", "filtra pelo número do contato")
+    .option("--channel <canal>", "whatsapp | instagram")
+    .option("--channel-account-id <uuid>", "filtra por Conta de canal (Número ou Conta do Instagram)")
     .option("--limit <n>", "quantidade por página")
     .option("--after <cursor>", "cursor da próxima página")
     .option("--before <cursor>", "cursor da página anterior")
@@ -28,6 +30,8 @@ export function registerConversations(program: Command): void {
         phone_number_id: opts.phoneNumberId,
         status: opts.status,
         phone_number: opts.phoneNumber,
+        channel: opts.channel,
+        channel_account_id: opts.channelAccountId,
         limit: toInt(opts.limit),
         after: opts.after,
         before: opts.before,
@@ -35,6 +39,7 @@ export function registerConversations(program: Command): void {
       if (format === "json") return printJson(res);
       printTable(res.data, [
         { header: "ID", key: "id", max: 36 },
+        { header: "CANAL", key: "channel" },
         { header: "CONTATO", key: "contact.name" },
         { header: "TELEFONE", key: "contact.phone" },
         { header: "STATUS", key: "status" },

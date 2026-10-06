@@ -85,7 +85,9 @@ export type {
 
 export type {
   MessageStatus,
+  MessageChannel,
   SendResult,
+  QuickReply,
   TemplatePayload,
   CursorPaging,
   OffsetMeta,
@@ -95,10 +97,13 @@ export type {
   OffsetParams,
   Customer,
   Message,
+  MessageContent,
+  MessageEdit,
   Broadcast,
   BroadcastRecipient,
   Contact,
   Conversation,
+  ChannelAccountRef,
   ConversationEntryPoint,
   ConversationReferral,
   Assignment,
@@ -119,6 +124,7 @@ export type {
   EventList,
 } from "./types.js";
 
+export * from "./resources/channel-accounts.js";
 export * from "./resources/saved-replies.js";
 export * from "./resources/inbox.js";
 export * from "./resources/crm.js";

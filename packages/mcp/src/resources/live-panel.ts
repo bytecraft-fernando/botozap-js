@@ -14,7 +14,7 @@ export async function readLiveConversation(client: Client, id: string, after: st
   const latest = messageId ? undefined : (await client.messages.list({conversation_id:id,direction:'outbound',sort:'created_at',limit:1})).data.find(m=>m.conversation_id===id && m.direction==='outbound');
   const page = await client.events.list({after,limit:100});
   const events: Array<z.infer<typeof eventSchema>> = [];
-  const receipt = messageId ? messages.find(m=>m.direction==='outbound' && (m.id===messageId || m.wamid===messageId)) : latest;
+  const receipt = messageId ? messages.find(m=>m.direction==='outbound' && (m.id===messageId || m.wamid===messageId || m.external_id===messageId)) : latest;
   if(receipt && !messages.some(m=>m.id===receipt.id))messages.push(receipt);
   for (const message of messages) {
     const at = message.created_at;
@@ -30,7 +30,7 @@ export async function readLiveConversation(client: Client, id: string, after: st
     }
   }
   for (const event of page.data) {
-    const message = messages.find(m=>m.id===event.message_resource_id || (m.wamid && (m.wamid===event.message_id || m.wamid===event.external_id)));
+    const message = messages.find(m=>m.id===event.message_resource_id || (m.wamid && (m.wamid===event.message_id || m.wamid===event.external_id)) || (typeof m.external_id==='string' && m.external_id===event.external_id));
     // Only explicit, conversation-scoped typing events have no message receipt.
     if (event.type.endsWith('.typing') && event.data.conversation_id===id) events.push({id:event.id,at:event.occurred_at,kind:'typing'});
     if (message?.id===receipt?.id && receipt && ['delivered','read'].some(s=>event.type.endsWith(`.${s}`))) {

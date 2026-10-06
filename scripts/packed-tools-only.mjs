@@ -95,7 +95,16 @@ try {
   const added = [...currentNames].filter(name => !oldNames.has(name)).sort();
   const removed = [...oldNames].filter(name => !currentNames.has(name)).sort();
   process.stdout.write(`packed tools vs 0.6.0: ${JSON.stringify({ added, removed })}\n`);
-  assert.deepEqual(added, ["get_profile", "prepare_send_intent"]);
+  assert.deepEqual(added, [
+    "create_comment_rule",
+    "get_channel_account",
+    "get_comment_rule",
+    "get_profile",
+    "list_channel_accounts",
+    "list_comment_rules",
+    "prepare_send_intent",
+    "update_comment_rule",
+  ]);
   assert.deepEqual(removed, []);
   assert.equal(tools.tools.length, oldNames.size + added.length);
   for (const name of ["open_review_panel", "stage_review_reply"]) {
