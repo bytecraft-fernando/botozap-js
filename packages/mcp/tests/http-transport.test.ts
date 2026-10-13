@@ -549,6 +549,23 @@ describe("transporte MCP Streamable HTTP", () => {
     await expect(connect(remote.url, otherApiKey)).resolves.toBeDefined();
   });
 
+  it("teto padrão: hosts que abrem várias sessões não perdem a sessão em uso", async () => {
+    const baseUrl = await startApi([], []);
+    const remote = await startStreamableHttpServer({
+      baseUrl,
+      eventSignal: new TestEventSignal(),
+      host: "127.0.0.1",
+      port: 0,
+    });
+    openServers.push(remote);
+
+    // Caso Grok: lista numa sessão, abre outras e volta a chamar na primeira.
+    const first = await connect(remote.url);
+    await expect(first.client.listTools()).resolves.toBeDefined();
+    for (let i = 0; i < 6; i += 1) await connect(remote.url);
+    await expect(first.client.listTools()).resolves.toBeDefined();
+  });
+
   it("substitui sessão abandonada da mesma chave quando o teto é atingido", async () => {
     const eventSignal = new TestEventSignal();
     const baseUrl = await startApi([], []);
