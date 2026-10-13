@@ -228,7 +228,10 @@ export async function startStreamableHttpServer(
   // Uma instância por servidor: compartilhada entre TODAS as sessões deste
   // processo/instância, nunca entre instâncias independentes (#629).
   const identityCache = createProcessIdentityCache();
-  const idleTimeoutMs = Math.max(1, options.sessionIdleTimeoutMs ?? 5 * 60_000);
+  // Hosts como o Grok mantêm a sessão parada enquanto a pessoa conversa e
+  // não reabrem sozinhos após o 404. Cada sessão custa ~5 MB (catálogo
+  // completo), então o prazo cresce com cautela.
+  const idleTimeoutMs = Math.max(1, options.sessionIdleTimeoutMs ?? 15 * 60_000);
   const sweep = setInterval(() => {
     const now = Date.now();
     for (const [sessionId, session] of sessions) {
@@ -236,7 +239,7 @@ export async function startStreamableHttpServer(
         session.activeRequests === 0 &&
         now - session.lastActivityAt >= idleTimeoutMs
       ) {
-        void closeSession(sessions, sessionId, session);
+        void closeSession(sessions, sessionId, session, "idle");
       }
     }
   }, Math.max(1, options.sessionSweepIntervalMs ?? 30_000));
@@ -369,6 +372,7 @@ async function handleRequest(
   if (sessionId) {
     const session = sessions.get(sessionId);
     if (!session || (session.identity.auth_type !== "oauth" && !sameFingerprint(session.apiKeyFingerprint, apiKey))) {
+      if (!session) logUnknownSession(sessionId);
       jsonRpcError(response, 404, -32001, "Sessão MCP inválida.");
       return;
     }
@@ -413,7 +417,11 @@ async function handleRequest(
       ])).digest("base64url")
     : apiKeyFingerprint.toString("base64url");
   const maxSessions = options.maxSessions ?? 1_000;
-  const maxSessionsPerApiKey = options.maxSessionsPerApiKey ?? 5;
+  // Hosts remotos (Grok, ChatGPT) abrem sessões novas com frequência sem
+  // DELETE e continuam usando as antigas; com teto 5, a sessão em uso era
+  // reciclada e as tools respondiam "Sessão MCP inválida". ~5 MB por sessão:
+  // 16 limita uma credencial a ~80 MB na Machine de 512 MB.
+  const maxSessionsPerApiKey = options.maxSessionsPerApiKey ?? 16;
   let sessionsForApiKey = countSessionsForBinding(sessions, apiKeyReservationKey);
   let reservedForApiKey = reservations.byApiKey.get(apiKeyReservationKey) ?? 0;
 
@@ -472,7 +480,7 @@ async function handleRequest(
     },
     onsessionclosed: async (closedSessionId) => {
       const closed = sessions.get(closedSessionId);
-      if (closed) await closeSession(sessions, closedSessionId, closed);
+      if (closed) await closeSession(sessions, closedSessionId, closed, "deleted");
     },
   });
   let server: McpServer | undefined;
@@ -524,7 +532,7 @@ async function handleRequest(
     await requestAuthContext.run({ credential: apiKey, identity }, () => handleSessionRequest(session!, request, response, body));
   } catch (error) {
     if (initializedSessionId && session) {
-      await closeSession(sessions, initializedSessionId, session);
+      await closeSession(sessions, initializedSessionId, session, "init_failed");
     } else {
       await server?.close().catch(() => {});
       releaseReservation();
@@ -706,18 +714,55 @@ async function handleSessionRequest(
 async function closeAllSessions(sessions: Map<string, Session>): Promise<void> {
   await Promise.allSettled(
     [...sessions].map(([sessionId, session]) =>
-      closeSession(sessions, sessionId, session),
+      closeSession(sessions, sessionId, session, "shutdown"),
     ),
   );
+}
+
+type SessionCloseReason = "idle" | "reclaimed" | "deleted" | "init_failed" | "shutdown";
+
+/**
+ * Motivo dos fechamentos recentes, só para o log do 404: distingue sessão
+ * recolhida (ociosa/teto) de sessão nunca vista (reinício, outra instância).
+ * Limitado; guarda apenas um hash curto do id.
+ */
+const recentlyClosed = new Map<string, { reason: SessionCloseReason; at: number }>();
+const RECENTLY_CLOSED_MAX = 2_000;
+
+function sessionLogId(sessionId: string): string {
+  return createHash("sha256").update(sessionId).digest("hex").slice(0, 12);
+}
+
+function logUnknownSession(sessionId: string): void {
+  const id = sessionLogId(sessionId);
+  const closed = recentlyClosed.get(id);
+  console.error(JSON.stringify({
+    event: "mcp_session_unknown",
+    session: id,
+    closed_reason: closed?.reason ?? "never_seen",
+    closed_ago_s: closed ? Math.round((Date.now() - closed.at) / 1000) : null,
+  }));
 }
 
 function closeSession(
   sessions: Map<string, Session>,
   sessionId: string,
   session: Session,
+  reason: SessionCloseReason,
 ): Promise<void> {
   if (session.closing) return session.closing;
   if (sessions.get(sessionId) === session) sessions.delete(sessionId);
+  if (reason !== "shutdown") {
+    const id = sessionLogId(sessionId);
+    recentlyClosed.delete(id);
+    recentlyClosed.set(id, { reason, at: Date.now() });
+    if (recentlyClosed.size > RECENTLY_CLOSED_MAX) {
+      recentlyClosed.delete(recentlyClosed.keys().next().value!);
+    }
+    if (reason === "reclaimed") {
+      console.error(JSON.stringify({ event: "mcp_session_reclaimed", session: id }));
+    }
+  }
   session.closing = session.server.close().catch(() => {});
   return session.closing;
 }
@@ -749,7 +794,7 @@ async function reclaimOldestReplaceableSession(
     }
   }
   if (!oldest) return false;
-  await closeSession(sessions, oldest[0], oldest[1]);
+  await closeSession(sessions, oldest[0], oldest[1], "reclaimed");
   return true;
 }
 
