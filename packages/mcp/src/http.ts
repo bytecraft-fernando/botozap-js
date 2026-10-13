@@ -371,8 +371,12 @@ async function handleRequest(
   const sessionId = singleHeader(request, "mcp-session-id");
   if (sessionId) {
     const session = sessions.get(sessionId);
+    if (!session && request.method === "POST") {
+      await handleOrphanSessionRequest(request, response, sessionId, apiKey, lifecycle, options, oauth, identityCache);
+      return;
+    }
     if (!session || (session.identity.auth_type !== "oauth" && !sameFingerprint(session.apiKeyFingerprint, apiKey))) {
-      if (!session) logUnknownSession(sessionId);
+      if (!session) logUnknownSession(sessionId, "rejected");
       jsonRpcError(response, 404, -32001, "Sessão MCP inválida.");
       return;
     }
@@ -692,6 +696,62 @@ async function authenticateCurrentCredential(
   }
 }
 
+/**
+ * POST com sessão desconhecida (recolhida, reinício do processo ou id velho em
+ * cache do host). A especificação manda o cliente reabrir após o 404, mas
+ * hosts como o Grok seguem chamando tools com o id antigo e ficam presos.
+ * Com credencial válida, atendemos só esta requisição num servidor sem sessão
+ * (sem notifications/assinaturas) e o descartamos ao fim da resposta; o
+ * initialize com id desconhecido continua 404, como antes.
+ */
+async function handleOrphanSessionRequest(
+  request: IncomingMessage,
+  response: ServerResponse,
+  sessionId: string,
+  apiKey: string,
+  lifecycle: ServerLifecycle,
+  options: StreamableHttpServerOptions,
+  oauth: ProtectedResourceConfig | undefined,
+  identityCache: ProcessIdentityCache,
+): Promise<void> {
+  const body = await readJsonBody(request);
+  if (isInitializeRequest(body)) {
+    logUnknownSession(sessionId, "rejected");
+    jsonRpcError(response, 404, -32001, "Sessão MCP inválida.");
+    return;
+  }
+  const identity = await authenticateCurrentCredential(apiKey, options, response, identityCache, oauth);
+  if (!identity) return;
+  if (lifecycle.closing) {
+    jsonRpcError(response, 503, -32000, "Servidor MCP em encerramento.");
+    return;
+  }
+  logUnknownSession(sessionId, "served_stateless");
+  const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
+  const server = await buildServer({
+    apiKey,
+    uiEnabled: options.uiEnabled,
+    baseUrl: options.baseUrl,
+    fetch: options.fetch,
+    eventPollIntervalMs: options.eventPollIntervalMs ?? 15_000,
+    eventSignal: options.eventSignal,
+    maxEventSubscriptions: options.maxEventSubscriptions,
+    resolveRequestAuth: async (): Promise<RequestAuthContext> =>
+      requestAuthContext.getStore() ?? { credential: apiKey, identity },
+  }, identity);
+  response.on("close", () => {
+    void server.close().catch(() => {});
+  });
+  try {
+    await server.connect(transport);
+    await requestAuthContext.run({ credential: apiKey, identity }, () =>
+      transport.handleRequest(request, response, body));
+  } catch (error) {
+    await server.close().catch(() => {});
+    throw error;
+  }
+}
+
 async function handleSessionRequest(
   session: Session,
   request: IncomingMessage,
@@ -733,11 +793,12 @@ function sessionLogId(sessionId: string): string {
   return createHash("sha256").update(sessionId).digest("hex").slice(0, 12);
 }
 
-function logUnknownSession(sessionId: string): void {
+function logUnknownSession(sessionId: string, outcome: "rejected" | "served_stateless"): void {
   const id = sessionLogId(sessionId);
   const closed = recentlyClosed.get(id);
   console.error(JSON.stringify({
     event: "mcp_session_unknown",
+    outcome,
     session: id,
     closed_reason: closed?.reason ?? "never_seen",
     closed_ago_s: closed ? Math.round((Date.now() - closed.at) / 1000) : null,

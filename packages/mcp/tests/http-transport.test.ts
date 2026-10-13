@@ -404,7 +404,11 @@ describe("transporte MCP Streamable HTTP", () => {
 
     expect(replacement.transport.sessionId).not.toBe(first.transport.sessionId);
     expect(eventSignal.listenerCount()).toBe(1);
-    await expect(first.client.listTools()).rejects.toThrow(/Sessão MCP inválida/);
+    // A sessão reciclada não volta: o POST com o id antigo é atendido sem
+    // sessão (hosts que não reabrem após 404) e não cria listener novo.
+    await expect(first.client.listTools()).resolves.toBeDefined();
+    // O servidor avulso é descartado ao fim da resposta, sem vazar listener.
+    await waitUntil(() => eventSignal.listenerCount() === 1, 2_000);
   });
 
   it("libera a sessão quando o cliente envia DELETE no teardown", async () => {
@@ -545,8 +549,57 @@ describe("transporte MCP Streamable HTTP", () => {
     const replacement = await connect(remote.url);
 
     expect(replacement.transport.sessionId).not.toBe(first.transport.sessionId);
-    await expect(first.client.listTools()).rejects.toThrow(/Sessão MCP inválida/);
+    await expect(first.client.listTools()).resolves.toBeDefined();
     await expect(connect(remote.url, otherApiKey)).resolves.toBeDefined();
+  });
+
+  it("sessão desconhecida: POST autenticado é atendido sem sessão; o resto segue 404", async () => {
+    const otherApiKey = "bz_live_http_transport_other";
+    const baseUrl = await startApi([], [], undefined, new Set([API_KEY, otherApiKey]));
+    const remote = await startStreamableHttpServer({
+      baseUrl,
+      eventSignal: new TestEventSignal(),
+      host: "127.0.0.1",
+      port: 0,
+    });
+    openServers.push(remote);
+    const live = await connect(remote.url);
+    const post = (apiKey: string, sessionId: string, body: unknown) =>
+      fetch(remote.url, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+          Accept: "application/json, text/event-stream",
+          "Mcp-Session-Id": sessionId,
+        },
+        body: JSON.stringify(body),
+      });
+    const stale = "00000000-0000-4000-8000-000000000000";
+    const list = { jsonrpc: "2.0", id: 1, method: "tools/list" };
+
+    // Caso Grok: id antigo (reinício/reciclagem) continua chamando tools.
+    const served = await post(API_KEY, stale, list);
+    expect(served.status).toBe(200);
+    expect(served.headers.get("mcp-session-id")).toBeNull();
+    expect(await served.text()).toContain('"tools"');
+
+    // Credencial inválida não ganha atendimento.
+    expect((await post("bz_live_desconhecida", stale, list)).status).toBe(401);
+    // Sessão viva de outra credencial continua 404 (não vira atendimento avulso).
+    const hijack = await post(otherApiKey, live.transport.sessionId!, list);
+    expect(hijack.status).toBe(404);
+    // initialize com id desconhecido e GET (SSE) seguem 404.
+    const init = await post(API_KEY, stale, {
+      jsonrpc: "2.0", id: 2, method: "initialize",
+      params: { protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "x", version: "0" } },
+    });
+    expect(init.status).toBe(404);
+    const sse = await fetch(remote.url, {
+      headers: { Authorization: `Bearer ${API_KEY}`, Accept: "text/event-stream", "Mcp-Session-Id": stale },
+    });
+    expect(sse.status).toBe(404);
+    await sse.body?.cancel();
   });
 
   it("teto padrão: hosts que abrem várias sessões não perdem a sessão em uso", async () => {
