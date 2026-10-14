@@ -340,7 +340,8 @@ export interface BotoZapEvent {
    * `instagram.message.received`). No Instagram, `instagram.message.edited`
    * traz o texto novo em `data.edit` e o conteúdo atualizado (com
    * `content.edited`) em `data.message`; `instagram.message.revoked` traz
-   * `data.message.revoked_at`, sem o conteúdo apagado. Valores novos podem surgir.
+   * `data.message.revoked_at`, sem o conteúdo apagado. `instagram.message_rule.failed` registra uma falha
+   * de automação de Regra de mensagem. Valores novos podem surgir.
    */
   type: string;
   /**

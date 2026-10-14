@@ -7,7 +7,7 @@ import {
   getMessageResultSchema,
   listMessagesResultSchema,
   sendMessageResultSchema,
-  instagramMenuItemSchema,
+  instagramInteractiveSchema,
 } from "../schemas.js";
 
 /**
@@ -21,16 +21,6 @@ import {
  */
 // Instagram shapes are advertised to agents; preserve the legacy open WhatsApp
 // object so the API remains the authority for channel-specific validation.
-const instagramInteractiveSchema = z.union([
-  z.object({ type: z.literal("button"), body: z.object({ text: z.string() }).strict(),
-    action: z.object({ buttons: z.array(instagramMenuItemSchema) }).strict() }).strict(),
-  z.object({ type: z.literal("generic"), elements: z.array(z.object({
-    title: z.string(), subtitle: z.string().optional(), image_url: z.string().optional(),
-    default_action: z.object({ type: z.literal("web_url"), url: z.string() }).strict().optional(),
-    buttons: z.array(instagramMenuItemSchema).optional(),
-  }).strict()) }).strict(),
-]);
-
 const sendMessageShape = {
   idempotency_key: sendIntentKey.optional(),
   to: z.string().describe("Destinatário: telefone E.164/BSUID (WhatsApp) ou IGSID (Instagram)."),

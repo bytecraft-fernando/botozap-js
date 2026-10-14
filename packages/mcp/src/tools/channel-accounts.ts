@@ -10,12 +10,20 @@
 import { z } from "zod";
 import type {
   CreateCommentRuleParams,
+  CreateMessageRuleParams,
+  UpdateMessageRuleParams,
   ListChannelAccountsParams,
   UpdateCommentRuleParams,
   UpdateMessengerProfileParams,
 } from "@botozap/sdk";
 import type { Register } from "../register.js";
 import {
+  commentRuleMetricsResultSchema,
+  messageRuleActionSchema,
+  messageRuleTriggerSchema,
+  messageRuleResultSchema,
+  listMessageRulesResultSchema,
+  deleteMessageRuleResultSchema,
   commentRuleResultSchema,
   deleteCommentRuleResultSchema,
   messengerProfileResultSchema,
@@ -29,11 +37,14 @@ const channelAccountId = z
   .string()
   .uuid()
   .describe("UUID interno da Conta do Instagram (o `id` de list_channel_accounts).");
-const ruleId = z.string().uuid().describe("UUID da Regra de comentário.");
+const ruleId = z.string().uuid().describe("UUID da Regra.");
 const page = z.number().int().positive().optional().describe("Página (1-based).");
 const perPage = z.number().int().positive().optional().describe("Itens por página (máx. 100).");
 
 const ruleFields = {
+  dm_button_title: z.string().nullable().optional().describe("Título do botão (20 caracteres); null remove. Com botão, dm_text aceita 640 caracteres. Só aparece no app Instagram."),
+  delivery_text: z.string().nullable().optional().describe("Texto entregue após toque (1000 bytes); obrigatório com botão; null remove."),
+  delivery_media: z.string().nullable().optional().describe("URL HTTPS pública de imagem, sem credenciais; null remove."),
   keywords: z.array(z.string()).optional().describe("Até 20 expressões de 60 caracteres; [] = qualquer comentário; prevalece sobre keyword."),
   excluded_keywords: z.array(z.string()).optional().describe("Até 20 expressões excluídas de 60 caracteres; [] limpa."),
   reply_variations: z.array(z.string()).optional().describe("Até 10 respostas públicas de 2200 caracteres; [] remove; prevalece sobre reply_text."),
@@ -57,6 +68,17 @@ const ruleFields = {
     .describe("Id numérico do post (media.id do evento instagram.comment.received, não o código da URL); null ou vazio = todos os posts."),
   is_active: z.boolean().optional().describe("Liga/desliga a regra (padrão true na criação)."),
 } as const;
+
+const messageRuleFields = {
+  keywords: z.array(z.string()).optional().describe("Até 20 expressões de 60 caracteres; keyword exige ao menos uma."),
+  excluded_keywords: z.array(z.string()).optional().describe("Só com keyword; até 20 exclusões de 60 caracteres."),
+  story_contains: z.string().nullable().optional().describe("Só com story_reply; até 200 caracteres; null remove."),
+  ref: z.string().nullable().optional().describe("Só com ref; 1–64 letras, dígitos, _ ou -. Ausente/null gera no servidor."),
+  ad_id: z.string().nullable().optional().describe("Só com ad; 1–32 dígitos; null remove."),
+  priority: z.number().int().optional().describe("0–1000; padrão 100; menor vence, depois criação/id."),
+  is_active: z.boolean().optional().describe("Padrão true; false pausa a regra."),
+};
+const actions = z.array(messageRuleActionSchema).describe("1–5 ações, uma de cada tipo. agent exige exatamente agent_id ou router_id do respondedor publicado; tags exige add/remove. A API valida combinações e limites (422). Mensagem fixa: text (1000 bytes, quick_replies), mídia HTTPS ou interactive Instagram button/generic. Sem HUMAN_AGENT.");
 
 /** `get_channel_account`: mesma definição publicada; o handler usa o SDK. */
 export function registerGetChannelAccount(register: Register): void {
@@ -110,7 +132,7 @@ export function registerChannelAccountTools(register: Register): void {
     "Cria uma Regra de comentário numa Conta do Instagram: a partir dela, cada comentário que casar recebe um direct automático (efeito externo real). Sem palavra-chave e sem post, a regra vale para TODO comentário em TODO post — a resposta traz `notice` avisando. Exige plano com Regras de comentário (422 plan_restricted); a mesma palavra-chave no mesmo alvo é 409 duplicate_rule. Retorna { data }.",
     {
       channel_account_id: channelAccountId,
-      dm_text: z.string().min(1).describe("Direct enviado a quem comentou (até 1000 bytes)."),
+      dm_text: z.string().min(1).describe("Abertura: 1000 bytes sem botão; 640 caracteres com botão."),
       ...ruleFields,
     },
     commentRuleResultSchema,
@@ -131,7 +153,7 @@ export function registerChannelAccountTools(register: Register): void {
     {
       channel_account_id: channelAccountId,
       rule_id: ruleId,
-      dm_text: z.string().min(1).optional().describe("Direct enviado a quem comentou (até 1000 bytes)."),
+      dm_text: z.string().min(1).optional().describe("Abertura: 1000 bytes sem botão; 640 caracteres com botão."),
       ...ruleFields,
     },
     commentRuleResultSchema,
@@ -159,6 +181,35 @@ export function registerChannelAccountTools(register: Register): void {
       String(args.channel_account_id), String(args.rule_id),
     ) }),
   );
+
+  register("get_comment_rule_metrics", "Resultados da Regra por período e post; touch_rate é razão (pode superar 1), null sem DM entregue. comment-rules:read; from < to, ISO 8601 com fuso.",
+    { channel_account_id: channelAccountId, rule_id: ruleId, from: z.string(), to: z.string() },
+    commentRuleMetricsResultSchema,
+    async (client, args) => ({ data: await client.channelAccounts.getCommentRuleMetrics(String(args.channel_account_id), String(args.rule_id),
+      { from: String(args.from), to: String(args.to) }) }));
+  register("list_message_rules", "Lista Regras de mensagem do Instagram (paginação offset); message-rules:read.",
+    { channel_account_id: channelAccountId, page, per_page: perPage }, listMessageRulesResultSchema,
+    (client, args) => client.channelAccounts.listMessageRules(String(args.channel_account_id),
+      { page: args.page as number | undefined, per_page: args.per_page as number | undefined }));
+  register("get_message_rule", "Busca uma Regra de mensagem do Instagram; message-rules:read.",
+    { channel_account_id: channelAccountId, rule_id: ruleId }, messageRuleResultSchema,
+    async (client, args) => ({ data: await client.channelAccounts.getMessageRule(String(args.channel_account_id), String(args.rule_id)) }));
+  register("create_message_rule", "Cria uma Regra de mensagem. A primeira que casar vence; pode enviar mensagem e encaminhar ao agente publicado (efeitos externos reais). message-rules:write. A API valida combinações; 422 invalid_request, 409 duplicate_ref.",
+    { channel_account_id: channelAccountId, name: z.string(), trigger: messageRuleTriggerSchema, actions, ...messageRuleFields }, messageRuleResultSchema,
+    async (client, args) => {
+      const { channel_account_id, ...body } = args;
+      return { data: await client.channelAccounts.createMessageRule(String(channel_account_id), body as unknown as CreateMessageRuleParams) };
+    });
+  register("update_message_rule", "PATCH parcial de Regra de mensagem; ausente preserva. A API valida o estado final; is_active false pausa. message-rules:write.",
+    { channel_account_id: channelAccountId, rule_id: ruleId, name: z.string().optional(), trigger: messageRuleTriggerSchema.optional(), actions: actions.optional(), ...messageRuleFields }, messageRuleResultSchema,
+    async (client, args) => {
+      const { channel_account_id, rule_id, ...body } = args;
+      if (!Object.keys(body).length) throw new Error("Informe ao menos um campo para alterar.");
+      return { data: await client.channelAccounts.updateMessageRule(String(channel_account_id), String(rule_id), body as UpdateMessageRuleParams) };
+    });
+  register("delete_message_rule", "Exclui a Regra preservando Disparos e Eventos; message-rules:write.",
+    { channel_account_id: channelAccountId, rule_id: ruleId }, deleteMessageRuleResultSchema,
+    async (client, args) => ({ data: await client.channelAccounts.deleteMessageRule(String(args.channel_account_id), String(args.rule_id)) }));
 
   register(
     "get_instagram_messenger_profile",

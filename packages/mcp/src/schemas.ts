@@ -669,6 +669,9 @@ export const commentRuleSchema = z
     next_post: z.boolean().optional(),
     next_post_activated_at: z.string().nullable().optional(),
     dm_text: z.string().describe("Direct enviado a quem comentou."),
+    dm_button_title: z.string().nullable().optional(),
+    delivery_text: z.string().nullable().optional(),
+    delivery_media: z.string().nullable().optional(),
     reply_text: z.string().nullable().describe("Resposta pública ao comentário; null = sem resposta."),
     media_id: z.string().nullable().describe("Id do post; null = todos os posts."),
     is_active: z.boolean().describe("Configuração gravada; o efeito real está em status."),
@@ -707,4 +710,45 @@ export const messengerProfileResultSchema = itemResultSchemaFor(z.object({
   synced_at: z.string().nullable(),
   last_error_code: z.number().nullable(),
   updated_at: z.string().nullable(),
+}).strip());
+
+export const instagramInteractiveSchema = z.union([
+  z.object({ type: z.literal("button"), body: z.object({ text: z.string() }).strict(),
+    action: z.object({ buttons: z.array(instagramMenuItemSchema) }).strict() }).strict(),
+  z.object({ type: z.literal("generic"), elements: z.array(z.object({
+    title: z.string(), subtitle: z.string().optional(), image_url: z.string().optional(),
+    default_action: z.object({ type: z.literal("web_url"), url: z.string() }).strict().optional(),
+    buttons: z.array(instagramMenuItemSchema).optional(),
+  }).strict()) }).strict(),
+]);
+
+export const messageRuleActionSchema = z.discriminatedUnion("type", [
+  z.object({ type: z.literal("message"), message: z.union([
+    z.object({ type: z.literal("text"), text: z.string(), quick_replies: z.array(z.record(z.unknown())).optional() }).strict(),
+    z.object({ type: z.enum(["image", "video", "audio", "document"]), link: z.string(), filename: z.string().optional() }).strict(),
+    z.object({ type: z.literal("interactive"), interactive: instagramInteractiveSchema }).strict(),
+  ]) }).strict(),
+  z.object({ type: z.literal("agent"), agent_id: z.string().uuid().optional(), router_id: z.string().uuid().optional() }).strict(),
+  z.object({ type: z.literal("stage"), stage_id: z.string().uuid().nullable() }).strict(),
+  z.object({ type: z.literal("tags"), add: z.array(z.string()).optional(), remove: z.array(z.string()).optional() }).strict(),
+  z.object({ type: z.literal("assign"), user_id: z.string().uuid() }).strict(),
+]);
+export const messageRuleTriggerSchema = z.enum(["keyword", "story_reply", "story_mention", "share", "ref", "ad"]);
+export const messageRuleSchema = z.object({
+  id: internalUuidSchema, account_id: internalUuidSchema, channel_account_id: internalUuidSchema,
+  name: z.string(), trigger: messageRuleTriggerSchema, keywords: z.array(z.string()), excluded_keywords: z.array(z.string()),
+  story_contains: z.string().nullable(), ref: z.string().nullable(), ad_id: z.string().nullable(),
+  priority: z.number(), is_active: z.boolean(), actions: z.array(messageRuleActionSchema),
+  created_at: z.string(), updated_at: z.string(),
+}).strip();
+export const messageRuleResultSchema = itemResultSchemaFor(messageRuleSchema);
+export const listMessageRulesResultSchema = offsetListResultSchemaFor(messageRuleSchema);
+export const deleteMessageRuleResultSchema = deleteCommentRuleResultSchema;
+const commentRuleCountersSchema = z.object({
+  comments_matched: z.number(), dms_delivered: z.number(), public_replies: z.number(),
+  dm_touches: z.number(), conversations_opened: z.number(), touch_rate: z.number().nullable(),
+});
+export const commentRuleMetricsResultSchema = itemResultSchemaFor(z.object({
+  rule_id: internalUuidSchema, channel_account_id: internalUuidSchema, from: z.string(), to: z.string(),
+  totals: commentRuleCountersSchema, posts: z.array(commentRuleCountersSchema.extend({ media_id: z.string().nullable() })),
 }).strip());

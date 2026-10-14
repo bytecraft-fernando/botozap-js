@@ -1,5 +1,6 @@
+import type { InstagramInteractivePayload } from "./messages.js";
 import type { BotoZap } from "../client.js";
-import type { MessageChannel, OffsetList, OffsetParams } from "../types.js";
+import type { MessageChannel, OffsetList, OffsetParams, QuickReply } from "../types.js";
 
 /**
  * Saúde do token de uma Conta do Instagram: `ok`; `expiring` (vence em até 7
@@ -78,8 +79,8 @@ export type CommentRuleStatus = "active" | "inactive" | "paused_plan" | (string 
 /**
  * Regra de comentário do Instagram: um comentário que casa `keyword` (ou
  * qualquer comentário, quando `null`) no post `media_id` (ou em todos, quando
- * `null`) recebe o direct `dm_text` e, opcionalmente, a resposta pública
- * `reply_text`.
+ * `null`) recebe a abertura `dm_text` e, opcionalmente, a resposta pública
+ * `reply_text`. Com `dm_button_title`, o toque entrega texto/imagem.
  */
 export interface CommentRule {
   id: string;
@@ -93,8 +94,14 @@ export interface CommentRule {
   /** Aguarda o próximo post quando true e media_id é null. */
   next_post?: boolean;
   next_post_activated_at?: string | null;
-  /** Texto do direct (até 1000 bytes). */
+  /** Abertura: 1000 bytes sem botão; 640 caracteres com botão. */
   dm_text: string;
+  /** Título do botão (20 caracteres); null mantém direct simples. */
+  dm_button_title?: string | null;
+  /** Texto entregue após o toque (1000 bytes). */
+  delivery_text?: string | null;
+  /** URL HTTPS pública de imagem entregue após o toque. */
+  delivery_media?: string | null;
   /** Resposta pública ao comentário (até 2200 caracteres); `null` = sem resposta. */
   reply_text: string | null;
   /** Id numérico do post (`media.id`); `null` = todos os posts. */
@@ -115,6 +122,12 @@ export interface CommentRule {
 export interface CreateCommentRuleParams {
   /** Texto do direct enviado a quem comentou (obrigatório). */
   dm_text: string;
+  /** Botão de até 20 caracteres; com botão dm_text aceita até 640 caracteres. */
+  dm_button_title?: string | null;
+  /** Obrigatório com botão; até 1000 bytes. null remove. */
+  delivery_text?: string | null;
+  /** Imagem HTTPS pública sem credenciais; null remove. */
+  delivery_media?: string | null;
   /** Palavra-chave; `null`/vazio = qualquer comentário. */
   keyword?: string | null;
   /** Até 20 expressões (60 caracteres cada); prevalece sobre keyword. */
@@ -140,6 +153,80 @@ export type UpdateCommentRuleParams = Partial<CreateCommentRuleParams>;
 export interface DeleteCommentRuleResult {
   id: string;
   deleted: true;
+}
+
+/** Gatilhos aceitos pelas Regras de mensagem do Instagram. */
+export type MessageRuleTrigger = "keyword" | "story_reply" | "story_mention" | "share" | "ref" | "ad";
+export type FixedRuleMessage =
+  | { type: "text"; text: string; quick_replies?: QuickReply[] }
+  | { type: "image" | "video" | "audio" | "document"; link: string; filename?: string }
+  | { type: "interactive"; interactive: InstagramInteractivePayload };
+export type MessageRuleAction =
+  | { type: "message"; message: FixedRuleMessage }
+  | { type: "agent"; agent_id: string; router_id?: never }
+  | { type: "agent"; router_id: string; agent_id?: never }
+  | { type: "stage"; stage_id: string | null }
+  | { type: "tags"; add?: string[]; remove?: string[] }
+  | { type: "assign"; user_id: string };
+
+/** POST: a API valida combinações de gatilho e ações. */
+export interface CreateMessageRuleParams {
+  /** 1–100 caracteres. */
+  name: string;
+  trigger: MessageRuleTrigger;
+  /** Até 20 expressões de 60 caracteres; keyword exige ao menos uma. */
+  keywords?: string[];
+  excluded_keywords?: string[];
+  /** Só em story_reply, até 200 caracteres. */
+  story_contains?: string | null;
+  /** Só em ref; ausente/null gera ref no servidor. */
+  ref?: string | null;
+  /** Só em ad, até 32 dígitos. */
+  ad_id?: string | null;
+  /** Inteiro 0–1000; padrão 100. Menor prioridade vence. */
+  priority?: number;
+  is_active?: boolean;
+  /** 1–5 ações; no máximo uma de cada tipo. */
+  actions: MessageRuleAction[];
+}
+export type UpdateMessageRuleParams = Partial<CreateMessageRuleParams>;
+export interface MessageRule {
+  id: string;
+  account_id: string;
+  channel_account_id: string;
+  name: string;
+  trigger: MessageRuleTrigger;
+  keywords: string[];
+  excluded_keywords: string[];
+  story_contains: string | null;
+  ref: string | null;
+  ad_id: string | null;
+  priority: number;
+  is_active: boolean;
+  actions: MessageRuleAction[];
+  created_at: string;
+  updated_at: string;
+}
+export interface DeleteMessageRuleResult { id: string; deleted: true }
+export interface CommentRuleMetricsParams {
+  /** ISO 8601 com fuso; from deve ser anterior a to. */
+  from: string;
+  to: string;
+}
+export interface CommentRuleCounters {
+  comments_matched: number;
+  dms_delivered: number;
+  public_replies: number;
+  dm_touches: number;
+  conversations_opened: number;
+  /** Razão, não percentual; null sem DM entregue. Pode superar 1. */
+  touch_rate: number | null;
+}
+export interface CommentRuleMetrics extends CommentRuleMetricsParams {
+  rule_id: string;
+  channel_account_id: string;
+  totals: CommentRuleCounters;
+  posts: (CommentRuleCounters & { media_id: string | null })[];
 }
 
 export interface InstagramIceBreaker {
@@ -257,6 +344,35 @@ export class ChannelAccounts {
     );
   }
 
+  /** Resultados da Regra por período e post. comment-rules:read. */
+  getCommentRuleMetrics(channelAccountId: string, ruleId: string, params: CommentRuleMetricsParams): Promise<CommentRuleMetrics> {
+    return this.client.requestItem<CommentRuleMetrics>("GET",
+      `/channel_accounts/${enc(channelAccountId)}/comment-rules/${enc(ruleId)}/metrics`,
+      { query: { from: params.from, to: params.to } });
+  }
+
+  /** Lista Regras de mensagem com paginação offset. message-rules:read. */
+  listMessageRules(channelAccountId: string, params: OffsetParams = {}): Promise<OffsetList<MessageRule>> {
+    return this.client.requestOffsetList<OffsetList<MessageRule>>("GET", messageRulesPath(channelAccountId),
+      { query: { page: params.page, per_page: params.per_page } });
+  }
+  /** Busca uma Regra de mensagem. message-rules:read. */
+  getMessageRule(channelAccountId: string, ruleId: string): Promise<MessageRule> {
+    return this.client.requestItem<MessageRule>("GET", messageRulesPath(channelAccountId, ruleId));
+  }
+  /** Cria uma Regra de mensagem. message-rules:write. */
+  createMessageRule(channelAccountId: string, params: CreateMessageRuleParams): Promise<MessageRule> {
+    return this.client.requestItem<MessageRule>("POST", messageRulesPath(channelAccountId), { body: params });
+  }
+  /** PATCH parcial; a API valida o estado final. message-rules:write. */
+  updateMessageRule(channelAccountId: string, ruleId: string, params: UpdateMessageRuleParams): Promise<MessageRule> {
+    return this.client.requestItem<MessageRule>("PATCH", messageRulesPath(channelAccountId, ruleId), { body: params });
+  }
+  /** Exclui a Regra preservando Disparos e Eventos. message-rules:write. */
+  deleteMessageRule(channelAccountId: string, ruleId: string): Promise<DeleteMessageRuleResult> {
+    return this.client.requestItem<DeleteMessageRuleResult>("DELETE", messageRulesPath(channelAccountId, ruleId));
+  }
+
   /** Lê o espelho salvo (sem consultar a Meta). messenger-profile:read; sem sandbox. */
   getMessengerProfile(channelAccountId: string): Promise<MessengerProfile> {
     return this.client.requestItem<MessengerProfile>("GET", profilePath(channelAccountId));
@@ -284,4 +400,8 @@ function profilePath(id: string): string {
 
 function enc(id: string): string {
   return encodeURIComponent(id);
+}
+
+function messageRulesPath(id: string, ruleId?: string): string {
+  return `/channel_accounts/${enc(id)}/message-rules${ruleId === undefined ? "" : `/${enc(ruleId)}`}`;
 }

@@ -310,3 +310,74 @@ it("leitura de Mensagem conserva generic e contexto do postback", async () => {
   expect(message.content).toEqual(interactiveCases[1]);
   expect(message.context).toEqual(context);
 });
+
+const waveTwoFields = { dm_button_title: "Receber link", delivery_text: "Aqui está o link",
+  delivery_media: "https://cdn.test/image.jpg" };
+const waveTwoMessageInput = { name: "Preço no direct", trigger: "keyword" as const, keywords: ["preço"],
+  actions: [{ type: "message" as const, message: { type: "text" as const, text: "Qual produto?", quick_replies: [{ title: "Boto", payload: "boto" }] } },
+    { type: "agent" as const, agent_id: "50000000-0000-4000-8000-000000000001" },
+    { type: "stage" as const, stage_id: null }, { type: "tags" as const, add: ["interesse"], remove: [] },
+    { type: "assign" as const, user_id: "60000000-0000-4000-8000-000000000001" }] };
+const waveTwoMessageRule = { ...waveTwoMessageInput, id: RULE, account_id: "70000000-0000-4000-8000-000000000001",
+  channel_account_id: CHANNEL_ACCOUNT, excluded_keywords: [], story_contains: null, ref: null, ad_id: null,
+  priority: 100, is_active: true, created_at: "2026-10-14T12:00:00Z", updated_at: "2026-10-14T12:00:00Z" };
+const waveTwoPeriod = { from: "2026-10-01T00:00:00-03:00", to: "2026-11-01T00:00:00-03:00" };
+const waveTwoCounters = { comments_matched: 3, dms_delivered: 2, public_replies: 1, dm_touches: 3, conversations_opened: 2, touch_rate: 1.5 };
+const waveTwoMetrics = { rule_id: RULE, channel_account_id: CHANNEL_ACCOUNT, ...waveTwoPeriod, totals: waveTwoCounters,
+  posts: [{ media_id: null, ...waveTwoCounters }, { media_id: "123", ...waveTwoCounters, dms_delivered: 0, touch_rate: null }] };
+
+describe("SDK — Instagram onda 2", () => {
+  it("comment-rules create/get/list/update preservam botão, entrega e null", async () => {
+    const rule = { ...extendedRule, ...waveTwoFields };
+    const meta = { page: 1, per_page: 20, total_pages: 1, total_count: 1 };
+    const { boto, calls } = client([{ body: { data: rule } }, { body: { data: rule } },
+      { body: { data: [rule], meta } }, { body: { data: rule } }]);
+    expect(await boto.channelAccounts.createCommentRule(CHANNEL_ACCOUNT, { dm_text: "Toque", ...waveTwoFields })).toEqual(rule);
+    expect(await boto.channelAccounts.getCommentRule(CHANNEL_ACCOUNT, RULE)).toEqual(rule);
+    expect((await boto.channelAccounts.listCommentRules(CHANNEL_ACCOUNT)).data).toEqual([rule]);
+    await boto.channelAccounts.updateCommentRule(CHANNEL_ACCOUNT, RULE, { dm_button_title: null, delivery_text: null, delivery_media: null });
+    expect(calls[0]!.body).toEqual({ dm_text: "Toque", ...waveTwoFields });
+    expect(calls[3]!.body).toEqual({ dm_button_title: null, delivery_text: null, delivery_media: null });
+  });
+  it("cinco métodos de mensagem e métricas preservam envelopes e contrato", async () => {
+    const meta = { page: 2, per_page: 5, total_pages: 2, total_count: 6 };
+    const { boto, calls } = client([{ body: { data: [waveTwoMessageRule], meta } },
+      { body: { data: waveTwoMessageRule } }, { status: 201, body: { data: waveTwoMessageRule } },
+      { body: { data: waveTwoMessageRule } }, { body: { data: { id: RULE, deleted: true } } }, { body: { data: waveTwoMetrics } }]);
+    expect(await boto.channelAccounts.listMessageRules("canal/a", { page: 2, per_page: 5 })).toEqual({ data: [waveTwoMessageRule], meta });
+    expect(await boto.channelAccounts.getMessageRule("canal/a", "regra/b")).toEqual(waveTwoMessageRule);
+    expect(await boto.channelAccounts.createMessageRule("canal/a", waveTwoMessageInput)).toEqual(waveTwoMessageRule);
+    await boto.channelAccounts.updateMessageRule("canal/a", "regra/b", { is_active: false, ref: null, keywords: [] });
+    expect(await boto.channelAccounts.deleteMessageRule("canal/a", "regra/b")).toEqual({ id: RULE, deleted: true });
+    expect(await boto.channelAccounts.getCommentRuleMetrics("canal/a", "regra/b", waveTwoPeriod)).toEqual(waveTwoMetrics);
+    const path = `${BASE_URL}/channel_accounts/canal%2Fa/message-rules`;
+    expect(calls.slice(0, 5)).toEqual([
+      { method: "GET", url: `${path}?page=2&per_page=5`, body: undefined },
+      { method: "GET", url: `${path}/regra%2Fb`, body: undefined },
+      { method: "POST", url: path, body: waveTwoMessageInput },
+      { method: "PATCH", url: `${path}/regra%2Fb`, body: { is_active: false, ref: null, keywords: [] } },
+      { method: "DELETE", url: `${path}/regra%2Fb`, body: undefined },
+    ]);
+    const metricsUrl = new URL(calls[5]!.url);
+    expect(metricsUrl.pathname).toBe("/v1/channel_accounts/canal%2Fa/comment-rules/regra%2Fb/metrics");
+    expect(Object.fromEntries(metricsUrl.searchParams)).toEqual(waveTwoPeriod);
+  });
+  const operations = [
+    (b: BotoZap) => b.channelAccounts.listMessageRules(CHANNEL_ACCOUNT),
+    (b: BotoZap) => b.channelAccounts.getMessageRule(CHANNEL_ACCOUNT, RULE),
+    (b: BotoZap) => b.channelAccounts.createMessageRule(CHANNEL_ACCOUNT, waveTwoMessageInput),
+    (b: BotoZap) => b.channelAccounts.updateMessageRule(CHANNEL_ACCOUNT, RULE, { is_active: false }),
+    (b: BotoZap) => b.channelAccounts.deleteMessageRule(CHANNEL_ACCOUNT, RULE),
+    (b: BotoZap) => b.channelAccounts.getCommentRuleMetrics(CHANNEL_ACCOUNT, RULE, waveTwoPeriod),
+    (b: BotoZap) => b.channelAccounts.createCommentRule(CHANNEL_ACCOUNT, { dm_text: "Toque", ...waveTwoFields }),
+    (b: BotoZap) => b.channelAccounts.updateCommentRule(CHANNEL_ACCOUNT, RULE, waveTwoFields),
+    (b: BotoZap) => b.channelAccounts.getCommentRule(CHANNEL_ACCOUNT, RULE),
+    (b: BotoZap) => b.channelAccounts.listCommentRules(CHANNEL_ACCOUNT),
+  ];
+  it.each(operations.flatMap((operation, index) => [422, 404].map(status => ({ operation, index, status }))))
+    ("propaga HTTP $status na operação $index", async ({ operation, status }) => {
+      const code = status === 422 ? "invalid_request" : "not_found";
+      const { boto } = client([{ status, body: { error: { code, message: "Recusado" } } }]);
+      await expect(operation(boto)).rejects.toMatchObject({ code, status });
+    });
+});
