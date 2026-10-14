@@ -1,5 +1,12 @@
 # @botozap/sdk
 
+## 0.12.0
+
+### Minor Changes
+
+- ab0ddbc: Add Instagram interactive button/card/gallery sends with human_agent and channel receipts, extended comment-rule fields and deletion, and messenger-profile read/update/delete/sync across SDK, CLI and MCP. Preserve WhatsApp interactive formats and partial PATCH semantics, and expose messenger-profile scopes and structured results.
+- df51d96: Add Instagram comment-rule button and delivery fields, message-rule CRUD with trigger/action types and message-rules scopes, and comment-rule metrics by period across SDK, CLI and MCP. Preserve nullable fields and partial PATCH bodies, advertise typed MCP results, and support JSON input for comment and message rules in the CLI.
+
 ## 0.11.0
 
 ### Minor Changes

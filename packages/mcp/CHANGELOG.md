@@ -1,5 +1,29 @@
 # @botozap/mcp
 
+## 0.10.0
+
+### Minor Changes
+
+- ab0ddbc: Add Instagram interactive button/card/gallery sends with human_agent and channel receipts, extended comment-rule fields and deletion, and messenger-profile read/update/delete/sync across SDK, CLI and MCP. Preserve WhatsApp interactive formats and partial PATCH semantics, and expose messenger-profile scopes and structured results.
+- df51d96: Add Instagram comment-rule button and delivery fields, message-rule CRUD with trigger/action types and message-rules scopes, and comment-rule metrics by period across SDK, CLI and MCP. Preserve nullable fields and partial PATCH bodies, advertise typed MCP results, and support JSON input for comment and message rules in the CLI.
+
+### Patch Changes
+
+- 6398108: `/healthz` também responde a `HEAD` (200, sem corpo), para monitores externos que checam só com `HEAD`.
+- 7dd7d16: Remoto: POST com sessão desconhecida e credencial válida é atendido sem sessão
+  em vez de 404. Hosts que não reabrem a sessão após o 404 (Grok) seguiam
+  chamando tools com um id antigo — de antes de um deploy ou já reciclado — e
+  ficavam presos em "Sessão MCP inválida". `initialize`, GET (SSE) e sessão viva
+  de outra credencial continuam 404.
+- 4dfe117: Remoto: sessões duram mais para hosts que abrem várias sessões (Grok, ChatGPT).
+  O teto por credencial sobe de 5 para 16 e a ociosidade de 5 para 15 minutos;
+  antes, a sessão em uso era reciclada e as tools respondiam "Sessão MCP
+  inválida". O 404 de sessão desconhecida agora registra no log se ela foi
+  recolhida (ociosa/teto) ou nunca existiu.
+- Updated dependencies [ab0ddbc]
+- Updated dependencies [df51d96]
+  - @botozap/sdk@0.12.0
+
 ## 0.9.0
 
 ### Minor Changes
