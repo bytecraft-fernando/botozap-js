@@ -67,13 +67,20 @@ write(["delete_customer"], "customers:write", false,
   { destructiveHint: true, openWorldHint: false });
 read(["get_channel_account"], "numbers:read", false);
 read(["list_channel_accounts"], "numbers:read", true);
-read(["list_comment_rules", "get_comment_rule"], "comment-rules:read", true);
+read(["list_comment_rules", "get_comment_rule", "get_comment_rule_metrics"], "comment-rules:read", true);
 // Uma regra ativa dispara directs automáticos para quem comenta.
 write(["create_comment_rule"], "comment-rules:write", true,
   { destructiveHint: false, openWorldHint: true });
 write(["update_comment_rule"], "comment-rules:write", true,
   { destructiveHint: true, openWorldHint: true });
 write(["delete_comment_rule"], "comment-rules:write", true,
+  { destructiveHint: true, openWorldHint: false });
+read(["list_message_rules", "get_message_rule"], "message-rules:read", true);
+write(["create_message_rule"], "message-rules:write", true,
+  { destructiveHint: false, openWorldHint: true });
+write(["update_message_rule"], "message-rules:write", true,
+  { destructiveHint: true, openWorldHint: true });
+write(["delete_message_rule"], "message-rules:write", true,
   { destructiveHint: true, openWorldHint: false });
 read(["get_instagram_messenger_profile"], "messenger-profile:read", false);
 write(["update_instagram_messenger_profile", "delete_instagram_messenger_profile", "sync_instagram_messenger_profile"], "messenger-profile:write", false,

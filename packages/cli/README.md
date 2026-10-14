@@ -105,7 +105,8 @@ botozap customers     list | get | create | update | delete
 botozap setup-links   list | create | update      (--customer <id>)
 botozap numbers       list | get | update | health
 botozap channel-accounts list | get
-botozap channel-accounts comment-rules list | get | create | update | delete   (Instagram)
+botozap channel-accounts comment-rules list | get | create | update | delete | metrics   (Instagram)
+botozap channel-accounts message-rules list | get | create | update | delete   (Instagram)
 botozap channel-accounts messenger-profile get | update | delete | sync   (Instagram)
 botozap templates     list | get | create
 botozap webhooks      list | get | create | update | delete | test
@@ -304,3 +305,10 @@ inferências, promessas do operador, catálogo de modelos, execuções e uso. Sc
 `agents:read/write`; aprovação exige chave criada por
 owner/admin ainda autorizado. Prévia não envia WhatsApp. Não há carteira, créditos
 ou compra de vagas de IA. [Contratos e exemplos IA](https://github.com/bytecraft-fernando/botozap-js/blob/main/docs/ai.md).
+
+## Instagram — onda 2
+
+Regras de comentário incluem `dm_button_title`, `delivery_text` e `delivery_media`.
+Regras de mensagem têm CRUD com gatilhos e ações tipados (`message-rules:read/write`);
+métricas de comentário recebem `from`/`to` (`comment-rules:read`).
+[Contrato e exemplos de SDK, CLI e MCP](../../docs/instagram-wave-two.md).

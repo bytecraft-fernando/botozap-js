@@ -1,6 +1,6 @@
 import { Command } from "commander";
 import { readFileSync } from "node:fs";
-import type { CreateCommentRuleParams, UpdateCommentRuleParams, UpdateMessengerProfileParams } from "@botozap/sdk";
+import type { CreateCommentRuleParams, UpdateCommentRuleParams, UpdateMessengerProfileParams, CreateMessageRuleParams, UpdateMessageRuleParams } from "@botozap/sdk";
 import { context, toInt } from "./shared.js";
 import {
   printJson,
@@ -43,12 +43,18 @@ function stringList(raw: string | undefined, flag: string): string[] | undefined
   return value;
 }
 
-function ruleExtensions(opts: Record<string, string | undefined>): UpdateCommentRuleParams {
+function ruleExtensions(opts: { keywords?: string; excludedKeywords?: string; replyVariations?: string; nextPost?: string; dmButtonTitle?: string; deliveryText?: string; deliveryMedia?: string; clearDmButtonTitle?: boolean; clearDeliveryText?: boolean; clearDeliveryMedia?: boolean }): UpdateCommentRuleParams {
   const keywords = stringList(opts.keywords, "keywords");
   const excludedKeywords = stringList(opts.excludedKeywords, "excluded-keywords");
   const replyVariations = stringList(opts.replyVariations, "reply-variations");
   const nextPost = parseActive(opts.nextPost, "next-post");
+  const dmButtonTitle = nullable(opts.dmButtonTitle, opts.clearDmButtonTitle, "dm-button-title");
+  const deliveryText = nullable(opts.deliveryText, opts.clearDeliveryText, "delivery-text");
+  const deliveryMedia = nullable(opts.deliveryMedia, opts.clearDeliveryMedia, "delivery-media");
   return {
+    ...(dmButtonTitle !== undefined ? { dm_button_title: dmButtonTitle } : {}),
+    ...(deliveryText !== undefined ? { delivery_text: deliveryText } : {}),
+    ...(deliveryMedia !== undefined ? { delivery_media: deliveryMedia } : {}),
     ...(keywords !== undefined ? { keywords } : {}),
     ...(excludedKeywords !== undefined ? { excluded_keywords: excludedKeywords } : {}),
     ...(replyVariations !== undefined ? { reply_variations: replyVariations } : {}),
@@ -56,7 +62,7 @@ function ruleExtensions(opts: Record<string, string | undefined>): UpdateComment
   };
 }
 
-function profilePatch(opts: { json?: string; input?: string; stdin?: boolean }): UpdateMessengerProfileParams {
+function jsonObject(opts: { json?: string; input?: string; stdin?: boolean }): Record<string, unknown> {
   if ([opts.json !== undefined, opts.input !== undefined, Boolean(opts.stdin)].filter(Boolean).length !== 1) {
     throw new Error("Informe uma fonte: --json, --input ou --stdin.");
   }
@@ -67,13 +73,22 @@ function profilePatch(opts: { json?: string; input?: string; stdin?: boolean }):
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     throw new Error("O patch deve ser um objeto JSON.");
   }
-  return value as UpdateMessengerProfileParams;
+  return value as Record<string, unknown>;
+}
+
+/** Fonte JSON exclusiva com flags; ausências/null são preservadas. */
+function commentPayload(opts: Record<string, unknown>, flags: UpdateCommentRuleParams): UpdateCommentRuleParams {
+  if (opts.json !== undefined || opts.input !== undefined || opts.stdin) {
+    if (Object.keys(flags).length) throw new Error("Use uma fonte JSON OU flags de campos, não as duas.");
+    return jsonObject(opts as { json?: string; input?: string; stdin?: boolean }) as UpdateCommentRuleParams;
+  }
+  return flags;
 }
 
 export function registerChannelAccounts(program: Command): void {
   const accounts = program
     .command("channel-accounts")
-    .description("Contas de canal (Números do WhatsApp e Contas do Instagram) e Regras de comentário");
+    .description("Contas de canal e configurações do Instagram");
 
   accounts
     .command("list")
@@ -151,7 +166,7 @@ export function registerChannelAccounts(program: Command): void {
   rules
     .command("create <channel_account_id>")
     .description("Cria uma Regra de comentário (exige plano com Regras de comentário)")
-    .requiredOption("--dm-text <texto>", "direct enviado a quem comentou (até 1000 bytes)")
+    .option("--dm-text <texto>", "abertura (1000 bytes sem botão; 640 caracteres com botão)")
     .option("--keyword <palavra>", "palavra-chave (até 60 caracteres); omitida = qualquer comentário")
     .option("--reply-text <texto>", "resposta pública ao comentário (até 2200 caracteres)")
     .option("--media-id <id>", "id numérico do post (media.id); omitido = todos os posts")
@@ -159,18 +174,25 @@ export function registerChannelAccounts(program: Command): void {
     .option("--excluded-keywords <json>", "lista JSON de expressões excluídas")
     .option("--reply-variations <json>", "lista JSON de respostas públicas")
     .option("--next-post <bool>", "true | false; aguarda o próximo post")
+    .option("--dm-button-title <texto>", "título do botão (20 caracteres)")
+    .option("--delivery-text <texto>", "texto entregue após toque (1000 bytes)")
+    .option("--delivery-media <url>", "imagem HTTPS pública entregue após toque")
+    .option("--input <arquivo>", "objeto JSON da regra")
+    .option("--json <objeto>", "objeto JSON inline")
+    .option("--stdin", "lê objeto JSON do stdin")
     .option("--inactive", "cria a regra desligada")
     .action(async (channelAccountId: string, opts, cmd: Command) => {
       const { client, format } = context(cmd);
-      const params: CreateCommentRuleParams = {
+      const params = commentPayload(opts, {
         ...ruleExtensions(opts),
-        dm_text: opts.dmText,
+        ...(opts.dmText !== undefined ? { dm_text: opts.dmText } : {}),
         ...(opts.keyword !== undefined ? { keyword: opts.keyword } : {}),
         ...(opts.replyText !== undefined ? { reply_text: opts.replyText } : {}),
         ...(opts.mediaId !== undefined ? { media_id: opts.mediaId } : {}),
         ...(opts.inactive ? { is_active: false } : {}),
-      };
-      const data = await client.channelAccounts.createCommentRule(channelAccountId, params);
+      });
+      if (typeof params.dm_text !== "string" || !params.dm_text) throw new Error("Informe --dm-text ou dm_text na fonte JSON.");
+      const data = await client.channelAccounts.createCommentRule(channelAccountId, params as CreateCommentRuleParams);
       if (format === "json") return printJson(data);
       printLine("Regra de comentário criada.");
       if (data.notice) printLine(data.notice);
@@ -192,20 +214,29 @@ export function registerChannelAccounts(program: Command): void {
     .option("--reply-variations <json>", "lista JSON de respostas públicas; [] limpa")
     .option("--next-post <bool>", "true | false")
     .option("--active <bool>", "true | false")
+    .option("--dm-button-title <texto>", "título do botão (20 caracteres)")
+    .option("--clear-dm-button-title", "remove o botão")
+    .option("--delivery-text <texto>", "texto entregue após toque")
+    .option("--clear-delivery-text", "remove o texto de entrega")
+    .option("--delivery-media <url>", "imagem HTTPS pública")
+    .option("--clear-delivery-media", "remove a imagem de entrega")
+    .option("--input <arquivo>", "patch JSON da regra")
+    .option("--json <objeto>", "patch JSON inline")
+    .option("--stdin", "lê patch JSON do stdin")
     .action(async (channelAccountId: string, ruleId: string, opts, cmd: Command) => {
       const { client, format } = context(cmd);
       const keyword = nullable(opts.keyword, opts.clearKeyword, "keyword");
       const replyText = nullable(opts.replyText, opts.clearReplyText, "reply-text");
       const mediaId = nullable(opts.mediaId, opts.clearMediaId, "media-id");
       const active = parseActive(opts.active);
-      const params: UpdateCommentRuleParams = {
+      const params = commentPayload(opts, {
         ...ruleExtensions(opts),
         ...(opts.dmText !== undefined ? { dm_text: opts.dmText } : {}),
         ...(keyword !== undefined ? { keyword } : {}),
         ...(replyText !== undefined ? { reply_text: replyText } : {}),
         ...(mediaId !== undefined ? { media_id: mediaId } : {}),
         ...(active !== undefined ? { is_active: active } : {}),
-      };
+      });
       if (Object.keys(params).length === 0) {
         throw new Error("Informe ao menos um campo para alterar.");
       }
@@ -227,6 +258,50 @@ export function registerChannelAccounts(program: Command): void {
       printDetail({ ...data });
     });
 
+  rules.command("metrics <channel_account_id> <rule_id>")
+    .description("Resultados por período e post (comment-rules:read)")
+    .requiredOption("--from <iso>", "início ISO 8601 com fuso")
+    .requiredOption("--to <iso>", "fim ISO 8601 com fuso; posterior ao início")
+    .action(async (id: string, ruleId: string, opts, cmd: Command) => {
+      const { client, format } = context(cmd);
+      const data = await client.channelAccounts.getCommentRuleMetrics(id, ruleId, { from: opts.from, to: opts.to });
+      if (format === "json") return printJson(data);
+      printDetail(data as unknown as Record<string, unknown>);
+    });
+
+  const messageRules = accounts.command("message-rules").description("Regras de mensagem do Instagram (message-rules:read/write)");
+  messageRules.command("list <channel_account_id>")
+    .description("Lista Regras de mensagem (paginação offset)")
+    .option("--page <n>", "página").option("--per-page <n>", "itens por página")
+    .action(async (id: string, opts, cmd: Command) => {
+      const { client, format } = context(cmd);
+      const res = await client.channelAccounts.listMessageRules(id, { page: toInt(opts.page), per_page: toInt(opts.perPage) });
+      if (format === "json") return printJson(res);
+      printTable(res.data.map(rule => ({ ...rule })), [{ header: "ID", key: "id", max: 36 }, { header: "NOME", key: "name" },
+        { header: "GATILHO", key: "trigger" }, { header: "PRIORIDADE", key: "priority" }, { header: "ATIVA", key: "is_active" }]);
+      printOffsetFooter(res.meta);
+    });
+  for (const operation of ["get", "create", "update", "delete"] as const) {
+    const command = messageRules.command(`${operation} <channel_account_id>${operation === "create" ? "" : " <rule_id>"}`)
+      .description({ get: "Detalha a Regra", create: "Cria a Regra por JSON", update: "Altera campos por patch JSON", delete: "Exclui a Regra" }[operation]);
+    if (operation === "create" || operation === "update") command
+      .option("--input <arquivo>", "objeto JSON")
+      .option("--json <objeto>", "objeto JSON inline")
+      .option("--stdin", "lê objeto JSON do stdin");
+    command.action(async (...args: unknown[]) => {
+      const id = args[0] as string;
+      const ruleId = operation === "create" ? undefined : args[1] as string;
+      const opts = args[args.length - 2] as { json?: string; input?: string; stdin?: boolean };
+      const { client, format } = context(args[args.length - 1] as Command);
+      const data = operation === "get" ? await client.channelAccounts.getMessageRule(id, ruleId!)
+        : operation === "delete" ? await client.channelAccounts.deleteMessageRule(id, ruleId!)
+        : operation === "create" ? await client.channelAccounts.createMessageRule(id, jsonObject(opts) as unknown as CreateMessageRuleParams)
+        : await client.channelAccounts.updateMessageRule(id, ruleId!, jsonObject(opts) as UpdateMessageRuleParams);
+      if (format === "json") return printJson(data);
+      printDetail(data as unknown as Record<string, unknown>);
+    });
+  }
+
   const profile = accounts.command("messenger-profile")
     .description("Perguntas e menu do Instagram (sem sandbox)");
   for (const operation of ["get", "update", "delete", "sync"] as const) {
@@ -242,7 +317,7 @@ export function registerChannelAccounts(program: Command): void {
       const { client, format } = context(cmd);
       const id = opts.channelAccountId;
       const data = operation === "get" ? await client.channelAccounts.getMessengerProfile(id)
-        : operation === "update" ? await client.channelAccounts.updateMessengerProfile(id, profilePatch(opts))
+        : operation === "update" ? await client.channelAccounts.updateMessengerProfile(id, jsonObject(opts) as UpdateMessengerProfileParams)
         : operation === "delete" ? await client.channelAccounts.deleteMessengerProfile(id)
         : await client.channelAccounts.syncMessengerProfile(id);
       if (format === "json") return printJson(data);

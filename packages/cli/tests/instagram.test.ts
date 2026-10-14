@@ -314,3 +314,97 @@ describe("CLI — paridade Instagram onda 1", () => {
     expect(fetch).toHaveBeenCalledTimes(1);
   });
 });
+
+const waveTwoFields = { dm_button_title: "Receber link", delivery_text: "Aqui está o link",
+  delivery_media: "https://cdn.test/image.jpg" };
+const waveTwoMessageInput = { name: "Preço no direct", trigger: "keyword" as const, keywords: ["preço"],
+  actions: [{ type: "message" as const, message: { type: "text" as const, text: "Qual produto?", quick_replies: [{ title: "Boto", payload: "boto" }] } },
+    { type: "agent" as const, agent_id: "50000000-0000-4000-8000-000000000001" },
+    { type: "stage" as const, stage_id: null }, { type: "tags" as const, add: ["interesse"], remove: [] },
+    { type: "assign" as const, user_id: "60000000-0000-4000-8000-000000000001" }] };
+const waveTwoMessageRule = { ...waveTwoMessageInput, id: RULE, account_id: "70000000-0000-4000-8000-000000000001",
+  channel_account_id: ACCOUNT, excluded_keywords: [], story_contains: null, ref: null, ad_id: null,
+  priority: 100, is_active: true, created_at: "2026-10-14T12:00:00Z", updated_at: "2026-10-14T12:00:00Z" };
+const waveTwoPeriod = { from: "2026-10-01T00:00:00-03:00", to: "2026-11-01T00:00:00-03:00" };
+const waveTwoCounters = { comments_matched: 3, dms_delivered: 2, public_replies: 1, dm_touches: 3, conversations_opened: 2, touch_rate: 1.5 };
+const waveTwoMetrics = { rule_id: RULE, channel_account_id: ACCOUNT, ...waveTwoPeriod, totals: waveTwoCounters,
+  posts: [{ media_id: null, ...waveTwoCounters }, { media_id: "123", ...waveTwoCounters, dms_delivered: 0, touch_rate: null }] };
+
+const waveTwoCommentFlags = ["--dm-button-title", waveTwoFields.dm_button_title, "--delivery-text", waveTwoFields.delivery_text,
+  "--delivery-media", waveTwoFields.delivery_media];
+const waveTwoCommands = [
+  ["message-rules", "list", ACCOUNT, "--page", "2", "--per-page", "5"],
+  ["message-rules", "get", ACCOUNT, RULE],
+  ["message-rules", "create", ACCOUNT, "--json", JSON.stringify(waveTwoMessageInput)],
+  ["message-rules", "update", ACCOUNT, RULE, "--json", '{"is_active":false,"ref":null,"keywords":[]}'],
+  ["message-rules", "delete", ACCOUNT, RULE],
+  ["comment-rules", "metrics", ACCOUNT, RULE, "--from", waveTwoPeriod.from, "--to", waveTwoPeriod.to],
+  ["comment-rules", "create", ACCOUNT, "--dm-text", "Toque", ...waveTwoCommentFlags],
+  ["comment-rules", "update", ACCOUNT, RULE, ...waveTwoCommentFlags],
+  ["comment-rules", "get", ACCOUNT, RULE], ["comment-rules", "list", ACCOUNT],
+];
+describe("CLI — Instagram onda 2", () => {
+  it("CRUD de mensagens, métricas e campos de comentário usam HTTP canônico", async () => {
+    const comment = { ...extendedRule, ...waveTwoFields };
+    const outputs = [{ data: [waveTwoMessageRule], meta }, ...Array(3).fill({ data: waveTwoMessageRule }),
+      { data: { id: RULE, deleted: true } }, { data: waveTwoMetrics }, ...Array(3).fill({ data: comment }), { data: [comment], meta }];
+    const methods = ["GET", "GET", "POST", "PATCH", "DELETE", "GET", "POST", "PATCH", "GET", "GET"];
+    for (const [i, args] of waveTwoCommands.entries()) {
+      fetch.mockImplementationOnce(async () => Response.json(outputs[i]));
+      const result = await run(registerChannelAccounts, ["channel-accounts", ...args, ...json]);
+      expect(result.error).toBeUndefined();
+      expect(JSON.parse(result.stdout)).toEqual(i === 0 || i === 9 ? outputs[i] : outputs[i]!.data);
+      const sub = i < 5 ? "message-rules" : "comment-rules";
+      const suffix = [1,3,4,5,7,8].includes(i) ? `/${RULE}${i === 5 ? "/metrics" : ""}` : "";
+      expect(request(i)).toMatchObject({ method: methods[i], path: `/v1/channel_accounts/${ACCOUNT}/${sub}${suffix}` });
+    }
+    expect(request(0).query).toEqual({ page: "2", per_page: "5" });
+    expect(request(2).body).toEqual(waveTwoMessageInput);
+    expect(request(3).body).toEqual({ is_active: false, ref: null, keywords: [] });
+    expect(request(5).query).toEqual(waveTwoPeriod);
+    expect(request(6).body).toEqual({ dm_text: "Toque", ...waveTwoFields });
+    expect(request(7).body).toEqual(waveTwoFields);
+  });
+  it.each(["create", "update"])("comment-rules %s --input preserva null e payload completo", async (operation) => {
+    const payload = operation === "create" ? { dm_text: "Toque", ...waveTwoFields }
+      : { dm_button_title: null, delivery_text: null, delivery_media: null };
+    const dir = mkdtempSync(join(tmpdir(), "botozap-ig2-"));
+    const file = join(dir, "rule.json"); writeFileSync(file, JSON.stringify(payload));
+    fetch.mockImplementation(async () => Response.json({ data: { ...extendedRule, ...payload } }));
+    try {
+      const result = await run(registerChannelAccounts, ["channel-accounts", "comment-rules", operation, ACCOUNT,
+        ...(operation === "update" ? [RULE] : []), "--input", file, ...json]);
+      expect(result.error).toBeUndefined(); expect(request().body).toEqual(payload);
+    } finally { rmSync(dir, { recursive: true, force: true }); }
+  });
+  it.each(["create", "update"])("message-rules %s --input/--stdin preservam JSON", async (operation) => {
+    const payload = operation === "create" ? waveTwoMessageInput : { actions: waveTwoMessageInput.actions, story_contains: null };
+    const dir = mkdtempSync(join(tmpdir(), "botozap-ig2-")); const file = join(dir, "rule.json");
+    writeFileSync(file, JSON.stringify(payload)); stdinFixture.body = JSON.stringify(payload);
+    fetch.mockImplementation(async () => Response.json({ data: waveTwoMessageRule }));
+    try {
+      for (const flags of [["--input", file], ["--stdin"]]) {
+        const result = await run(registerChannelAccounts, ["channel-accounts", "message-rules", operation, ACCOUNT,
+          ...(operation === "update" ? [RULE] : []), ...flags, ...json]);
+        expect(result.error).toBeUndefined();
+      }
+      expect(request(0).body).toEqual(payload); expect(request(1).body).toEqual(payload);
+    } finally { rmSync(dir, { recursive: true, force: true }); }
+  });
+  it("flags clear enviam null e fontes conflitantes são recusadas", async () => {
+    fetch.mockImplementation(async () => Response.json({ data: extendedRule }));
+    const result = await run(registerChannelAccounts, ["channel-accounts", "comment-rules", "update", ACCOUNT, RULE,
+      "--clear-dm-button-title", "--clear-delivery-text", "--clear-delivery-media", ...json]);
+    expect(result.error).toBeUndefined(); expect(request().body).toEqual({ dm_button_title: null, delivery_text: null, delivery_media: null });
+    const bad = await run(registerChannelAccounts, ["channel-accounts", "comment-rules", "create", ACCOUNT,
+      "--dm-text", "Oi", "--json", '{"dm_text":"Oi"}', ...json]);
+    expect(String(bad.error)).toContain("fonte JSON OU flags"); expect(fetch).toHaveBeenCalledTimes(1);
+  });
+  it.each(waveTwoCommands.flatMap((args, index) => [422,404].map(status => ({ args, index, status }))))
+    ("propaga HTTP $status no comando $index", async ({ args, status }) => {
+      const code = status === 404 ? "not_found" : "invalid_request";
+      fetch.mockImplementation(async () => Response.json({ error: { code, message: "Recusado" } }, { status }));
+      const result = await run(registerChannelAccounts, ["channel-accounts", ...args, ...json]);
+      expect(result.error).toMatchObject({ code, status }); expect(fetch).toHaveBeenCalledTimes(1);
+    });
+});

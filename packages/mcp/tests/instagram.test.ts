@@ -320,3 +320,101 @@ it("perfil não configurado e erro numérico conservam o snapshot", async () => 
     expect(result.structuredContent).toEqual({ data: profile });
   }
 });
+
+const waveTwoFields = { dm_button_title: "Receber link", delivery_text: "Aqui está o link",
+  delivery_media: "https://cdn.test/image.jpg" };
+const waveTwoMessageInput = { name: "Preço no direct", trigger: "keyword" as const, keywords: ["preço"],
+  actions: [{ type: "message" as const, message: { type: "text" as const, text: "Qual produto?", quick_replies: [{ title: "Boto", payload: "boto" }] } },
+    { type: "agent" as const, agent_id: "50000000-0000-4000-8000-000000000001" },
+    { type: "stage" as const, stage_id: null }, { type: "tags" as const, add: ["interesse"], remove: [] },
+    { type: "assign" as const, user_id: "60000000-0000-4000-8000-000000000001" }] };
+const waveTwoMessageRule = { ...waveTwoMessageInput, id: RULE, account_id: "70000000-0000-4000-8000-000000000001",
+  channel_account_id: ACCOUNT, excluded_keywords: [], story_contains: null, ref: null, ad_id: null,
+  priority: 100, is_active: true, created_at: "2026-10-14T12:00:00Z", updated_at: "2026-10-14T12:00:00Z" };
+const waveTwoPeriod = { from: "2026-10-01T00:00:00-03:00", to: "2026-11-01T00:00:00-03:00" };
+const waveTwoCounters = { comments_matched: 3, dms_delivered: 2, public_replies: 1, dm_touches: 3, conversations_opened: 2, touch_rate: 1.5 };
+const waveTwoMetrics = { rule_id: RULE, channel_account_id: ACCOUNT, ...waveTwoPeriod, totals: waveTwoCounters,
+  posts: [{ media_id: null, ...waveTwoCounters }, { media_id: "123", ...waveTwoCounters, dms_delivered: 0, touch_rate: null }] };
+
+const waveTwoTools = [
+  ["list_message_rules", { channel_account_id: ACCOUNT, page: 2, per_page: 5 }],
+  ["get_message_rule", { channel_account_id: ACCOUNT, rule_id: RULE }],
+  ["create_message_rule", { channel_account_id: ACCOUNT, ...waveTwoMessageInput }],
+  ["update_message_rule", { channel_account_id: ACCOUNT, rule_id: RULE, is_active: false, ref: null, keywords: [] }],
+  ["delete_message_rule", { channel_account_id: ACCOUNT, rule_id: RULE }],
+  ["get_comment_rule_metrics", { channel_account_id: ACCOUNT, rule_id: RULE, ...waveTwoPeriod }],
+  ["create_comment_rule", { channel_account_id: ACCOUNT, dm_text: "Toque", ...waveTwoFields }],
+  ["update_comment_rule", { channel_account_id: ACCOUNT, rule_id: RULE, ...waveTwoFields }],
+  ["get_comment_rule", { channel_account_id: ACCOUNT, rule_id: RULE }],
+  ["list_comment_rules", { channel_account_id: ACCOUNT }],
+] as const;
+describe("MCP — Instagram onda 2", () => {
+  it("CRUD de mensagens, métricas e botão/entrega preservam outputs tipados", async () => {
+    const comment = { ...rule, ...waveTwoFields };
+    const outputs = [{ data: [waveTwoMessageRule], meta }, ...Array(3).fill({ data: waveTwoMessageRule }),
+      { data: { id: RULE, deleted: true } }, { data: waveTwoMetrics }, ...Array(3).fill({ data: comment }), { data: [comment], meta }];
+    const { client, calls } = await connect(outputs.map(body => ({ body })));
+    const methods = ["GET", "GET", "POST", "PATCH", "DELETE", "GET", "POST", "PATCH", "GET", "GET"];
+    for (const [i, [name, args]] of waveTwoTools.entries()) {
+      const result = await client.callTool({ name, arguments: args });
+      expect(result.isError, JSON.stringify(result.content)).toBeFalsy();
+      expect(result.structuredContent).toEqual(outputs[i]);
+      const sub = i < 5 ? "message-rules" : "comment-rules";
+      const suffix = [1,3,4,5,7,8].includes(i) ? `/${RULE}${i === 5 ? "/metrics" : ""}` : "";
+      expect(calls[i]!.method).toBe(methods[i]);
+      expect(calls[i]!.path.split("?")[0]).toBe(`/v1/channel_accounts/${ACCOUNT}/${sub}${suffix}`);
+    }
+    expect(calls[0]!.path).toContain("?page=2&per_page=5");
+    expect(calls[2]!.body).toEqual(waveTwoMessageInput);
+    expect(calls[3]!.body).toEqual({ is_active: false, ref: null, keywords: [] });
+    expect(Object.fromEntries(new URL(`https://api.test${calls[5]!.path}`).searchParams)).toEqual(waveTwoPeriod);
+    expect(calls[6]!.body).toEqual({ dm_text: "Toque", ...waveTwoFields });
+    expect(calls[7]!.body).toEqual(waveTwoFields);
+  });
+  it("PATCH de comentário envia null sem remover as chaves", async () => {
+    const patch = { dm_button_title: null, delivery_text: null, delivery_media: null };
+    const { client, calls } = await connect([{ body: { data: { ...rule, ...patch } } }]);
+    const result = await client.callTool({ name: "update_comment_rule", arguments: { channel_account_id: ACCOUNT, rule_id: RULE, ...patch } });
+    expect(result.isError).toBeFalsy(); expect(calls[0]!.body).toEqual(patch);
+    expect(result.structuredContent).toEqual({ data: { ...rule, ...patch } });
+  });
+  it.each(waveTwoTools.flatMap(([name,args]) => [422,404].map(status => ({name,args,status}))))
+    ("$name expõe HTTP $status estruturado", async ({name,args,status}) => {
+      const code = status === 404 ? "not_found" : "invalid_request";
+      const { client } = await connect([{ status, body: { error: { code, message: "Recusado" } } }]);
+      const result = await client.callTool({ name, arguments: args });
+      expect(result.isError).toBe(true); expect(result.structuredContent).toMatchObject({ error: { code, status } });
+    });
+  it("tools/list anuncia seis gatilhos, cinco ações e campos de entrega", async () => {
+    const { client } = await connect([]);
+    const tools = (await client.listTools()).tools;
+    for (const name of ["create_message_rule", "update_message_rule"]) {
+      const schema = JSON.stringify(tools.find(t => t.name === name)!.inputSchema);
+      for (const field of ["keyword", "story_reply", "story_mention", "share", "ref", "ad", "message", "agent", "stage", "tags", "assign", "router_id", "quick_replies", "interactive"]) expect(schema).toContain(field);
+    }
+    for (const name of ["create_comment_rule", "update_comment_rule"]) {
+      const properties = tools.find(t => t.name === name)!.inputSchema.properties!;
+      for (const key of Object.keys(waveTwoFields)) expect(properties).toHaveProperty(key);
+    }
+  });
+  it("descoberta e rotas respeitam scopes/sandbox e preservam assistant", async () => {
+    for (const [name] of waveTwoTools.slice(0, 6)) expect(ASSISTANT_TOOLS.has(name)).toBe(false);
+    const reader = await connect([], { ...fullAccessIdentity, scopes: ["message-rules:read", "comment-rules:read"] });
+    const reads = (await reader.client.listTools()).tools.map(t => t.name);
+    expect(reads).toEqual(expect.arrayContaining(["list_message_rules", "get_message_rule", "get_comment_rule_metrics"]));
+    expect(reads).not.toContain("create_message_rule");
+    const writer = await connect([], { ...fullAccessIdentity, scopes: ["message-rules:write"] });
+    const writes = (await writer.client.listTools()).tools.map(t => t.name);
+    expect(writes).toEqual(expect.arrayContaining(["create_message_rule", "update_message_rule", "delete_message_rule"]));
+    expect(writes).not.toContain("get_message_rule");
+    const sandbox = await connect([], { ...fullAccessIdentity, environment: "sandbox" });
+    expect((await sandbox.client.listTools()).tools.map(t => t.name)).toEqual(expect.arrayContaining(waveTwoTools.slice(0,6).map(([name]) => name)));
+    for (const [i,[name]] of waveTwoTools.slice(0,6).entries()) {
+      const method = ["GET", "GET", "POST", "PATCH", "DELETE", "GET"][i];
+      const route = i === 5 ? "/v1/channel_accounts/:id/comment-rules/:ruleId/metrics"
+        : `/v1/channel_accounts/:id/message-rules${[1,3,4].includes(i) ? "/:ruleId" : ""}`;
+      expect(MCP_TOOL_POLICIES[name]!.requiredRoutes).toEqual([`${method} ${route}`]);
+      expect(MCP_TOOL_POLICIES[name]!.readOnlyHint).toBe([0,1,5].includes(i));
+    }
+  });
+});

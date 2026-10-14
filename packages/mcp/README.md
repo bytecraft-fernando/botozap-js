@@ -226,6 +226,8 @@ Nomes em inglês (snake_case, melhor para tool-calling); descrições em PT-BR.
 **Números** — `list_phone_numbers`, `get_phone_number`, `update_phone_number` (só o `label`, nome local), `phone_number_health`
 **Contas de canal** — `list_channel_accounts` (Números do WhatsApp e Contas do Instagram; filtros `channel` e `customer_id`; o bloco `instagram` traz `token_status` da conexão), `get_channel_account` (no catálogo completo, com ou sem UI)
 **Regras de comentário (Instagram)** — `list_comment_rules`, `get_comment_rule`, `create_comment_rule`, `update_comment_rule`, `delete_comment_rule` (scopes `comment-rules:read`/`comment-rules:write`; uma regra ativa dispara directs automáticos; criação/leitura/atualização incluem `keywords`, `excluded_keywords`, `reply_variations` e `next_post`; exclusão retorna `{data:{id,deleted:true}}`)
+**Regras de mensagem (Instagram)** — `list_message_rules`, `get_message_rule`, `create_message_rule`, `update_message_rule`, `delete_message_rule` (`message-rules:read/write`, sandbox permitido).
+**Resultados de comentário** — `get_comment_rule_metrics` (`comment-rules:read`, `from`/`to` obrigatórios).
 **Perguntas e menu (Instagram)** — `get_instagram_messenger_profile`, `update_instagram_messenger_profile`, `delete_instagram_messenger_profile`, `sync_instagram_messenger_profile` (scopes `messenger-profile:read`/`messenger-profile:write`; sem sandbox; catálogo completo). Todas usam `channel_account_id` e retornam `{data:{channel_account_id,config,revision,sync_status,synced_at,last_error_code,updated_at}}`. Update aceita `ice_breakers` (`{question,payload}[]`, até 4) e `persistent_menu` (até 5 itens postback `{type,title,payload}` ou web_url `{type,title,url}`): ausente preserva; null ou [] remove. Sync verifica/reaplica explicitamente o desejado salvo; delete conserva configuração vazia.
 **Templates** — `list_templates`, `get_template`, `create_template`
 **Webhooks** — `list_webhooks`, `get_webhook`, `create_webhook`, `update_webhook`, `delete_webhook`, `test_webhook` (`events` aceita a categoria opt-in `app_messages`)
@@ -522,3 +524,10 @@ e948ea06-d925-41b6-980c-d7ea3538a4ac:assistant,1ec8fa7c-f51a-44dd-88b2-b5696bc0b
 ```
 
 Os perfis válidos são `assistant` e `full`. `full` é uma opção explícita para clientes futuros que precisem do catálogo completo; não altera os scopes/rotas autorizados. A configuração é lida na criação da sessão/servidor e rejeita UUIDs, perfis ou duplicatas inválidos. O filtro vale no registro, na atualização de identidade e na execução: conhecer o nome de uma tool omitida não permite chamá-la. Nenhuma configuração foi aplicada a produção neste PR.
+
+## Instagram — onda 2
+
+Regras de comentário incluem `dm_button_title`, `delivery_text` e `delivery_media`.
+Regras de mensagem têm CRUD com gatilhos e ações tipados (`message-rules:read/write`);
+métricas de comentário recebem `from`/`to` (`comment-rules:read`).
+[Contrato e exemplos de SDK, CLI e MCP](../../docs/instagram-wave-two.md).

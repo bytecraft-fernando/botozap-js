@@ -620,3 +620,10 @@ nova intenção. `unknown` ou `accepted` exigem conciliação antes de considera
 outro envio. SDK e MCP preservam `outcome` e `retry` da API. Resultados concluídos
 vencidos são removidos pelo cron a cada minuto; claims incertas não são removidas
 por tempo, conforme o runbook `botozap/docs/ops/message-send-receipts.md`.
+
+## Instagram — onda 2
+
+Regras de comentário incluem `dm_button_title`, `delivery_text` e `delivery_media`.
+Regras de mensagem têm CRUD com gatilhos e ações tipados (`message-rules:read/write`);
+métricas de comentário recebem `from`/`to` (`comment-rules:read`).
+[Contrato e exemplos de SDK, CLI e MCP](../../docs/instagram-wave-two.md).
