@@ -11,10 +11,12 @@ type Call = { method: string; url: string; body: unknown };
 
 function client(responses: Array<{ status?: number; body: unknown }>) {
   const calls: Call[] = [];
+  const keys: Array<string | null> = [];
   const boto = new BotoZap({
     apiKey: "bz_live_instagram_sdk_test",
     baseUrl: BASE_URL,
     fetch: (async (input, init) => {
+      keys.push(new Headers(init?.headers).get("Idempotency-Key"));
       calls.push({
         method: init?.method ?? "GET",
         url: String(input),
@@ -28,7 +30,7 @@ function client(responses: Array<{ status?: number; body: unknown }>) {
       });
     }) as typeof fetch,
   });
-  return { boto, calls };
+  return { boto, calls, keys };
 }
 
 /** Recibo real de um direct do Instagram (messages/route.ts). */
@@ -196,4 +198,115 @@ describe("SDK — Instagram", () => {
     expect(calls[4]!.body).toEqual({ keyword: "preço", dm_text: "Oi!" });
     expect(calls[5]!.body).toEqual({ is_active: false });
   });
+});
+
+const buttons = [
+  { type: "web_url" as const, title: "Ver loja", url: "https://loja.test" },
+  { type: "postback" as const, title: "Preço", payload: "preco" },
+];
+const card = { title: "Produto", subtitle: "Descrição", image_url: "https://loja.test/p.jpg",
+  default_action: { type: "web_url" as const, url: "https://loja.test/p" }, buttons };
+const interactiveCases = [
+  { type: "button" as const, body: { text: "Escolha:" }, action: { buttons } },
+  { type: "generic" as const, elements: [card] },
+  { type: "generic" as const, elements: Array.from({ length: 10 }, (_, i) => ({ ...card, title: `Produto ${i}` })) },
+];
+const extendedRule = { id: RULE, channel_account_id: CHANNEL_ACCOUNT, dm_text: "Oi!",
+  keywords: ["preço", "valor"], excluded_keywords: ["não quero"], reply_variations: ["Te chamei!", "Veja o direct!"],
+  next_post: true, next_post_activated_at: "2026-10-14T12:00:00Z" };
+const rulePatch = { keywords: extendedRule.keywords, excluded_keywords: extendedRule.excluded_keywords,
+  reply_variations: extendedRule.reply_variations, next_post: true };
+const profile = { channel_account_id: CHANNEL_ACCOUNT, config: { ice_breakers: [{ question: "Horários?", payload: "horarios" }],
+  persistent_menu: buttons }, revision: 1, sync_status: "synced", synced_at: "2026-10-14T12:00:00Z",
+  last_error_code: null, updated_at: "2026-10-14T12:00:00Z" };
+
+describe("SDK — paridade Instagram onda 1", () => {
+  it.each(interactiveCases)("sendInteractive conserva button/card/gallery e o recibo Instagram: $type", async (interactive) => {
+    const { boto, calls, keys } = client([{ status: 201, body: instagramReceipt("interactive") }]);
+    const receipt = await boto.messages.sendInteractive({ to: IGSID, from: CHANNEL_ACCOUNT, interactive, tag: "human_agent" },
+      { idempotencyKey: "50000000-0000-4000-8000-000000000001" });
+    expect(keys).toEqual(["50000000-0000-4000-8000-000000000001"]);
+    expect(receipt).toMatchObject({ wamid: null, external_id: "aWdEZ...mlk", channel: "instagram", type: "interactive" });
+    expect(calls[0]).toMatchObject({ method: "POST", url: `${BASE_URL}/messages`,
+      body: { to: IGSID, from: CHANNEL_ACCOUNT, type: "interactive", interactive, tag: "human_agent" } });
+  });
+
+  it("list/get/create/update preservam os campos novos e delete retorna o comprovante", async () => {
+    const { boto, calls } = client([
+      { body: { data: [extendedRule], meta: { page: 1, per_page: 20, total_pages: 1, total_count: 1 } } },
+      ...Array.from({ length: 3 }, () => ({ body: { data: extendedRule } })),
+      { body: { data: { id: RULE, deleted: true } } },
+    ]);
+    expect((await boto.channelAccounts.listCommentRules(CHANNEL_ACCOUNT)).data[0]).toEqual(extendedRule);
+    expect(await boto.channelAccounts.getCommentRule(CHANNEL_ACCOUNT, RULE)).toEqual(extendedRule);
+    expect(await boto.channelAccounts.createCommentRule(CHANNEL_ACCOUNT, { dm_text: "Oi!", ...rulePatch })).toEqual(extendedRule);
+    expect(await boto.channelAccounts.updateCommentRule(CHANNEL_ACCOUNT, RULE, rulePatch)).toEqual(extendedRule);
+    expect(await boto.channelAccounts.deleteCommentRule(CHANNEL_ACCOUNT, RULE)).toEqual({ id: RULE, deleted: true });
+    expect(calls[2]!.body).toEqual({ dm_text: "Oi!", ...rulePatch });
+    expect(calls[3]!.body).toEqual(rulePatch);
+    expect(calls[4]).toEqual({ method: "DELETE", url: `${BASE_URL}/channel_accounts/${CHANNEL_ACCOUNT}/comment-rules/${RULE}`, body: undefined });
+  });
+
+  it("os quatro métodos de perfil usam o envelope de item e PATCH preserva ausência/null/[]", async () => {
+    const { boto, calls } = client(Array.from({ length: 5 }, () => ({ body: { data: profile } })));
+    expect(await boto.channelAccounts.getMessengerProfile(CHANNEL_ACCOUNT)).toEqual(profile);
+    expect(await boto.channelAccounts.updateMessengerProfile(CHANNEL_ACCOUNT, { ice_breakers: null })).toEqual(profile);
+    await boto.channelAccounts.updateMessengerProfile(CHANNEL_ACCOUNT, { persistent_menu: [] });
+    expect(await boto.channelAccounts.deleteMessengerProfile(CHANNEL_ACCOUNT)).toEqual(profile);
+    expect(await boto.channelAccounts.syncMessengerProfile(CHANNEL_ACCOUNT)).toEqual(profile);
+    const path = `${BASE_URL}/channel_accounts/${CHANNEL_ACCOUNT}/messenger-profile`;
+    expect(calls).toEqual([
+      { method: "GET", url: path, body: undefined },
+      { method: "PATCH", url: path, body: { ice_breakers: null } },
+      { method: "PATCH", url: path, body: { persistent_menu: [] } },
+      { method: "DELETE", url: path, body: undefined },
+      { method: "POST", url: `${path}/sync`, body: undefined },
+    ]);
+  });
+
+  it("codifica IDs nos novos endpoints", async () => {
+    const { boto, calls } = client([{ body: { data: profile } }, { body: { data: { id: RULE, deleted: true } } }]);
+    await boto.channelAccounts.getMessengerProfile("canal/a");
+    await boto.channelAccounts.deleteCommentRule("canal/a", "regra/b");
+    expect(calls[0]!.url).toContain("/canal%2Fa/messenger-profile");
+    expect(calls[1]!.url).toContain("/canal%2Fa/comment-rules/regra%2Fb");
+  });
+
+  const operations = [
+    (b: BotoZap) => b.messages.sendInteractive({ to: IGSID, interactive: interactiveCases[0]! }),
+    (b: BotoZap) => b.channelAccounts.listCommentRules(CHANNEL_ACCOUNT),
+    (b: BotoZap) => b.channelAccounts.getCommentRule(CHANNEL_ACCOUNT, RULE),
+    (b: BotoZap) => b.channelAccounts.createCommentRule(CHANNEL_ACCOUNT, { dm_text: "Oi", ...rulePatch }),
+    (b: BotoZap) => b.channelAccounts.updateCommentRule(CHANNEL_ACCOUNT, RULE, rulePatch),
+    (b: BotoZap) => b.channelAccounts.deleteCommentRule(CHANNEL_ACCOUNT, RULE),
+    (b: BotoZap) => b.channelAccounts.getMessengerProfile(CHANNEL_ACCOUNT),
+    (b: BotoZap) => b.channelAccounts.updateMessengerProfile(CHANNEL_ACCOUNT, { ice_breakers: null }),
+    (b: BotoZap) => b.channelAccounts.deleteMessengerProfile(CHANNEL_ACCOUNT),
+    (b: BotoZap) => b.channelAccounts.syncMessengerProfile(CHANNEL_ACCOUNT),
+  ];
+  it.each(operations.map((operation, index) => ({ operation, index })))("propaga erro HTTP 422 na operação $index", async ({ operation }) => {
+    const { boto } = client([{ status: 422, body: { error: { code: "invalid_request", message: "Contrato inválido" } } }]);
+    await expect(operation(boto)).rejects.toMatchObject({ code: "invalid_request", status: 422 });
+  });
+});
+
+const whatsappInteractiveCases = [
+  { type: "button" as const, body: { text: "Confirma?" }, action: { buttons: [{ type: "reply" as const, reply: { id: "sim", title: "Sim" } }] } },
+  { type: "list" as const, body: { text: "Escolha" }, action: { button: "Opções", sections: [{ rows: [{ id: "1", title: "Primeira" }] }] } },
+  { type: "cta_url" as const, body: { text: "Ver loja" }, action: { name: "cta_url" as const, parameters: { display_text: "Abrir", url: "https://loja.test" } } },
+];
+it.each(whatsappInteractiveCases)("sendInteractive mantém o contrato WhatsApp $type", async (interactive) => {
+  const receipt = { id: null, wamid: "wamid.wa", to: "5511", status: "sent" };
+  const { boto, calls, keys } = client([{ status: 201, body: receipt }]);
+  expect(await boto.messages.sendInteractive({ to: "5511", interactive })).toEqual(receipt);
+  expect(calls[0]!.body).toEqual({ to: "5511", type: "interactive", interactive });
+  expect(keys).toEqual([null]);
+});
+
+it("leitura de Mensagem conserva generic e contexto do postback", async () => {
+  const context = { quick_reply: { payload: "preco" }, postback: { title: "Preço", payload: "preco" } };
+  const { boto } = client([{ body: { data: { id: "m1", channel: "instagram", external_id: "mid.1", content: interactiveCases[1], context } } }]);
+  const message = await boto.messages.get("m1");
+  expect(message.content).toEqual(interactiveCases[1]);
+  expect(message.context).toEqual(context);
 });

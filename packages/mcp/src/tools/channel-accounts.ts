@@ -12,10 +12,15 @@ import type {
   CreateCommentRuleParams,
   ListChannelAccountsParams,
   UpdateCommentRuleParams,
+  UpdateMessengerProfileParams,
 } from "@botozap/sdk";
 import type { Register } from "../register.js";
 import {
   commentRuleResultSchema,
+  deleteCommentRuleResultSchema,
+  messengerProfileResultSchema,
+  instagramIceBreakerSchema,
+  instagramMenuItemSchema,
   listChannelAccountsResultSchema,
   listCommentRulesResultSchema,
 } from "../schemas.js";
@@ -29,6 +34,10 @@ const page = z.number().int().positive().optional().describe("Página (1-based).
 const perPage = z.number().int().positive().optional().describe("Itens por página (máx. 100).");
 
 const ruleFields = {
+  keywords: z.array(z.string()).optional().describe("Até 20 expressões de 60 caracteres; [] = qualquer comentário; prevalece sobre keyword."),
+  excluded_keywords: z.array(z.string()).optional().describe("Até 20 expressões excluídas de 60 caracteres; [] limpa."),
+  reply_variations: z.array(z.string()).optional().describe("Até 10 respostas públicas de 2200 caracteres; [] remove; prevalece sobre reply_text."),
+  next_post: z.boolean().optional().describe("Aguarda o próximo post; não combinar true com media_id explícito."),
   keyword: z
     .string()
     .max(60)
@@ -118,7 +127,7 @@ export function registerChannelAccountTools(register: Register): void {
 
   register(
     "update_comment_rule",
-    "Altera uma Regra de comentário (só os campos enviados mudam). `is_active: false` desliga a regra; não há exclusão. Ativar exige plano com Regras de comentário (422 plan_restricted). Retorna { data }.",
+    "Altera uma Regra de comentário (só os campos enviados mudam). `is_active: false` desliga a regra; delete_comment_rule exclui. Ativar exige plano com Regras de comentário (422 plan_restricted). Retorna { data }.",
     {
       channel_account_id: channelAccountId,
       rule_id: ruleId,
@@ -140,4 +149,54 @@ export function registerChannelAccountTools(register: Register): void {
       };
     },
   );
+
+  register(
+    "delete_comment_rule",
+    "Exclui uma Regra de comentário do Instagram. Retorna { data: { id, deleted: true } }.",
+    { channel_account_id: channelAccountId, rule_id: ruleId },
+    deleteCommentRuleResultSchema,
+    async (client, args) => ({ data: await client.channelAccounts.deleteCommentRule(
+      String(args.channel_account_id), String(args.rule_id),
+    ) }),
+  );
+
+  register(
+    "get_instagram_messenger_profile",
+    "Lê o espelho salvo de Perguntas e menu do Instagram, sem consultar a Meta. Sem sandbox; messenger-profile:read.",
+    { channel_account_id: channelAccountId },
+    messengerProfileResultSchema,
+    async (client, args) => ({ data: await client.channelAccounts.getMessengerProfile(String(args.channel_account_id)) }),
+  );
+  register(
+    "update_instagram_messenger_profile",
+    "Salva/aplica Perguntas e menu do Instagram. PATCH parcial: seção ausente preserva; null ou [] remove. Até 4 perguntas (80 caracteres) e 5 itens (título 20, payload 1000, URL http/https 2000). Sem sandbox; messenger-profile:write. A API valida os limites e pode devolver 422; falhas de sincronização conservam o desejado para retry explícito.",
+    {
+      channel_account_id: channelAccountId,
+      ice_breakers: z.array(instagramIceBreakerSchema).nullable().optional().describe("Perguntas {question,payload}; null ou [] remove."),
+      persistent_menu: z.array(instagramMenuItemSchema).nullable().optional().describe("Itens postback {title,payload} ou web_url {title,url}; null ou [] remove."),
+    },
+    messengerProfileResultSchema,
+    async (client, args) => {
+      const { channel_account_id, ...patch } = args;
+      if (Object.keys(patch).length === 0) throw new Error("Informe ice_breakers e/ou persistent_menu.");
+      return { data: await client.channelAccounts.updateMessengerProfile(
+        String(channel_account_id), patch as UpdateMessengerProfileParams,
+      ) };
+    },
+  );
+  register(
+    "delete_instagram_messenger_profile",
+    "Remove perguntas e menu do Instagram; conserva configuração vazia para retries. Retorna o snapshot. Sem sandbox; messenger-profile:write.",
+    { channel_account_id: channelAccountId },
+    messengerProfileResultSchema,
+    async (client, args) => ({ data: await client.channelAccounts.deleteMessengerProfile(String(args.channel_account_id)) }),
+  );
+  register(
+    "sync_instagram_messenger_profile",
+    "Verifica/reaplica explicitamente Perguntas e menu salvos do Instagram. Exige configuração salva; não é um job periódico. Sem sandbox; messenger-profile:write.",
+    { channel_account_id: channelAccountId },
+    messengerProfileResultSchema,
+    async (client, args) => ({ data: await client.channelAccounts.syncMessengerProfile(String(args.channel_account_id)) }),
+  );
+
 }

@@ -146,16 +146,50 @@ export interface InteractiveCtaUrlPayload extends InteractiveBase {
   };
 }
 
-/** Objeto `interactive` no formato da Cloud API (validado pela API). */
+/** Botão do Instagram: abrir link ou enviar postback (até 3 por mensagem/card). */
+export type InstagramInteractiveButton =
+  | { type: "web_url"; title: string; url: string }
+  | { type: "postback"; title: string; payload: string };
+
+/** Instagram: texto (até 640 caracteres) e 1–3 botões. */
+export interface InstagramInteractiveButtonPayload {
+  type: "button";
+  body: { text: string };
+  action: { buttons: InstagramInteractiveButton[] };
+}
+
+/** Card Instagram: título e ao menos uma propriedade adicional. */
+export interface InstagramGenericElement {
+  title: string;
+  subtitle?: string;
+  image_url?: string;
+  default_action?: { type: "web_url"; url: string };
+  buttons?: InstagramInteractiveButton[];
+}
+
+/** Instagram: card único ou galeria com 1–10 elementos. */
+export interface InstagramInteractiveGenericPayload {
+  type: "generic";
+  elements: InstagramGenericElement[];
+}
+
+export type InstagramInteractivePayload =
+  | InstagramInteractiveButtonPayload
+  | InstagramInteractiveGenericPayload;
+
+/** Objeto `interactive` por canal; os limites são validados pela API. */
 export type InteractivePayload =
   | InteractiveButtonPayload
   | InteractiveListPayload
-  | InteractiveCtaUrlPayload;
+  | InteractiveCtaUrlPayload
+  | InstagramInteractivePayload;
 
 export interface SendInteractiveParams {
   to: string;
   interactive: InteractivePayload;
   from?: string;
+  /** Instagram: exceção human_agent, sujeita à flag e janela da API. */
+  tag?: "human_agent";
 }
 
 export interface SendLocationParams {
@@ -239,8 +273,8 @@ export class Messages {
   }
 
   /**
-   * Envia botões de resposta, lista ou botão de link (WhatsApp; mensagem livre,
-   * exige janela de 24h aberta).
+   * Envia button/list/cta_url no WhatsApp ou button/generic no Instagram.
+   * Mensagem livre sujeita à janela do canal.
    */
   async sendInteractive(
     params: SendInteractiveParams,
@@ -248,7 +282,10 @@ export class Messages {
   ): Promise<SendResult> {
     return postMessage(
       this.client,
-      { to: params.to, from: params.from, type: "interactive", interactive: params.interactive },
+      {
+        to: params.to, from: params.from, type: "interactive", interactive: params.interactive,
+        ...(params.tag !== undefined ? { tag: params.tag } : {}),
+      },
       options,
     );
   }

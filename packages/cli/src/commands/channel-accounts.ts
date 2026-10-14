@@ -1,5 +1,6 @@
 import { Command } from "commander";
-import type { CreateCommentRuleParams, UpdateCommentRuleParams } from "@botozap/sdk";
+import { readFileSync } from "node:fs";
+import type { CreateCommentRuleParams, UpdateCommentRuleParams, UpdateMessengerProfileParams } from "@botozap/sdk";
 import { context, toInt } from "./shared.js";
 import {
   printJson,
@@ -24,11 +25,49 @@ function nullable(value: string | undefined, clear: boolean | undefined, flag: s
   return value;
 }
 
-function parseActive(raw: string | undefined): boolean | undefined {
+function parseActive(raw: string | undefined, flag = "active"): boolean | undefined {
   if (raw === undefined) return undefined;
   if (raw === "true") return true;
   if (raw === "false") return false;
-  throw new Error("--active deve ser true ou false.");
+  throw new Error(`--${flag} deve ser true ou false.`);
+}
+
+function stringList(raw: string | undefined, flag: string): string[] | undefined {
+  if (raw === undefined) return undefined;
+  let value: unknown;
+  try { value = JSON.parse(raw); }
+  catch { throw new Error(`--${flag} deve ser uma lista JSON de textos.`); }
+  if (!Array.isArray(value) || !value.every((item) => typeof item === "string")) {
+    throw new Error(`--${flag} deve ser uma lista JSON de textos.`);
+  }
+  return value;
+}
+
+function ruleExtensions(opts: Record<string, string | undefined>): UpdateCommentRuleParams {
+  const keywords = stringList(opts.keywords, "keywords");
+  const excludedKeywords = stringList(opts.excludedKeywords, "excluded-keywords");
+  const replyVariations = stringList(opts.replyVariations, "reply-variations");
+  const nextPost = parseActive(opts.nextPost, "next-post");
+  return {
+    ...(keywords !== undefined ? { keywords } : {}),
+    ...(excludedKeywords !== undefined ? { excluded_keywords: excludedKeywords } : {}),
+    ...(replyVariations !== undefined ? { reply_variations: replyVariations } : {}),
+    ...(nextPost !== undefined ? { next_post: nextPost } : {}),
+  };
+}
+
+function profilePatch(opts: { json?: string; input?: string; stdin?: boolean }): UpdateMessengerProfileParams {
+  if ([opts.json !== undefined, opts.input !== undefined, Boolean(opts.stdin)].filter(Boolean).length !== 1) {
+    throw new Error("Informe uma fonte: --json, --input ou --stdin.");
+  }
+  const raw = opts.json ?? readFileSync(opts.input ?? 0, "utf8");
+  let value: unknown;
+  try { value = JSON.parse(raw); }
+  catch { throw new Error("O payload informado não é um JSON válido."); }
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error("O patch deve ser um objeto JSON.");
+  }
+  return value as UpdateMessengerProfileParams;
 }
 
 export function registerChannelAccounts(program: Command): void {
@@ -116,10 +155,15 @@ export function registerChannelAccounts(program: Command): void {
     .option("--keyword <palavra>", "palavra-chave (até 60 caracteres); omitida = qualquer comentário")
     .option("--reply-text <texto>", "resposta pública ao comentário (até 2200 caracteres)")
     .option("--media-id <id>", "id numérico do post (media.id); omitido = todos os posts")
+    .option("--keywords <json>", "lista JSON de expressões; [] = qualquer comentário")
+    .option("--excluded-keywords <json>", "lista JSON de expressões excluídas")
+    .option("--reply-variations <json>", "lista JSON de respostas públicas")
+    .option("--next-post <bool>", "true | false; aguarda o próximo post")
     .option("--inactive", "cria a regra desligada")
     .action(async (channelAccountId: string, opts, cmd: Command) => {
       const { client, format } = context(cmd);
       const params: CreateCommentRuleParams = {
+        ...ruleExtensions(opts),
         dm_text: opts.dmText,
         ...(opts.keyword !== undefined ? { keyword: opts.keyword } : {}),
         ...(opts.replyText !== undefined ? { reply_text: opts.replyText } : {}),
@@ -143,6 +187,10 @@ export function registerChannelAccounts(program: Command): void {
     .option("--clear-reply-text", "remove a resposta pública")
     .option("--media-id <id>", "id numérico do post")
     .option("--clear-media-id", "vale para todos os posts")
+    .option("--keywords <json>", "lista JSON de expressões; [] limpa")
+    .option("--excluded-keywords <json>", "lista JSON de exclusões; [] limpa")
+    .option("--reply-variations <json>", "lista JSON de respostas públicas; [] limpa")
+    .option("--next-post <bool>", "true | false")
     .option("--active <bool>", "true | false")
     .action(async (channelAccountId: string, ruleId: string, opts, cmd: Command) => {
       const { client, format } = context(cmd);
@@ -151,6 +199,7 @@ export function registerChannelAccounts(program: Command): void {
       const mediaId = nullable(opts.mediaId, opts.clearMediaId, "media-id");
       const active = parseActive(opts.active);
       const params: UpdateCommentRuleParams = {
+        ...ruleExtensions(opts),
         ...(opts.dmText !== undefined ? { dm_text: opts.dmText } : {}),
         ...(keyword !== undefined ? { keyword } : {}),
         ...(replyText !== undefined ? { reply_text: replyText } : {}),
@@ -166,4 +215,39 @@ export function registerChannelAccounts(program: Command): void {
       if (data.notice) printLine(data.notice);
       printDetail(data as Record<string, unknown>);
     });
+
+  rules
+    .command("delete <channel_account_id> <rule_id>")
+    .description("Exclui uma Regra de comentário")
+    .action(async (channelAccountId: string, ruleId: string, _opts, cmd: Command) => {
+      const { client, format } = context(cmd);
+      const data = await client.channelAccounts.deleteCommentRule(channelAccountId, ruleId);
+      if (format === "json") return printJson(data);
+      printLine("Regra de comentário excluída.");
+      printDetail({ ...data });
+    });
+
+  const profile = accounts.command("messenger-profile")
+    .description("Perguntas e menu do Instagram (sem sandbox)");
+  for (const operation of ["get", "update", "delete", "sync"] as const) {
+    const command = profile.command(operation)
+      .description({ get: "Lê o espelho salvo", update: "Salva/aplica o patch (ausente preserva; null remove)",
+        delete: "Remove perguntas e menu", sync: "Verifica/reaplica a configuração salva" }[operation])
+      .requiredOption("--channel-account-id <id>", "UUID da Conta do Instagram");
+    if (operation === "update") command
+      .option("--input <arquivo>", "arquivo JSON com o patch")
+      .option("--stdin", "lê o patch JSON do stdin")
+      .option("--json <patch>", "patch JSON inline");
+    command.action(async (opts, cmd: Command) => {
+      const { client, format } = context(cmd);
+      const id = opts.channelAccountId;
+      const data = operation === "get" ? await client.channelAccounts.getMessengerProfile(id)
+        : operation === "update" ? await client.channelAccounts.updateMessengerProfile(id, profilePatch(opts))
+        : operation === "delete" ? await client.channelAccounts.deleteMessengerProfile(id)
+        : await client.channelAccounts.syncMessengerProfile(id);
+      if (format === "json") return printJson(data);
+      printDetail(data as unknown as Record<string, unknown>);
+    });
+  }
+
 }

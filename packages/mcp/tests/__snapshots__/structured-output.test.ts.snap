@@ -1644,7 +1644,7 @@ exports[`MCP — output schemas e structured content > anuncia schemas não vazi
       "additionalProperties": false,
       "properties": {
         "from": {
-          "description": "ID Meta ou UUID interno do Número de origem (obrigatório se a conta tem >1 número).",
+          "description": "ID Meta ou UUID do Número (WhatsApp) ou da Conta de canal (Instagram); obrigatório com mais de uma origem.",
           "type": "string",
         },
         "idempotency_key": {
@@ -1655,9 +1655,160 @@ exports[`MCP — output schemas e structured content > anuncia schemas não vazi
           "type": "string",
         },
         "interactive": {
-          "additionalProperties": {},
-          "description": "Objeto interactive da Cloud API quando type='interactive': type 'button' (até 3 botões reply {id,title≤20}), 'list' (action.button + sections[].rows[] {id,title≤24,description?}, até 10 opções) ou 'cta_url' (action {name:'cta_url', parameters {display_text, url https}}); body.text obrigatório; header/footer opcionais. A API valida e recusa com 422 invalid_request.",
-          "type": "object",
+          "anyOf": [
+            {
+              "anyOf": [
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "action": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "buttons": {
+                          "items": {
+                            "anyOf": [
+                              {
+                                "additionalProperties": false,
+                                "properties": {
+                                  "payload": {
+                                    "type": "string",
+                                  },
+                                  "title": {
+                                    "type": "string",
+                                  },
+                                  "type": {
+                                    "const": "postback",
+                                    "type": "string",
+                                  },
+                                },
+                                "required": [
+                                  "type",
+                                  "title",
+                                  "payload",
+                                ],
+                                "type": "object",
+                              },
+                              {
+                                "additionalProperties": false,
+                                "properties": {
+                                  "title": {
+                                    "type": "string",
+                                  },
+                                  "type": {
+                                    "const": "web_url",
+                                    "type": "string",
+                                  },
+                                  "url": {
+                                    "type": "string",
+                                  },
+                                },
+                                "required": [
+                                  "type",
+                                  "title",
+                                  "url",
+                                ],
+                                "type": "object",
+                              },
+                            ],
+                          },
+                          "type": "array",
+                        },
+                      },
+                      "required": [
+                        "buttons",
+                      ],
+                      "type": "object",
+                    },
+                    "body": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "text": {
+                          "type": "string",
+                        },
+                      },
+                      "required": [
+                        "text",
+                      ],
+                      "type": "object",
+                    },
+                    "type": {
+                      "const": "button",
+                      "type": "string",
+                    },
+                  },
+                  "required": [
+                    "type",
+                    "body",
+                    "action",
+                  ],
+                  "type": "object",
+                },
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "elements": {
+                      "items": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "buttons": {
+                            "items": {
+                              "$ref": "#/properties/interactive/anyOf/0/anyOf/0/properties/action/properties/buttons/items",
+                            },
+                            "type": "array",
+                          },
+                          "default_action": {
+                            "additionalProperties": false,
+                            "properties": {
+                              "type": {
+                                "const": "web_url",
+                                "type": "string",
+                              },
+                              "url": {
+                                "type": "string",
+                              },
+                            },
+                            "required": [
+                              "type",
+                              "url",
+                            ],
+                            "type": "object",
+                          },
+                          "image_url": {
+                            "type": "string",
+                          },
+                          "subtitle": {
+                            "type": "string",
+                          },
+                          "title": {
+                            "type": "string",
+                          },
+                        },
+                        "required": [
+                          "title",
+                        ],
+                        "type": "object",
+                      },
+                      "type": "array",
+                    },
+                    "type": {
+                      "const": "generic",
+                      "type": "string",
+                    },
+                  },
+                  "required": [
+                    "type",
+                    "elements",
+                  ],
+                  "type": "object",
+                },
+              ],
+            },
+            {
+              "additionalProperties": {},
+              "type": "object",
+            },
+          ],
+          "description": "Objeto interactive da Cloud API quando type='interactive': type 'button' (até 3 botões reply {id,title≤20}), 'list' (action.button + sections[].rows[] {id,title≤24,description?}, até 10 opções) ou 'cta_url' (action {name:'cta_url', parameters {display_text, url https}}); no WhatsApp body.text obrigatório e header/footer opcionais. Instagram: button {body:{text},action:{buttons:[{type:web_url,title,url}|{type:postback,title,payload}]}} (1–3 botões); generic {elements:[{title,subtitle?,image_url?,default_action?:{type:web_url,url},buttons?}]} (1–10 cards, título e ao menos uma propriedade extra). A API valida e recusa com 422 invalid_request.",
         },
         "location": {
           "additionalProperties": false,
@@ -1704,6 +1855,11 @@ exports[`MCP — output schemas e structured content > anuncia schemas não vazi
             "emoji",
           ],
           "type": "object",
+        },
+        "tag": {
+          "const": "human_agent",
+          "description": "Instagram: exceção human_agent, sujeita à flag e janela da API; para interactive.",
+          "type": "string",
         },
         "template": {
           "additionalProperties": false,
@@ -1760,7 +1916,7 @@ exports[`MCP — output schemas e structured content > anuncia schemas não vazi
           "type": "object",
         },
         "to": {
-          "description": "Destinatário: telefone E.164 (ex.: 5511999999999) ou wa_id.",
+          "description": "Destinatário: telefone E.164/BSUID (WhatsApp) ou IGSID (Instagram).",
           "type": "string",
         },
         "type": {
@@ -1896,7 +2052,7 @@ exports[`MCP — output schemas e structured content > anuncia schemas não vazi
           "type": "string",
         },
         "type": {
-          "description": "WhatsApp: só em reação. Instagram: text ou o tipo da mídia.",
+          "description": "WhatsApp: só em reação. Instagram: text, interactive ou o tipo da mídia.",
           "type": "string",
         },
         "wamid": {

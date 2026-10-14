@@ -163,6 +163,36 @@ no WhatsApp a API recusa com `channel_not_supported`; acima de 13 opções,
 `quick_reply_title_too_long`; fora da janela, `quick_replies_window_closed`.
 No Instagram não existe `caption` em mídia (`unsupported_caption`).
 
+### Botões e cards no Instagram
+
+```ts
+await boto.messages.sendInteractive({
+  to: "17841400000000123", from: contaInstagramId,
+  interactive: { type: "button", body: { text: "Como posso ajudar?" }, action: { buttons: [
+    { type: "web_url", title: "Ver loja", url: "https://exemplo.com" },
+    { type: "postback", title: "Horários", payload: "horarios" },
+  ] } },
+}, { idempotencyKey: chaveDaIntencao });
+await boto.messages.sendInteractive({
+  to: "17841400000000123", from: contaInstagramId,
+  interactive: { type: "generic", elements: [{
+    title: "Produto", subtitle: "Disponível na loja",
+    image_url: "https://exemplo.com/foto.jpg",
+    default_action: { type: "web_url", url: "https://exemplo.com/produto" },
+    buttons: [{ type: "postback", title: "Quero saber mais", payload: "produto" }],
+  }] },
+});
+```
+
+`button` aceita 1–3 botões e texto até 640 caracteres; `generic` aceita 1–10
+cards com título (até 80 caracteres) e ao menos uma propriedade adicional.
+Subtítulo: até 80 caracteres; até 3 botões por card. Botões usam título de até
+20 caracteres e postback de até 1000 caracteres; links são HTTPS. A API valida
+os limites (`422`). `tag: "human_agent"` é opcional e depende da flag e da
+janela autorizada pela API. O recibo traz `wamid: null`, `external_id`,
+`channel: "instagram"` e `type: "interactive"`. Os formatos WhatsApp
+`button` com `reply`, `list` e `cta_url` continuam disponíveis.
+
 ## Contas de canal e Regras de comentário
 
 ```ts
@@ -188,13 +218,42 @@ await boto.channelAccounts.updateCommentRule(conta.id, regra.id, { is_active: fa
 `keyword` vazia vale para qualquer comentário e `media_id` vazio para todos os
 posts. Criar ou ativar exige plano com Regras de comentário (`422
 plan_restricted`); a mesma palavra-chave no mesmo alvo é `409 duplicate_rule`.
-Não há exclusão pela API: desative com `is_active: false`.
+`deleteCommentRule(conta.id, regra.id)` exclui e retorna `{ id, deleted: true }`.
+`keywords` (até 20 expressões), `excluded_keywords` (até 20 exclusões),
+`reply_variations` (até 10 respostas públicas) e `next_post` estão disponíveis
+na criação, leitura e atualização. `keywords` prevalece sobre `keyword`, e
+`reply_variations` sobre `reply_text`; `[]` limpa a lista. `next_post: true`
+aguarda o próximo post e não deve ser combinado com `media_id` explícito.
 
 Com `token_status` `expired`, `invalid` ou `revoked`, os envios pela conta
 falham até reconectá-la em Canais. Mensagens do Instagram editadas pelo contato
 trazem o conteúdo atualizado com `content.edited` (`{ count, at }`); as apagadas,
 `revoked_at`. Os Eventos `instagram.message.edited` e `instagram.message.revoked`
 chegam pelo webhook e por `events.list`.
+
+### Perguntas e menu do Instagram
+
+```ts
+const perfil = await boto.channelAccounts.getMessengerProfile(conta.id);
+await boto.channelAccounts.updateMessengerProfile(conta.id, {
+  ice_breakers: [{ question: "Quais os horários?", payload: "horarios" }],
+  persistent_menu: [{ type: "web_url", title: "Ver loja", url: "https://exemplo.com" }],
+});
+await boto.channelAccounts.updateMessengerProfile(conta.id, { ice_breakers: null });
+await boto.channelAccounts.syncMessengerProfile(conta.id);
+await boto.channelAccounts.deleteMessengerProfile(conta.id);
+```
+
+GET usa `messenger-profile:read`; PATCH, DELETE e sync usam
+`messenger-profile:write`. Sem sandbox. PATCH preserva seções ausentes;
+`null` ou `[]` remove a seção. Até 4 perguntas e 5 itens de menu (`postback`
+ou `web_url`). Perguntas: 80 caracteres; títulos: 20; payloads: 1000; URLs
+http/https: 2000. Os quatro métodos retornam o snapshot com
+`channel_account_id`, `config`, `revision`, `sync_status`, `synced_at`,
+`last_error_code` e `updated_at`. GET lê o espelho salvo; sync verifica/reaplica
+explicitamente o desejado. Falhas de aplicação conservam a configuração para
+retry; `profile_busy` e `profile_sync_unconfirmed` pedem reconciliar após um
+minuto. Sync sem configuração salva retorna `profile_not_configured`.
 
 ## Clientes e templates
 
@@ -360,7 +419,7 @@ O SDK cobre os recursos da API `/v1`:
 - `contacts` — listar, buscar, criar, atualizar, remover; `display_name` é o nome que a empresa dá ao Contato (1–200 caracteres; `null` limpa), separado do `profile_name` que vem do canal
 - `conversations` — listar (filtros `channel` e `channel_account_id`), buscar, atualizar, responder, atribuições; leituras trazem `entry_point` (`ctwa`/`organic`/`null`), `referral` do último clique em anúncio Click-to-WhatsApp, `fep_expires_at` (fim da janela grátis informado pela Meta) e `fep_reply_by` (estimativa do prazo para responder)
 - `webhooks` — CRUD e teste; `customer_id` opcional limita as entregas a um Cliente da Conta (`null` no update remove o filtro)
-- `channelAccounts` — listar e buscar Contas de canal (WhatsApp e Instagram); **Regras de comentário** do Instagram (listar, buscar, criar, atualizar)
+- `channelAccounts` — listar e buscar Contas de canal (WhatsApp e Instagram); **Regras de comentário** do Instagram (listar, buscar, criar, atualizar, excluir) e **Perguntas e menu** (ler, salvar/aplicar, remover, verificar/reaplicar)
 - `phoneNumbers` — listar, buscar, **atualizar o `label`** (nome local, até 100 caracteres; `null` limpa), remover, saúde
 - `media` — subir arquivo (obter um media_id) e **buscar metadados + URL de download** de uma mídia recebida
 - `events` — reler inbound e mudanças de status pelo cursor durável da Conta/ambiente

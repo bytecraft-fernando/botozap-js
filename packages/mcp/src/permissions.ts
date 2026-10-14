@@ -73,6 +73,11 @@ write(["create_comment_rule"], "comment-rules:write", true,
   { destructiveHint: false, openWorldHint: true });
 write(["update_comment_rule"], "comment-rules:write", true,
   { destructiveHint: true, openWorldHint: true });
+write(["delete_comment_rule"], "comment-rules:write", true,
+  { destructiveHint: true, openWorldHint: false });
+read(["get_instagram_messenger_profile"], "messenger-profile:read", false);
+write(["update_instagram_messenger_profile", "delete_instagram_messenger_profile", "sync_instagram_messenger_profile"], "messenger-profile:write", false,
+  { destructiveHint: true, openWorldHint: true });
 read(["list_phone_numbers"], "numbers:read", true);
 read(["get_phone_number"], "numbers:read", false);
 // Health probes Graph and persists token_status/token_checked_at.

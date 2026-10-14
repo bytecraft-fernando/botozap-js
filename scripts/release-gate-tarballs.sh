@@ -47,13 +47,18 @@ node -e "import('@botozap/sdk').then(m => { if (typeof m.BotoZap !== 'function')
 node -e "if (typeof require('@botozap/sdk').BotoZap !== 'function') process.exit(1)"
 
 printf '%s\n' \
-  'import { BotoZap, type SendResult, type AiAgentConfig } from "@botozap/sdk";' \
+  'import { BotoZap, type SendResult, type AiAgentConfig, type InstagramInteractivePayload, type UpdateMessengerProfileParams } from "@botozap/sdk";' \
   'const boto = new BotoZap({ apiKey: "bz_sandbox_release_gate" });' \
   'export async function smoke(): Promise<SendResult> {' \
   '  return boto.messages.send({ to: "+5500000000001", text: "Olá 😀" });' \
   '}' \
   'const config: AiAgentConfig = { provider: "openai", system_prompt: "Atendimento" };' \
   'export const aiSmoke = () => boto.ai.agents.saveDraft({id:"agent",customer_id:"customer",name:"Agente",expected_revision:"9007199254740993",config});' \
+  'const interactive: InstagramInteractivePayload = { type: "generic", elements: [{ title: "Produto", subtitle: "Disponível", buttons: [{ type: "postback", title: "Ver", payload: "produto" }] }] };' \
+  'export const instagramSmoke = () => boto.messages.sendInteractive({ to: "17841400000000123", from: "channel", interactive, tag: "human_agent" });' \
+  'const profilePatch: UpdateMessengerProfileParams = { ice_breakers: null, persistent_menu: [{ type: "web_url", title: "Loja", url: "https://example.com" }] };' \
+  'export const profileSmoke = () => boto.channelAccounts.updateMessengerProfile("channel", profilePatch);' \
+  'export const ruleSmoke = () => boto.channelAccounts.createCommentRule("channel", { dm_text: "Oi", keywords: ["preço"], excluded_keywords: [], reply_variations: [], next_post: true });' \
   > index.ts
 printf '%s\n' \
   '{ "compilerOptions": { "strict": true, "module": "nodenext", "moduleResolution": "nodenext", "target": "es2022", "noEmit": true } }' \
