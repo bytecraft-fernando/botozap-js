@@ -86,6 +86,13 @@ export interface CommentRule {
   channel_account_id: string;
   /** Palavra-chave (até 60 caracteres); `null` = qualquer comentário. */
   keyword: string | null;
+  /** Expressões alternativas; lista vazia = qualquer comentário. */
+  keywords?: string[];
+  excluded_keywords?: string[];
+  reply_variations?: string[];
+  /** Aguarda o próximo post quando true e media_id é null. */
+  next_post?: boolean;
+  next_post_activated_at?: string | null;
   /** Texto do direct (até 1000 bytes). */
   dm_text: string;
   /** Resposta pública ao comentário (até 2200 caracteres); `null` = sem resposta. */
@@ -110,6 +117,14 @@ export interface CreateCommentRuleParams {
   dm_text: string;
   /** Palavra-chave; `null`/vazio = qualquer comentário. */
   keyword?: string | null;
+  /** Até 20 expressões (60 caracteres cada); prevalece sobre keyword. */
+  keywords?: string[];
+  /** Até 20 exclusões (60 caracteres cada). */
+  excluded_keywords?: string[];
+  /** Até 10 respostas públicas (2200 caracteres cada); prevalece sobre reply_text. */
+  reply_variations?: string[];
+  /** Próximo post; não combinar com media_id explícito. */
+  next_post?: boolean;
   /** Resposta pública ao comentário; `null`/vazio = sem resposta. */
   reply_text?: string | null;
   /** Id numérico do post; `null`/vazio = todos os posts. */
@@ -121,7 +136,45 @@ export interface CreateCommentRuleParams {
 /** Corpo de `updateCommentRule` (PATCH): só os campos enviados mudam. */
 export type UpdateCommentRuleParams = Partial<CreateCommentRuleParams>;
 
-/** Contas de canal (WhatsApp e Instagram) e Regras de comentário do Instagram. */
+/** Resultado da exclusão de uma Regra de comentário. */
+export interface DeleteCommentRuleResult {
+  id: string;
+  deleted: true;
+}
+
+export interface InstagramIceBreaker {
+  question: string;
+  payload: string;
+}
+
+export type InstagramPersistentMenuItem =
+  | { type: "postback"; title: string; payload: string }
+  | { type: "web_url"; title: string; url: string };
+
+/** Até 4 perguntas e 5 itens no menu. */
+export interface MessengerProfileConfig {
+  ice_breakers: InstagramIceBreaker[];
+  persistent_menu: InstagramPersistentMenuItem[];
+}
+
+/** Ausente preserva a seção; null ou [] remove. */
+export interface UpdateMessengerProfileParams {
+  ice_breakers?: InstagramIceBreaker[] | null;
+  persistent_menu?: InstagramPersistentMenuItem[] | null;
+}
+
+/** Espelho desejado e confirmação de aplicação na Meta. */
+export interface MessengerProfile {
+  channel_account_id: string;
+  config: MessengerProfileConfig;
+  revision: number;
+  sync_status: string;
+  synced_at: string | null;
+  last_error_code: number | null;
+  updated_at: string | null;
+}
+
+/** Contas de canal e configurações do Instagram. */
 export class ChannelAccounts {
   constructor(private readonly client: BotoZap) {}
 
@@ -184,7 +237,7 @@ export class ChannelAccounts {
 
   /**
    * Altera uma Regra de comentário (só os campos enviados). comment-rules:write.
-   * `is_active: false` desliga a regra; não há exclusão pela API.
+   * `is_active: false` desliga a regra.
    */
   updateCommentRule(
     channelAccountId: string,
@@ -197,6 +250,36 @@ export class ChannelAccounts {
       { body: params },
     );
   }
+  /** Exclui uma Regra de comentário. comment-rules:write. */
+  deleteCommentRule(channelAccountId: string, ruleId: string): Promise<DeleteCommentRuleResult> {
+    return this.client.requestItem<DeleteCommentRuleResult>(
+      "DELETE", `/channel_accounts/${enc(channelAccountId)}/comment-rules/${enc(ruleId)}`,
+    );
+  }
+
+  /** Lê o espelho salvo (sem consultar a Meta). messenger-profile:read; sem sandbox. */
+  getMessengerProfile(channelAccountId: string): Promise<MessengerProfile> {
+    return this.client.requestItem<MessengerProfile>("GET", profilePath(channelAccountId));
+  }
+
+  /** Salva/aplica apenas as seções enviadas. messenger-profile:write; sem sandbox. */
+  updateMessengerProfile(channelAccountId: string, params: UpdateMessengerProfileParams): Promise<MessengerProfile> {
+    return this.client.requestItem<MessengerProfile>("PATCH", profilePath(channelAccountId), { body: params });
+  }
+
+  /** Remove perguntas e menu, conservando configuração vazia. messenger-profile:write. */
+  deleteMessengerProfile(channelAccountId: string): Promise<MessengerProfile> {
+    return this.client.requestItem<MessengerProfile>("DELETE", profilePath(channelAccountId));
+  }
+
+  /** Verifica/reaplica explicitamente o desejado salvo. messenger-profile:write. */
+  syncMessengerProfile(channelAccountId: string): Promise<MessengerProfile> {
+    return this.client.requestItem<MessengerProfile>("POST", `${profilePath(channelAccountId)}/sync`);
+  }
+}
+
+function profilePath(id: string): string {
+  return `/channel_accounts/${enc(id)}/messenger-profile`;
 }
 
 function enc(id: string): string {

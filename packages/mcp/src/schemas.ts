@@ -149,7 +149,7 @@ export const sendMessageResultSchema = z
     status: z.string().describe("Status inicial do envio."),
     sandbox: z.boolean().optional(),
     warnings: z.array(z.object({ code: z.string(), message: z.string() }).strip()).optional(),
-    type: z.string().optional().describe("WhatsApp: só em reação. Instagram: text ou o tipo da mídia."),
+    type: z.string().optional().describe("WhatsApp: só em reação. Instagram: text, interactive ou o tipo da mídia."),
     reaction: z
       .object({
         message_id: z.string().describe("WhatsApp: UUID interno do alvo. Instagram: mid do alvo."),
@@ -663,6 +663,11 @@ export const commentRuleSchema = z
     id: internalUuidSchema,
     channel_account_id: internalUuidSchema,
     keyword: z.string().nullable().describe("Palavra-chave; null = qualquer comentário."),
+    keywords: z.array(z.string()).optional(),
+    excluded_keywords: z.array(z.string()).optional(),
+    reply_variations: z.array(z.string()).optional(),
+    next_post: z.boolean().optional(),
+    next_post_activated_at: z.string().nullable().optional(),
     dm_text: z.string().describe("Direct enviado a quem comentou."),
     reply_text: z.string().nullable().describe("Resposta pública ao comentário; null = sem resposta."),
     media_id: z.string().nullable().describe("Id do post; null = todos os posts."),
@@ -678,3 +683,28 @@ export const commentRuleSchema = z
 export const listCommentRulesResultSchema = offsetListResultSchemaFor(commentRuleSchema);
 
 export const commentRuleResultSchema = itemResultSchemaFor(commentRuleSchema);
+
+
+export const deleteCommentRuleResultSchema = itemResultSchemaFor(z.object({
+  id: internalUuidSchema,
+  deleted: z.literal(true),
+}).strip());
+
+export const instagramMenuItemSchema = z.discriminatedUnion("type", [
+  z.object({ type: z.literal("postback"), title: z.string(), payload: z.string() }).strict(),
+  z.object({ type: z.literal("web_url"), title: z.string(), url: z.string() }).strict(),
+]);
+export const instagramIceBreakerSchema = z.object({ question: z.string(), payload: z.string() }).strict();
+
+export const messengerProfileResultSchema = itemResultSchemaFor(z.object({
+  channel_account_id: internalUuidSchema,
+  config: z.object({
+    ice_breakers: z.array(instagramIceBreakerSchema),
+    persistent_menu: z.array(instagramMenuItemSchema),
+  }).strip(),
+  revision: z.number().int().nonnegative(),
+  sync_status: z.string(),
+  synced_at: z.string().nullable(),
+  last_error_code: z.number().nullable(),
+  updated_at: z.string().nullable(),
+}).strip());

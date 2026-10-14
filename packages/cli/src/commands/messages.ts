@@ -59,7 +59,7 @@ function parseQuickRepliesJson(raw: string): QuickReply[] {
 /** Campos do recibo: `wamid` no WhatsApp, `channel` + `external_id` fora dele. */
 function receiptFields(result: SendResult, extra: string[] = []): string[] {
   const identity = result.wamid === null || result.channel
-    ? ["channel", "external_id"]
+    ? ["channel", "external_id", "type"]
     : ["wamid"];
   return ["id", ...identity, "to", "status", ...extra];
 }
@@ -184,20 +184,23 @@ export function registerMessages(program: Command): void {
 
   messages
     .command("send-interactive")
-    .description("Envia botões de resposta, lista ou botão de link (objeto `interactive` da Cloud API)")
-    .requiredOption("--to <wa_id>", "destinatário")
-    .option("--from <phone_number_id>", "número de origem (opcional)")
+    .description("Envia interactive: WhatsApp button/list/cta_url; Instagram button (web_url/postback) ou generic (1–10 cards)")
+    .requiredOption("--to <destinatario>", "telefone/BSUID (WhatsApp) ou IGSID (Instagram)")
+    .option("--from <origem>", "ID Meta/UUID do Número ou da Conta de canal")
     .option("--input <arquivo>", "arquivo JSON com o objeto interactive")
+    .option("--tag <tag>", "human_agent (Instagram; sujeito à flag e janela da API)")
     .option("--stdin", "lê o objeto interactive do stdin")
     .option("--json <interactive>", "objeto interactive inline")
     .action(async (opts, cmd: Command) => {
       const { client, format } = context(cmd);
+      if (opts.tag !== undefined && opts.tag !== "human_agent") throw new Error("--tag deve ser human_agent.");
       const interactive = (opts.json
         ? parseInline(opts.json)
         : readRawBody(opts.input, opts.stdin)) as InteractivePayload;
       const result = await client.messages.sendInteractive({
         to: opts.to,
         interactive,
+        ...(opts.tag !== undefined ? { tag: opts.tag as "human_agent" } : {}),
         ...(opts.from ? { from: opts.from } : {}),
       });
       printSent(result, format);

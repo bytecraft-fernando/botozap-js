@@ -172,7 +172,7 @@ exports[`MCP — send_media_message > anuncia o contrato de mídia e seus limite
         "type": "string",
       },
       "type": {
-        "description": "WhatsApp: só em reação. Instagram: text ou o tipo da mídia.",
+        "description": "WhatsApp: só em reação. Instagram: text, interactive ou o tipo da mídia.",
         "type": "string",
       },
       "wamid": {

@@ -25,7 +25,7 @@ const api = createServer((request, response) => {
     response.end(JSON.stringify({ data: {
       account_id: "00000000-0000-4000-8000-000000000001",
       environment: "live",
-      scopes: ["agents:read", "agents:write", "calendar:read", "calendar:write", "comment-rules:read", "comment-rules:write", "messages:send", "messages:read", "events:read", "conversations:read", "conversations:write", "contacts:read", "contacts:write", "appointments:read", "appointments:write", "journeys:write", "journeys:read", "templates:read", "templates:write", "numbers:read", "numbers:write", "webhooks:read", "webhooks:write", "customers:read", "customers:write", "media:read", "media:write", "broadcasts:read", "broadcasts:write", "saved_replies:read", "saved_replies:write", "crm:read", "crm:write", "inbox:read", "inbox:write", "team:read", "logs:read"],
+      scopes: ["agents:read", "agents:write", "calendar:read", "calendar:write", "comment-rules:read", "comment-rules:write", "messenger-profile:read", "messenger-profile:write", "messages:send", "messages:read", "events:read", "conversations:read", "conversations:write", "contacts:read", "contacts:write", "appointments:read", "appointments:write", "journeys:write", "journeys:read", "templates:read", "templates:write", "numbers:read", "numbers:write", "webhooks:read", "webhooks:write", "customers:read", "customers:write", "media:read", "media:write", "broadcasts:read", "broadcasts:write", "saved_replies:read", "saved_replies:write", "crm:read", "crm:write", "inbox:read", "inbox:write", "team:read", "logs:read"],
     } }));
     return;
   }
@@ -97,13 +97,18 @@ try {
   process.stdout.write(`packed tools vs 0.6.0: ${JSON.stringify({ added, removed })}\n`);
   assert.deepEqual(added, [
     "create_comment_rule",
+    "delete_comment_rule",
+    "delete_instagram_messenger_profile",
     "get_channel_account",
     "get_comment_rule",
+    "get_instagram_messenger_profile",
     "get_profile",
     "list_channel_accounts",
     "list_comment_rules",
     "prepare_send_intent",
+    "sync_instagram_messenger_profile",
     "update_comment_rule",
+    "update_instagram_messenger_profile",
   ]);
   assert.deepEqual(removed, []);
   assert.equal(tools.tools.length, oldNames.size + added.length);

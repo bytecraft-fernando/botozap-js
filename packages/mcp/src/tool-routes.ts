@@ -119,3 +119,9 @@ routes(["list_comment_rules"], "GET /v1/channel_accounts/:id/comment-rules");
 routes(["get_comment_rule"], "GET /v1/channel_accounts/:id/comment-rules/:ruleId");
 routes(["create_comment_rule"], "POST /v1/channel_accounts/:id/comment-rules");
 routes(["update_comment_rule"], "PATCH /v1/channel_accounts/:id/comment-rules/:ruleId");
+
+routes(["delete_comment_rule"], "DELETE /v1/channel_accounts/:id/comment-rules/:ruleId");
+routes(["get_instagram_messenger_profile"], "GET /v1/channel_accounts/:id/messenger-profile");
+routes(["update_instagram_messenger_profile"], "PATCH /v1/channel_accounts/:id/messenger-profile");
+routes(["delete_instagram_messenger_profile"], "DELETE /v1/channel_accounts/:id/messenger-profile");
+routes(["sync_instagram_messenger_profile"], "POST /v1/channel_accounts/:id/messenger-profile/sync");

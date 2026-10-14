@@ -4,6 +4,7 @@ import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { buildServer, type ApiIdentity } from "../src/server.js";
 import { MCP_TOOL_POLICIES } from "../src/permissions.js";
 import { ASSISTANT_TOOLS } from "../src/catalog-profile.js";
+import { messageFixture, cursorPagingFixture } from "./contract-fixtures.js";
 import { fullAccessIdentity } from "./helpers/identity.js";
 
 const BASE_URL = "https://api.test/v1";
@@ -22,7 +23,9 @@ afterEach(async () => {
 type Call = { method: string; path: string; body: unknown };
 async function connect(responses: unknown[], identity: ApiIdentity = fullAccessIdentity, ui = false) {
   const calls: Call[] = [];
+  const keys: Array<string | null> = [];
   const fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+    keys.push(new Headers(init?.headers).get("Idempotency-Key"));
     const url = new URL(String(input));
     calls.push({ method: init?.method ?? "GET", path: url.pathname + url.search, body: init?.body ? JSON.parse(String(init.body)) : undefined });
     const next = responses.shift() as { status?: number; body: unknown } | undefined;
@@ -34,7 +37,7 @@ async function connect(responses: unknown[], identity: ApiIdentity = fullAccessI
   const [ct, st] = InMemoryTransport.createLinkedPair();
   await Promise.all([server.connect(st), client.connect(ct)]);
   clients.push(client);
-  return { client, calls };
+  return { client, calls, keys };
 }
 
 const igReceipt = (type = "text") => ({
@@ -150,4 +153,170 @@ describe("MCP — Instagram", () => {
     const full = await connect([], fullAccessIdentity, false);
     expect((await full.client.listTools()).tools.map((t) => t.name)).toContain("get_channel_account");
   });
+});
+
+const igButtons = [
+  { type: "web_url", title: "Ver loja", url: "https://loja.test" },
+  { type: "postback", title: "Preço", payload: "preco" },
+];
+const igCard = { title: "Produto", subtitle: "Descrição", image_url: "https://loja.test/p.jpg",
+  default_action: { type: "web_url", url: "https://loja.test/p" }, buttons: igButtons };
+const igInteractiveCases = [
+  { type: "button", body: { text: "Escolha:" }, action: { buttons: igButtons } },
+  { type: "generic", elements: [igCard] },
+  { type: "generic", elements: Array.from({ length: 10 }, (_, i) => ({ ...igCard, title: `Produto ${i}` })) },
+];
+const extendedFields = { keywords: ["preço", "valor"], excluded_keywords: ["não quero"],
+  reply_variations: ["Te chamei!", "Veja o direct!"], next_post: true };
+const extendedRule = { ...rule, ...extendedFields, next_post_activated_at: NOW };
+const messengerProfile = { channel_account_id: ACCOUNT, config: { ice_breakers: [{ question: "Horários?", payload: "horarios" }],
+  persistent_menu: igButtons }, revision: 1, sync_status: "synced", synced_at: NOW, last_error_code: null, updated_at: NOW };
+const profileTools = [
+  ["get_instagram_messenger_profile", "GET", "", {}],
+  ["update_instagram_messenger_profile", "PATCH", "", { ice_breakers: null }],
+  ["delete_instagram_messenger_profile", "DELETE", "", {}],
+  ["sync_instagram_messenger_profile", "POST", "/sync", {}],
+] as const;
+
+describe("MCP — paridade Instagram onda 1", () => {
+  it.each(igInteractiveCases)("send_message conserva button/card/gallery e o recibo: $type", async (interactive) => {
+    const { client, calls, keys } = await connect([{ status: 201, body: igReceipt("interactive") }]);
+    const result = await client.callTool({ name: "send_message", arguments: { to: IGSID, from: ACCOUNT, type: "interactive",
+      interactive, tag: "human_agent", idempotency_key: CUSTOMER } });
+    expect(result.isError, JSON.stringify(result.content)).toBeFalsy();
+    expect(keys).toEqual([CUSTOMER]);
+    expect(result.structuredContent).toMatchObject({ wamid: null, external_id: "aWdEZ...mlk", channel: "instagram", type: "interactive" });
+    expect(calls[0]).toEqual({ method: "POST", path: "/v1/messages",
+      body: { to: IGSID, from: ACCOUNT, type: "interactive", interactive, tag: "human_agent" } });
+  });
+
+  it("list/get/create/update retornam os campos novos e delete retorna {id,deleted}", async () => {
+    const { client, calls } = await connect([
+      { body: { data: [extendedRule], meta } },
+      ...Array.from({ length: 3 }, () => ({ body: { data: extendedRule } })),
+      { body: { data: { id: RULE, deleted: true } } },
+    ]);
+    const tools = [
+      ["list_comment_rules", {}], ["get_comment_rule", { rule_id: RULE }],
+      ["create_comment_rule", { dm_text: "Oi!", ...extendedFields }],
+      ["update_comment_rule", { rule_id: RULE, ...extendedFields }],
+      ["delete_comment_rule", { rule_id: RULE }],
+    ] as const;
+    for (const [name, args] of tools) {
+      const result = await client.callTool({ name, arguments: { channel_account_id: ACCOUNT, ...args } });
+      expect(result.isError, JSON.stringify(result.content)).toBeFalsy();
+      expect((result.structuredContent as any).data).toEqual(name === "list_comment_rules" ? [extendedRule]
+        : name === "delete_comment_rule" ? { id: RULE, deleted: true } : extendedRule);
+    }
+    expect(calls[2]!.body).toEqual({ dm_text: "Oi!", ...extendedFields });
+    expect(calls[3]!.body).toEqual(extendedFields);
+    expect(calls[4]).toEqual({ method: "DELETE", path: `/v1/channel_accounts/${ACCOUNT}/comment-rules/${RULE}`, body: undefined });
+  });
+
+  it.each(profileTools)("%s usa a rota e o snapshot canônicos", async (name, method, suffix, patch) => {
+    const { client, calls } = await connect([{ body: { data: messengerProfile } }]);
+    const result = await client.callTool({ name, arguments: { channel_account_id: ACCOUNT, ...patch } });
+    expect(result.isError, JSON.stringify(result.content)).toBeFalsy();
+    expect(result.structuredContent).toEqual({ data: messengerProfile });
+    expect(calls).toEqual([{ method, path: `/v1/channel_accounts/${ACCOUNT}/messenger-profile${suffix}`,
+      body: method === "PATCH" ? patch : undefined }]);
+  });
+
+  it("update do perfil conserva [] e as duas formas de menu", async () => {
+    const { client, calls } = await connect([{ body: { data: messengerProfile } }]);
+    const patch = { ice_breakers: [], persistent_menu: igButtons };
+    const result = await client.callTool({ name: "update_instagram_messenger_profile", arguments: { channel_account_id: ACCOUNT, ...patch } });
+    expect(result.isError).toBeFalsy();
+    expect(calls[0]!.body).toEqual(patch);
+  });
+
+  it("update vazio e tag inválida falham antes do HTTP", async () => {
+    const { client, calls } = await connect([]);
+    const result = await client.callTool({ name: "update_instagram_messenger_profile", arguments: { channel_account_id: ACCOUNT } });
+    expect(result.isError).toBe(true);
+    const tag = await client.callTool({ name: "send_message", arguments: { to: IGSID, type: "interactive", interactive: igInteractiveCases[0], tag: "invalid" } });
+    expect(tag.isError).toBe(true);
+    expect(calls).toHaveLength(0);
+  });
+
+  const errorTools = [
+    ["send_message", { to: IGSID, from: ACCOUNT, type: "interactive", interactive: igInteractiveCases[0] }],
+    ["list_comment_rules", { channel_account_id: ACCOUNT }],
+    ["get_comment_rule", { channel_account_id: ACCOUNT, rule_id: RULE }],
+    ["create_comment_rule", { channel_account_id: ACCOUNT, dm_text: "Oi!", ...extendedFields }],
+    ["update_comment_rule", { channel_account_id: ACCOUNT, rule_id: RULE, ...extendedFields }],
+    ["delete_comment_rule", { channel_account_id: ACCOUNT, rule_id: RULE }],
+    ...profileTools.map(([name, , , patch]) => [name, { channel_account_id: ACCOUNT, ...patch }] as const),
+  ] as const;
+  it.each(errorTools)("%s expõe erro 422 estruturado", async (name, args) => {
+    const { client } = await connect([{ status: 422, body: { error: { code: "invalid_request", message: "Contrato inválido" } } }]);
+    const result = await client.callTool({ name, arguments: args });
+    expect(result.isError).toBe(true);
+    expect(result.structuredContent).toMatchObject({ error: { code: "invalid_request", status: 422 } });
+  });
+
+  it("descoberta obedece scopes, sandbox e perfil assistant", async () => {
+    const names = profileTools.map(([name]) => name);
+    for (const name of names) expect(ASSISTANT_TOOLS.has(name)).toBe(false);
+    const reader = await connect([], { ...fullAccessIdentity, scopes: ["messenger-profile:read"] });
+    expect((await reader.client.listTools()).tools.map((t) => t.name)).toContain(names[0]);
+    expect((await reader.client.listTools()).tools.map((t) => t.name)).not.toContain(names[1]);
+    const writer = await connect([], { ...fullAccessIdentity, scopes: ["messenger-profile:write"] });
+    const writerNames = (await writer.client.listTools()).tools.map((t) => t.name);
+    expect(writerNames).not.toContain(names[0]);
+    for (const name of names.slice(1)) expect(writerNames).toContain(name);
+    const sandbox = await connect([], { ...fullAccessIdentity, environment: "sandbox" });
+    const sandboxNames = (await sandbox.client.listTools()).tools.map((t) => t.name);
+    for (const name of names) expect(sandboxNames).not.toContain(name);
+    expect(sandboxNames).toContain("delete_comment_rule");
+    for (const [name, method, suffix] of profileTools) {
+      expect(MCP_TOOL_POLICIES[name]!.requiredRoutes).toEqual([`${method} /v1/channel_accounts/:id/messenger-profile${suffix}`]);
+    }
+  });
+
+  it("tools/list anuncia o schema Instagram e tag em send_message", async () => {
+    const { client } = await connect([]);
+    const tool = (await client.listTools()).tools.find((t) => t.name === "send_message")!;
+    const schema = JSON.stringify(tool.inputSchema);
+    expect(schema).toContain("generic");
+    expect(schema).toContain("default_action");
+    expect(schema).toContain("human_agent");
+    expect(schema).toContain("postback");
+  });
+});
+
+const whatsappInteractiveCases = [
+  { type: "button", body: { text: "Confirma?" }, action: { buttons: [{ type: "reply", reply: { id: "sim", title: "Sim" } }] } },
+  { type: "list", body: { text: "Escolha" }, action: { button: "Opções", sections: [{ rows: [{ id: "1", title: "Primeira" }] }] } },
+  { type: "cta_url", body: { text: "Ver loja" }, action: { name: "cta_url", parameters: { display_text: "Abrir", url: "https://loja.test" } } },
+];
+it.each(whatsappInteractiveCases)("send_message mantém interactive WhatsApp $type", async (interactive) => {
+  const { client, calls } = await connect([{ status: 201, body: { id: null, wamid: "wamid.wa", to: "5511", status: "sent" } }]);
+  const result = await client.callTool({ name: "send_message", arguments: { to: "5511", type: "interactive", interactive } });
+  expect(result.isError, JSON.stringify(result.content)).toBeFalsy();
+  expect(calls[0]!.body).toEqual({ to: "5511", type: "interactive", interactive });
+});
+
+it("list_messages/get_message conservam cards e contexto do postback", async () => {
+  const context = { quick_reply: { payload: "preco" }, postback: { title: "Preço", payload: "preco" } };
+  const message = { ...messageFixture, channel: "instagram", external_id: "mid.1", wamid: null, phone_number_id: null,
+    type: "interactive", content: igInteractiveCases[1], context };
+  const { client } = await connect([{ body: { data: [message], paging: cursorPagingFixture } }, { body: { data: message } }]);
+  const listed = await client.callTool({ name: "list_messages", arguments: {} });
+  const found = await client.callTool({ name: "get_message", arguments: { id: message.id } });
+  for (const result of [listed, found]) expect(result.isError, JSON.stringify(result.content)).toBeFalsy();
+  expect((listed.structuredContent as any).data[0]).toMatchObject({ content: igInteractiveCases[1], context });
+  expect((found.structuredContent as any).data).toMatchObject({ content: igInteractiveCases[1], context });
+});
+
+it("perfil não configurado e erro numérico conservam o snapshot", async () => {
+  const unconfigured = { ...messengerProfile, config: { ice_breakers: [], persistent_menu: [] }, revision: 0,
+    sync_status: "unconfigured", synced_at: null, updated_at: null };
+  const failed = { ...messengerProfile, sync_status: "error", last_error_code: 190 };
+  const { client } = await connect([{ body: { data: unconfigured } }, { body: { data: failed } }]);
+  for (const profile of [unconfigured, failed]) {
+    const result = await client.callTool({ name: "get_instagram_messenger_profile", arguments: { channel_account_id: ACCOUNT } });
+    expect(result.isError, JSON.stringify(result.content)).toBeFalsy();
+    expect(result.structuredContent).toEqual({ data: profile });
+  }
 });

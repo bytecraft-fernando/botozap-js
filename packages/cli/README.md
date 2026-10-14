@@ -105,7 +105,8 @@ botozap customers     list | get | create | update | delete
 botozap setup-links   list | create | update      (--customer <id>)
 botozap numbers       list | get | update | health
 botozap channel-accounts list | get
-botozap channel-accounts comment-rules list | get | create | update   (Instagram)
+botozap channel-accounts comment-rules list | get | create | update | delete   (Instagram)
+botozap channel-accounts messenger-profile get | update | delete | sync   (Instagram)
 botozap templates     list | get | create
 botozap webhooks      list | get | create | update | delete | test
 botozap deliveries    list                          (webhook_deliveries)
@@ -161,7 +162,30 @@ botozap conversations list --channel instagram --channel-account-id <uuid>
 # Regras de comentário do Instagram (comment-rules:read / comment-rules:write)
 botozap channel-accounts comment-rules list <conta>
 botozap channel-accounts comment-rules create <conta> --keyword preço --dm-text "Te mandei os valores!" --reply-text "Te chamei no direct!"
-botozap channel-accounts comment-rules update <conta> <regra> --active false   # não há exclusão
+botozap channel-accounts comment-rules update <conta> <regra> --active false
+botozap channel-accounts comment-rules delete <conta> <regra>
+
+# Listas JSON preservam frases; [] limpa. next-post true aguarda o próximo post.
+botozap channel-accounts comment-rules create <conta> --dm-text "Oi!" \
+  --keywords '["preço","valor"]' --excluded-keywords '["não quero"]' \
+  --reply-variations '["Te chamei!","Veja o direct!"]' --next-post true
+botozap channel-accounts comment-rules update <conta> <regra> --keywords '[]' --next-post false
+
+# Instagram: interactive button (web_url/postback) ou generic (1–10 cards)
+botozap messages send-interactive --to 17841400000000123 --from <conta> --input ./cards.json
+cat cards.json | botozap messages send-interactive --to 17841400000000123 --from <conta> --stdin
+# --tag human_agent é opcional, sujeito à flag e janela da API.
+
+# Perguntas e menu (messenger-profile:read/write; sem sandbox)
+botozap channel-accounts messenger-profile get --channel-account-id <conta>
+botozap channel-accounts messenger-profile update --channel-account-id <conta> \
+  --json '{"ice_breakers":[{"question":"Horários?","payload":"horarios"}]}'
+botozap channel-accounts messenger-profile update --channel-account-id <conta> --input ./perfil.json
+cat perfil.json | botozap channel-accounts messenger-profile update --channel-account-id <conta> --stdin
+# PATCH: ausente preserva; null ou [] remove a seção.
+botozap channel-accounts messenger-profile update --channel-account-id <conta> --json '{"persistent_menu":null}'
+botozap channel-accounts messenger-profile sync --channel-account-id <conta>
+botozap channel-accounts messenger-profile delete --channel-account-id <conta>
 
 # Listar mensagens com filtro e paginação por cursor (coluna ORIGEM = source)
 botozap messages list --direction inbound --limit 20

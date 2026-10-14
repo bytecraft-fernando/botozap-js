@@ -9,6 +9,8 @@ export const fullAccessIdentity = {
   "calendar:write",
   "comment-rules:read",
   "comment-rules:write",
+  "messenger-profile:read",
+  "messenger-profile:write",
   "messages:send",
   "messages:read",
   "events:read",

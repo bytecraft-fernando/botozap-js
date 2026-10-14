@@ -215,7 +215,9 @@ Edite `~/.cursor/mcp.json` (global) ou `.cursor/mcp.json` (no projeto):
 Transportes: **stdio** (padrão, local) e **Streamable HTTP** (remoto stateful).
 Nomes em inglês (snake_case, melhor para tool-calling); descrições em PT-BR.
 
-**Mensagens** — `send_message` (`text`, `template`, `interactive` button/list/cta_url, `location`, `reaction`), `list_messages` (`sort`: `created_at` ou `event_at`; cada item traz `source`), `get_message`
+**Mensagens** — `send_message` (`text`, `template`, `interactive`: WhatsApp button/list/cta_url, Instagram button (web_url/postback) ou generic (1–10 cards), `location`, `reaction`), `list_messages` (`sort`: `created_at` ou `event_at`; cada item traz `source`), `get_message`
+`send_message` aceita `from` da Conta de canal, `to` IGSID, `type: "interactive"` e `tag?: "human_agent"` (sujeita à flag e janela). Instagram devolve `wamid: null`, `external_id`, `channel: "instagram"`, `type: "interactive"`; mantenha `idempotency_key` em retries. Os schemas anunciam os formatos de botões/cards; a API valida limites e erros 422.
+
 **Conversas** — `reply_to_conversation`, `list_conversations`, `get_conversation`, `update_conversation` (leituras trazem `entry_point`, `referral` Click-to-WhatsApp, `fep_expires_at` e `fep_reply_by`)
 **Contatos** — `list_contacts`, `get_contact`, `create_contact`, `update_contact`, `delete_contact` (`display_name` é o nome dado pela empresa; `null` limpa)
 **Mídia** — `send_media_message` (WhatsApp ou Instagram: `to` aceita o IGSID; o Instagram não aceita `caption`), `ingest_media` (só WhatsApp)
@@ -223,7 +225,8 @@ Nomes em inglês (snake_case, melhor para tool-calling); descrições em PT-BR.
 **Links de setup** — `list_setup_links`, `create_setup_link`, `update_setup_link` (redirects `https`: concluído → `success_redirect_url` com `status=completed`; link esgotado → `failure_redirect_url` com `status=failed`; cliente volta num erro recuperável → `failure_redirect_url` com `status=cancelled`, link segue válido; todo destino recebe `setup_link_id`)
 **Números** — `list_phone_numbers`, `get_phone_number`, `update_phone_number` (só o `label`, nome local), `phone_number_health`
 **Contas de canal** — `list_channel_accounts` (Números do WhatsApp e Contas do Instagram; filtros `channel` e `customer_id`; o bloco `instagram` traz `token_status` da conexão), `get_channel_account` (no catálogo completo, com ou sem UI)
-**Regras de comentário (Instagram)** — `list_comment_rules`, `get_comment_rule`, `create_comment_rule`, `update_comment_rule` (scopes `comment-rules:read`/`comment-rules:write`; uma regra ativa dispara directs automáticos; não há exclusão, desative com `is_active: false`)
+**Regras de comentário (Instagram)** — `list_comment_rules`, `get_comment_rule`, `create_comment_rule`, `update_comment_rule`, `delete_comment_rule` (scopes `comment-rules:read`/`comment-rules:write`; uma regra ativa dispara directs automáticos; criação/leitura/atualização incluem `keywords`, `excluded_keywords`, `reply_variations` e `next_post`; exclusão retorna `{data:{id,deleted:true}}`)
+**Perguntas e menu (Instagram)** — `get_instagram_messenger_profile`, `update_instagram_messenger_profile`, `delete_instagram_messenger_profile`, `sync_instagram_messenger_profile` (scopes `messenger-profile:read`/`messenger-profile:write`; sem sandbox; catálogo completo). Todas usam `channel_account_id` e retornam `{data:{channel_account_id,config,revision,sync_status,synced_at,last_error_code,updated_at}}`. Update aceita `ice_breakers` (`{question,payload}[]`, até 4) e `persistent_menu` (até 5 itens postback `{type,title,payload}` ou web_url `{type,title,url}`): ausente preserva; null ou [] remove. Sync verifica/reaplica explicitamente o desejado salvo; delete conserva configuração vazia.
 **Templates** — `list_templates`, `get_template`, `create_template`
 **Webhooks** — `list_webhooks`, `get_webhook`, `create_webhook`, `update_webhook`, `delete_webhook`, `test_webhook` (`events` aceita a categoria opt-in `app_messages`)
 **Entregas de webhook** — `list_webhook_deliveries` (status `limited` = cortada pelo limite de repasse do Free)

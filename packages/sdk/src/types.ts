@@ -33,9 +33,9 @@ export interface SendResult {
   warnings?: { code: string; message: string }[];
   /**
    * Tipo do envio. WhatsApp: só em `"reaction"`. Instagram: `"text"` ou o tipo
-   * da mídia; ausente em reação.
+   * da mídia ou `"interactive"`; ausente em reação.
    */
-  type?: "reaction" | "text" | "image" | "video" | "audio" | "document" | (string & {});
+  type?: "reaction" | "interactive" | "text" | "image" | "video" | "audio" | "document" | (string & {});
   /** Só em reação: alvo e ação (`react`/`unreact`). */
   reaction?: SendReactionResult;
 }
