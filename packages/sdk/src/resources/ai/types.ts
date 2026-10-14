@@ -1094,7 +1094,14 @@ export type AiInferenceSummary = {
 
 export type AiKnowledgeHit = AiKnowledgeChunk & {
   source_name: string;
-  similarity: number;
+  /** Similaridade vetorial (0–1); `null` quando o trecho veio só da busca textual. */
+  similarity: number | null;
+  /** Pontuação da fusão híbrida (Reciprocal Rank Fusion, k=60); não é percentual. */
+  score: number;
+  /** Posição na busca vetorial; `null` quando não apareceu nela. */
+  vector_rank: number | null;
+  /** Posição na busca textual; `null` quando não apareceu nela. */
+  text_rank: number | null;
 };
 export type AiKnowledgeSearchDiagnostics = {
   hits: AiKnowledgeHit[];
