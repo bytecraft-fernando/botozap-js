@@ -113,6 +113,8 @@ export type {
   ConversationReferral,
   Assignment,
   Webhook,
+  WebhookChannelHealth,
+  WebhookChannelHealthStatus,
   PhoneNumber,
   User,
   ApiLog,

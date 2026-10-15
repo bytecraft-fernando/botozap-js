@@ -273,10 +273,43 @@ export interface Assignment {
   [key: string]: unknown;
 }
 
+/**
+ * Estado de entrega de um canal com falha. `paused` para só esse canal (na 15ª
+ * falha seguida); os outros canais do Endpoint seguem recebendo.
+ */
+export type WebhookChannelHealthStatus = "degraded" | "paused" | (string & {});
+
+/** Saúde de entrega por canal (`Webhook.channels_health`): só canais com falha. */
+export interface WebhookChannelHealth {
+  /** Conta de canal (`channel_account.id`); `null` = eventos sem canal. */
+  channel_account_id: string | null;
+  health_status: WebhookChannelHealthStatus;
+  failure_streak: number;
+  next_attempt_at: string | null;
+  paused_at: string | null;
+  last_success_at: string | null;
+  last_failure_at: string | null;
+  last_response_code: number | null;
+}
+
 export interface Webhook {
   id: string;
   /** Cliente cujas entregas o endpoint recebe; `null` = todos os da Conta. */
   customer_id?: string | null;
+  /**
+   * Canais cujos eventos o Endpoint recebe (ids de `channelAccounts.list`, os
+   * mesmos de `channel_account.id` nos payloads). `null` = todos os canais.
+   * Vazio quando os canais marcados foram excluídos: o Endpoint não recebe
+   * eventos até ser reconfigurado.
+   */
+  channel_account_ids?: string[] | null;
+  /**
+   * Saúde por canal, só dos canais com falha (vazio = tudo saudável). A espera,
+   * as falhas seguidas e a pausa contam por canal. `health_status` e
+   * `failure_streak` do Endpoint resumem o pior canal: `paused` só quando todos
+   * os canais com falha estão pausados.
+   */
+  channels_health?: WebhookChannelHealth[];
   url: string;
   events?: (WebhookCategory | (string & {}))[];
   active?: boolean;

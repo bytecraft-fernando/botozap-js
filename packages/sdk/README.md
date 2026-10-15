@@ -394,6 +394,25 @@ e `app_messages`, opt-in, com `whatsapp.message.echo`, `.edited` e `.revoked` do
 app WhatsApp Business em coexistência. Em `webhookDeliveries.list`, o status
 `limited` marca a entrega cortada pelo limite de repasse do Free (sem retry).
 
+`channel_account_ids` limita um Endpoint a alguns canais (ids de
+`channelAccounts.list`, os mesmos de `channel_account.id` nos payloads; 1 a
+100). No create, omitido ou `null` = todos os canais. No update, omitido não
+muda, `null` volta a todos e um array substitui a lista. A leitura devolve
+`channel_account_ids` (`null` = todos; vazio quando os canais marcados foram
+excluídos, e o Endpoint então não recebe eventos) e `channels_health`, só com
+os canais em falha (`channel_account_id: null` = eventos sem canal). A espera,
+as falhas seguidas e a pausa (na 15ª falha) contam por canal: um canal pausado
+não para os outros. `health_status` e `failure_streak` do Endpoint resumem o
+pior canal; `paused` só aparece quando todos os canais com falha estão
+pausados. Erros: `422 invalid_channel_account_ids` e
+`404 channel_account_not_found`.
+
+```ts
+await boto.webhooks.update(endpointId, { channel_account_ids: [canalId] });
+await boto.webhooks.update(endpointId, { channel_account_ids: null }); // todos
+const { channels_health } = await boto.webhooks.get(endpointId);
+```
+
 ## Configuração
 
 ```ts
@@ -418,7 +437,7 @@ O SDK cobre os recursos da API `/v1`:
 - `broadcasts` — criar, destinatários, agendar, enviar, cancelar
 - `contacts` — listar, buscar, criar, atualizar, remover; `display_name` é o nome que a empresa dá ao Contato (1–200 caracteres; `null` limpa), separado do `profile_name` que vem do canal
 - `conversations` — listar (filtros `channel` e `channel_account_id`), buscar, atualizar, responder, atribuições; leituras trazem `entry_point` (`ctwa`/`organic`/`null`), `referral` do último clique em anúncio Click-to-WhatsApp, `fep_expires_at` (fim da janela grátis informado pela Meta) e `fep_reply_by` (estimativa do prazo para responder)
-- `webhooks` — CRUD e teste; `customer_id` opcional limita as entregas a um Cliente da Conta (`null` no update remove o filtro)
+- `webhooks` — CRUD e teste; `customer_id` opcional limita as entregas a um Cliente da Conta (`null` no update remove o filtro); `channel_account_ids` limita a alguns canais (`null` = todos) e `channels_health` traz a saúde por canal
 - `channelAccounts` — listar e buscar Contas de canal (WhatsApp e Instagram); **Regras de comentário** do Instagram (listar, buscar, criar, atualizar, excluir) e **Perguntas e menu** (ler, salvar/aplicar, remover, verificar/reaplicar)
 - `phoneNumbers` — listar, buscar, **atualizar o `label`** (nome local, até 100 caracteres; `null` limpa), remover, saúde
 - `media` — subir arquivo (obter um media_id) e **buscar metadados + URL de download** de uma mídia recebida
