@@ -127,6 +127,8 @@ export type {
   MediaAsset,
   SetupLink,
   BotoZapEvent,
+  InstagramCommentAiAutomation,
+  InstagramCommentAiRepliedEvent,
   EventPaging,
   EventList,
 } from "./types.js";

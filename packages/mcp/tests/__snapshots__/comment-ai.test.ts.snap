@@ -1,0 +1,524 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`catálogo completo anuncia schemas, rotas, escopos e efeito público; assistant permanece excluído 1`] = `
+[
+  {
+    "_meta": undefined,
+    "annotations": {
+      "destructiveHint": false,
+      "openWorldHint": false,
+      "readOnlyHint": true,
+    },
+    "description": "Lê configuração opt-in, uso diário, gate e prontidão da IA de comentários. agents:read; sem sandbox.",
+    "execution": {
+      "taskSupport": "forbidden",
+    },
+    "inputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": false,
+      "properties": {
+        "channel_account_id": {
+          "description": "UUID interno da Conta do Instagram (o \`id\` de list_channel_accounts).",
+          "format": "uuid",
+          "type": "string",
+        },
+      },
+      "required": [
+        "channel_account_id",
+      ],
+      "type": "object",
+    },
+    "name": "get_instagram_comment_ai",
+    "outputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": false,
+      "properties": {
+        "data": {
+          "additionalProperties": false,
+          "properties": {
+            "agent_id": {
+              "anyOf": [
+                {
+                  "description": "UUID interno do recurso no BotoZap.",
+                  "format": "uuid",
+                  "type": "string",
+                },
+                {
+                  "type": "null",
+                },
+              ],
+              "description": "UUID interno do recurso no BotoZap.",
+            },
+            "answered_today": {
+              "minimum": 0,
+              "type": "integer",
+            },
+            "daily_limit": {
+              "maximum": 200,
+              "minimum": 1,
+              "type": "integer",
+            },
+            "enabled": {
+              "type": "boolean",
+            },
+            "gate_mode": {
+              "type": "string",
+            },
+            "readiness": {
+              "items": {
+                "type": "string",
+              },
+              "type": "array",
+            },
+            "reserved_today": {
+              "minimum": 0,
+              "type": "integer",
+            },
+            "status": {
+              "type": "string",
+            },
+            "timezone": {
+              "type": "string",
+            },
+          },
+          "required": [
+            "enabled",
+            "agent_id",
+            "daily_limit",
+            "status",
+            "answered_today",
+            "reserved_today",
+            "timezone",
+            "gate_mode",
+            "readiness",
+          ],
+          "type": "object",
+        },
+        "error": {
+          "additionalProperties": false,
+          "description": "Erro estruturado sem credenciais, tokens ou headers de request.",
+          "properties": {
+            "code": {
+              "description": "Código estável do erro da API BotoZap.",
+              "type": "string",
+            },
+            "message": {
+              "description": "Mensagem segura e acionável do erro.",
+              "type": "string",
+            },
+            "outcome": {
+              "enum": [
+                "rejected",
+                "accepted",
+                "unknown",
+              ],
+              "type": "string",
+            },
+            "retry": {
+              "enum": [
+                "backoff",
+                "after_correction",
+                "reconcile_first",
+                "unknown",
+              ],
+              "type": "string",
+            },
+            "status": {
+              "description": "Status HTTP; 0 quando não houve resposta HTTP.",
+              "minimum": 0,
+              "type": "integer",
+            },
+          },
+          "required": [
+            "code",
+            "message",
+            "status",
+          ],
+          "type": "object",
+        },
+      },
+      "type": "object",
+    },
+    "title": undefined,
+  },
+  {
+    "_meta": undefined,
+    "annotations": {
+      "destructiveHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": false,
+    },
+    "description": "PATCH parcial da IA de comentários: ausente preserva; null limpa o agente. Ativar pode publicar respostas e enviar DMs automáticas. agents:write e capacidade ai do plano (somente desligar é livre); sem sandbox. Chave de API; no OAuth, somente painel.",
+    "execution": {
+      "taskSupport": "forbidden",
+    },
+    "inputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": false,
+      "properties": {
+        "agent_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string",
+            },
+            {
+              "type": "null",
+            },
+          ],
+          "description": "Agente publicado, ativo e automático deste canal, com credencial válida; null limpa a seleção.",
+        },
+        "channel_account_id": {
+          "description": "UUID interno da Conta do Instagram (o \`id\` de list_channel_accounts).",
+          "format": "uuid",
+          "type": "string",
+        },
+        "daily_limit": {
+          "description": "Teto diário (1–200), renovado em America/Sao_Paulo; padrão 50.",
+          "maximum": 200,
+          "minimum": 1,
+          "type": "integer",
+        },
+        "enabled": {
+          "description": "Ativa/desativa a automação pública; desligada por padrão.",
+          "type": "boolean",
+        },
+      },
+      "required": [
+        "channel_account_id",
+      ],
+      "type": "object",
+    },
+    "name": "update_instagram_comment_ai",
+    "outputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": false,
+      "properties": {
+        "data": {
+          "additionalProperties": false,
+          "properties": {
+            "agent_id": {
+              "anyOf": [
+                {
+                  "description": "UUID interno do recurso no BotoZap.",
+                  "format": "uuid",
+                  "type": "string",
+                },
+                {
+                  "type": "null",
+                },
+              ],
+              "description": "UUID interno do recurso no BotoZap.",
+            },
+            "answered_today": {
+              "minimum": 0,
+              "type": "integer",
+            },
+            "daily_limit": {
+              "maximum": 200,
+              "minimum": 1,
+              "type": "integer",
+            },
+            "enabled": {
+              "type": "boolean",
+            },
+            "gate_mode": {
+              "type": "string",
+            },
+            "readiness": {
+              "items": {
+                "type": "string",
+              },
+              "type": "array",
+            },
+            "reserved_today": {
+              "minimum": 0,
+              "type": "integer",
+            },
+            "status": {
+              "type": "string",
+            },
+            "timezone": {
+              "type": "string",
+            },
+          },
+          "required": [
+            "enabled",
+            "agent_id",
+            "daily_limit",
+            "status",
+            "answered_today",
+            "reserved_today",
+            "timezone",
+            "gate_mode",
+            "readiness",
+          ],
+          "type": "object",
+        },
+        "error": {
+          "additionalProperties": false,
+          "description": "Erro estruturado sem credenciais, tokens ou headers de request.",
+          "properties": {
+            "code": {
+              "description": "Código estável do erro da API BotoZap.",
+              "type": "string",
+            },
+            "message": {
+              "description": "Mensagem segura e acionável do erro.",
+              "type": "string",
+            },
+            "outcome": {
+              "enum": [
+                "rejected",
+                "accepted",
+                "unknown",
+              ],
+              "type": "string",
+            },
+            "retry": {
+              "enum": [
+                "backoff",
+                "after_correction",
+                "reconcile_first",
+                "unknown",
+              ],
+              "type": "string",
+            },
+            "status": {
+              "description": "Status HTTP; 0 quando não houve resposta HTTP.",
+              "minimum": 0,
+              "type": "integer",
+            },
+          },
+          "required": [
+            "code",
+            "message",
+            "status",
+          ],
+          "type": "object",
+        },
+      },
+      "type": "object",
+    },
+    "title": undefined,
+  },
+  {
+    "_meta": undefined,
+    "annotations": {
+      "destructiveHint": false,
+      "openWorldHint": false,
+      "readOnlyHint": true,
+    },
+    "description": "Histórico da IA de comentários, mais recente primeiro: decisão, motivo, resposta e estados dos envios. agents:read; sem sandbox; paginação offset { data, meta }.",
+    "execution": {
+      "taskSupport": "forbidden",
+    },
+    "inputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": false,
+      "properties": {
+        "channel_account_id": {
+          "description": "UUID interno da Conta do Instagram (o \`id\` de list_channel_accounts).",
+          "format": "uuid",
+          "type": "string",
+        },
+        "page": {
+          "description": "Página (1-based).",
+          "exclusiveMinimum": 0,
+          "type": "integer",
+        },
+        "per_page": {
+          "description": "Itens por página (máx. 100).",
+          "exclusiveMinimum": 0,
+          "type": "integer",
+        },
+      },
+      "required": [
+        "channel_account_id",
+      ],
+      "type": "object",
+    },
+    "name": "list_instagram_comment_ai_runs",
+    "outputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": false,
+      "properties": {
+        "data": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "action": {
+                "type": [
+                  "string",
+                  "null",
+                ],
+              },
+              "author_username": {
+                "type": [
+                  "string",
+                  "null",
+                ],
+              },
+              "comment_id": {
+                "type": "string",
+              },
+              "comment_text": {
+                "type": [
+                  "string",
+                  "null",
+                ],
+              },
+              "completed_at": {
+                "type": [
+                  "string",
+                  "null",
+                ],
+              },
+              "created_at": {
+                "type": "string",
+              },
+              "dm_status": {
+                "type": "string",
+              },
+              "execution_id": {
+                "anyOf": [
+                  {
+                    "$ref": "#/properties/data/items/properties/id",
+                  },
+                  {
+                    "type": "null",
+                  },
+                ],
+                "description": "UUID interno do recurso no BotoZap.",
+              },
+              "id": {
+                "description": "UUID interno do recurso no BotoZap.",
+                "format": "uuid",
+                "type": "string",
+              },
+              "media_id": {
+                "type": [
+                  "string",
+                  "null",
+                ],
+              },
+              "reason": {
+                "type": [
+                  "string",
+                  "null",
+                ],
+              },
+              "reason_message": {
+                "type": "string",
+              },
+              "reply_status": {
+                "type": "string",
+              },
+              "reply_text": {
+                "type": [
+                  "string",
+                  "null",
+                ],
+              },
+              "status": {
+                "type": "string",
+              },
+            },
+            "required": [
+              "id",
+              "comment_id",
+              "comment_text",
+              "author_username",
+              "media_id",
+              "execution_id",
+              "status",
+              "action",
+              "reason",
+              "reason_message",
+              "reply_text",
+              "dm_status",
+              "reply_status",
+              "created_at",
+              "completed_at",
+            ],
+            "type": "object",
+          },
+          "type": "array",
+        },
+        "error": {
+          "additionalProperties": false,
+          "description": "Erro estruturado sem credenciais, tokens ou headers de request.",
+          "properties": {
+            "code": {
+              "description": "Código estável do erro da API BotoZap.",
+              "type": "string",
+            },
+            "message": {
+              "description": "Mensagem segura e acionável do erro.",
+              "type": "string",
+            },
+            "outcome": {
+              "enum": [
+                "rejected",
+                "accepted",
+                "unknown",
+              ],
+              "type": "string",
+            },
+            "retry": {
+              "enum": [
+                "backoff",
+                "after_correction",
+                "reconcile_first",
+                "unknown",
+              ],
+              "type": "string",
+            },
+            "status": {
+              "description": "Status HTTP; 0 quando não houve resposta HTTP.",
+              "minimum": 0,
+              "type": "integer",
+            },
+          },
+          "required": [
+            "code",
+            "message",
+            "status",
+          ],
+          "type": "object",
+        },
+        "meta": {
+          "additionalProperties": false,
+          "properties": {
+            "page": {
+              "exclusiveMinimum": 0,
+              "type": "integer",
+            },
+            "per_page": {
+              "exclusiveMinimum": 0,
+              "type": "integer",
+            },
+            "total_count": {
+              "minimum": 0,
+              "type": "integer",
+            },
+            "total_pages": {
+              "minimum": 0,
+              "type": "integer",
+            },
+          },
+          "required": [
+            "page",
+            "per_page",
+            "total_pages",
+            "total_count",
+          ],
+          "type": "object",
+        },
+      },
+      "type": "object",
+    },
+    "title": undefined,
+  },
+]
+`;

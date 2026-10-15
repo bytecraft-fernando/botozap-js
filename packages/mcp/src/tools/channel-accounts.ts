@@ -10,6 +10,7 @@
 import { z } from "zod";
 import type {
   CreateCommentRuleParams,
+  UpdateCommentAiParams,
   CreateMessageRuleParams,
   UpdateMessageRuleParams,
   ListChannelAccountsParams,
@@ -19,6 +20,8 @@ import type {
 import { imageToolResult, type Register } from "../register.js";
 import {
   instagramConnectionResultSchema,
+  instagramCommentAiResultSchema,
+  listInstagramCommentAiRunsResultSchema,
   messageRuleQrResultSchema,
   commentRuleMetricsResultSchema,
   messageRuleActionSchema,
@@ -113,6 +116,27 @@ export function registerChannelAccountTools(register: Register): void {
     listChannelAccountsResultSchema,
     (client, args) => client.channelAccounts.list(args as ListChannelAccountsParams),
   );
+
+  register("get_instagram_comment_ai", "Lê configuração opt-in, uso diário, gate e prontidão da IA de comentários. agents:read; sem sandbox.",
+    { channel_account_id: channelAccountId }, instagramCommentAiResultSchema,
+    async (client, args) => ({ data: await client.channelAccounts.getCommentAi(String(args.channel_account_id)) }));
+  register("update_instagram_comment_ai", "PATCH parcial da IA de comentários: ausente preserva; null limpa o agente. Ativar pode publicar respostas e enviar DMs automáticas. agents:write e capacidade ai do plano (somente desligar é livre); sem sandbox. Chave de API; no OAuth, somente painel.",
+    {
+      channel_account_id: channelAccountId,
+      enabled: z.boolean().optional().describe("Ativa/desativa a automação pública; desligada por padrão."),
+      agent_id: z.string().uuid().nullable().optional().describe("Agente publicado, ativo e automático deste canal, com credencial válida; null limpa a seleção."),
+      daily_limit: z.number().int().min(1).max(200).optional().describe("Teto diário (1–200), renovado em America/Sao_Paulo; padrão 50."),
+    }, instagramCommentAiResultSchema,
+    async (client, args) => {
+      const { channel_account_id, ...patch } = args;
+      if (!Object.keys(patch).length) throw new Error("Informe ao menos um campo para alterar.");
+      return { data: await client.channelAccounts.updateCommentAi(String(channel_account_id), patch as UpdateCommentAiParams) };
+    });
+  register("list_instagram_comment_ai_runs", "Histórico da IA de comentários, mais recente primeiro: decisão, motivo, resposta e estados dos envios. agents:read; sem sandbox; paginação offset { data, meta }.",
+    { channel_account_id: channelAccountId, page, per_page: perPage }, listInstagramCommentAiRunsResultSchema,
+    (client, args) => client.channelAccounts.listCommentAiRuns(String(args.channel_account_id), {
+      page: args.page as number | undefined, per_page: args.per_page as number | undefined,
+    }));
 
   register("get_instagram_connection", "Lê estado, saúde e diagnóstico da conexão Instagram. numbers:read; sem sandbox.",
     { channel_account_id: channelAccountId }, instagramConnectionResultSchema,

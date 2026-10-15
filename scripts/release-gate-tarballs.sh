@@ -47,7 +47,7 @@ node -e "import('@botozap/sdk').then(m => { if (typeof m.BotoZap !== 'function')
 node -e "if (typeof require('@botozap/sdk').BotoZap !== 'function') process.exit(1)"
 
 printf '%s\n' \
-  'import { BotoZap, type SendResult, type AiAgentConfig, type InstagramInteractivePayload, type UpdateMessengerProfileParams, type CreateMessageRuleParams, type CommentRuleMetrics } from "@botozap/sdk";' \
+  'import { BotoZap, type SendResult, type AiAgentConfig, type InstagramInteractivePayload, type UpdateMessengerProfileParams, type CreateMessageRuleParams, type CommentRuleMetrics, type InstagramCommentAi, type InstagramCommentAiRun, type InstagramCommentAiRepliedEvent } from "@botozap/sdk";' \
   'const boto = new BotoZap({ apiKey: "bz_sandbox_release_gate" });' \
   'export async function smoke(): Promise<SendResult> {' \
   '  return boto.messages.send({ to: "+5500000000001", text: "Olá 😀" });' \
@@ -62,6 +62,10 @@ printf '%s\n' \
   'const messageRule: CreateMessageRuleParams = { name: "Preço", trigger: "keyword", keywords: ["preço"], actions: [{type:"message",message:{type:"text",text:"Oi"}},{type:"agent",router_id:"router"},{type:"stage",stage_id:null},{type:"tags",add:["novo"]},{type:"assign",user_id:"user"}] };' \
   'export const messageRuleSmoke = () => boto.channelAccounts.createMessageRule("channel", messageRule);' \
   'export const metricsSmoke = (): Promise<CommentRuleMetrics> => boto.channelAccounts.getCommentRuleMetrics("channel", "rule", {from:"2026-10-01T00:00:00Z",to:"2026-11-01T00:00:00Z"});' \
+  'export const commentAiSmoke = (): Promise<InstagramCommentAi> => boto.channelAccounts.getCommentAi("channel");' \
+  'export const updateCommentAiSmoke = () => boto.channelAccounts.updateCommentAi("channel", {enabled:false,agent_id:null,daily_limit:50});' \
+  'export const commentAiRunsSmoke = async (): Promise<InstagramCommentAiRun[]> => (await boto.channelAccounts.listCommentAiRuns("channel", {page:1,per_page:30})).data;' \
+  'export const commentAiEventSmoke = (event: InstagramCommentAiRepliedEvent) => event.data.automation.execution_id;' \
   > index.ts
 printf '%s\n' \
   '{ "compilerOptions": { "strict": true, "module": "nodenext", "moduleResolution": "nodenext", "target": "es2022", "noEmit": true } }' \

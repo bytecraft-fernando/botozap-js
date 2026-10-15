@@ -274,7 +274,10 @@ export type AiExecution = {
   tool_trace: { call_id: string; name: string; [key: string]: unknown }[];
   usage?: AiUsageTokens | null;
   measurement_status: "measured" | "partial" | "unavailable";
+  /** Comentários do Instagram usam comment_ai_*; source continua live. */
   finish_reason: string | null;
+  /** Apenas em execuções de comentários; null quando falta preço ou medição. */
+  estimated_cost_usd?: number | null;
   error_code: string | null;
   created_at: string;
   completed_at: string | null;

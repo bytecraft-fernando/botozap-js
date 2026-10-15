@@ -1,6 +1,6 @@
 import { Command, Option } from "commander";
 import { readFileSync, writeFileSync } from "node:fs";
-import type { CreateCommentRuleParams, UpdateCommentRuleParams, UpdateMessengerProfileParams, CreateMessageRuleParams, UpdateMessageRuleParams } from "@botozap/sdk";
+import type { UpdateCommentAiParams, CreateCommentRuleParams, UpdateCommentRuleParams, UpdateMessengerProfileParams, CreateMessageRuleParams, UpdateMessageRuleParams } from "@botozap/sdk";
 import { context, toInt } from "./shared.js";
 import {
   printJson,
@@ -171,6 +171,53 @@ export function registerChannelAccounts(program: Command): void {
         printDetail({ ...data });
       });
   }
+
+  const commentAi = accounts.command("comment-ai").description("IA de comentários do Instagram (sem sandbox)");
+  commentAi.command("get <channel_account_id>")
+    .description("Lê configuração, uso diário e prontidão (agents:read)")
+    .action(async (id: string, _opts, cmd: Command) => {
+      const { client, format } = context(cmd);
+      const data = await client.channelAccounts.getCommentAi(id);
+      if (format === "json") return printJson(data);
+      printDetail({ ...data });
+    });
+  commentAi.command("set <channel_account_id>")
+    .description("Configura respostas públicas e DMs automáticas (agents:write e plano IA; OAuth somente painel)")
+    .option("--enabled <bool>", "true | false; ativa/desativa a automação pública")
+    .option("--agent <id>", "UUID do agente publicado; null limpa a seleção")
+    .option("--daily-limit <n>", "limite diário de 1 a 200 (America/Sao_Paulo)")
+    .action(async (id: string, opts, cmd: Command) => {
+      const enabled = parseActive(opts.enabled, "enabled");
+      const patch: UpdateCommentAiParams = {
+        ...(enabled !== undefined ? { enabled } : {}),
+        ...(opts.agent !== undefined ? { agent_id: opts.agent === "null" ? null : opts.agent } : {}),
+      };
+      if (opts.dailyLimit !== undefined) {
+        const limit = Number(opts.dailyLimit);
+        if (!Number.isInteger(limit) || limit < 1 || limit > 200) throw new Error("--daily-limit deve ser um inteiro de 1 a 200.");
+        patch.daily_limit = limit;
+      }
+      if (!Object.keys(patch).length) throw new Error("Informe ao menos um campo para alterar.");
+      const { client, format } = context(cmd);
+      const data = await client.channelAccounts.updateCommentAi(id, patch);
+      if (format === "json") return printJson(data);
+      printDetail({ ...data });
+    });
+  commentAi.command("runs <channel_account_id>")
+    .description("Lista decisões e envios da IA (agents:read; paginação offset)")
+    .option("--page <n>", "página").option("--per-page <n>", "itens por página")
+    .action(async (id: string, opts, cmd: Command) => {
+      const { client, format } = context(cmd);
+      const res = await client.channelAccounts.listCommentAiRuns(id, { page: toInt(opts.page), per_page: toInt(opts.perPage) });
+      if (format === "json") return printJson(res);
+      printTable(res.data.map(row => ({ ...row })), [
+        { header: "ID", key: "id", max: 36 }, { header: "COMENTÁRIO", key: "comment_text", max: 40 },
+        { header: "STATUS", key: "status" }, { header: "AÇÃO", key: "action" },
+        { header: "MOTIVO", key: "reason_message", max: 50 }, { header: "DIRECT", key: "dm_status" },
+        { header: "RESPOSTA", key: "reply_status" },
+      ]);
+      printOffsetFooter(res.meta);
+    });
 
   const rules = accounts
     .command("comment-rules")

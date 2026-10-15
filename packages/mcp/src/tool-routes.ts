@@ -136,3 +136,7 @@ routes(["get_instagram_connection"], "GET /v1/channel_accounts/:id/connection");
 routes(["resubscribe_instagram_connection"], "POST /v1/channel_accounts/:id/connection/resubscribe");
 routes(["disconnect_instagram_connection"], "DELETE /v1/channel_accounts/:id/connection");
 routes(["get_message_rule_qr"], "GET /v1/channel_accounts/:id/message-rules/:ruleId", "GET /v1/channel_accounts/:id/message-rules/:ruleId/qr");
+
+routes(["get_instagram_comment_ai"], "GET /v1/channel_accounts/:id/comment-ai");
+routes(["update_instagram_comment_ai"], "PATCH /v1/channel_accounts/:id/comment-ai");
+routes(["list_instagram_comment_ai_runs"], "GET /v1/channel_accounts/:id/comment-ai/runs");

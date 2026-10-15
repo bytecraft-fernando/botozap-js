@@ -699,6 +699,38 @@ export const channelAccountSchema = z
 
 export const listChannelAccountsResultSchema = offsetListResultSchemaFor(channelAccountSchema);
 
+/** Configuração pública da IA de comentários, sem credenciais ou campos internos. */
+export const instagramCommentAiSchema = z.object({
+  enabled: z.boolean(),
+  agent_id: internalUuidSchema.nullable(),
+  daily_limit: z.number().int().min(1).max(200),
+  status: z.string(),
+  answered_today: z.number().int().nonnegative(),
+  reserved_today: z.number().int().nonnegative(),
+  timezone: z.string(),
+  gate_mode: z.string(),
+  readiness: z.array(z.string()),
+}).strip();
+export const instagramCommentAiResultSchema = itemResultSchemaFor(instagramCommentAiSchema);
+export const instagramCommentAiRunSchema = z.object({
+  id: internalUuidSchema,
+  comment_id: z.string(),
+  comment_text: z.string().nullable(),
+  author_username: z.string().nullable(),
+  media_id: z.string().nullable(),
+  execution_id: internalUuidSchema.nullable(),
+  status: z.string(),
+  action: z.string().nullable(),
+  reason: z.string().nullable(),
+  reason_message: z.string(),
+  reply_text: z.string().nullable(),
+  dm_status: z.string(),
+  reply_status: z.string(),
+  created_at: z.string(),
+  completed_at: z.string().nullable(),
+}).strip();
+export const listInstagramCommentAiRunsResultSchema = offsetListResultSchemaFor(instagramCommentAiRunSchema);
+
 /** Regra de comentário do Instagram (GET /v1/channel_accounts/:id/comment-rules). */
 export const commentRuleSchema = z
   .object({

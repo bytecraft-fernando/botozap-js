@@ -105,6 +105,7 @@ botozap customers     list | get | create | update | delete
 botozap setup-links   list | create | update      (--customer <id>)
 botozap numbers       list | get | update | health
 botozap channel-accounts list | get
+botozap channel-accounts comment-ai get | set | runs   (Instagram)
 botozap channel-accounts comment-rules list | get | create | update | delete | metrics   (Instagram)
 botozap channel-accounts message-rules list | get | create | update | delete   (Instagram)
 botozap channel-accounts messenger-profile get | update | delete | sync   (Instagram)
@@ -340,3 +341,22 @@ botozap conversations list --follows-business false
 ```
 
 Conexão exige chave live e permissões `numbers:read`/`numbers:write`; a desconexão por OAuth acontece no painel. QR exige `message-rules:read`, `--out` e usa PNG por padrão. `--live true|false` está disponível na criação e edição de regras de comentário; sem suporte no servidor, a API retorna `422 feature_unavailable`. `--require-follow true|false`, `--non-follower-text` e `--clear-non-follower-text` estão disponíveis na criação e edição dos dois tipos de regra. Nas regras de mensagem, essas flags complementam a fonte JSON; campos duplicados entre JSON e flags são recusados. Nas de comentário, use flags de campos ou uma fonte JSON, como nos demais campos.
+
+### IA de comentários do Instagram
+
+```sh
+botozap channel-accounts comment-ai get CONTA
+botozap channel-accounts comment-ai set CONTA --enabled true --agent AGENTE --daily-limit 50
+botozap channel-accounts comment-ai runs CONTA --page 1 --per-page 30 -o json
+botozap channel-accounts comment-ai set CONTA --enabled false
+botozap channel-accounts comment-ai set CONTA --agent null
+```
+
+Use o UUID interno da Conta de canal. GET/runs exigem `agents:read`; set exige
+`agents:write` e plano com IA, exceto quando somente desliga. Sem sandbox; PATCH
+no OAuth é exclusivo do painel. Ativar permite respostas públicas e DMs
+automáticas. O set altera somente as flags enviadas; `--agent null` limpa a
+seleção quando desligada. O limite aceita inteiros de 1 a 200 e renova no dia de
+`America/Sao_Paulo`. A leitura distingue respostas confirmadas de reservas
+(inclusive incertas), gate e pré-requisitos; runs inclui decisão, motivo legível
+e estado dos envios.
