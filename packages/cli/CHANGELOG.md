@@ -1,5 +1,12 @@
 # @botozap/cli
 
+## 0.8.1
+
+### Patch Changes
+
+- Updated dependencies [8d27c17]
+  - @botozap/sdk@0.13.0
+
 ## 0.8.0
 
 ### Minor Changes
