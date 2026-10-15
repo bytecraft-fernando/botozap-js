@@ -1,5 +1,13 @@
 # @botozap/sdk
 
+## 0.13.0
+
+### Minor Changes
+
+- 8d27c17: Busca de conhecimento híbrida: `AiKnowledgeHit` ganha `score` (fusão vetorial +
+  textual), `vector_rank` e `text_rank`; `similarity` passa a ser `number | null`
+  (nula quando o trecho veio só da busca por palavras).
+
 ## 0.12.0
 
 ### Minor Changes
