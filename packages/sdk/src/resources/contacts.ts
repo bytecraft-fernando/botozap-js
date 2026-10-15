@@ -2,6 +2,8 @@ import type { BotoZap } from "../client.js";
 import type { Contact, CursorList, CursorParams } from "../types.js";
 
 export interface ListContactsParams extends CursorParams {
+  /** Só valores conhecidos; null não casa nem com false. */
+  ig_follows_business?: boolean;
   /** Filtra pelos números do cliente (derivado da conexão do número). */
   customer_id?: string;
   /**
@@ -64,6 +66,7 @@ export class Contacts {
     return this.client.requestCursorList<CursorList<Contact>>("GET", "/contacts", {
       query: {
         limit: params.limit,
+        ig_follows_business: params.ig_follows_business === undefined ? undefined : String(params.ig_follows_business),
         after: params.after,
         before: params.before,
         customer_id: params.customer_id,

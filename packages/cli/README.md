@@ -312,3 +312,20 @@ Regras de comentário incluem `dm_button_title`, `delivery_text` e `delivery_med
 Regras de mensagem têm CRUD com gatilhos e ações tipados (`message-rules:read/write`);
 métricas de comentário recebem `from`/`to` (`comment-rules:read`).
 [Contrato e exemplos de SDK, CLI e MCP](../../docs/instagram-wave-two.md).
+
+### Instagram: conexão, QR e seguidores
+
+```sh
+botozap channel-accounts connection get CONTA
+botozap channel-accounts connection resubscribe CONTA
+botozap channel-accounts connection disconnect CONTA
+botozap channel-accounts message-rules qr CONTA REGRA --out campanha.png --format png
+botozap channel-accounts message-rules qr CONTA REGRA --out campanha.svg --format svg
+botozap channel-accounts comment-rules update CONTA REGRA --live true
+botozap channel-accounts comment-rules update CONTA REGRA --require-follow true --non-follower-text 'Siga a conta e toque de novo'
+botozap channel-accounts message-rules update CONTA REGRA --require-follow false --clear-non-follower-text
+botozap contacts list --follows-business true
+botozap conversations list --follows-business false
+```
+
+Conexão exige chave live e permissões `numbers:read`/`numbers:write`; a desconexão por OAuth acontece no painel. QR exige `message-rules:read`, `--out` e usa PNG por padrão. `--live true|false` está disponível na criação e edição de regras de comentário; sem suporte no servidor, a API retorna `422 feature_unavailable`. `--require-follow true|false`, `--non-follower-text` e `--clear-non-follower-text` estão disponíveis na criação e edição dos dois tipos de regra. Nas regras de mensagem, essas flags complementam a fonte JSON; campos duplicados entre JSON e flags são recusados. Nas de comentário, use flags de campos ou uma fonte JSON, como nos demais campos.

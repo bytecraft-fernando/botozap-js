@@ -531,3 +531,16 @@ Regras de comentário incluem `dm_button_title`, `delivery_text` e `delivery_med
 Regras de mensagem têm CRUD com gatilhos e ações tipados (`message-rules:read/write`);
 métricas de comentário recebem `from`/`to` (`comment-rules:read`).
 [Contrato e exemplos de SDK, CLI e MCP](../../docs/instagram-wave-two.md).
+
+### Backlog do Instagram: catálogo completo
+
+| Tool | Permissão | Efeito |
+| --- | --- | --- |
+| `get_instagram_connection` | `numbers:read` | Estado, saúde e diagnóstico; sem sandbox |
+| `resubscribe_instagram_connection` | `numbers:write` | Reassina webhooks com autorização existente; sem sandbox |
+| `disconnect_instagram_connection` | `numbers:write` | Desconecta, `destructiveHint: true`; chave de API, sem sandbox |
+| `get_message_rule_qr` | `message-rules:read` | Link `ig.me` em `structuredContent.data.ref_link` e imagem PNG no conteúdo MCP |
+
+Todas recebem `channel_account_id`; o QR também recebe `rule_id`. Regras aceitam `require_follow` e `non_follower_text`; regras de comentário também aceitam `live`, com `422 feature_unavailable` quando indisponível. Métricas preservam `posts[].live`. `list_contacts` e `list_conversations` aceitam `ig_follows_business`, inclusive `false`.
+
+Essas quatro tools pertencem somente ao catálogo completo. A composição do perfil `assistant` permanece intacta. Os cinco campos somente leitura de perfil Instagram adicionados ao `contactSchema` passam a aparecer nas saídas de `get_contact` e `list_contacts` desse perfil quando esta versão for publicada na Fly; o filtro opcional também é aceito nas duas listagens existentes. Deploy na Fly continua suspenso pela issue #760.

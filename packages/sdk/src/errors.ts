@@ -57,6 +57,7 @@ export type BotoZapErrorCode =
   | "quota_exceeded"
   | "plan_restricted"
   | "free_number_cap"
+  | "feature_unavailable"
   | "provider_not_enabled"
   | (string & {});
 

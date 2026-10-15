@@ -186,6 +186,12 @@ export interface BroadcastRecipient {
 }
 
 export interface Contact {
+  /** Perfil Instagram, somente leitura; null quando desconhecido. */
+  readonly ig_follows_business?: boolean | null;
+  readonly ig_followed_by_business?: boolean | null;
+  readonly ig_follower_count?: number | null;
+  readonly ig_verified?: boolean | null;
+  readonly ig_follow_checked_at?: string | null;
   id: string;
   wa_id?: string;
   /** Nome do perfil no canal; a ingestão o sobrescreve a cada inbound. */
@@ -340,8 +346,9 @@ export interface BotoZapEvent {
    * `instagram.message.received`). No Instagram, `instagram.message.edited`
    * traz o texto novo em `data.edit` e o conteúdo atualizado (com
    * `content.edited`) em `data.message`; `instagram.message.revoked` traz
-   * `data.message.revoked_at`, sem o conteúdo apagado. `instagram.message_rule.failed` registra uma falha
-   * de automação de Regra de mensagem. Valores novos podem surgir.
+   * `data.message.revoked_at`, sem o conteúdo apagado.
+   * `instagram.message_rule.failed` registra uma falha de automação e pode
+   * ter `message_id: null` (referral sem mensagem). Valores novos podem surgir.
    */
   type: string;
   /**

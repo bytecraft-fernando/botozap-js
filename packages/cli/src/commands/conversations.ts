@@ -1,4 +1,4 @@
-import { Command } from "commander";
+import { Command, Option } from "commander";
 import { context, toInt } from "./shared.js";
 import {
   printJson,
@@ -16,6 +16,7 @@ export function registerConversations(program: Command): void {
   conv
     .command("list")
     .description("Lista conversas (paginação por cursor)")
+    .addOption(new Option("--follows-business <bool>", "filtra seguidores do Instagram (valores conhecidos)").choices(["true", "false"]))
     .option("--phone-number-id <id>", "filtra por número")
     .option("--status <status>", "active | ended")
     .option("--phone-number <e164>", "filtra pelo número do contato")
@@ -27,6 +28,7 @@ export function registerConversations(program: Command): void {
     .action(async (opts, cmd: Command) => {
       const { client, format } = context(cmd);
       const res = await client.conversations.list({
+        ig_follows_business: opts.followsBusiness === undefined ? undefined : opts.followsBusiness === "true",
         phone_number_id: opts.phoneNumberId,
         status: opts.status,
         phone_number: opts.phoneNumber,

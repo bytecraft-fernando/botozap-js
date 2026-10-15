@@ -1,4 +1,4 @@
-import { Command } from "commander";
+import { Command, Option } from "commander";
 import { context, toInt, toBool } from "./shared.js";
 import {
   printJson,
@@ -20,6 +20,7 @@ export function registerContacts(program: Command): void {
   contacts
     .command("list")
     .description("Lista contatos (paginação por cursor)")
+    .addOption(new Option("--follows-business <bool>", "filtra seguidores do Instagram (valores conhecidos)").choices(["true", "false"]))
     .option("--customer-id <id>", "filtra por cliente")
     .option("--profile-name-contains <texto>", "filtra por nome do perfil")
     .option("--wa-id-contains <texto>", "filtra por wa_id")
@@ -32,6 +33,7 @@ export function registerContacts(program: Command): void {
     .action(async (opts, cmd: Command) => {
       const { client, format } = context(cmd);
       const res = await client.contacts.list({
+        ig_follows_business: opts.followsBusiness === undefined ? undefined : opts.followsBusiness === "true",
         customer_id: opts.customerId,
         profile_name_contains: opts.profileNameContains,
         wa_id_contains: opts.waIdContains,

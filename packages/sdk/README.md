@@ -627,3 +627,20 @@ Regras de comentário incluem `dm_button_title`, `delivery_text` e `delivery_med
 Regras de mensagem têm CRUD com gatilhos e ações tipados (`message-rules:read/write`);
 métricas de comentário recebem `from`/`to` (`comment-rules:read`).
 [Contrato e exemplos de SDK, CLI e MCP](../../docs/instagram-wave-two.md).
+
+### Instagram: conexão, QR, lives e seguidores
+
+```ts
+const connection = await boto.channelAccounts.getConnection(channelAccountId);
+await boto.channelAccounts.resubscribeConnection(channelAccountId);
+// Chave de API; no OAuth, a desconexão é feita pelo painel.
+await boto.channelAccounts.disconnect(channelAccountId);
+const svg = await boto.channelAccounts.getMessageRuleQr(channelAccountId, ruleId, { format: "svg" });
+// ArrayBuffer; formato padrão: png. Não contém envelope JSON.
+const followers = await boto.contacts.list({ ig_follows_business: true });
+const nonFollowers = await boto.conversations.list({ ig_follows_business: false });
+```
+
+As Regras de mensagem retornam `ref_link` (`https://ig.me/m/usuario?ref=...` ou `null`). Regras de comentário aceitam `live`; as métricas incluem `posts[].live`. Servidores sem lives habilitadas devolvem `422 feature_unavailable`. Não combine `live: true` com `media_id` ou `next_post`.
+
+Ambos os tipos de regra aceitam `require_follow` e `non_follower_text`. Nas regras de comentário, a condição exige botão e texto para quem não segue (até 640 caracteres); nas de mensagem, esse texto é opcional e limitado a 1.000 bytes. `null` limpa o texto; campos ausentes no PATCH preservam o valor. Contatos expõem somente para leitura `ig_follows_business`, `ig_followed_by_business`, `ig_follower_count`, `ig_verified` e `ig_follow_checked_at`; valores desconhecidos são `null` e ficam fora dos filtros `true` e `false`. Eventos `instagram.message_rule.failed` podem ter `message_id: null` quando vêm de referral sem mensagem.

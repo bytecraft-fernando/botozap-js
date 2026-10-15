@@ -183,6 +183,15 @@ export class BotoZap {
     path: string,
     opts: RequestOptions = {},
   ): Promise<T> {
+    return this.requestResponse<T>(method, path, opts);
+  }
+
+  /** Baixa um arquivo autenticado, preservando os erros JSON e headers da API. */
+  requestBinary(method: string, path: string, opts: RequestOptions = {}): Promise<ArrayBuffer> {
+    return this.requestResponse<ArrayBuffer>(method, path, opts, true);
+  }
+
+  private async requestResponse<T>(method: string, path: string, opts: RequestOptions, binary = false): Promise<T> {
     const url = new URL(this.baseUrl + path);
     if (opts.query) {
       for (const [key, value] of Object.entries(opts.query)) {
@@ -205,7 +214,7 @@ export class BotoZap {
           ...(opts.body instanceof FormData
             ? {}
             : { "Content-Type": "application/json" }),
-          Accept: "application/json",
+          Accept: binary ? "image/png, image/svg+xml, application/json" : "application/json",
           ...(opts.idempotencyKey
             ? { "Idempotency-Key": opts.idempotencyKey }
             : {}),
@@ -233,6 +242,9 @@ export class BotoZap {
       );
     }
 
+    if (binary && res.ok && !res.headers.get("content-type")?.includes("json")) {
+      return await res.arrayBuffer() as T;
+    }
     const raw = await res.text();
     const data = raw ? safeJson(raw) : undefined;
 
@@ -271,6 +283,7 @@ export class BotoZap {
       );
     }
 
+    if (binary) throw malformed("resposta JSON em endpoint de arquivo binário");
     return data as T;
   }
 

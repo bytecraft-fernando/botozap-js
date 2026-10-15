@@ -42,6 +42,7 @@ export function registerConversationTools(register: Register): void {
     "list_conversations",
     "Lista conversas da conta (paginação por cursor: { data, paging }). Filtros opcionais por número (ID Meta ou UUID interno), status e busca textual de contato.",
     {
+      ig_follows_business: z.boolean().optional().describe("Filtra seguidores do Instagram; apenas valores conhecidos, null fica fora."),
       phone_number_id: z.string().optional().describe("Filtra pelo ID Meta ou UUID interno do número."),
       status: z.string().optional().describe("Filtra por status (active|ended)."),
       // A rota (/v1/conversations) casa por `contact`/`phone_number` (busca parcial

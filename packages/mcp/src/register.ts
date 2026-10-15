@@ -39,6 +39,7 @@ const STRUCTURED_RESULT = Symbol("structured-result");
 type StructuredToolResult = {
   [STRUCTURED_RESULT]: true;
   textFallback: unknown;
+  content?: CallToolResult["content"];
   structuredContent: Record<string, unknown>;
 };
 
@@ -51,6 +52,11 @@ function structuredToolResult(
   structuredContent: Record<string, unknown>,
 ): StructuredToolResult {
   return { [STRUCTURED_RESULT]: true, textFallback, structuredContent };
+}
+
+/** Imagem PNG acompanhada de saída estruturada validada e fallback textual. */
+export function imageToolResult(data: Record<string, unknown>, image: ArrayBuffer): StructuredToolResult {
+  return { ...structuredToolResult(data, data), content: [{ type: "image", mimeType: "image/png", data: Buffer.from(image).toString("base64") }] };
 }
 
 /** Resultado compatível de uma operação que concluiu sem corpo HTTP. */
@@ -224,7 +230,7 @@ export function createRegister(
           return {
             content: [{ type: "text", text: JSON.stringify(
               isStructuredToolResult(handlerResult) ? textFallback : parsed.data,
-            ) }],
+            ) }, ...(isStructuredToolResult(handlerResult) ? handlerResult.content ?? [] : [])],
             structuredContent: parsed.data,
           };
         } catch (err) {

@@ -73,6 +73,19 @@ export interface ListChannelAccountsParams extends OffsetParams {
   customer_id?: string;
 }
 
+/** Estado confirmado da conexão; nunca inclui tokens. */
+export interface InstagramConnection {
+  status: string;
+  username: string | null;
+  subscribed_at: string | null;
+  token_expires_at: string | null;
+  revoked_reason: string | null;
+  health: "conectado" | "pendente" | "reconexao_necessaria" | "revogado" | (string & {});
+  subscribed_fields: string[];
+  diagnostic: { code: string; message: string; next_step: string; help_url: string };
+}
+export interface MessageRuleQrParams { format?: "png" | "svg" }
+
 /** Estado de uma Regra de comentário. `paused_plan`: ativa, mas pausada pelo plano. */
 export type CommentRuleStatus = "active" | "inactive" | "paused_plan" | (string & {});
 
@@ -93,9 +106,14 @@ export interface CommentRule {
   reply_variations?: string[];
   /** Aguarda o próximo post quando true e media_id é null. */
   next_post?: boolean;
+  /** Durante lives; não combinar com media_id ou next_post. Servidor sem suporte: 422 feature_unavailable. */
+  live?: boolean;
   next_post_activated_at?: string | null;
   /** Abertura: 1000 bytes sem botão; 640 caracteres com botão. */
   dm_text: string;
+  require_follow?: boolean;
+  /** Com require_follow, obrigatório (640 caracteres) e exige botão de entrega. */
+  non_follower_text?: string | null;
   /** Título do botão (20 caracteres); null mantém direct simples. */
   dm_button_title?: string | null;
   /** Texto entregue após o toque (1000 bytes). */
@@ -122,6 +140,9 @@ export interface CommentRule {
 export interface CreateCommentRuleParams {
   /** Texto do direct enviado a quem comentou (obrigatório). */
   dm_text: string;
+  require_follow?: boolean;
+  /** Com require_follow, obrigatório (640 caracteres) e exige botão de entrega. */
+  non_follower_text?: string | null;
   /** Botão de até 20 caracteres; com botão dm_text aceita até 640 caracteres. */
   dm_button_title?: string | null;
   /** Obrigatório com botão; até 1000 bytes. null remove. */
@@ -138,6 +159,8 @@ export interface CreateCommentRuleParams {
   reply_variations?: string[];
   /** Próximo post; não combinar com media_id explícito. */
   next_post?: boolean;
+  /** Durante lives; não combinar com media_id ou next_post. Servidor sem suporte: 422 feature_unavailable. */
+  live?: boolean;
   /** Resposta pública ao comentário; `null`/vazio = sem resposta. */
   reply_text?: string | null;
   /** Id numérico do post; `null`/vazio = todos os posts. */
@@ -188,6 +211,9 @@ export interface CreateMessageRuleParams {
   is_active?: boolean;
   /** 1–5 ações; no máximo uma de cada tipo. */
   actions: MessageRuleAction[];
+  require_follow?: boolean;
+  /** Até 1000 bytes; null remove. */
+  non_follower_text?: string | null;
 }
 export type UpdateMessageRuleParams = Partial<CreateMessageRuleParams>;
 export interface MessageRule {
@@ -200,10 +226,15 @@ export interface MessageRule {
   excluded_keywords: string[];
   story_contains: string | null;
   ref: string | null;
+  /** Link ig.me pronto; null sem ref ou username válido. */
+  ref_link: string | null;
   ad_id: string | null;
   priority: number;
   is_active: boolean;
   actions: MessageRuleAction[];
+  require_follow?: boolean;
+  /** Até 1000 bytes; null remove. */
+  non_follower_text?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -226,7 +257,7 @@ export interface CommentRuleMetrics extends CommentRuleMetricsParams {
   rule_id: string;
   channel_account_id: string;
   totals: CommentRuleCounters;
-  posts: (CommentRuleCounters & { media_id: string | null })[];
+  posts: (CommentRuleCounters & { media_id: string | null; live: boolean })[];
 }
 
 export interface InstagramIceBreaker {
@@ -284,6 +315,26 @@ export class ChannelAccounts {
   /** Busca uma Conta de canal pelo UUID interno ou pelo id na Meta (`external_id`). numbers:read. */
   get(id: string): Promise<ChannelAccount> {
     return this.client.requestItem<ChannelAccount>("GET", `/channel_accounts/${enc(id)}`);
+  }
+
+  /** Estado e diagnóstico da conexão Instagram. numbers:read; sem sandbox. */
+  getConnection(id: string): Promise<InstagramConnection> {
+    return this.client.requestItem("GET", `/channel_accounts/${enc(id)}/connection`);
+  }
+
+  /** Reassina webhooks usando a autorização existente. numbers:write; sem sandbox. */
+  resubscribeConnection(id: string): Promise<InstagramConnection> {
+    return this.client.requestItem("POST", `/channel_accounts/${enc(id)}/connection/resubscribe`);
+  }
+
+  /** Desconecta a conta. numbers:write; por chave de API (OAuth: somente painel). */
+  disconnect(id: string): Promise<InstagramConnection> {
+    return this.client.requestItem("DELETE", `/channel_accounts/${enc(id)}/connection`);
+  }
+
+  /** QR do ref_link, PNG por padrão; 404 sem link. message-rules:read. */
+  getMessageRuleQr(id: string, ruleId: string, params: MessageRuleQrParams = {}): Promise<ArrayBuffer> {
+    return this.client.requestBinary("GET", `${messageRulesPath(id, ruleId)}/qr`, { query: { format: params.format } });
   }
 
   /** Lista as Regras de comentário de uma Conta do Instagram (UUID). comment-rules:read. */

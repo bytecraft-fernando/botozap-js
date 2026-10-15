@@ -201,10 +201,23 @@ export const listMessagesResultSchema = cursorListResultSchemaFor(messageSchema)
 
 export const getMessageResultSchema = itemResultSchemaFor(messageSchema);
 
+export const instagramConnectionResultSchema = itemResultSchemaFor(z.object({
+  status: z.string(), username: z.string().nullable(), subscribed_at: z.string().nullable(),
+  token_expires_at: z.string().nullable(), revoked_reason: z.string().nullable(), health: z.string(),
+  subscribed_fields: z.array(z.string()),
+  diagnostic: z.object({ code: z.string(), message: z.string(), next_step: z.string(), help_url: z.string() }).strip(),
+}).strip());
+export const messageRuleQrResultSchema = itemResultSchemaFor(z.object({ ref_link: z.string().nullable() }).strip());
+
 export const contactSchema = z
   .object({
     ...channelShape,
     external_id: z.string().optional(),
+    ig_follows_business: z.boolean().nullable().optional(),
+    ig_followed_by_business: z.boolean().nullable().optional(),
+    ig_follower_count: z.number().nullable().optional(),
+    ig_verified: z.boolean().nullable().optional(),
+    ig_follow_checked_at: z.string().nullable().optional(),
     profile_picture_url: z.string().nullable().optional(),
     id: internalUuidSchema.describe("UUID interno do Contato no BotoZap."),
     wa_id: z.string().describe("Identidade canônica do Contato: telefone ou BSUID."),
@@ -667,6 +680,9 @@ export const commentRuleSchema = z
     excluded_keywords: z.array(z.string()).optional(),
     reply_variations: z.array(z.string()).optional(),
     next_post: z.boolean().optional(),
+    live: z.boolean().optional(),
+    require_follow: z.boolean().optional(),
+    non_follower_text: z.string().nullable().optional(),
     next_post_activated_at: z.string().nullable().optional(),
     dm_text: z.string().describe("Direct enviado a quem comentou."),
     dm_button_title: z.string().nullable().optional(),
@@ -738,6 +754,7 @@ export const messageRuleSchema = z.object({
   id: internalUuidSchema, account_id: internalUuidSchema, channel_account_id: internalUuidSchema,
   name: z.string(), trigger: messageRuleTriggerSchema, keywords: z.array(z.string()), excluded_keywords: z.array(z.string()),
   story_contains: z.string().nullable(), ref: z.string().nullable(), ad_id: z.string().nullable(),
+  ref_link: z.string().nullable().optional(), require_follow: z.boolean().optional(), non_follower_text: z.string().nullable().optional(),
   priority: z.number(), is_active: z.boolean(), actions: z.array(messageRuleActionSchema),
   created_at: z.string(), updated_at: z.string(),
 }).strip();
@@ -750,5 +767,5 @@ const commentRuleCountersSchema = z.object({
 });
 export const commentRuleMetricsResultSchema = itemResultSchemaFor(z.object({
   rule_id: internalUuidSchema, channel_account_id: internalUuidSchema, from: z.string(), to: z.string(),
-  totals: commentRuleCountersSchema, posts: z.array(commentRuleCountersSchema.extend({ media_id: z.string().nullable() })),
+  totals: commentRuleCountersSchema, posts: z.array(commentRuleCountersSchema.extend({ media_id: z.string().nullable(), live: z.boolean().optional() })),
 }).strip());
