@@ -230,7 +230,7 @@ Nomes em inglês (snake_case, melhor para tool-calling); descrições em PT-BR.
 **Resultados de comentário** — `get_comment_rule_metrics` (`comment-rules:read`, `from`/`to` obrigatórios).
 **Perguntas e menu (Instagram)** — `get_instagram_messenger_profile`, `update_instagram_messenger_profile`, `delete_instagram_messenger_profile`, `sync_instagram_messenger_profile` (scopes `messenger-profile:read`/`messenger-profile:write`; sem sandbox; catálogo completo). Todas usam `channel_account_id` e retornam `{data:{channel_account_id,config,revision,sync_status,synced_at,last_error_code,updated_at}}`. Update aceita `ice_breakers` (`{question,payload}[]`, até 4) e `persistent_menu` (até 5 itens postback `{type,title,payload}` ou web_url `{type,title,url}`): ausente preserva; null ou [] remove. Sync verifica/reaplica explicitamente o desejado salvo; delete conserva configuração vazia.
 **Templates** — `list_templates`, `get_template`, `create_template`
-**Webhooks** — `list_webhooks`, `get_webhook`, `create_webhook`, `update_webhook`, `delete_webhook`, `test_webhook` (`events` aceita a categoria opt-in `app_messages`)
+**Webhooks** — `list_webhooks`, `get_webhook`, `create_webhook`, `update_webhook`, `delete_webhook`, `test_webhook` (`events` aceita a categoria opt-in `app_messages`; `channel_account_ids` em `create_webhook`/`update_webhook` limita o endpoint a alguns canais e `null` no update volta a todos; as leituras trazem `channels_health`, a saúde por canal dos canais em falha)
 **Entregas de webhook** — `list_webhook_deliveries` (status `limited` = cortada pelo limite de repasse do Free)
 **Logs** — `list_api_logs`
 **Usuários** — `list_users`

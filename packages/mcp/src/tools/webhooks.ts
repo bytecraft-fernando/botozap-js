@@ -38,7 +38,7 @@ export function registerWebhookTools(register: Register): void {
 
   register(
     "create_webhook",
-    "Cria um endpoint de webhook. `url` precisa ser https. `events` é a lista de categorias assinadas (messages, statuses, crm, account, app_messages; ao menos uma). `app_messages` é opt-in: eventos whatsapp.message.echo/edited/revoked do app WhatsApp Business em coexistência; só chega a quem a assina. `account` inclui whatsapp.phone_number.connected. `customer_id` opcional limita as entregas a um Cliente da conta. `headers.Authorization` é opcional (ex.: Bearer …) e nunca é devolvido. A resposta inclui o segredo HMAC em `data.secret` uma única vez: armazene-o com segurança; ele não volta a ser exibido. Retorna { data }.",
+    "Cria um endpoint de webhook. `url` precisa ser https. `events` é a lista de categorias assinadas (messages, statuses, crm, account, app_messages; ao menos uma). `app_messages` é opt-in: eventos whatsapp.message.echo/edited/revoked do app WhatsApp Business em coexistência; só chega a quem a assina. `account` inclui whatsapp.phone_number.connected. `customer_id` opcional limita as entregas a um Cliente da conta. `channel_account_ids` opcional limita os eventos a esses canais (ids de list_channel_accounts); omitido = todos os canais. `headers.Authorization` é opcional (ex.: Bearer …) e nunca é devolvido. A resposta inclui o segredo HMAC em `data.secret` uma única vez: armazene-o com segurança; ele não volta a ser exibido. Retorna { data }.",
     {
       url: z.string().describe("URL https do endpoint."),
       events: z.array(z.string()).describe("Categorias assinadas: messages, statuses, crm, account, app_messages (opt-in)."),
@@ -62,6 +62,14 @@ export function registerWebhookTools(register: Register): void {
         .describe(
           "UUID de um Cliente da conta: limita as entregas a ele. Omitido = entregas de toda a conta.",
         ),
+      channel_account_ids: z
+        .array(z.string())
+        .min(1)
+        .max(100)
+        .optional()
+        .describe(
+          "Ids de contas de canal (list_channel_accounts) cujos eventos o endpoint recebe. Omitido = todos os canais.",
+        ),
     },
     webhookCreationResultSchema,
     async (client, args) => {
@@ -71,6 +79,9 @@ export function registerWebhookTools(register: Register): void {
         active: typeof args.active === "boolean" ? args.active : undefined,
         headers: args.headers as CreateWebhookParams["headers"],
         customer_id: typeof args.customer_id === "string" ? args.customer_id : undefined,
+        channel_account_ids: Array.isArray(args.channel_account_ids)
+          ? (args.channel_account_ids as string[])
+          : undefined,
       };
       return { data: await client.webhooks.create(params) };
     },
@@ -78,7 +89,7 @@ export function registerWebhookTools(register: Register): void {
 
   register(
     "update_webhook",
-    "Atualiza um webhook (url, events, active, customer_id, headers.Authorization). customer_id null remove o filtro de Cliente. Authorization null remove o header; o valor nunca é devolvido. Retorna { data }.",
+    "Atualiza um webhook (url, events, active, customer_id, channel_account_ids, headers.Authorization). customer_id null remove o filtro de Cliente. channel_account_ids substitui os canais; null volta a todos os canais. Authorization null remove o header; o valor nunca é devolvido. Retorna { data }.",
     {
       id: z.string().describe("ID do webhook (uuid interno)."),
       url: z.string().optional(),
@@ -104,6 +115,15 @@ export function registerWebhookTools(register: Register): void {
         .optional()
         .describe(
           "UUID de um Cliente da conta para limitar as entregas; null remove o filtro. Omitir não altera.",
+        ),
+      channel_account_ids: z
+        .array(z.string())
+        .min(1)
+        .max(100)
+        .nullable()
+        .optional()
+        .describe(
+          "Ids de contas de canal (list_channel_accounts) que passam a ser os únicos com eventos; null volta a todos os canais. Omitir não altera.",
         ),
     },
     webhookResultSchema,
