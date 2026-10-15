@@ -663,3 +663,29 @@ const nonFollowers = await boto.conversations.list({ ig_follows_business: false 
 As Regras de mensagem retornam `ref_link` (`https://ig.me/m/usuario?ref=...` ou `null`). Regras de comentário aceitam `live`; as métricas incluem `posts[].live`. Servidores sem lives habilitadas devolvem `422 feature_unavailable`. Não combine `live: true` com `media_id` ou `next_post`.
 
 Ambos os tipos de regra aceitam `require_follow` e `non_follower_text`. Nas regras de comentário, a condição exige botão e texto para quem não segue (até 640 caracteres); nas de mensagem, esse texto é opcional e limitado a 1.000 bytes. `null` limpa o texto; campos ausentes no PATCH preservam o valor. Contatos expõem somente para leitura `ig_follows_business`, `ig_followed_by_business`, `ig_follower_count`, `ig_verified` e `ig_follow_checked_at`; valores desconhecidos são `null` e ficam fora dos filtros `true` e `false`. Eventos `instagram.message_rule.failed` podem ter `message_id: null` quando vêm de referral sem mensagem.
+
+### IA de comentários do Instagram
+
+```ts
+const config = await boto.channelAccounts.getCommentAi(channelAccountId);
+await boto.channelAccounts.updateCommentAi(channelAccountId, {
+  enabled: true, agent_id: publishedAgentId, daily_limit: 50,
+});
+const runs = await boto.channelAccounts.listCommentAiRuns(channelAccountId, { page: 1, per_page: 30 });
+await boto.channelAccounts.updateCommentAi(channelAccountId, { enabled: false });
+```
+
+Leitura e histórico exigem `agents:read`; PATCH exige `agents:write` e capacidade
+`ai` do plano, exceto o patch que somente desliga. Sem sandbox; no OAuth, PATCH
+é exclusivo do painel. Ativar pode publicar respostas e enviar DMs automáticas.
+Campos ausentes preservam a configuração; `agent_id: null` limpa o agente quando
+desligada. `daily_limit` aceita inteiros de 1 a 200; o dia usa `America/Sao_Paulo`.
+`answered_today` conta respostas públicas confirmadas e `reserved_today` inclui
+tentativas incertas. `status`, `gate_mode` e `readiness` descrevem a prontidão.
+
+`InstagramCommentAi` e `InstagramCommentAiRun` tipam os retornos. Execuções deste
+recurso incluem `estimated_cost_usd?: number | null` e `finish_reason` com prefixo
+`comment_ai_`; `source` continua `live`. `InstagramCommentAiRepliedEvent` tipa
+`instagram.comment.replied` com `automation.kind = instagram_comment_ai`,
+`execution_id` e `comment_id`. A Private Reply em `instagram.message.sent` traz
+`source: agent`, `ai_execution_id` e `comment_id` no conteúdo da mensagem.

@@ -153,6 +153,10 @@ export interface MessageContent {
   body?: string;
   /** Presente quando o contato editou a mensagem: o conteúdo já é o editado. */
   edited?: MessageEdit;
+  /** Private Reply gerada pela IA de comentários do Instagram. */
+  source?: string;
+  ai_execution_id?: string;
+  comment_id?: string;
   [key: string]: unknown;
 }
 
@@ -401,6 +405,25 @@ export interface BotoZapEvent {
   created_at: string;
   data: Record<string, unknown>;
 }
+
+/** Automação confirmada no evento instagram.comment.replied. */
+export interface InstagramCommentAiAutomation {
+  kind: "instagram_comment_ai";
+  execution_id: string;
+  comment_id: string;
+}
+
+export type InstagramCommentAiRepliedEvent = BotoZapEvent & {
+  type: "instagram.comment.replied";
+  data: {
+    channel: "instagram";
+    channel_account: ChannelAccountRef;
+    external_id: string;
+    comment: { id: string; reply_id: string; text: string; timestamp: string };
+    automation: InstagramCommentAiAutomation;
+    [key: string]: unknown;
+  };
+};
 
 /** Paginação crescente do stream; `cursor` é seguro para o próximo `after`. */
 export interface EventPaging {

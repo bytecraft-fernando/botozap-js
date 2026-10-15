@@ -66,6 +66,9 @@ write(["update_customer", "update_setup_link"], "customers:write", false,
 write(["delete_customer"], "customers:write", false,
   { destructiveHint: true, openWorldHint: false });
 read(["get_channel_account"], "numbers:read", false);
+read(["get_instagram_comment_ai", "list_instagram_comment_ai_runs"], "agents:read", false);
+write(["update_instagram_comment_ai"], "agents:write", false,
+  { destructiveHint: true, openWorldHint: true });
 read(["get_instagram_connection"], "numbers:read", false);
 write(["resubscribe_instagram_connection"], "numbers:write", false,
   { destructiveHint: false, openWorldHint: true });

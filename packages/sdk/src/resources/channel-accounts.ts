@@ -86,6 +86,51 @@ export interface InstagramConnection {
 }
 export interface MessageRuleQrParams { format?: "png" | "svg" }
 
+/** Configuração e prontidão da IA de comentários; desligada por padrão. */
+export interface InstagramCommentAi {
+  enabled: boolean;
+  agent_id: string | null;
+  /** Inteiro 1–200; padrão 50. */
+  daily_limit: number;
+  status: "inactive" | "active" | "testing" | "paused" | (string & {});
+  /** Respostas públicas confirmadas no dia. */
+  answered_today: number;
+  /** Tentativas admitidas, inclusive incertas; podem superar answered_today. */
+  reserved_today: number;
+  timezone: "America/Sao_Paulo" | (string & {});
+  gate_mode: "pre_go_live" | "allowlist" | "open" | (string & {});
+  readiness: string[];
+}
+
+/** PATCH parcial; envie ao menos um campo. Ausente preserva; null limpa o agente. */
+export interface UpdateCommentAiParams {
+  enabled?: boolean;
+  agent_id?: string | null;
+  /** Inteiro de 1 a 200. */
+  daily_limit?: number;
+}
+
+export type CommentAiDeliveryStatus = "pending" | "sending" | "sent" | "failed" | "unknown" | "skipped" | (string & {});
+
+/** Histórico público da decisão e dos envios, sem claims ou credenciais. */
+export interface InstagramCommentAiRun {
+  id: string;
+  comment_id: string;
+  comment_text: string | null;
+  author_username: string | null;
+  media_id: string | null;
+  execution_id: string | null;
+  status: "processing" | "ready" | "completed" | "skipped" | "failed" | "unknown" | (string & {});
+  action: "public" | "private" | "ignore" | (string & {}) | null;
+  reason: string | null;
+  reason_message: string;
+  reply_text: string | null;
+  dm_status: CommentAiDeliveryStatus;
+  reply_status: CommentAiDeliveryStatus;
+  created_at: string;
+  completed_at: string | null;
+}
+
 /** Estado de uma Regra de comentário. `paused_plan`: ativa, mas pausada pelo plano. */
 export type CommentRuleStatus = "active" | "inactive" | "paused_plan" | (string & {});
 
@@ -330,6 +375,26 @@ export class ChannelAccounts {
   /** Desconecta a conta. numbers:write; por chave de API (OAuth: somente painel). */
   disconnect(id: string): Promise<InstagramConnection> {
     return this.client.requestItem("DELETE", `/channel_accounts/${enc(id)}/connection`);
+  }
+
+  /** Configuração, uso diário e prontidão. agents:read; sem sandbox. */
+  getCommentAi(channelAccountId: string): Promise<InstagramCommentAi> {
+    return this.client.requestItem("GET", `/channel_accounts/${enc(channelAccountId)}/comment-ai`);
+  }
+
+  /**
+   * PATCH parcial. Ativar pode publicar respostas e enviar DMs automáticas.
+   * agents:write e capacidade ai (desligar somente é livre); sem sandbox.
+   * Chave de API; no OAuth a configuração é exclusiva do painel.
+   */
+  updateCommentAi(channelAccountId: string, params: UpdateCommentAiParams): Promise<InstagramCommentAi> {
+    return this.client.requestItem("PATCH", `/channel_accounts/${enc(channelAccountId)}/comment-ai`, { body: params });
+  }
+
+  /** Histórico, mais recente primeiro, com paginação offset. agents:read; sem sandbox. */
+  listCommentAiRuns(channelAccountId: string, params: OffsetParams = {}): Promise<OffsetList<InstagramCommentAiRun>> {
+    return this.client.requestOffsetList("GET", `/channel_accounts/${enc(channelAccountId)}/comment-ai/runs`,
+      { query: { page: params.page, per_page: params.per_page } });
   }
 
   /** QR do ref_link, PNG por padrão; 404 sem link. message-rules:read. */
