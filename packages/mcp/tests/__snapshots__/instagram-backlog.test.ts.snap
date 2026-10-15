@@ -1,0 +1,567 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`políticas declaram escopos, sandbox, efeito destrutivo e rotas 1`] = `
+[
+  {
+    "_meta": undefined,
+    "annotations": {
+      "destructiveHint": false,
+      "openWorldHint": false,
+      "readOnlyHint": true,
+    },
+    "description": "Lê estado, saúde e diagnóstico da conexão Instagram. numbers:read; sem sandbox.",
+    "execution": {
+      "taskSupport": "forbidden",
+    },
+    "inputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": false,
+      "properties": {
+        "channel_account_id": {
+          "description": "UUID interno da Conta do Instagram (o \`id\` de list_channel_accounts).",
+          "format": "uuid",
+          "type": "string",
+        },
+      },
+      "required": [
+        "channel_account_id",
+      ],
+      "type": "object",
+    },
+    "name": "get_instagram_connection",
+    "outputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": false,
+      "properties": {
+        "data": {
+          "additionalProperties": false,
+          "properties": {
+            "diagnostic": {
+              "additionalProperties": false,
+              "properties": {
+                "code": {
+                  "type": "string",
+                },
+                "help_url": {
+                  "type": "string",
+                },
+                "message": {
+                  "type": "string",
+                },
+                "next_step": {
+                  "type": "string",
+                },
+              },
+              "required": [
+                "code",
+                "message",
+                "next_step",
+                "help_url",
+              ],
+              "type": "object",
+            },
+            "health": {
+              "type": "string",
+            },
+            "revoked_reason": {
+              "type": [
+                "string",
+                "null",
+              ],
+            },
+            "status": {
+              "type": "string",
+            },
+            "subscribed_at": {
+              "type": [
+                "string",
+                "null",
+              ],
+            },
+            "subscribed_fields": {
+              "items": {
+                "type": "string",
+              },
+              "type": "array",
+            },
+            "token_expires_at": {
+              "type": [
+                "string",
+                "null",
+              ],
+            },
+            "username": {
+              "type": [
+                "string",
+                "null",
+              ],
+            },
+          },
+          "required": [
+            "status",
+            "username",
+            "subscribed_at",
+            "token_expires_at",
+            "revoked_reason",
+            "health",
+            "subscribed_fields",
+            "diagnostic",
+          ],
+          "type": "object",
+        },
+        "error": {
+          "additionalProperties": false,
+          "description": "Erro estruturado sem credenciais, tokens ou headers de request.",
+          "properties": {
+            "code": {
+              "description": "Código estável do erro da API BotoZap.",
+              "type": "string",
+            },
+            "message": {
+              "description": "Mensagem segura e acionável do erro.",
+              "type": "string",
+            },
+            "outcome": {
+              "enum": [
+                "rejected",
+                "accepted",
+                "unknown",
+              ],
+              "type": "string",
+            },
+            "retry": {
+              "enum": [
+                "backoff",
+                "after_correction",
+                "reconcile_first",
+                "unknown",
+              ],
+              "type": "string",
+            },
+            "status": {
+              "description": "Status HTTP; 0 quando não houve resposta HTTP.",
+              "minimum": 0,
+              "type": "integer",
+            },
+          },
+          "required": [
+            "code",
+            "message",
+            "status",
+          ],
+          "type": "object",
+        },
+      },
+      "type": "object",
+    },
+    "title": undefined,
+  },
+  {
+    "_meta": undefined,
+    "annotations": {
+      "destructiveHint": false,
+      "openWorldHint": true,
+      "readOnlyHint": false,
+    },
+    "description": "Refaz a assinatura dos webhooks com a autorização existente; não renova autorização. numbers:write; sem sandbox.",
+    "execution": {
+      "taskSupport": "forbidden",
+    },
+    "inputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": false,
+      "properties": {
+        "channel_account_id": {
+          "description": "UUID interno da Conta do Instagram (o \`id\` de list_channel_accounts).",
+          "format": "uuid",
+          "type": "string",
+        },
+      },
+      "required": [
+        "channel_account_id",
+      ],
+      "type": "object",
+    },
+    "name": "resubscribe_instagram_connection",
+    "outputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": false,
+      "properties": {
+        "data": {
+          "additionalProperties": false,
+          "properties": {
+            "diagnostic": {
+              "additionalProperties": false,
+              "properties": {
+                "code": {
+                  "type": "string",
+                },
+                "help_url": {
+                  "type": "string",
+                },
+                "message": {
+                  "type": "string",
+                },
+                "next_step": {
+                  "type": "string",
+                },
+              },
+              "required": [
+                "code",
+                "message",
+                "next_step",
+                "help_url",
+              ],
+              "type": "object",
+            },
+            "health": {
+              "type": "string",
+            },
+            "revoked_reason": {
+              "type": [
+                "string",
+                "null",
+              ],
+            },
+            "status": {
+              "type": "string",
+            },
+            "subscribed_at": {
+              "type": [
+                "string",
+                "null",
+              ],
+            },
+            "subscribed_fields": {
+              "items": {
+                "type": "string",
+              },
+              "type": "array",
+            },
+            "token_expires_at": {
+              "type": [
+                "string",
+                "null",
+              ],
+            },
+            "username": {
+              "type": [
+                "string",
+                "null",
+              ],
+            },
+          },
+          "required": [
+            "status",
+            "username",
+            "subscribed_at",
+            "token_expires_at",
+            "revoked_reason",
+            "health",
+            "subscribed_fields",
+            "diagnostic",
+          ],
+          "type": "object",
+        },
+        "error": {
+          "additionalProperties": false,
+          "description": "Erro estruturado sem credenciais, tokens ou headers de request.",
+          "properties": {
+            "code": {
+              "description": "Código estável do erro da API BotoZap.",
+              "type": "string",
+            },
+            "message": {
+              "description": "Mensagem segura e acionável do erro.",
+              "type": "string",
+            },
+            "outcome": {
+              "enum": [
+                "rejected",
+                "accepted",
+                "unknown",
+              ],
+              "type": "string",
+            },
+            "retry": {
+              "enum": [
+                "backoff",
+                "after_correction",
+                "reconcile_first",
+                "unknown",
+              ],
+              "type": "string",
+            },
+            "status": {
+              "description": "Status HTTP; 0 quando não houve resposta HTTP.",
+              "minimum": 0,
+              "type": "integer",
+            },
+          },
+          "required": [
+            "code",
+            "message",
+            "status",
+          ],
+          "type": "object",
+        },
+      },
+      "type": "object",
+    },
+    "title": undefined,
+  },
+  {
+    "_meta": undefined,
+    "annotations": {
+      "destructiveHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": false,
+    },
+    "description": "Desconecta a conta do Instagram (destrutivo). Chave de API; por OAuth, somente painel. numbers:write; sem sandbox.",
+    "execution": {
+      "taskSupport": "forbidden",
+    },
+    "inputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": false,
+      "properties": {
+        "channel_account_id": {
+          "description": "UUID interno da Conta do Instagram (o \`id\` de list_channel_accounts).",
+          "format": "uuid",
+          "type": "string",
+        },
+      },
+      "required": [
+        "channel_account_id",
+      ],
+      "type": "object",
+    },
+    "name": "disconnect_instagram_connection",
+    "outputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": false,
+      "properties": {
+        "data": {
+          "additionalProperties": false,
+          "properties": {
+            "diagnostic": {
+              "additionalProperties": false,
+              "properties": {
+                "code": {
+                  "type": "string",
+                },
+                "help_url": {
+                  "type": "string",
+                },
+                "message": {
+                  "type": "string",
+                },
+                "next_step": {
+                  "type": "string",
+                },
+              },
+              "required": [
+                "code",
+                "message",
+                "next_step",
+                "help_url",
+              ],
+              "type": "object",
+            },
+            "health": {
+              "type": "string",
+            },
+            "revoked_reason": {
+              "type": [
+                "string",
+                "null",
+              ],
+            },
+            "status": {
+              "type": "string",
+            },
+            "subscribed_at": {
+              "type": [
+                "string",
+                "null",
+              ],
+            },
+            "subscribed_fields": {
+              "items": {
+                "type": "string",
+              },
+              "type": "array",
+            },
+            "token_expires_at": {
+              "type": [
+                "string",
+                "null",
+              ],
+            },
+            "username": {
+              "type": [
+                "string",
+                "null",
+              ],
+            },
+          },
+          "required": [
+            "status",
+            "username",
+            "subscribed_at",
+            "token_expires_at",
+            "revoked_reason",
+            "health",
+            "subscribed_fields",
+            "diagnostic",
+          ],
+          "type": "object",
+        },
+        "error": {
+          "additionalProperties": false,
+          "description": "Erro estruturado sem credenciais, tokens ou headers de request.",
+          "properties": {
+            "code": {
+              "description": "Código estável do erro da API BotoZap.",
+              "type": "string",
+            },
+            "message": {
+              "description": "Mensagem segura e acionável do erro.",
+              "type": "string",
+            },
+            "outcome": {
+              "enum": [
+                "rejected",
+                "accepted",
+                "unknown",
+              ],
+              "type": "string",
+            },
+            "retry": {
+              "enum": [
+                "backoff",
+                "after_correction",
+                "reconcile_first",
+                "unknown",
+              ],
+              "type": "string",
+            },
+            "status": {
+              "description": "Status HTTP; 0 quando não houve resposta HTTP.",
+              "minimum": 0,
+              "type": "integer",
+            },
+          },
+          "required": [
+            "code",
+            "message",
+            "status",
+          ],
+          "type": "object",
+        },
+      },
+      "type": "object",
+    },
+    "title": undefined,
+  },
+  {
+    "_meta": undefined,
+    "annotations": {
+      "destructiveHint": false,
+      "openWorldHint": false,
+      "readOnlyHint": true,
+    },
+    "description": "Devolve o link ig.me e sua imagem QR em PNG. Regra sem ref_link: 404 not_found. message-rules:read.",
+    "execution": {
+      "taskSupport": "forbidden",
+    },
+    "inputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": false,
+      "properties": {
+        "channel_account_id": {
+          "description": "UUID interno da Conta do Instagram (o \`id\` de list_channel_accounts).",
+          "format": "uuid",
+          "type": "string",
+        },
+        "rule_id": {
+          "description": "UUID da Regra.",
+          "format": "uuid",
+          "type": "string",
+        },
+      },
+      "required": [
+        "channel_account_id",
+        "rule_id",
+      ],
+      "type": "object",
+    },
+    "name": "get_message_rule_qr",
+    "outputSchema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "additionalProperties": false,
+      "properties": {
+        "data": {
+          "additionalProperties": false,
+          "properties": {
+            "ref_link": {
+              "type": [
+                "string",
+                "null",
+              ],
+            },
+          },
+          "required": [
+            "ref_link",
+          ],
+          "type": "object",
+        },
+        "error": {
+          "additionalProperties": false,
+          "description": "Erro estruturado sem credenciais, tokens ou headers de request.",
+          "properties": {
+            "code": {
+              "description": "Código estável do erro da API BotoZap.",
+              "type": "string",
+            },
+            "message": {
+              "description": "Mensagem segura e acionável do erro.",
+              "type": "string",
+            },
+            "outcome": {
+              "enum": [
+                "rejected",
+                "accepted",
+                "unknown",
+              ],
+              "type": "string",
+            },
+            "retry": {
+              "enum": [
+                "backoff",
+                "after_correction",
+                "reconcile_first",
+                "unknown",
+              ],
+              "type": "string",
+            },
+            "status": {
+              "description": "Status HTTP; 0 quando não houve resposta HTTP.",
+              "minimum": 0,
+              "type": "integer",
+            },
+          },
+          "required": [
+            "code",
+            "message",
+            "status",
+          ],
+          "type": "object",
+        },
+      },
+      "type": "object",
+    },
+    "title": undefined,
+  },
+]
+`;

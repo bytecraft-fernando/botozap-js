@@ -1,5 +1,5 @@
-import { Command } from "commander";
-import { readFileSync } from "node:fs";
+import { Command, Option } from "commander";
+import { readFileSync, writeFileSync } from "node:fs";
 import type { CreateCommentRuleParams, UpdateCommentRuleParams, UpdateMessengerProfileParams, CreateMessageRuleParams, UpdateMessageRuleParams } from "@botozap/sdk";
 import { context, toInt } from "./shared.js";
 import {
@@ -43,7 +43,9 @@ function stringList(raw: string | undefined, flag: string): string[] | undefined
   return value;
 }
 
-function ruleExtensions(opts: { keywords?: string; excludedKeywords?: string; replyVariations?: string; nextPost?: string; dmButtonTitle?: string; deliveryText?: string; deliveryMedia?: string; clearDmButtonTitle?: boolean; clearDeliveryText?: boolean; clearDeliveryMedia?: boolean }): UpdateCommentRuleParams {
+function ruleExtensions(opts: { live?: string; requireFollow?: string; nonFollowerText?: string; clearNonFollowerText?: boolean; keywords?: string; excludedKeywords?: string; replyVariations?: string; nextPost?: string; dmButtonTitle?: string; deliveryText?: string; deliveryMedia?: string; clearDmButtonTitle?: boolean; clearDeliveryText?: boolean; clearDeliveryMedia?: boolean }): UpdateCommentRuleParams {
+  const live = parseActive(opts.live, "live");
+  const follow = followFields(opts);
   const keywords = stringList(opts.keywords, "keywords");
   const excludedKeywords = stringList(opts.excludedKeywords, "excluded-keywords");
   const replyVariations = stringList(opts.replyVariations, "reply-variations");
@@ -52,6 +54,8 @@ function ruleExtensions(opts: { keywords?: string; excludedKeywords?: string; re
   const deliveryText = nullable(opts.deliveryText, opts.clearDeliveryText, "delivery-text");
   const deliveryMedia = nullable(opts.deliveryMedia, opts.clearDeliveryMedia, "delivery-media");
   return {
+    ...follow,
+    ...(live !== undefined ? { live } : {}),
     ...(dmButtonTitle !== undefined ? { dm_button_title: dmButtonTitle } : {}),
     ...(deliveryText !== undefined ? { delivery_text: deliveryText } : {}),
     ...(deliveryMedia !== undefined ? { delivery_media: deliveryMedia } : {}),
@@ -60,6 +64,27 @@ function ruleExtensions(opts: { keywords?: string; excludedKeywords?: string; re
     ...(replyVariations !== undefined ? { reply_variations: replyVariations } : {}),
     ...(nextPost !== undefined ? { next_post: nextPost } : {}),
   };
+}
+
+function followFields(opts: { requireFollow?: string; nonFollowerText?: string; clearNonFollowerText?: boolean }) {
+  const requireFollow = parseActive(opts.requireFollow, "require-follow");
+  const nonFollowerText = nullable(opts.nonFollowerText, opts.clearNonFollowerText, "non-follower-text");
+  return {
+    ...(requireFollow !== undefined ? { require_follow: requireFollow } : {}),
+    ...(nonFollowerText !== undefined ? { non_follower_text: nonFollowerText } : {}),
+  };
+}
+
+/** JSON carrega os campos principais; flags explícitas complementam o objeto. */
+function messagePayload(opts: { json?: string; input?: string; stdin?: boolean; requireFollow?: string; nonFollowerText?: string; clearNonFollowerText?: boolean }) {
+  const fields = followFields(opts);
+  const hasSource = opts.json !== undefined || opts.input !== undefined || opts.stdin;
+  if (!hasSource && !Object.keys(fields).length) throw new Error("Informe uma fonte: --json, --input ou --stdin, ou flags de campos.");
+  const body = hasSource ? jsonObject(opts) : {};
+  for (const key of Object.keys(fields)) {
+    if (key in body) throw new Error(`Campo ${key} informado no JSON e na flag.`);
+  }
+  return { ...body, ...fields };
 }
 
 function jsonObject(opts: { json?: string; input?: string; stdin?: boolean }): Record<string, unknown> {
@@ -133,6 +158,20 @@ export function registerChannelAccounts(program: Command): void {
       printDetail(data as Record<string, unknown>);
     });
 
+  const connection = accounts.command("connection").description("Estado e operações da conexão Instagram (sem sandbox)");
+  for (const operation of ["get", "resubscribe", "disconnect"] as const) {
+    connection.command(`${operation} <channel_account_id>`)
+      .description({ get: "Lê estado e diagnóstico", resubscribe: "Refaz a assinatura com a autorização existente", disconnect: "Desconecta a conta (chave de API; OAuth somente painel)" }[operation])
+      .action(async (id: string, _opts, cmd: Command) => {
+        const { client, format } = context(cmd);
+        const data = operation === "get" ? await client.channelAccounts.getConnection(id)
+          : operation === "resubscribe" ? await client.channelAccounts.resubscribeConnection(id)
+          : await client.channelAccounts.disconnect(id);
+        if (format === "json") return printJson(data);
+        printDetail({ ...data });
+      });
+  }
+
   const rules = accounts
     .command("comment-rules")
     .description("Regras de comentário de uma Conta do Instagram (direct automático para quem comenta)");
@@ -173,6 +212,10 @@ export function registerChannelAccounts(program: Command): void {
     .option("--keywords <json>", "lista JSON de expressões; [] = qualquer comentário")
     .option("--excluded-keywords <json>", "lista JSON de expressões excluídas")
     .option("--reply-variations <json>", "lista JSON de respostas públicas")
+    .option("--live <bool>", "true | false; durante lives (422 feature_unavailable sem suporte no servidor)")
+    .option("--require-follow <bool>", "true | false; entrega só para seguidores")
+    .option("--non-follower-text <texto>", "resposta para quem não segue")
+    .option("--clear-non-follower-text", "remove o texto para quem não segue")
     .option("--next-post <bool>", "true | false; aguarda o próximo post")
     .option("--dm-button-title <texto>", "título do botão (20 caracteres)")
     .option("--delivery-text <texto>", "texto entregue após toque (1000 bytes)")
@@ -212,6 +255,10 @@ export function registerChannelAccounts(program: Command): void {
     .option("--keywords <json>", "lista JSON de expressões; [] limpa")
     .option("--excluded-keywords <json>", "lista JSON de exclusões; [] limpa")
     .option("--reply-variations <json>", "lista JSON de respostas públicas; [] limpa")
+    .option("--live <bool>", "true | false; durante lives (422 feature_unavailable sem suporte no servidor)")
+    .option("--require-follow <bool>", "true | false; entrega só para seguidores")
+    .option("--non-follower-text <texto>", "resposta para quem não segue")
+    .option("--clear-non-follower-text", "remove o texto para quem não segue")
     .option("--next-post <bool>", "true | false")
     .option("--active <bool>", "true | false")
     .option("--dm-button-title <texto>", "título do botão (20 caracteres)")
@@ -281,22 +328,36 @@ export function registerChannelAccounts(program: Command): void {
         { header: "GATILHO", key: "trigger" }, { header: "PRIORIDADE", key: "priority" }, { header: "ATIVA", key: "is_active" }]);
       printOffsetFooter(res.meta);
     });
+  messageRules.command("qr <channel_account_id> <rule_id>")
+    .description("Baixa o QR do link ig.me da Regra (message-rules:read)")
+    .requiredOption("--out <arquivo>", "arquivo de destino")
+    .addOption(new Option("--format <formato>", "formato do QR").choices(["png", "svg"]).default("png"))
+    .action(async (id: string, ruleId: string, opts, cmd: Command) => {
+      const { client, format } = context(cmd);
+      const bytes = await client.channelAccounts.getMessageRuleQr(id, ruleId, { format: opts.format });
+      writeFileSync(opts.out, Buffer.from(bytes));
+      if (format === "json") return printJson({ out: opts.out, format: opts.format, bytes: bytes.byteLength });
+      printLine(`QR salvo em ${opts.out}.`);
+    });
   for (const operation of ["get", "create", "update", "delete"] as const) {
     const command = messageRules.command(`${operation} <channel_account_id>${operation === "create" ? "" : " <rule_id>"}`)
       .description({ get: "Detalha a Regra", create: "Cria a Regra por JSON", update: "Altera campos por patch JSON", delete: "Exclui a Regra" }[operation]);
     if (operation === "create" || operation === "update") command
       .option("--input <arquivo>", "objeto JSON")
       .option("--json <objeto>", "objeto JSON inline")
-      .option("--stdin", "lê objeto JSON do stdin");
+      .option("--stdin", "lê objeto JSON do stdin")
+      .option("--require-follow <bool>", "true | false")
+      .option("--non-follower-text <texto>", "resposta para quem não segue")
+      .option("--clear-non-follower-text", "remove a resposta para quem não segue");
     command.action(async (...args: unknown[]) => {
       const id = args[0] as string;
       const ruleId = operation === "create" ? undefined : args[1] as string;
-      const opts = args[args.length - 2] as { json?: string; input?: string; stdin?: boolean };
+      const opts = args[args.length - 2] as Parameters<typeof messagePayload>[0];
       const { client, format } = context(args[args.length - 1] as Command);
       const data = operation === "get" ? await client.channelAccounts.getMessageRule(id, ruleId!)
         : operation === "delete" ? await client.channelAccounts.deleteMessageRule(id, ruleId!)
-        : operation === "create" ? await client.channelAccounts.createMessageRule(id, jsonObject(opts) as unknown as CreateMessageRuleParams)
-        : await client.channelAccounts.updateMessageRule(id, ruleId!, jsonObject(opts) as UpdateMessageRuleParams);
+        : operation === "create" ? await client.channelAccounts.createMessageRule(id, messagePayload(opts) as unknown as CreateMessageRuleParams)
+        : await client.channelAccounts.updateMessageRule(id, ruleId!, messagePayload(opts) as UpdateMessageRuleParams);
       if (format === "json") return printJson(data);
       printDetail(data as unknown as Record<string, unknown>);
     });

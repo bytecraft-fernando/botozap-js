@@ -16,8 +16,10 @@ import type {
   UpdateCommentRuleParams,
   UpdateMessengerProfileParams,
 } from "@botozap/sdk";
-import type { Register } from "../register.js";
+import { imageToolResult, type Register } from "../register.js";
 import {
+  instagramConnectionResultSchema,
+  messageRuleQrResultSchema,
   commentRuleMetricsResultSchema,
   messageRuleActionSchema,
   messageRuleTriggerSchema,
@@ -41,7 +43,13 @@ const ruleId = z.string().uuid().describe("UUID da Regra.");
 const page = z.number().int().positive().optional().describe("Página (1-based).");
 const perPage = z.number().int().positive().optional().describe("Itens por página (máx. 100).");
 
+const followFields = {
+  require_follow: z.boolean().optional().describe("Executa a entrega/ações somente para seguidores; ausente preserva no PATCH."),
+  non_follower_text: z.string().nullable().optional().describe("Resposta para quem não segue; null remove. Comentários: obrigatório com require_follow (640 caracteres e botão); mensagens: opcional, até 1000 bytes."),
+};
 const ruleFields = {
+  ...followFields,
+  live: z.boolean().optional().describe("Durante lives; incompatível com media_id e next_post. Sem suporte no servidor: 422 feature_unavailable."),
   dm_button_title: z.string().nullable().optional().describe("Título do botão (20 caracteres); null remove. Com botão, dm_text aceita 640 caracteres. Só aparece no app Instagram."),
   delivery_text: z.string().nullable().optional().describe("Texto entregue após toque (1000 bytes); obrigatório com botão; null remove."),
   delivery_media: z.string().nullable().optional().describe("URL HTTPS pública de imagem, sem credenciais; null remove."),
@@ -70,6 +78,7 @@ const ruleFields = {
 } as const;
 
 const messageRuleFields = {
+  ...followFields,
   keywords: z.array(z.string()).optional().describe("Até 20 expressões de 60 caracteres; keyword exige ao menos uma."),
   excluded_keywords: z.array(z.string()).optional().describe("Só com keyword; até 20 exclusões de 60 caracteres."),
   story_contains: z.string().nullable().optional().describe("Só com story_reply; até 200 caracteres; null remove."),
@@ -104,6 +113,24 @@ export function registerChannelAccountTools(register: Register): void {
     listChannelAccountsResultSchema,
     (client, args) => client.channelAccounts.list(args as ListChannelAccountsParams),
   );
+
+  register("get_instagram_connection", "Lê estado, saúde e diagnóstico da conexão Instagram. numbers:read; sem sandbox.",
+    { channel_account_id: channelAccountId }, instagramConnectionResultSchema,
+    async (client, args) => ({ data: await client.channelAccounts.getConnection(String(args.channel_account_id)) }));
+  register("resubscribe_instagram_connection", "Refaz a assinatura dos webhooks com a autorização existente; não renova autorização. numbers:write; sem sandbox.",
+    { channel_account_id: channelAccountId }, instagramConnectionResultSchema,
+    async (client, args) => ({ data: await client.channelAccounts.resubscribeConnection(String(args.channel_account_id)) }));
+  register("disconnect_instagram_connection", "Desconecta a conta do Instagram (destrutivo). Chave de API; por OAuth, somente painel. numbers:write; sem sandbox.",
+    { channel_account_id: channelAccountId }, instagramConnectionResultSchema,
+    async (client, args) => ({ data: await client.channelAccounts.disconnect(String(args.channel_account_id)) }));
+  register("get_message_rule_qr", "Devolve o link ig.me e sua imagem QR em PNG. Regra sem ref_link: 404 not_found. message-rules:read.",
+    { channel_account_id: channelAccountId, rule_id: ruleId }, messageRuleQrResultSchema,
+    async (client, args) => {
+      const id = String(args.channel_account_id), rule = String(args.rule_id);
+      const linked = await client.channelAccounts.getMessageRule(id, rule);
+      const png = await client.channelAccounts.getMessageRuleQr(id, rule, { format: "png" });
+      return imageToolResult({ data: { ref_link: linked.ref_link } }, png);
+    });
 
   register(
     "list_comment_rules",

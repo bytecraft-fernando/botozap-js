@@ -66,6 +66,12 @@ write(["update_customer", "update_setup_link"], "customers:write", false,
 write(["delete_customer"], "customers:write", false,
   { destructiveHint: true, openWorldHint: false });
 read(["get_channel_account"], "numbers:read", false);
+read(["get_instagram_connection"], "numbers:read", false);
+write(["resubscribe_instagram_connection"], "numbers:write", false,
+  { destructiveHint: false, openWorldHint: true });
+write(["disconnect_instagram_connection"], "numbers:write", false,
+  { destructiveHint: true, openWorldHint: true });
+read(["get_message_rule_qr"], "message-rules:read", true);
 read(["list_channel_accounts"], "numbers:read", true);
 read(["list_comment_rules", "get_comment_rule", "get_comment_rule_metrics"], "comment-rules:read", true);
 // Uma regra ativa dispara directs automáticos para quem comenta.

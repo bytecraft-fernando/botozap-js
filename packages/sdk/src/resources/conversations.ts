@@ -14,6 +14,8 @@ import type {
 } from "../types.js";
 
 export interface ListConversationsParams extends CursorParams {
+  /** Só valores conhecidos; null não casa nem com false. */
+  ig_follows_business?: boolean;
   /** Recorta as conversas pelos canais do negócio autorizado. */
   customer_id?: string;
   /** true: somente conversas com agente pausado aguardando humano. */
@@ -74,6 +76,7 @@ export class Conversations {
       {
         query: {
           limit: params.limit,
+        ig_follows_business: params.ig_follows_business === undefined ? undefined : String(params.ig_follows_business),
           customer_id: params.customer_id,
           agent_paused: params.agent_paused === undefined ? undefined : String(params.agent_paused),
           after: params.after,

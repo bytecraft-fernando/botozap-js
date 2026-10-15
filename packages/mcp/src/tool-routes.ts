@@ -131,3 +131,8 @@ routes(["get_instagram_messenger_profile"], "GET /v1/channel_accounts/:id/messen
 routes(["update_instagram_messenger_profile"], "PATCH /v1/channel_accounts/:id/messenger-profile");
 routes(["delete_instagram_messenger_profile"], "DELETE /v1/channel_accounts/:id/messenger-profile");
 routes(["sync_instagram_messenger_profile"], "POST /v1/channel_accounts/:id/messenger-profile/sync");
+
+routes(["get_instagram_connection"], "GET /v1/channel_accounts/:id/connection");
+routes(["resubscribe_instagram_connection"], "POST /v1/channel_accounts/:id/connection/resubscribe");
+routes(["disconnect_instagram_connection"], "DELETE /v1/channel_accounts/:id/connection");
+routes(["get_message_rule_qr"], "GET /v1/channel_accounts/:id/message-rules/:ruleId", "GET /v1/channel_accounts/:id/message-rules/:ruleId/qr");

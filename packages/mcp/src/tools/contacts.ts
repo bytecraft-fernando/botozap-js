@@ -24,6 +24,7 @@ export function registerContactTools(register: Register): void {
     "list_contacts",
     "Lista contatos da conta (paginação por cursor: { data, paging }). Filtros opcionais por cliente, presença de cliente, busca parcial em nome/wa_id e janela de criação.",
     {
+      ig_follows_business: z.boolean().optional().describe("Filtra seguidores do Instagram; apenas valores conhecidos, null fica fora."),
       customer_id: z.string().optional().describe("Filtra pelos números do cliente (derivado)."),
       has_customer: z
         .boolean()
