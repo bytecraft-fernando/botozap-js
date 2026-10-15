@@ -16,6 +16,7 @@ import type {
   Template,
   User,
   Webhook,
+  WebhookChannelHealth,
   WebhookDelivery,
 } from "@botozap/sdk";
 
@@ -432,6 +433,21 @@ export const userSchema = z
 
 export const listUsersResultSchema = offsetListResultSchemaFor(userSchema);
 
+export const webhookChannelHealthSchema = z
+  .object({
+    channel_account_id: internalUuidSchema
+      .nullable()
+      .describe("Conta de canal com falha; null = eventos sem canal."),
+    health_status: z.string().describe("degraded | paused (pausa só este canal)."),
+    failure_streak: z.number().int().nonnegative(),
+    next_attempt_at: z.string().nullable(),
+    paused_at: z.string().nullable(),
+    last_success_at: z.string().nullable(),
+    last_failure_at: z.string().nullable(),
+    last_response_code: z.number().int().nullable(),
+  })
+  .strip() satisfies z.ZodType<WebhookChannelHealth>;
+
 export const webhookSchema = z
   .object({
     id: internalUuidSchema.describe("UUID interno do Endpoint no BotoZap."),
@@ -439,6 +455,19 @@ export const webhookSchema = z
       .nullable()
       .optional()
       .describe("Cliente cujas entregas o endpoint recebe; null = toda a conta."),
+    channel_account_ids: z
+      .array(internalUuidSchema)
+      .nullable()
+      .optional()
+      .describe(
+        "Canais cujos eventos o endpoint recebe; null = todos. Vazio = canais marcados foram excluídos e o endpoint não recebe eventos.",
+      ),
+    channels_health: z
+      .array(webhookChannelHealthSchema)
+      .optional()
+      .describe(
+        "Saúde por canal, só dos canais com falha (vazio = saudável). health_status/failure_streak do endpoint resumem o pior canal.",
+      ),
     url: z.string(),
     events: z.array(z.string()),
     active: z.boolean(),

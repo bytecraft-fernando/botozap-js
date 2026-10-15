@@ -232,11 +232,22 @@ botozap usage meta-costs --customer-id <customerId> --from 2026-09-01 --to 2026-
 botozap templates create --name boas_vindas --language pt_BR \
   --category UTILITY --components ./components.json
 
-# Webhooks (eventos válidos: messages, statuses, crm, account; secret: 16–256 caracteres)
+# Webhooks (eventos válidos: messages, statuses, crm, account, app_messages (opt-in); secret: 16–256 caracteres)
 botozap webhooks create --url https://meu.app/webhook \
   --events messages,statuses --secret troque-por-um-segredo-longo
 # Só entregas de um cliente; --clear-customer volta a receber de toda a conta
 botozap webhooks update <id> --customer-id <customerId>
+# Só eventos de alguns canais (ids de `channel-accounts list`, 1 a 100;
+# repetível ou separado por vírgula). Omitido no create = todos os canais.
+botozap webhooks create --url https://meu.app/webhook --events messages \
+  --channel-account-id <canalA> --channel-account-id <canalB>
+botozap webhooks update <id> --channel-account-id <canalA>,<canalB>   # substitui a lista
+botozap webhooks update <id> --all-channels                           # volta a todos
+# get mostra os canais (todos | lista | nenhum) e a saúde por canal: só canais
+# com falha, com falhas seguidas, próxima tentativa e pausa. Um canal pausado
+# (15ª falha) não para os outros; health_status do webhook resume o pior canal.
+# Na listagem, CANAIS e SAÚDE ("degraded (1 canal com falha)").
+botozap webhooks get <id>
 botozap webhooks test <id>
 
 # Entregas e logs

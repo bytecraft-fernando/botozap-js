@@ -19,6 +19,13 @@ export interface CreateWebhookParams {
    * de outra Conta → 404 `customer_not_found`.
    */
   customer_id?: string | null;
+  /**
+   * Limita as entregas a estes canais (1 a 100 ids de `channelAccounts.list`).
+   * Omitido ou `null` = todos os canais da Conta. Id malformado → 422
+   * `invalid_channel_account_ids`; canal de outra Conta → 404
+   * `channel_account_not_found`.
+   */
+  channel_account_ids?: string[] | null;
 }
 
 export interface UpdateWebhookParams {
@@ -41,6 +48,11 @@ export interface UpdateWebhookParams {
    * `null` (ou string vazia) remove o filtro sem invalidar a verificação.
    */
   customer_id?: string | null;
+  /**
+   * Omitido = não mexe. `null` volta a receber de todos os canais; um array
+   * (1 a 100 ids) limita as entregas a esses canais.
+   */
+  channel_account_ids?: string[] | null;
 }
 
 /** Webhooks: endpoints assinados que recebem os eventos da conta. */
