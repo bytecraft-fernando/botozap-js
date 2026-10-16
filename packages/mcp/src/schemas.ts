@@ -353,7 +353,12 @@ export const setupLinkSchema = z
     ]),
     url: z.string().describe("URL pública com token opaco embutido."),
     allowed_connection_types: z.array(z.enum(["dedicated", "coexistence"])),
-    language: z.string().nullable().describe("Código de idioma da página; null = automático."),
+    language: z
+      .string()
+      .nullable()
+      .describe(
+        "Legado: null em links novos. A página do link é sempre em português, qualquer que seja o valor.",
+      ),
     success_redirect_url: z
       .string()
       .nullable()

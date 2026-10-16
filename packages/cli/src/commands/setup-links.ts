@@ -44,7 +44,10 @@ export function registerSetupLinks(program: Command): void {
       "--connection-types <lista>",
       "dedicated e/ou coexistence, separados por vírgula (padrão: dedicated)",
     )
-    .option("--language <código>", "idioma da página (ex.: pt_BR); auto = automático")
+    .option(
+      "--language <código>",
+      "aceito por compatibilidade e ignorado: a página do link é sempre em português",
+    )
     .option(
       "--success-redirect-url <url>",
       "destino ao concluir; recebe setup_link_id e status=completed",

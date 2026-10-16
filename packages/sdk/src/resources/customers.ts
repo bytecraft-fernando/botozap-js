@@ -41,7 +41,10 @@ export interface CreateSetupLinkParams {
    * ignorados.
    */
   allowed_connection_types?: string[];
-  /** Código de idioma da página (ex.: "pt_BR"); "auto" ou vazio deixa automático. */
+  /**
+   * Aceito por compatibilidade e ignorado: a página do link é sempre em
+   * português (o link volta com `language: null`).
+   */
   language?: string;
   /**
    * Destino depois de concluir (`status=completed`). Precisa ser `https://`,

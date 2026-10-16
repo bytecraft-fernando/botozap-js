@@ -95,7 +95,7 @@ export function registerCustomerTools(register: Register): void {
 
   register(
     "create_setup_link",
-    "Cria um link de setup (Embedded Signup) para um cliente; envie a `url` devolvida ao cliente. Opções: allowed_connection_types ('dedicated'|'coexistence'), language e redirects. Redirects só em estado final: sucesso → success_redirect_url com setup_link_id e status=completed; link esgotado → failure_redirect_url com status=failed; cliente volta num erro recuperável → failure_redirect_url com status=cancelled (o link segue válido). A query da URL é preservada e o token nunca é enviado. URLs precisam ser https, sem usuário/senha, até 2048 caracteres (senão 422 invalid_redirect_url). Retorna { data }.",
+    "Cria um link de setup (Embedded Signup) para um cliente; envie a `url` devolvida ao cliente. Opções: allowed_connection_types ('dedicated'|'coexistence') e redirects; language é aceito por compatibilidade e ignorado (a página é sempre em português). Redirects só em estado final: sucesso → success_redirect_url com setup_link_id e status=completed; link esgotado → failure_redirect_url com status=failed; cliente volta num erro recuperável → failure_redirect_url com status=cancelled (o link segue válido). A query da URL é preservada e o token nunca é enviado. URLs precisam ser https, sem usuário/senha, até 2048 caracteres (senão 422 invalid_redirect_url). Retorna { data }.",
     {
       customer_id: z.string().describe("ID do cliente (uuid interno)."),
       allowed_connection_types: z
@@ -105,7 +105,9 @@ export function registerCustomerTools(register: Register): void {
       language: z
         .string()
         .optional()
-        .describe("Código de idioma da página (ex.: pt_BR); 'auto' ou vazio = automático."),
+        .describe(
+          "Aceito por compatibilidade e ignorado: a página do link é sempre em português (o link volta com language null).",
+        ),
       success_redirect_url: z
         .string()
         .optional()

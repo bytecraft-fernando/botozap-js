@@ -496,7 +496,10 @@ export interface SetupLink {
   whatsapp_setup_status: string;
   url: string;
   allowed_connection_types: string[];
-  /** Código de idioma da página; `null` = automático. */
+  /**
+   * Legado: `null` em links novos. A página do link é sempre em português,
+   * qualquer que seja o valor.
+   */
   language: string | null;
   /**
    * Destino depois de concluir; recebe `setup_link_id` e `status=completed`
