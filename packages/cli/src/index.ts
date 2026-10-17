@@ -36,7 +36,7 @@ const program = new Command();
 program
   .name("botozap")
   .description(
-    "CLI dev-first do BotoZap — WhatsApp Cloud API multi-tenant (a Kapso brasileira).",
+    "CLI dev-first do BotoZap — WhatsApp Cloud API multi-tenant.",
   )
   .version(VERSION, "-v, --version", "mostra a versão")
   .option(

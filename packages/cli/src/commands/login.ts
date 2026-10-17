@@ -8,7 +8,7 @@ import pc from "picocolors";
 /**
  * `botozap login` — STUB amigável.
  *
- * O BotoZap ainda não tem login OAuth por navegador (como o `kapso login`).
+ * O BotoZap ainda não tem login OAuth por navegador.
  * Por isso este comando apenas (1) explica como criar uma API key no painel,
  * em /chaves, e (2) oferece colar a chave para gravá-la no config local.
  */
