@@ -1,6 +1,11 @@
 export { BotoZap } from "./client.js";
 export type { BotoZapOptions, RequestOptions } from "./client.js";
-export { BotoZapError, PLAN_ERROR_CODES, isPlanError } from "./errors.js";
+export {
+  BotoZapError,
+  PLAN_ERROR_CODES,
+  isPlanError,
+  isBusinessPaymentRequired,
+} from "./errors.js";
 export type { SendFailureDetails, BotoZapErrorCode } from "./errors.js";
 export { WEBHOOK_CATEGORIES } from "./types.js";
 export type { Me } from "./resources/me.js";
@@ -84,6 +89,12 @@ export type {
   MetaCostReport,
 } from "./resources/usage.js";
 export type {
+  Billing,
+  BillingPlan,
+  BusinessSlot,
+  CreateBusinessSlotOptions,
+} from "./resources/billing.js";
+export type {
   ListApiLogsParams,
   ListWebhookDeliveriesParams,
 } from "./resources/read-only.js";
@@ -101,6 +112,10 @@ export type {
   CursorParams,
   OffsetParams,
   Customer,
+  CustomerBusinessSlot,
+  ConnectionBilling,
+  ConnectionBillingOutcome,
+  ConnectionBillingRefusal,
   Message,
   MessageContent,
   MessageEdit,

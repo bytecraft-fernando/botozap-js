@@ -43,6 +43,8 @@ export const fullAccessIdentity = {
   "inbox:read",
   "inbox:write",
   "team:read",
-  "logs:read"
+  "logs:read",
+  "billing:read",
+  "billing:write"
 ],
 };

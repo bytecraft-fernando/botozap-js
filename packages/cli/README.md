@@ -115,6 +115,7 @@ botozap deliveries    list                          (webhook_deliveries)
 botozap logs          list                          (api_logs)
 botozap users         list
 botozap usage         meta-costs                    (custo aproximado da Meta)
+botozap billing       (plano e slots) | slots create | slots cancel
 botozap config        set | get | path
 botozap login
 botozap status
@@ -228,6 +229,16 @@ botozap numbers health <phoneNumberId>
 
 # Custo aproximado da Meta (custo ausente aparece como "indisponível", nunca 0)
 botozap usage meta-costs --customer-id <customerId> --from 2026-09-01 --to 2026-09-25
+
+# Plano e slots adicionais (só chave de API; scopes billing:read / billing:write).
+# O plano pago inclui 1 negócio; cada negócio a mais ocupa um slot de R$ 47/mês.
+botozap billing
+# Compra um slot vazio (gera cobrança). A mesma --idempotency-key devolve o mesmo
+# slot em vez de comprar outro. Recusas: plan_required (assine o plano),
+# slot_limit (pague uma fatura em aberto), billing_customer_required (fale com o suporte).
+botozap billing slots create --idempotency-key compra-2026-10-17
+# Cancela um slot vazio, sem reembolso (ocupado: slot_in_use, desconecte o negócio antes).
+botozap billing slots cancel <slotId>
 
 # Templates (componentes via arquivo JSON)
 botozap templates create --name boas_vindas --language pt_BR \

@@ -29,6 +29,7 @@ import { ChannelAccounts } from "./resources/channel-accounts.js";
 import { Media } from "./resources/media.js";
 import { Events } from "./resources/events.js";
 import { Usage } from "./resources/usage.js";
+import { BillingResource } from "./resources/billing.js";
 import { Users, ApiLogs, WebhookDeliveries } from "./resources/read-only.js";
 import { MeResource } from "./resources/me.js";
 
@@ -87,6 +88,8 @@ export class BotoZap {
   readonly media: Media;
   readonly events: Events;
   readonly usage: Usage;
+  /** Plano da Conta e slots adicionais (só chave de API). */
+  readonly billing: BillingResource;
   readonly users: Users;
   readonly apiLogs: ApiLogs;
   readonly webhookDeliveries: WebhookDeliveries;
@@ -134,6 +137,7 @@ export class BotoZap {
     this.media = new Media(this);
     this.events = new Events(this);
     this.usage = new Usage(this);
+    this.billing = new BillingResource(this);
     this.users = new Users(this);
     this.apiLogs = new ApiLogs(this);
     this.webhookDeliveries = new WebhookDeliveries(this);
