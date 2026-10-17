@@ -1,5 +1,5 @@
 import type {ApiIdentity} from './server.js';
-import type {ToolPolicy} from './permissions.js';
+import {toolAnnotations,type ToolPolicy} from './permissions.js';
 
 export type CatalogProfile = 'assistant' | 'full';
 const descriptions: Record<string, [string,string]> = {
@@ -71,6 +71,6 @@ export function assistantDescriptor(name: string, original: string, policy: Tool
   return {
     ...(copy?{title:copy[0]}:{}),
     description:copy?`${copy[1]} ${original}`:original,
-    annotations:{readOnlyHint:policy.readOnlyHint,destructiveHint:policy.destructiveHint,openWorldHint:policy.openWorldHint || name==='ai_cases_update'},
+    annotations:toolAnnotations(policy),
   };
 }

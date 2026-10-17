@@ -6,6 +6,7 @@ exports[`catálogo completo anuncia schemas, rotas, escopos e efeito público; a
     "_meta": undefined,
     "annotations": {
       "destructiveHint": false,
+      "idempotentHint": true,
       "openWorldHint": false,
       "readOnlyHint": true,
     },
@@ -145,6 +146,7 @@ exports[`catálogo completo anuncia schemas, rotas, escopos e efeito público; a
     "_meta": undefined,
     "annotations": {
       "destructiveHint": true,
+      "idempotentHint": true,
       "openWorldHint": true,
       "readOnlyHint": false,
     },
@@ -306,6 +308,7 @@ exports[`catálogo completo anuncia schemas, rotas, escopos e efeito público; a
     "_meta": undefined,
     "annotations": {
       "destructiveHint": false,
+      "idempotentHint": true,
       "openWorldHint": false,
       "readOnlyHint": true,
     },

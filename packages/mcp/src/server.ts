@@ -11,7 +11,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { BotoZapError, createClient, DEFAULT_API_URL } from "./client.js";
 import { createRegister } from "./register.js";
-import { EVENT_RESOURCE_POLICY, isToolAllowed } from "./permissions.js";
+import { EVENT_RESOURCE_POLICY, GET_PROFILE_ANNOTATIONS, isToolAllowed, toolAnnotations } from "./permissions.js";
 import { registerContactConfigurationTools } from "./tools/contact-configuration.js";
 import { registerCalendarTools } from "./tools/calendar.js";
 import { registerAiTools } from "./tools/ai.js";
@@ -185,7 +185,7 @@ export async function buildServer(
         nickname: z.string().optional(),
       }).strict(),
       _meta: { "openai/profile": true },
-      annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false },
+      annotations: toolAnnotations(GET_PROFILE_ANNOTATIONS),
     },
     async () => {
       try {
