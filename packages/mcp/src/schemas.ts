@@ -2,6 +2,9 @@
 import { z, type AnyZodObject } from "zod";
 import type {
   ApiLog,
+  Billing,
+  BusinessSlot,
+  ConnectionBilling,
   Contact,
   Conversation,
   CursorPaging,
@@ -341,6 +344,20 @@ export const listCustomersResultSchema = offsetListResultSchemaFor(customerSchem
 
 export const customerResultSchema = itemResultSchemaFor(customerSchema);
 
+export const connectionBillingSchema = z
+  .object({
+    outcome: z
+      .enum(["included", "occupies_slot", "creates_slot", "refused"])
+      .describe("included = entra no que o plano inclui; occupies_slot = usa um slot vazio; creates_slot = compra um slot de R$ 47/mês; refused = a conexão será recusada."),
+    amount_cents: z.number().int().nullable().describe("4700 em creates_slot; null nos demais."),
+    reason: z
+      .enum(["free_cap", "slot_limit", "billing_customer_required", "capacity_required"])
+      .nullable()
+      .describe("Só em refused: free_cap = assine o plano; slot_limit = pague uma fatura em aberto; billing_customer_required = fale com o suporte; capacity_required = compre um slot antes."),
+    message: z.string().describe("Texto em português para mostrar ao usuário."),
+  })
+  .strip() satisfies z.ZodType<ConnectionBilling>;
+
 export const setupLinkSchema = z
   .object({
     id: internalUuidSchema.describe("UUID interno do Setup Link no BotoZap."),
@@ -375,6 +392,10 @@ export const setupLinkSchema = z
     expires_at: z.string().nullable(),
     created_at: z.string(),
     updated_at: z.string(),
+    connection_billing: connectionBillingSchema
+      .nullable()
+      .optional()
+      .describe("O que acontece na cobrança quando o Cliente conectar; null quando não deu para conferir agora."),
   })
   .strip() satisfies z.ZodType<SetupLink>;
 
@@ -653,6 +674,54 @@ export const metaCostReportSchema = z
   .strip() satisfies z.ZodType<MetaCostReport>;
 
 export const metaCostsResultSchema = itemResultSchemaFor(metaCostReportSchema);
+
+export const businessSlotSchema = z
+  .object({
+    id: internalUuidSchema.describe("UUID interno do slot; use em cancel_business_slot."),
+    status: z.enum(["open", "canceled"]),
+    customer_id: internalUuidSchema
+      .nullable()
+      .describe("Cliente que ocupa o slot; null quando o slot está vazio."),
+    customer_name: z.string().nullable(),
+    amount_cents: z.number().int().describe("Valor mensal em centavos (4700 = R$ 47)."),
+    paid: z.boolean().describe("A fatura atual do slot está paga."),
+    next_due_date: z.string().describe("Vencimento em aberto (YYYY-MM-DD)."),
+    invoice_url: z
+      .string()
+      .nullable()
+      .describe("Link da fatura; null enquanto ainda não está disponível."),
+    paused: z
+      .boolean()
+      .describe("O negócio que ocupa o slot está pausado porque a fatura venceu há mais de 7 dias; pagar libera na hora."),
+    created_at: z.string(),
+  })
+  .strip() satisfies z.ZodType<BusinessSlot>;
+
+export const businessSlotResultSchema = itemResultSchemaFor(businessSlotSchema);
+
+export const billingSchema = z
+  .object({
+    plan: z
+      .enum(["paid", "free", "trial", "courtesy"])
+      .describe("paid = plano pago; free; trial = teste grátis; courtesy = conta cortesia, sem cobrança."),
+    included_businesses: z
+      .number()
+      .int()
+      .nullable()
+      .describe("Negócios incluídos no plano; null = sem limite."),
+    legacy_extra_businesses: z
+      .number()
+      .int()
+      .describe("Negócios extras do contrato antigo (não usam slot)."),
+    slot_amount_cents: z.number().int().describe("Valor de cada slot em centavos (4700)."),
+    can_add_slot: z
+      .boolean()
+      .describe("Dá para comprar slot (plano pago com cadastro de cobrança)."),
+    slots: z.array(businessSlotSchema).describe("Slots ativos, dos mais antigos aos mais novos."),
+  })
+  .strip() satisfies z.ZodType<Billing>;
+
+export const billingResultSchema = itemResultSchemaFor(billingSchema);
 
 /** Conta de canal pública (GET /v1/channel_accounts): Número ou Conta do Instagram. */
 export const channelAccountSchema = z

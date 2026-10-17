@@ -123,9 +123,25 @@ export interface OffsetParams {
 // ---------------------------------------------------------------------------
 
 /** Cliente (customer) da sua conta. */
+/** Slot adicional que o Cliente ocupa (ver `billing.get()`). */
+export interface CustomerBusinessSlot {
+  slot_id: string;
+  /**
+   * `true` quando o negócio está pausado porque a fatura do slot venceu há
+   * mais de 7 dias. Envios respondem 402 `business_payment_required` até o
+   * pagamento.
+   */
+  paused: boolean;
+}
+
 export interface Customer {
   id: string;
   name?: string;
+  /**
+   * Slot adicional ocupado pelo Cliente; `null` quando ele está no que o plano
+   * inclui. Ausente em servidores antigos.
+   */
+  business_slot?: CustomerBusinessSlot | null;
   [key: string]: unknown;
 }
 
@@ -517,5 +533,47 @@ export interface SetupLink {
   expires_at: string | null;
   created_at: string;
   updated_at: string;
+  /**
+   * O que acontece na cobrança quando o Cliente conectar (conferência só de
+   * leitura). `null` quando não deu para conferir agora; ausente em servidores
+   * antigos.
+   */
+  connection_billing?: ConnectionBilling | null;
   [key: string]: unknown;
+}
+
+/**
+ * Resultado previsto da conexão: `included` (entra no que o plano inclui),
+ * `occupies_slot` (usa um slot vazio), `creates_slot` (compra um slot novo de
+ * R$ 47/mês) ou `refused` (a conexão será recusada; veja `reason`).
+ */
+export type ConnectionBillingOutcome =
+  | "included"
+  | "occupies_slot"
+  | "creates_slot"
+  | "refused"
+  | (string & {});
+
+/**
+ * Por que a conexão será recusada: `free_cap` (Free ou teste: assine o plano),
+ * `slot_limit` (já há 2 slots com fatura em aberto: pague uma),
+ * `billing_customer_required` (conta sem cadastro de cobrança: fale com o
+ * suporte) ou `capacity_required` (compre um slot antes de conectar).
+ */
+export type ConnectionBillingRefusal =
+  | "free_cap"
+  | "slot_limit"
+  | "billing_customer_required"
+  | "capacity_required"
+  | (string & {});
+
+/** Cobrança prevista para a conexão de um link de setup. */
+export interface ConnectionBilling {
+  outcome: ConnectionBillingOutcome;
+  /** 4700 em `creates_slot`; `null` nos demais. */
+  amount_cents: number | null;
+  /** Preenchido só em `refused`. */
+  reason: ConnectionBillingRefusal | null;
+  /** Texto em português para mostrar ao usuário. */
+  message: string;
 }

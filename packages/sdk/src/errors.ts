@@ -43,7 +43,12 @@ export class BotoZapError extends Error {
  * (429, limite 1:1 do Free). Plano: `plan_restricted` (403, escritas de IA,
  * Agenda, Calendário e Jornadas fora do plano), `free_number_cap` (402, setup
  * além do teto de Números do Free). IA: `provider_not_enabled` (422, credencial
- * nova de provedor com `accepts_new_credentials: false`).
+ * nova de provedor com `accepts_new_credentials: false`). Cobrança:
+ * `business_payment_required` (402 no envio: o negócio está pausado porque a
+ * fatura do slot venceu há mais de 7 dias; pague e envie de novo),
+ * `plan_required` (402, comprar slot no Free ou teste), `slot_limit` (402, já há
+ * 2 slots com fatura em aberto), `billing_customer_required` (402, conta sem
+ * cadastro de cobrança), `slot_in_use` (409, cancelar slot ocupado).
  */
 export type BotoZapErrorCode =
   | "invalid_request"
@@ -59,6 +64,11 @@ export type BotoZapErrorCode =
   | "free_number_cap"
   | "feature_unavailable"
   | "provider_not_enabled"
+  | "business_payment_required"
+  | "plan_required"
+  | "slot_limit"
+  | "slot_in_use"
+  | "billing_customer_required"
   | (string & {});
 
 /** Códigos que indicam limite ou restrição do plano contratado. */
@@ -74,4 +84,13 @@ export function isPlanError(error: unknown): error is BotoZapError {
     error instanceof BotoZapError &&
     (PLAN_ERROR_CODES as readonly string[]).includes(error.code)
   );
+}
+
+/**
+ * True quando o envio foi recusado porque o negócio está pausado: a fatura do
+ * slot venceu há mais de 7 dias. Pagar a fatura libera na hora; repetir antes
+ * disso não adianta. Não é recusa de plano ({@link isPlanError} é `false`).
+ */
+export function isBusinessPaymentRequired(error: unknown): error is BotoZapError {
+  return error instanceof BotoZapError && error.code === "business_payment_required";
 }

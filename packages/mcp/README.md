@@ -238,6 +238,7 @@ Nomes em inglês (snake_case, melhor para tool-calling); descrições em PT-BR.
 **Logs** — `list_api_logs`
 **Usuários** — `list_users`
 **Uso** — `get_meta_costs` (custo aproximado da Meta por moeda, dia e categoria; custo ausente vem `null`, nunca 0)
+**Plano e slots** — `get_billing` (`billing:read`), `create_business_slot` e `cancel_business_slot` (`billing:write`). Só chave de API, fora do perfil `assistant` e sem sandbox. O plano pago inclui 1 negócio; cada negócio a mais ocupa um slot de R$ 47/mês. `create_business_slot` gera essa cobrança e aceita `idempotency_key` (a mesma chave devolve o mesmo slot); recusas `plan_required`, `slot_limit` e `billing_customer_required`. `cancel_business_slot` (`slot_id`) cancela só slot vazio, sem reembolso; ocupado responde `slot_in_use`. Os links de setup trazem `connection_billing` (o que acontece na cobrança quando o Cliente conectar).
 
 ## Resource de Eventos
 

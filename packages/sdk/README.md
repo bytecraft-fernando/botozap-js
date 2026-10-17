@@ -386,6 +386,47 @@ catch (err) {
 }
 ```
 
+### Plano e slots adicionais
+
+O plano pago inclui 1 negócio. Cada negócio a mais ocupa um slot adicional de
+R$ 47/mês, com assinatura própria. Estas rotas aceitam só chave de API, com os
+scopes `billing:read` e `billing:write` (OAuth não tem acesso).
+
+```ts
+const { plan, can_add_slot, slots } = await boto.billing.get();
+
+// Compra um slot vazio (gera cobrança de R$ 47/mês). A mesma idempotencyKey
+// devolve o mesmo slot em vez de comprar outro.
+const slot = await boto.billing.slots.create({ idempotencyKey: "compra-2026-10-17" });
+
+// Cancela um slot vazio, sem reembolso.
+await boto.billing.slots.cancel(slot.id);
+```
+
+Recusas da compra: `402 plan_required` (Free ou teste: assine o plano),
+`402 slot_limit` (já há 2 slots com fatura em aberto: pague uma) e
+`402 billing_customer_required` (conta sem cadastro de cobrança: fale com o
+suporte). Cancelar slot ocupado responde `409 slot_in_use`: desconecte o negócio
+antes. `invoice_url` pode vir `null` logo depois da compra; leia de novo em
+`billing.get()`.
+
+Cada link de setup traz `connection_billing`, que diz o que acontece quando o
+Cliente conectar (`included`, `occupies_slot`, `creates_slot` ou `refused`, com
+`message` pronta para mostrar). Cada Cliente traz `business_slot` (`null` quando
+está no que o plano inclui).
+
+Quando a fatura de um slot vence há mais de 7 dias, o negócio fica pausado e o
+envio responde `402 business_payment_required`. Pagar libera na hora; não é
+recusa de plano (`isPlanError` é `false`).
+
+```ts
+import { isBusinessPaymentRequired } from "@botozap/sdk";
+
+catch (err) {
+  if (isBusinessPaymentRequired(err)) avisarFaturaVencida();
+}
+```
+
 ### Webhooks
 
 `WEBHOOK_CATEGORIES` lista as categorias de `webhooks.create({ events })`:
@@ -443,6 +484,7 @@ O SDK cobre os recursos da API `/v1`:
 - `media` — subir arquivo (obter um media_id) e **buscar metadados + URL de download** de uma mídia recebida
 - `events` — reler inbound e mudanças de status pelo cursor durável da Conta/ambiente
 - `usage` — `metaCosts`: custo aproximado da Meta por dia, categoria e moeda (Pricing Analytics), com estimativa por tarifa publicada onde a Meta não devolveu custo
+- `billing` — `get`: plano e slots adicionais; `slots.create` (compra, com `idempotencyKey`) e `slots.cancel` (slot vazio, sem reembolso). Só chave de API
 - `me` — `get`: Conta, ambiente (`live` ou `sandbox`) e scopes efetivos da chave autenticada; não retorna a chave nem uma identidade pessoal
 - `users`, `apiLogs`, `webhookDeliveries` — leitura
 

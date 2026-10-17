@@ -44,6 +44,9 @@ routes(["list_webhook_deliveries"], "GET /v1/webhook_deliveries");
 routes(["list_api_logs"], "GET /v1/api_logs");
 routes(["list_users"], "GET /v1/users");
 routes(["get_meta_costs"], "GET /v1/usage/meta-costs");
+routes(["get_billing"], "GET /v1/billing");
+routes(["create_business_slot"], "POST /v1/billing/slots");
+routes(["cancel_business_slot"], "DELETE /v1/billing/slots/:id");
 routes(["ingest_media"], "POST /v1/media");
 for (const [plural, singular] of [["contact-stages", "contact_stage"], ["contact-fields", "contact_field"], ["saved-replies", "saved_reply"]] as const) {
   const list = plural === "saved-replies" ? "saved_replies" : plural.replaceAll("-", "_");

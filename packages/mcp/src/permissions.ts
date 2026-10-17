@@ -162,6 +162,14 @@ write(["test_webhook"], "webhooks:write", false,
 read(["list_api_logs"], "logs:read", false);
 read(["list_users"], "team:read", false);
 read(["get_meta_costs"], "customers:read", false);
+// Plano e slots: só chave de API (para OAuth estas rotas são exclusivas do painel).
+read(["get_billing"], "billing:read", false);
+// Comprar gera cobrança (R$ 47/mês), mas é reversível: o slot vazio se cancela.
+write(["create_business_slot"], "billing:write", false,
+  { destructiveHint: false, idempotentHint: false, openWorldHint: false });
+// Cancela a assinatura do slot no Asaas, sem reembolso; repetir não muda nada.
+write(["cancel_business_slot"], "billing:write", false,
+  { destructiveHint: true, idempotentHint: true, openWorldHint: false });
 write(["ingest_media"], "media:write", false,
   { destructiveHint: false, idempotentHint: false, openWorldHint: true });
 read(["list_contact_stages", "list_contact_fields"], "contacts:read", false);
