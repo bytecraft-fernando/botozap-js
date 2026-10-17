@@ -19,6 +19,8 @@ import {
   type AddRecipientsError,
   type BroadcastRecipientInput,
   type CreateAssignmentParams,
+  type CreateSetupLinkParams,
+  type SetupLink,
 } from "../src/index.js";
 
 type CapturedRequest = {
@@ -441,6 +443,56 @@ describe("SDK contract — correções E3.2", () => {
       failure_redirect_url: "https://parceiro.example/erro",
     });
     expect(link.id).toBe("lnk_2");
+  });
+
+  it("customers.createSetupLink: channel instagram vai no body; link volta com channel", async () => {
+    responder = () => ({
+      status: 201,
+      json: {
+        data: {
+          id: "lnk_3",
+          channel: "instagram",
+          status: "active",
+          whatsapp_setup_status: "pending",
+          url: "https://botozap.com.br/instagram/setup/tok",
+          allowed_connection_types: [],
+        },
+      },
+    });
+
+    const link = await boto.customers.createSetupLink("cus_1", {
+      channel: "instagram",
+      success_redirect_url: "https://parceiro.example/ok",
+    });
+
+    const req = lastRequest();
+    expect(req.method).toBe("POST");
+    expect(req.path).toBe("/customers/cus_1/setup_links");
+    expect(req.body).toEqual({
+      channel: "instagram",
+      success_redirect_url: "https://parceiro.example/ok",
+    });
+    expect(link.channel).toBe("instagram");
+    expect(link.allowed_connection_types).toEqual([]);
+    expectTypeOf<SetupLink["channel"]>().toEqualTypeOf<"whatsapp" | "instagram">();
+    expectTypeOf<CreateSetupLinkParams["channel"]>().toEqualTypeOf<
+      "whatsapp" | "instagram" | undefined
+    >();
+  });
+
+  it("customers.createSetupLink: 422 invalid_channel vira BotoZapError", async () => {
+    responder = () => ({
+      status: 422,
+      json: { error: { code: "invalid_channel", message: "channel deve ser 'whatsapp' ou 'instagram'." } },
+    });
+
+    const err = await boto.customers
+      .createSetupLink("cus_1", { channel: "telegram" as never })
+      .catch((e) => e);
+
+    expect(err).toBeInstanceOf(BotoZapError);
+    expect((err as BotoZapError).status).toBe(422);
+    expect((err as BotoZapError).code).toBe("invalid_channel");
   });
 
   it("customers.updateSetupLink: PATCH body {status}; desempacota data", async () => {

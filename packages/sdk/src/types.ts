@@ -502,15 +502,24 @@ export interface MediaAsset {
 }
 
 /**
- * Link de setup de um cliente (Embedded Signup). Shape do contrato
+ * Link de setup de um cliente (Embedded Signup no WhatsApp, login do Instagram
+ * no Instagram). Shape do contrato
  * (ver `/v1/customers/:id/setup_links`): a `url` embute o token opaco; o token
  * cru nunca é exposto separadamente.
  */
 export interface SetupLink {
   id: string;
+  /** Canal que o link conecta (cada link conecta um canal só). */
+  channel: "whatsapp" | "instagram";
   status: string;
+  /**
+   * Andamento da conexão. Apesar do nome, vale para os dois canais: num link do
+   * Instagram passa a `completed` quando a conta do Instagram conecta.
+   */
   whatsapp_setup_status: string;
+  /** `/whatsapp/setup/<token>` ou `/instagram/setup/<token>`, conforme o canal. */
   url: string;
+  /** Modos do WhatsApp; sempre `[]` em links do Instagram. */
   allowed_connection_types: string[];
   /**
    * Legado: `null` em links novos. A página do link é sempre em português,

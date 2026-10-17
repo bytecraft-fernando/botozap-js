@@ -32,13 +32,26 @@ export interface UpdateCustomerParams {
  * link continua válido. A query string que a sua URL já tiver é preservada e o
  * token do link nunca é enviado. Link expirado ou revogado mostra a página de
  * erro, sem redirecionar.
+ *
+ * Cada link conecta um canal só (`channel`). No do Instagram, o Cliente
+ * confirma que a conta é profissional e que as mensagens estão liberadas e
+ * entra com o Instagram; sucesso vai para `success_redirect_url` com
+ * `status=completed` e, numa falha, a página oferece voltar para
+ * `failure_redirect_url` com `status=cancelled`.
  */
 export interface CreateSetupLinkParams {
   /**
-   * Tipos de conexão liberados: "dedicated" e/ou "coexistence" (padrão
-   * "dedicated"). Uma lista sem nenhum tipo válido responde
+   * Canal que o link conecta: "whatsapp" (padrão) ou "instagram". Outro valor
+   * responde `422 invalid_channel`. O link do Instagram volta com
+   * `allowed_connection_types: []` e `url` em `/instagram/setup/<token>`.
+   */
+  channel?: "whatsapp" | "instagram";
+  /**
+   * Só WhatsApp. Tipos de conexão liberados: "dedicated" e/ou "coexistence"
+   * (padrão "dedicated"). Uma lista sem nenhum tipo válido responde
    * `422 invalid_connection_types`; tipos desconhecidos ao lado de válidos são
-   * ignorados.
+   * ignorados. Com `channel: "instagram"`, enviar a lista responde
+   * `422 invalid_connection_types`.
    */
   allowed_connection_types?: string[];
   /**
@@ -126,7 +139,8 @@ export class Customers {
    * Cria um link de setup sob um cliente (expira em 30 dias). Envie a `url`
    * devolvida ao Cliente; veja em {@link CreateSetupLinkParams} como funcionam
    * os redirecionamentos. URL de redirecionamento inválida lança
-   * `BotoZapError` com `code: "invalid_redirect_url"` (422).
+   * `BotoZapError` com `code: "invalid_redirect_url"` (422); canal inválido,
+   * `code: "invalid_channel"` (422).
    */
   createSetupLink(
     customerId: string,

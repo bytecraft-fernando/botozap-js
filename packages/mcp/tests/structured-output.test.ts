@@ -111,6 +111,7 @@ const customer = {
 const SETUP_LINK_ID = "80000000-0000-4000-8000-000000000001";
 const setupLink = {
   id: SETUP_LINK_ID,
+  channel: "whatsapp",
   status: "active",
   whatsapp_setup_status: "pending",
   url: "https://botozap.com.br/whatsapp/setup/token-opaco",
@@ -337,6 +338,18 @@ const fetchStub = (async (input: unknown, init?: RequestInit) => {
     return jsonResponse(200, { data: [setupLink], meta: offsetMetaFixture });
   }
   if (method === "POST" && path === `/customers/${CUSTOMER_ID}/setup_links`) {
+    const body = typeof init?.body === "string" ? JSON.parse(init.body) : {};
+    if (body.channel === "instagram") {
+      return jsonResponse(201, {
+        data: {
+          ...setupLink,
+          channel: "instagram",
+          url: "https://botozap.com.br/instagram/setup/token-opaco",
+          allowed_connection_types: [],
+          language: null,
+        },
+      });
+    }
     return jsonResponse(201, { data: setupLink });
   }
   if (
@@ -833,6 +846,44 @@ describe("MCP — output schemas e structured content", () => {
       },
     });
   });
+  it("create_setup_link aceita channel instagram, explica o canal e devolve channel", async () => {
+    const client = await connect();
+    const discovery = await client.listTools();
+    const tool = discovery.tools.find((t) => t.name === "create_setup_link");
+    const channelInput = (tool?.inputSchema.properties as Record<string, { enum?: string[] }>)
+      .channel;
+    expect(channelInput?.enum).toEqual(["whatsapp", "instagram"]);
+    expect(tool?.inputSchema.required ?? []).not.toContain("channel");
+    expect(tool?.description).toContain("instagram");
+    expect(tool?.description).toContain("allowed_connection_types não vale");
+    const outputLink = (
+      tool?.outputSchema?.properties as Record<string, { properties?: Record<string, unknown>; required?: string[] }>
+    ).data;
+    expect(outputLink?.properties).toHaveProperty("channel");
+    expect(outputLink?.required).toContain("channel");
+
+    const result = await client.callTool({
+      name: "create_setup_link",
+      arguments: { customer_id: CUSTOMER_ID, channel: "instagram" },
+    });
+    expect(result.isError).toBeFalsy();
+    expect(calls.at(-1)).toEqual({
+      method: "POST",
+      path: `/customers/${CUSTOMER_ID}/setup_links`,
+      body: { channel: "instagram" },
+    });
+    const data = (result.structuredContent as { data: Record<string, unknown> }).data;
+    expect(data.channel).toBe("instagram");
+    expect(data.allowed_connection_types).toEqual([]);
+
+    const invalid = await client.callTool({
+      name: "create_setup_link",
+      arguments: { customer_id: CUSTOMER_ID, channel: "telegram" },
+    });
+    expect(invalid.isError).toBe(true);
+    expect(calls.at(-1)?.body).toEqual({ channel: "instagram" });
+  });
+
   it("create_contact/update_contact repassam display_name; null limpa", async () => {
     const client = await connect();
     const created = await client.callTool({
