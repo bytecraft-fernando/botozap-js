@@ -9,45 +9,47 @@
 export type AiToolEffects = {
   readOnlyHint: boolean;
   destructiveHint: boolean;
+  idempotentHint: boolean;
   openWorldHint: boolean;
 };
+type EffectClass = Omit<AiToolEffects, "idempotentHint">;
 
-const READ: AiToolEffects = {
+const READ: EffectClass = {
   readOnlyHint: true,
   destructiveHint: false,
   openWorldHint: false,
 };
-const READ_EXTERNAL: AiToolEffects = {
+const READ_EXTERNAL: EffectClass = {
   readOnlyHint: true,
   destructiveHint: false,
   openWorldHint: true,
 };
-const WRITE: AiToolEffects = {
+const WRITE: EffectClass = {
   readOnlyHint: false,
   destructiveHint: false,
   openWorldHint: false,
 };
-const WRITE_EXTERNAL: AiToolEffects = {
+const WRITE_EXTERNAL: EffectClass = {
   readOnlyHint: false,
   destructiveHint: false,
   openWorldHint: true,
 };
-const DESTRUCTIVE: AiToolEffects = {
+const DESTRUCTIVE: EffectClass = {
   readOnlyHint: false,
   destructiveHint: true,
   openWorldHint: false,
 };
-const DESTRUCTIVE_EXTERNAL: AiToolEffects = {
+const DESTRUCTIVE_EXTERNAL: EffectClass = {
   readOnlyHint: false,
   destructiveHint: true,
   openWorldHint: true,
 };
 
-const effects = new Map<string, AiToolEffects>();
+const effects = new Map<string, EffectClass>();
 
 function classify(
   names: readonly string[],
-  value: AiToolEffects,
+  value: EffectClass,
 ): void {
   for (const name of names) {
     if (effects.has(name)) throw new Error(`Operação de IA classificada duas vezes: ${name}`);
@@ -98,6 +100,9 @@ classify([
   "skills.create", "skills.importZip", "skills.install",
   "followupFlows.create", "followupFlows.installModel",
   "commercialProposals.request",
+  // Acknowledge/resolve one alert: internal state that resolve_ai_alert can
+  // reopen (status back to open), so it is reversible.
+  "alerts.update",
 ], WRITE);
 
 // Writes that also call a provider, upload/download external content, or run a
@@ -125,7 +130,7 @@ classify([
   "followupFlows.update", "followupFlows.rollback",
   "followups.control", "followups.cancelPromise", "followups.resolvePromise",
   "routers.update", "routers.archive",
-  "cases.update", "alerts.update", "alerts.resolveBulk", "notices.update",
+  "alerts.resolveBulk", "notices.update",
   "proposals.decide", "proposals.saveSettings",
   "usage.saveBudget", "usage.saveRate", "usage.reprice",
   "commercialProposals.decide", "commercialProposals.saveSettings",
@@ -143,7 +148,32 @@ classify([
   "notices.test", "notices.retry",
   "agents.publish", "agents.operation", "followupFlows.publish",
   "followupFlows.control", "routers.operation", "routers.activateMember",
+  // resume_agent=true hands the conversation back to the AI agent, which then
+  // answers the WhatsApp/Instagram contact on its own.
+  "cases.update",
 ], DESTRUCTIVE_EXTERNAL);
+
+/**
+ * Writes whose repetition with the same arguments has no additional effect:
+ * state-setting PUT/PATCH/DELETE guarded by expected_revision (a repeat gets
+ * revision_conflict), plain state setters, and cases.reply (operation_key
+ * replays the stored result). Every other write is non-idempotent.
+ */
+const IDEMPOTENT_WRITES = new Set<string>([
+  "agents.saveDraft", "agents.operation", "agents.archive",
+  "credentials.update", "credentials.remove",
+  "providers.saveBinding", "providers.removeBinding",
+  "knowledge.update", "knowledge.remove", "knowledge.conversationPermission",
+  "memory.publish", "memory.setEnabled", "memory.updateEntry", "memory.archiveEntry",
+  "skills.update", "skills.remove",
+  "followupFlows.update", "followupFlows.control",
+  "routers.update", "routers.archive", "routers.operation",
+  "cases.update", "cases.reply", "alerts.update",
+  "notices.update", "proposals.decide", "proposals.saveSettings",
+  "usage.saveBudget", "usage.saveRate", "commercialProposals.saveSettings",
+  "eligibility.saveSettings", "eligibility.saveChannel", "eligibility.revokeAuthorization",
+  "styleAdjustments.save",
+]);
 
 /**
  * Returns the reviewed effect classification for a concrete SDK operation name.
@@ -152,5 +182,11 @@ classify([
 export function getAiToolEffects(name: string): AiToolEffects {
   const value = effects.get(name);
   if (!value) throw new Error(`Operação de IA sem classificação de efeitos: ${name}`);
-  return value;
+  return { ...value, idempotentHint: value.readOnlyHint || IDEMPOTENT_WRITES.has(name) };
+}
+
+/** Every idempotent write must name a classified, non-read operation. */
+for (const name of IDEMPOTENT_WRITES) {
+  const value = effects.get(name);
+  if (!value || value.readOnlyHint) throw new Error(`Operação idempotente inválida: ${name}`);
 }

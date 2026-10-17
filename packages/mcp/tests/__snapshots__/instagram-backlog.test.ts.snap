@@ -6,6 +6,7 @@ exports[`políticas declaram escopos, sandbox, efeito destrutivo e rotas 1`] = `
     "_meta": undefined,
     "annotations": {
       "destructiveHint": false,
+      "idempotentHint": true,
       "openWorldHint": false,
       "readOnlyHint": true,
     },
@@ -160,6 +161,7 @@ exports[`políticas declaram escopos, sandbox, efeito destrutivo e rotas 1`] = `
     "_meta": undefined,
     "annotations": {
       "destructiveHint": false,
+      "idempotentHint": true,
       "openWorldHint": true,
       "readOnlyHint": false,
     },
@@ -314,6 +316,7 @@ exports[`políticas declaram escopos, sandbox, efeito destrutivo e rotas 1`] = `
     "_meta": undefined,
     "annotations": {
       "destructiveHint": true,
+      "idempotentHint": true,
       "openWorldHint": true,
       "readOnlyHint": false,
     },
@@ -468,6 +471,7 @@ exports[`políticas declaram escopos, sandbox, efeito destrutivo e rotas 1`] = `
     "_meta": undefined,
     "annotations": {
       "destructiveHint": false,
+      "idempotentHint": true,
       "openWorldHint": false,
       "readOnlyHint": true,
     },

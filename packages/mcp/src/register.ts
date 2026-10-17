@@ -25,7 +25,7 @@ import {
   structuredError,
   type StructuredError,
 } from "./schemas.js";
-import { getToolPolicy, isToolAllowed } from "./permissions.js";
+import { getToolPolicy, isToolAllowed, toolAnnotations } from "./permissions.js";
 
 /** Assinatura do handler de uma ferramenta: recebe o client + args validados. */
 export type ToolHandler<Args> = (
@@ -142,7 +142,7 @@ export function createRegister(
   const assistant = (value: ApiIdentity) => catalogProfile(value, profiles) === 'assistant';
   const descriptor = (name: string, original: string, policy: ReturnType<typeof getToolPolicy>, value: ApiIdentity) => {
     const base = uiDescription(name, original, uiAllowed(value));
-    return assistant(value) ? assistantDescriptor(name, base, policy) : {description: base, annotations: {readOnlyHint:policy.readOnlyHint,destructiveHint:policy.destructiveHint,openWorldHint:policy.openWorldHint}};
+    return assistant(value) ? assistantDescriptor(name, base, policy) : {description: base, annotations: toolAnnotations(policy)};
   };
   const accounts = process.env.BOTOZAP_MCP_UI_ACCOUNTS;
   const allowedAccounts = accounts === undefined

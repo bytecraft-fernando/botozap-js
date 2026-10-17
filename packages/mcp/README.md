@@ -53,8 +53,10 @@ esconder uma ferramenta e reutilizar a identidade não substituem essa verifica�
 resolve a conversa antes de enviar. `get_profile` identifica a Conta e o ambiente
 autorizados e revalida a credencial a cada consulta; não representa uma pessoa.
 
-Todas as ferramentas declaram `readOnlyHint`, `destructiveHint` e `openWorldHint`
-conforme seus efeitos. Operações compostas consideram também efeitos indiretos.
+Todas as ferramentas declaram `readOnlyHint`, `destructiveHint`, `idempotentHint`
+e `openWorldHint`, sempre como `true` ou `false`, conforme seus efeitos. Operações
+compostas consideram também efeitos indiretos (por exemplo, criar um compromisso
+pode iniciar uma régua que envia mensagem ao contato).
 As anotações orientam o host; não implementam autorização nem comprovam que uma
 pessoa confirmou a ação. OAuth e a publicação no diretório ChatGPT são etapas
 separadas.
