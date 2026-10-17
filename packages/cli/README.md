@@ -1,7 +1,7 @@
 # @botozap/cli
 
 CLI dev-first para a **API pública do BotoZap** — a plataforma multi-tenant sobre a
-WhatsApp Cloud API oficial (a "Kapso brasileira"), também com o Instagram. Envie mensagens, gerencie contatos,
+WhatsApp Cloud API oficial, também com o Instagram. Envie mensagens, gerencie contatos,
 clientes, números, templates e webhooks direto do terminal ou de scripts.
 
 A CLI é uma casca fina sobre o SDK oficial [`@botozap/sdk`](../sdk) — toda chamada de
@@ -65,8 +65,8 @@ botozap config get     # mostra config (apiKey mascarada)
 botozap config path    # caminho do config.json
 ```
 
-> **`botozap login` é um stub.** O BotoZap ainda não tem login OAuth por navegador
-> (como `kapso login`); o comando apenas instrui a criar a chave em `/chaves` e grava
+> **`botozap login` é um stub.** O BotoZap ainda não tem login OAuth por navegador;
+> o comando apenas instrui a criar a chave em `/chaves` e grava
 > a chave colada no config local.
 
 ### Verificando
