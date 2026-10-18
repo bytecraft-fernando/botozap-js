@@ -34,6 +34,11 @@ export function registerNumbers(program: Command): void {
         { header: "RÓTULO", key: "label" },
         { header: "STATUS", key: "connection_status" },
         { header: "QUALIDADE", key: "quality_rating" },
+        {
+          header: "SUSPENSO",
+          key: "plan_suspended",
+          format: (v) => (v === true ? "sim (Free)" : v === false ? "não" : ""),
+        },
       ]);
       printOffsetFooter(res.meta);
     });

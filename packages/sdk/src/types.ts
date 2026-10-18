@@ -122,7 +122,6 @@ export interface OffsetParams {
 // Entidades. Os campos exatos vêm da API; o `id` é sempre o uuid interno.
 // ---------------------------------------------------------------------------
 
-/** Cliente (customer) da sua conta. */
 /** Slot adicional que o Cliente ocupa (ver `billing.get()`). */
 export interface CustomerBusinessSlot {
   slot_id: string;
@@ -134,6 +133,7 @@ export interface CustomerBusinessSlot {
   paused: boolean;
 }
 
+/** Cliente (customer) da sua conta. */
 export interface Customer {
   id: string;
   name?: string;
@@ -142,6 +142,14 @@ export interface Customer {
    * inclui. Ausente em servidores antigos.
    */
   business_slot?: CustomerBusinessSlot | null;
+  /**
+   * `true` quando o Cliente passou do teto do plano Free (1 negócio, com canal
+   * ou não): continua recebendo, mas não conecta canais e o envio responde 402
+   * `free_cap`. Volta sozinho ao assinar ou quando a vaga é liberada (apagar o
+   * outro Cliente ou desconectar os canais dele). Vem nas leituras
+   * (`list`/`get`); ausente em servidores antigos.
+   */
+  plan_suspended?: boolean;
   [key: string]: unknown;
 }
 
@@ -344,6 +352,13 @@ export interface PhoneNumber {
   id: string;
   /** Nome local do Número no BotoZap (até 100 caracteres); `null` se não definido. */
   label?: string | null;
+  /**
+   * `true` quando o Número não envia pelo teto do plano Free (1 número), ou
+   * porque o Cliente dele está suspenso: continua recebendo, mas o envio
+   * responde 402 `free_number_cap` (ou `free_cap`, pelo Cliente). Volta sozinho
+   * ao assinar ou ao desconectar o outro número. Ausente em servidores antigos.
+   */
+  plan_suspended?: boolean;
   [key: string]: unknown;
 }
 

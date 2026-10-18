@@ -523,6 +523,10 @@ exports[`MCP — output schemas e structured content > anuncia schemas não vazi
               "description": "ID Meta do Número (phone_number_id); use em send_message.from.",
               "type": "string",
             },
+            "plan_suspended": {
+              "description": "true = o Número (ou o Cliente dele) passou do teto do plano Free (1 número, 1 negócio): continua recebendo, mas o envio responde 402 free_number_cap (ou free_cap, pelo Cliente). Volta ao assinar ou ao desconectar o outro número.",
+              "type": "boolean",
+            },
             "quality_rating": {
               "type": "string",
             },
@@ -1209,6 +1213,10 @@ exports[`MCP — output schemas e structured content > anuncia schemas não vazi
               "phone_number_id": {
                 "description": "ID Meta do Número (phone_number_id); use em send_message.from.",
                 "type": "string",
+              },
+              "plan_suspended": {
+                "description": "true = o Número (ou o Cliente dele) passou do teto do plano Free (1 número, 1 negócio): continua recebendo, mas o envio responde 402 free_number_cap (ou free_cap, pelo Cliente). Volta ao assinar ou ao desconectar o outro número.",
+                "type": "boolean",
               },
               "quality_rating": {
                 "type": "string",

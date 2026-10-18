@@ -104,7 +104,10 @@ export class Customers {
     return this.client.requestItem<Customer>("GET", `/customers/${enc(id)}`);
   }
 
-  /** Cria um cliente. */
+  /**
+   * Cria um cliente. No plano Free, que permite 1 Cliente (com canal ou não), o
+   * segundo responde 402 `free_cap` (veja `isFreeCap`).
+   */
   create(params: CreateCustomerParams): Promise<Customer> {
     return this.client.requestItem<Customer>("POST", "/customers", {
       body: params,

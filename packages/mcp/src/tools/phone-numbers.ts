@@ -3,8 +3,8 @@ import { z } from "zod";
 import type { ListPhoneNumbersParams } from "@botozap/sdk";
 import type { Register } from "../register.js";
 import {
-  getPhoneNumberResultSchema,
-  listPhoneNumbersResultSchema,
+  getFullPhoneNumberResultSchema,
+  listFullPhoneNumbersResultSchema,
   phoneNumberHealthResultSchema,
 } from "../schemas.js";
 
@@ -17,7 +17,7 @@ export function registerPhoneNumberTools(register: Register): void {
       page: z.number().int().positive().optional().describe("Página (1-based)."),
       per_page: z.number().int().positive().optional().describe("Itens por página (máx. 100)."),
     },
-    listPhoneNumbersResultSchema,
+    listFullPhoneNumbersResultSchema,
     (client, args) => client.phoneNumbers.list(args as ListPhoneNumbersParams),
   );
 
@@ -25,7 +25,7 @@ export function registerPhoneNumberTools(register: Register): void {
     "get_phone_number",
     "Busca um número pelo UUID interno do BotoZap ou pelo `phone_number_id` da Meta. Retorna { data }.",
     { id: z.string().describe("UUID interno do número ou `phone_number_id` da Meta.") },
-    getPhoneNumberResultSchema,
+    getFullPhoneNumberResultSchema,
     async (client, args) => ({ data: await client.phoneNumbers.get(String(args.id)) }),
   );
 
@@ -41,7 +41,7 @@ export function registerPhoneNumberTools(register: Register): void {
           "Nome local: até 100 caracteres após aparar, sem quebras de linha nem caracteres de controle. null ou \"\" limpa.",
         ),
     },
-    getPhoneNumberResultSchema,
+    getFullPhoneNumberResultSchema,
     async (client, args) => ({
       data: await client.phoneNumbers.update(String(args.id), {
         label: args.label as string | null,

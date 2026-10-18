@@ -208,7 +208,9 @@ botozap contacts update <id> --clear-display-name
 # Ingerir mídia por URL (WhatsApp: sobe para a Meta pelo Número; não envia mensagem)
 botozap media ingest --phone-number-id <id> --source https://exemplo.com/foto.jpg
 
-# Clientes (offset)
+# Clientes (offset). A coluna SUSPENSO marca o Cliente acima do teto do Free
+# (1 negócio): recebe, mas não envia (402 free_cap). No Free, criar o 2º Cliente
+# também responde 402 free_cap.
 botozap customers list --page 1 --per-page 25
 botozap customers create --name "Acme LTDA" --external-customer-id acme-001
 
@@ -228,7 +230,9 @@ botozap setup-links create --customer <customerId> \
 botozap setup-links create --customer <customerId> --channel instagram \
   --success-redirect-url "https://seu-app.com/instagram/ok"
 
-# Números, rótulo local e saúde
+# Números, rótulo local e saúde. A coluna SUSPENSO marca o número acima do teto
+# do Free (1 número), ou de um Cliente suspenso: recebe, mas não envia
+# (402 free_number_cap ou free_cap). Assine ou desconecte o outro número.
 botozap numbers list
 botozap numbers update <id> --label "Recepção"   # --clear-label remove
 botozap numbers health <phoneNumberId>

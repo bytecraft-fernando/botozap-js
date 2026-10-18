@@ -245,13 +245,13 @@ export function registerChannelAccountTools(register: Register): void {
   register("get_message_rule", "Busca uma Regra de mensagem do Instagram; message-rules:read.",
     { channel_account_id: channelAccountId, rule_id: ruleId }, messageRuleResultSchema,
     async (client, args) => ({ data: await client.channelAccounts.getMessageRule(String(args.channel_account_id), String(args.rule_id)) }));
-  register("create_message_rule", "Cria uma Regra de mensagem. A primeira que casar vence; pode enviar mensagem e encaminhar ao agente publicado (efeitos externos reais). message-rules:write. A API valida combinações; 422 invalid_request, 409 duplicate_ref.",
+  register("create_message_rule", "Cria uma Regra de mensagem. A primeira que casar vence; pode enviar mensagem e encaminhar ao agente publicado (efeitos externos reais). message-rules:write. A API valida combinações; 422 invalid_request, 409 duplicate_ref. Regras de mensagem são do plano pago e do teste: no Free, 403 plan_restricted.",
     { channel_account_id: channelAccountId, name: z.string(), trigger: messageRuleTriggerSchema, actions, ...messageRuleFields }, messageRuleResultSchema,
     async (client, args) => {
       const { channel_account_id, ...body } = args;
       return { data: await client.channelAccounts.createMessageRule(String(channel_account_id), body as unknown as CreateMessageRuleParams) };
     });
-  register("update_message_rule", "PATCH parcial de Regra de mensagem; ausente preserva. A API valida o estado final; is_active false pausa. message-rules:write.",
+  register("update_message_rule", "PATCH parcial de Regra de mensagem; ausente preserva. A API valida o estado final; is_active false pausa. message-rules:write. No Free só o corpo { is_active: false } (pausar) passa; o resto responde 403 plan_restricted.",
     { channel_account_id: channelAccountId, rule_id: ruleId, name: z.string().optional(), trigger: messageRuleTriggerSchema.optional(), actions: actions.optional(), ...messageRuleFields }, messageRuleResultSchema,
     async (client, args) => {
       const { channel_account_id, rule_id, ...body } = args;
@@ -271,7 +271,7 @@ export function registerChannelAccountTools(register: Register): void {
   );
   register(
     "update_instagram_messenger_profile",
-    "Salva/aplica Perguntas e menu do Instagram. PATCH parcial: seção ausente preserva; null ou [] remove. Até 4 perguntas (80 caracteres) e 5 itens (título 20, payload 1000, URL http/https 2000). Sem sandbox; messenger-profile:write. A API valida os limites e pode devolver 422; falhas de sincronização conservam o desejado para retry explícito.",
+    "Salva/aplica Perguntas e menu do Instagram. PATCH parcial: seção ausente preserva; null ou [] remove. Até 4 perguntas (80 caracteres) e 5 itens (título 20, payload 1000, URL http/https 2000). Sem sandbox; messenger-profile:write. A API valida os limites e pode devolver 422; falhas de sincronização conservam o desejado para retry explícito. Perguntas e menu são do plano pago e do teste: no Free, salvar perguntas ou menu responde 403 plan_restricted (só remover seções passa).",
     {
       channel_account_id: channelAccountId,
       ice_breakers: z.array(instagramIceBreakerSchema).nullable().optional().describe("Perguntas {question,payload}; null ou [] remove."),
@@ -295,7 +295,7 @@ export function registerChannelAccountTools(register: Register): void {
   );
   register(
     "sync_instagram_messenger_profile",
-    "Verifica/reaplica explicitamente Perguntas e menu salvos do Instagram. Exige configuração salva; não é um job periódico. Sem sandbox; messenger-profile:write.",
+    "Verifica/reaplica explicitamente Perguntas e menu salvos do Instagram. Exige configuração salva; não é um job periódico. Sem sandbox; messenger-profile:write. No Free, reaplicar configuração com perguntas ou menu responde 403 plan_restricted.",
     { channel_account_id: channelAccountId },
     messengerProfileResultSchema,
     async (client, args) => ({ data: await client.channelAccounts.syncMessengerProfile(String(args.channel_account_id)) }),

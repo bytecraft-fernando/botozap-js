@@ -254,6 +254,9 @@ http/https: 2000. Os quatro métodos retornam o snapshot com
 explicitamente o desejado. Falhas de aplicação conservam a configuração para
 retry; `profile_busy` e `profile_sync_unconfirmed` pedem reconciliar após um
 minuto. Sync sem configuração salva retorna `profile_not_configured`.
+Perguntas e menu são do plano pago e do teste: no Free, salvar conteúdo
+(PATCH) ou reaplicar uma configuração com conteúdo (sync) responde
+`403 plan_restricted`; remover seções e DELETE seguem livres.
 
 ## Clientes e templates
 
@@ -370,10 +373,13 @@ catch (err) {
 ### Recusas de plano
 
 `isPlanError(err)` reconhece recusas que só um upgrade resolve (retry não):
-`403 plan_restricted` nas escritas de IA, Agenda, Calendário, Jornadas e execuções
+`403 plan_restricted` nas escritas de IA, Agenda, Calendário, Jornadas, execuções,
+Regras de mensagem do Direct e Perguntas e menu do Instagram
 (`422 plan_restricted` em funil, aquecimento e regras de comentário),
-`429 free_form_limit_reached` (limite de mensagens 1:1 do Free) e
-`402 free_number_cap` no setup além do teto de Números do Free. Credencial de IA
+`429 free_form_limit_reached` (limite de mensagens 1:1 do Free),
+`402 free_number_cap` (setup além do teto de Números do Free ou envio por um
+Número suspenso) e `402 free_cap` (2º Cliente no Free ou envio por um Cliente
+suspenso). Credencial de IA
 nova só para `openai`/`anthropic` (`AI_CREDENTIAL_PROVIDERS`; os demais respondem
 `422 provider_not_enabled`); `ai.providers.get()` traz `accepts_new_credentials`
 por provedor.
@@ -383,6 +389,30 @@ import { isPlanError } from "@botozap/sdk";
 
 catch (err) {
   if (isPlanError(err)) mostrarUpgrade(err.code);
+}
+```
+
+### Acima dos limites do Free
+
+O Free permite 1 Cliente (com canal conectado ou não) e 1 número de WhatsApp.
+Quem passa disso, por exemplo depois do teste grátis, não é apagado nem
+desconectado: fica suspenso. As leituras de `customers` e `phoneNumbers`
+(`list`, `get` e o `update` do número) trazem `plan_suspended: true`. O recurso
+suspenso continua recebendo mensagens, mas não envia: o envio responde
+`402 free_cap` (Cliente suspenso) ou `402 free_number_cap` (Número suspenso; o
+Número de um Cliente suspenso também vem com `plan_suspended: true`). Criar o 2º
+Cliente no Free responde `402 free_cap`. Assinar libera tudo na hora; para
+seguir no Free, desconecte o outro número ou apague o Cliente que não usa.
+
+```ts
+import { isFreeCap, isFreeNumberCap } from "@botozap/sdk";
+
+const numeros = await boto.phoneNumbers.list();
+const ativos = numeros.data.filter((n) => !n.plan_suspended);
+
+catch (err) {
+  if (isFreeNumberCap(err)) avisar("Número suspenso no Free: assine ou desconecte o outro número.");
+  else if (isFreeCap(err)) avisar("Negócio suspenso no Free: assine ou apague o outro Cliente.");
 }
 ```
 
@@ -700,6 +730,8 @@ por tempo, conforme o runbook `botozap/docs/ops/message-send-receipts.md`.
 
 Regras de comentário incluem `dm_button_title`, `delivery_text` e `delivery_media`.
 Regras de mensagem têm CRUD com gatilhos e ações tipados (`message-rules:read/write`);
+no Free, criar ou editar responde `403 plan_restricted` (pausar com
+`{ is_active: false }` e excluir seguem livres);
 métricas de comentário recebem `from`/`to` (`comment-rules:read`).
 [Contrato e exemplos de SDK, CLI e MCP](../../docs/instagram-wave-two.md).
 
