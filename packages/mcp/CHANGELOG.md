@@ -1,5 +1,37 @@
 # @botozap/mcp
 
+## 0.14.0
+
+### Minor Changes
+
+- ed98a15: Plano e slots adicionais (só chave de API, scopes `billing:read` e
+  `billing:write`). O plano pago inclui 1 negócio; cada negócio a mais ocupa um
+  slot de R$ 47/mês. SDK ganha `billing.get()`, `billing.slots.create({ idempotencyKey })`
+  e `billing.slots.cancel(id)`, os tipos `Billing`, `BillingPlan`, `BusinessSlot`,
+  `ConnectionBilling`, `ConnectionBillingOutcome`, `ConnectionBillingRefusal` e
+  `CustomerBusinessSlot`, `connection_billing` no link de setup, `business_slot` no
+  Cliente e `isBusinessPaymentRequired` para o 402 `business_payment_required` do
+  envio (negócio pausado por fatura vencida há mais de 7 dias). CLI ganha
+  `billing`, `billing slots create [--idempotency-key]` e `billing slots cancel <id>`.
+  MCP ganha `get_billing`, `create_business_slot` e `cancel_business_slot`, só no
+  catálogo de chave de API, com `readOnlyHint`, `destructiveHint`, `openWorldHint` e
+  `idempotentHint` explícitos; os links de setup passam a trazer `connection_billing`.
+
+### Patch Changes
+
+- ddd7d73: Anotações das ferramentas revisadas pelo comportamento real: todas as tools
+  (catálogo completo e perfil `assistant`) passam a declarar `readOnlyHint`,
+  `destructiveHint`, `idempotentHint` e `openWorldHint` como booleanos explícitos,
+  validados na inicialização. Correções: `create_appointment`, `create_journey`,
+  `create_comment_rule` e `create_message_rule` passam a `destructiveHint: true`
+  (podem iniciar envios automáticos ao contato); `create_template` passa a
+  `destructiveHint: false` (nunca sobrescreve; nome repetido é recusado);
+  `ai_cases_update` é `openWorldHint: true` nos dois catálogos (retomar a IA faz o
+  agente responder o contato); `ai_alerts_update` passa a `destructiveHint: false`
+  (o alerta pode ser reaberto). Nomes, schemas e descrições não mudam.
+- Updated dependencies [ed98a15]
+  - @botozap/sdk@0.17.0
+
 ## 0.13.1
 
 ### Patch Changes
