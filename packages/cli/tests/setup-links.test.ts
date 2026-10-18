@@ -56,6 +56,28 @@ describe("setup-links create", () => {
     });
   });
 
+  it("sends --channel instagram as channel", async () => {
+    const result = await run(registerSetupLinks, [
+      "setup-links", "create", "--customer", customerId,
+      "--channel", "instagram",
+      "--success-redirect-url", "https://parceiro.example/ok",
+      ...json,
+    ]);
+    expect(result.error).toBeUndefined();
+    expect(request().body).toEqual({
+      channel: "instagram",
+      success_redirect_url: "https://parceiro.example/ok",
+    });
+  });
+
+  it("rejects an unknown --channel before calling the API", async () => {
+    const result = await run(registerSetupLinks, [
+      "setup-links", "create", "--customer", customerId, "--channel", "telegram", ...json,
+    ]);
+    expect(result.error).toBeDefined();
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
   it("has no provision flag and documents the redirect statuses", () => {
     const program = buildProgram(registerSetupLinks);
     const create = program.commands
@@ -63,6 +85,7 @@ describe("setup-links create", () => {
       .commands.find((c) => c.name() === "create")!;
     const flags = create.options.map((o) => o.long);
     expect(flags).not.toContain("--provision-phone-number");
+    expect(flags).toContain("--channel");
     let help = "";
     create.configureOutput({ writeOut: (s) => (help += s) });
     create.outputHelp();
@@ -70,5 +93,31 @@ describe("setup-links create", () => {
     expect(help).toContain("status=failed");
     expect(help).toContain("status=cancelled");
     expect(help).toContain("2048");
+  });
+});
+
+describe("setup-links list", () => {
+  it("shows the channel column", async () => {
+    fetch.mockImplementation(async () =>
+      Response.json({
+        data: [
+          {
+            id: linkId,
+            channel: "instagram",
+            status: "active",
+            url: "https://botozap.com.br/instagram/setup/tok",
+            expires_at: "2026-11-16T00:00:00.000Z",
+          },
+        ],
+        meta: { page: 1, per_page: 20, total_pages: 1, total_count: 1 },
+      }),
+    );
+    const result = await run(registerSetupLinks, [
+      "setup-links", "list", "--customer", customerId,
+      "--api-key", "bz_live_fake", "--api-url", "https://example.test/v1",
+    ]);
+    expect(result.error).toBeUndefined();
+    expect(result.stdout).toContain("CANAL");
+    expect(result.stdout).toContain("instagram");
   });
 });

@@ -95,13 +95,21 @@ export function registerCustomerTools(register: Register): void {
 
   register(
     "create_setup_link",
-    "Cria um link de setup (Embedded Signup) para um cliente; envie a `url` devolvida ao cliente. Opções: allowed_connection_types ('dedicated'|'coexistence') e redirects; language é aceito por compatibilidade e ignorado (a página é sempre em português). Redirects só em estado final: sucesso → success_redirect_url com setup_link_id e status=completed; link esgotado → failure_redirect_url com status=failed; cliente volta num erro recuperável → failure_redirect_url com status=cancelled (o link segue válido). A query da URL é preservada e o token nunca é enviado. URLs precisam ser https, sem usuário/senha, até 2048 caracteres (senão 422 invalid_redirect_url). Retorna { data }.",
+    "Cria um link de setup para um cliente; envie a `url` devolvida ao cliente. Cada link conecta um canal só: channel 'whatsapp' (padrão; Embedded Signup) ou 'instagram' (o cliente confirma que a conta é profissional e que as mensagens estão liberadas e entra com o Instagram; numa falha, a página oferece voltar para failure_redirect_url com status=cancelled). No Instagram, allowed_connection_types não vale: enviar responde 422 invalid_connection_types, e o link volta com allowed_connection_types [] e url em /instagram/setup/<token>. whatsapp_setup_status vale para os dois canais. Opções: allowed_connection_types ('dedicated'|'coexistence', só WhatsApp) e redirects; language é aceito por compatibilidade e ignorado (a página é sempre em português). Redirects só em estado final: sucesso → success_redirect_url com setup_link_id e status=completed; link esgotado → failure_redirect_url com status=failed; cliente volta num erro recuperável → failure_redirect_url com status=cancelled (o link segue válido). A query da URL é preservada e o token nunca é enviado. URLs precisam ser https, sem usuário/senha, até 2048 caracteres (senão 422 invalid_redirect_url). Retorna { data }.",
     {
       customer_id: z.string().describe("ID do cliente (uuid interno)."),
+      channel: z
+        .enum(["whatsapp", "instagram"])
+        .optional()
+        .describe(
+          "Canal que o link conecta (padrão: whatsapp). Cada link conecta um canal só.",
+        ),
       allowed_connection_types: z
         .array(z.enum(["dedicated", "coexistence"]))
         .optional()
-        .describe("Modos de conexão permitidos (padrão: dedicated)."),
+        .describe(
+          "Só WhatsApp: modos de conexão permitidos (padrão: dedicated). Não envie com channel 'instagram' (422 invalid_connection_types).",
+        ),
       language: z
         .string()
         .optional()

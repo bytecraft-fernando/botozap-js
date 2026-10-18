@@ -222,6 +222,12 @@ botozap setup-links create --customer <customerId> \
 # failure (status=cancelled, o link segue válido). Todo destino recebe
 # setup_link_id; URLs https, sem usuário/senha, até 2048 caracteres.
 
+# Link do Instagram (um canal por link; padrão whatsapp). O cliente confirma que
+# a conta é profissional e que as mensagens estão liberadas e entra com o
+# Instagram. --connection-types não vale aqui (422 invalid_connection_types).
+botozap setup-links create --customer <customerId> --channel instagram \
+  --success-redirect-url "https://seu-app.com/instagram/ok"
+
 # Números, rótulo local e saúde
 botozap numbers list
 botozap numbers update <id> --label "Recepção"   # --clear-label remove

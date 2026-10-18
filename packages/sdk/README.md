@@ -473,7 +473,7 @@ new BotoZap({
 O SDK cobre os recursos da API `/v1`:
 
 - `messages` — enviar texto (com `quick_replies` no Instagram), template e mídia por link, **listar** e buscar por id
-- `customers` — listar, buscar, criar, **atualizar**, **remover**, e **links de setup** (listar/criar/atualizar)
+- `customers` — listar, buscar, criar, **atualizar**, **remover**, e **links de setup** (listar/criar/atualizar; `channel` `whatsapp` ou `instagram`, um canal por link)
 - `templates` — listar, buscar, **criar**
 - `broadcasts` — criar, destinatários, agendar, enviar, cancelar
 - `contacts` — listar, buscar, criar, atualizar, remover; `display_name` é o nome que a empresa dá ao Contato (1–200 caracteres; `null` limpa), separado do `profile_name` que vem do canal
@@ -572,6 +572,20 @@ const link = await boto.customers.createSetupLink(customerId, {
 });
 // Envie link.url ao Cliente. No sucesso, confirme o número em phoneNumbers.list:
 // uma conexão concluída ainda pode ter pendência de registro.
+
+// Cada link conecta um canal só: channel "whatsapp" (padrão) ou "instagram"
+// (outro valor → 422 invalid_channel). No Instagram, o Cliente confirma que a
+// conta é profissional e que as mensagens estão liberadas e entra com o
+// Instagram. allowed_connection_types não vale (enviar → 422
+// invalid_connection_types); o link volta com allowed_connection_types: [] e
+// url em /instagram/setup/<token>. whatsapp_setup_status vale para os dois
+// canais e passa a completed quando a conta do Instagram conecta.
+const linkIg = await boto.customers.createSetupLink(customerId, {
+  channel: "instagram",
+  success_redirect_url: "https://seu-app.com/instagram/ok", // status=completed
+  failure_redirect_url: "https://seu-app.com/instagram/erro", // status=cancelled
+});
+// linkIg.channel === "instagram"
 
 await boto.webhooks.create({
   url: "https://seu-app.com/hooks",

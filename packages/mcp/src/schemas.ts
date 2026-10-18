@@ -361,15 +361,23 @@ export const connectionBillingSchema = z
 export const setupLinkSchema = z
   .object({
     id: internalUuidSchema.describe("UUID interno do Setup Link no BotoZap."),
+    channel: z
+      .enum(["whatsapp", "instagram"])
+      .describe("Canal que o link conecta (um canal por link)."),
     status: z.enum(["active", "expired", "revoked"]),
-    whatsapp_setup_status: z.enum([
-      "pending",
-      "in_progress",
-      "completed",
-      "failed",
-    ]),
-    url: z.string().describe("URL pública com token opaco embutido."),
-    allowed_connection_types: z.array(z.enum(["dedicated", "coexistence"])),
+    whatsapp_setup_status: z
+      .enum(["pending", "in_progress", "completed", "failed"])
+      .describe(
+        "Andamento da conexão; apesar do nome, vale para os dois canais (no Instagram, completed quando a conta conecta).",
+      ),
+    url: z
+      .string()
+      .describe(
+        "URL pública com token opaco embutido (/whatsapp/setup/<token> ou /instagram/setup/<token>).",
+      ),
+    allowed_connection_types: z
+      .array(z.enum(["dedicated", "coexistence"]))
+      .describe("Modos do WhatsApp; sempre [] em links do Instagram."),
     language: z
       .string()
       .nullable()

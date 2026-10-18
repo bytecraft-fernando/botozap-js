@@ -1,4 +1,4 @@
-import { Command } from "commander";
+import { Command, Option } from "commander";
 import type { CreateSetupLinkParams } from "@botozap/sdk";
 import { context, toInt } from "./shared.js";
 import {
@@ -12,7 +12,7 @@ import {
 export function registerSetupLinks(program: Command): void {
   const links = program
     .command("setup-links")
-    .description("Links de configuração (Embedded Signup) de um cliente");
+    .description("Links de configuração de um cliente (um canal por link: WhatsApp ou Instagram)");
 
   links
     .command("list")
@@ -29,6 +29,7 @@ export function registerSetupLinks(program: Command): void {
       if (format === "json") return printJson(res);
       printTable(res.data, [
         { header: "ID", key: "id", max: 36 },
+        { header: "CANAL", key: "channel" },
         { header: "STATUS", key: "status" },
         { header: "URL", key: "url", max: 60 },
         { header: "EXPIRA", key: "expires_at" },
@@ -40,9 +41,15 @@ export function registerSetupLinks(program: Command): void {
     .command("create")
     .description("Cria um setup link para um cliente (expira em 30 dias)")
     .requiredOption("--customer <id>", "id do cliente (obrigatório)")
+    .addOption(
+      new Option(
+        "--channel <canal>",
+        "canal que o link conecta (padrão na API: whatsapp)",
+      ).choices(["whatsapp", "instagram"]),
+    )
     .option(
       "--connection-types <lista>",
-      "dedicated e/ou coexistence, separados por vírgula (padrão: dedicated)",
+      "só WhatsApp: dedicated e/ou coexistence, separados por vírgula (padrão: dedicated)",
     )
     .option(
       "--language <código>",
@@ -59,6 +66,12 @@ export function registerSetupLinks(program: Command): void {
     .addHelpText(
       "after",
       `
+Cada link conecta um canal só. No Instagram (--channel instagram), o cliente
+confirma que a conta é profissional e que as mensagens estão liberadas e entra
+com o Instagram; --connection-types não vale (a API responde 422
+invalid_connection_types) e, numa falha, a página oferece voltar com
+status=cancelled.
+
 Redirecionamentos (só em estado final do link):
   concluído                        -> success_redirect_url, status=completed
   link esgotado sem concluir       -> failure_redirect_url, status=failed
@@ -72,6 +85,7 @@ responde 422 invalid_redirect_url).`,
     .action(async (opts, cmd: Command) => {
       const { client, format } = context(cmd);
       const params: CreateSetupLinkParams = {};
+      if (opts.channel !== undefined) params.channel = opts.channel;
       if (opts.connectionTypes !== undefined) {
         params.allowed_connection_types = String(opts.connectionTypes)
           .split(",")
