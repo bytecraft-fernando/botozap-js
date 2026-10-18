@@ -29,6 +29,11 @@ export function registerCustomers(program: Command): void {
         { header: "ID", key: "id", max: 36 },
         { header: "NOME", key: "name" },
         { header: "EXTERNO", key: "external_customer_id" },
+        {
+          header: "SUSPENSO",
+          key: "plan_suspended",
+          format: (v) => (v === true ? "sim (Free)" : v === false ? "não" : ""),
+        },
         { header: "CRIADO", key: "created_at" },
       ]);
       printOffsetFooter(res.meta);

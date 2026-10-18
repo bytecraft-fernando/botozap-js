@@ -41,8 +41,10 @@ export class BotoZapError extends Error {
  * `reaction_target_not_found`, `reaction_target_invalid`,
  * `reaction_target_expired`, `unsupported_type`, `free_form_limit_reached`
  * (429, limite 1:1 do Free). Plano: `plan_restricted` (403, escritas de IA,
- * Agenda, Calendário e Jornadas fora do plano), `free_number_cap` (402, setup
- * além do teto de Números do Free). IA: `provider_not_enabled` (422, credencial
+ * Agenda, Calendário, Jornadas, Regras de mensagem do Direct e Perguntas e menu
+ * fora do plano), `free_number_cap` (402, setup além do teto de Números do Free
+ * ou envio por um Número suspenso no Free), `free_cap` (402, criar o 2º Cliente
+ * no Free ou enviar por um Cliente suspenso no Free). IA: `provider_not_enabled` (422, credencial
  * nova de provedor com `accepts_new_credentials: false`). Cobrança:
  * `business_payment_required` (402 no envio: o negócio está pausado porque a
  * fatura do slot venceu há mais de 7 dias; pague e envie de novo),
@@ -62,6 +64,7 @@ export type BotoZapErrorCode =
   | "quota_exceeded"
   | "plan_restricted"
   | "free_number_cap"
+  | "free_cap"
   | "feature_unavailable"
   | "provider_not_enabled"
   | "business_payment_required"
@@ -76,6 +79,7 @@ export const PLAN_ERROR_CODES = [
   "plan_restricted",
   "free_form_limit_reached",
   "free_number_cap",
+  "free_cap",
 ] as const;
 
 /** True quando o erro é recusa por plano (upgrade resolve; retry não). */
@@ -93,4 +97,29 @@ export function isPlanError(error: unknown): error is BotoZapError {
  */
 export function isBusinessPaymentRequired(error: unknown): error is BotoZapError {
   return error instanceof BotoZapError && error.code === "business_payment_required";
+}
+
+/**
+ * True quando a API recusou por causa do teto de 1 negócio (Cliente) do plano
+ * Free (402 `free_cap`): criar o 2º Cliente (`customers.create`) ou enviar por
+ * um Cliente suspenso. O Cliente suspenso (`plan_suspended: true`) continua
+ * recebendo, mas não conecta canais nem envia. Libera na hora ao assinar; no
+ * Free, apagar o outro Cliente (ou, no envio, desconectar os canais dele)
+ * libera a vaga. Repetir antes disso não adianta. É recusa de plano
+ * ({@link isPlanError} é `true`).
+ */
+export function isFreeCap(error: unknown): error is BotoZapError {
+  return error instanceof BotoZapError && error.code === "free_cap";
+}
+
+/**
+ * True quando a API recusou por causa do teto de 1 número do plano Free (402
+ * `free_number_cap`): enviar por um Número suspenso ou conectar outro número
+ * no setup. O Número suspenso (`plan_suspended: true`) continua recebendo, mas
+ * não envia. Libera na hora ao assinar ou ao desconectar o outro número;
+ * repetir antes disso não adianta. É recusa de plano ({@link isPlanError} é
+ * `true`).
+ */
+export function isFreeNumberCap(error: unknown): error is BotoZapError {
+  return error instanceof BotoZapError && error.code === "free_number_cap";
 }

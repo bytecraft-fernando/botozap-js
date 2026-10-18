@@ -5,6 +5,8 @@ export {
   PLAN_ERROR_CODES,
   isPlanError,
   isBusinessPaymentRequired,
+  isFreeCap,
+  isFreeNumberCap,
 } from "./errors.js";
 export type { SendFailureDetails, BotoZapErrorCode } from "./errors.js";
 export { WEBHOOK_CATEGORIES } from "./types.js";

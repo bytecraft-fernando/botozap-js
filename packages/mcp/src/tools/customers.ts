@@ -9,9 +9,9 @@ import type {
 import type { OffsetParams } from "@botozap/sdk";
 import { emptyOperationResult, type Register } from "../register.js";
 import {
-  customerResultSchema,
   emptyOperationResultSchema,
-  listCustomersResultSchema,
+  fullCustomerResultSchema,
+  listFullCustomersResultSchema,
   listSetupLinksResultSchema,
   setupLinkResultSchema,
 } from "../schemas.js";
@@ -25,7 +25,7 @@ export function registerCustomerTools(register: Register): void {
       page: z.number().int().positive().optional().describe("Página (1-based)."),
       per_page: z.number().int().positive().optional().describe("Itens por página (máx. 100)."),
     },
-    listCustomersResultSchema,
+    listFullCustomersResultSchema,
     (client, args) => client.customers.list(args as OffsetParams),
   );
 
@@ -33,18 +33,18 @@ export function registerCustomerTools(register: Register): void {
     "get_customer",
     "Busca um cliente pelo id (uuid interno). Retorna { data }.",
     { id: z.string().describe("ID do cliente (uuid interno).") },
-    customerResultSchema,
+    fullCustomerResultSchema,
     async (client, args) => ({ data: await client.customers.get(String(args.id)) }),
   );
 
   register(
     "create_customer",
-    "Cria um cliente. Informe ao menos `name`. `external_customer_id` é opcional (sua referência externa). Retorna { data }.",
+    "Cria um cliente. Informe ao menos `name`. `external_customer_id` é opcional (sua referência externa). No plano Free, que permite 1 Cliente (com canal ou não), o segundo responde 402 free_cap: assine para cadastrar mais. Retorna { data }.",
     {
       name: z.string().describe("Nome do cliente."),
       external_customer_id: z.string().optional().describe("Referência externa opcional."),
     },
-    customerResultSchema,
+    fullCustomerResultSchema,
     async (client, args) => ({
       data: await client.customers.create(args as CreateCustomerParams),
     }),
@@ -58,7 +58,7 @@ export function registerCustomerTools(register: Register): void {
       name: z.string().optional(),
       external_customer_id: z.string().optional(),
     },
-    customerResultSchema,
+    fullCustomerResultSchema,
     async (client, args) => {
       const { id, ...body } = args;
       return { data: await client.customers.update(String(id), body as UpdateCustomerParams) };

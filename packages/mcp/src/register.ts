@@ -1,4 +1,4 @@
-import {assistantDescriptor, catalogAllows, catalogProfile, parseClientProfiles} from './catalog-profile.js';
+import {assistantDescriptor, assistantOutputSchema, catalogAllows, catalogProfile, fullCatalogDescription, parseClientProfiles} from './catalog-profile.js';
 import { uiDescription, uiInvocation } from './ui-routing.js';
 import { globalToolMetadata } from './resources/global-panel.js';
 import { getUiCapability, RESOURCE_MIME_TYPE } from "@modelcontextprotocol/ext-apps/server";
@@ -142,8 +142,11 @@ export function createRegister(
   const assistant = (value: ApiIdentity) => catalogProfile(value, profiles) === 'assistant';
   const descriptor = (name: string, original: string, policy: ReturnType<typeof getToolPolicy>, value: ApiIdentity) => {
     const base = uiDescription(name, original, uiAllowed(value));
-    return assistant(value) ? assistantDescriptor(name, base, policy) : {description: base, annotations: toolAnnotations(policy)};
+    return assistant(value) ? assistantDescriptor(name, base, policy) : {description: fullCatalogDescription(name, base), annotations: toolAnnotations(policy)};
   };
+  // Perfil assistant: saída congelada (ver assistantOutputSchema).
+  const outputFor = (name: string, schema: AnyZodObject | undefined, value: ApiIdentity) =>
+    schema && assistant(value) ? assistantOutputSchema(name, schema) : schema;
   const accounts = process.env.BOTOZAP_MCP_UI_ACCOUNTS;
   const allowedAccounts = accounts === undefined
     ? null
@@ -167,7 +170,7 @@ export function createRegister(
     return { ui: { visibility: ["model", "app"] } };
   };
   const metadata = (name: string, value: ApiIdentity) => ({...screenMeta(name), ...uiInvocation(name), ...(assistant(value) && ['list_users','get_channel_account'].includes(name) ? {ui:{visibility:['app']}} : {})});
-  const tools: Array<{ name: string; description: string; tool: RegisteredTool; policy: ReturnType<typeof getToolPolicy> }> = [];
+  const tools: Array<{ name: string; description: string; tool: RegisteredTool; policy: ReturnType<typeof getToolPolicy>; outputSchema?: AnyZodObject }> = [];
   const register: Register = function register(
     name: string,
     description: string,
@@ -177,7 +180,8 @@ export function createRegister(
   ): void {
     const policy = getToolPolicy(name);
 
-    const outputSchema = maybeHandler ? (outputOrHandler as AnyZodObject) : undefined;
+    const fullOutputSchema = maybeHandler ? (outputOrHandler as AnyZodObject) : undefined;
+    const registeredOutput = outputFor(name, fullOutputSchema, currentIdentity);
     const handler = maybeHandler ?? (outputOrHandler as ToolHandler<Record<string, unknown>>);
     const tool = server.registerTool(
       name,
@@ -186,8 +190,8 @@ export function createRegister(
         ...(name === "open_botozap" ? { title: "Pendências", icons: [{ src: "data:image/svg+xml," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><path d="M4 4h12v9H9l-5 3V4Z" fill="none" stroke="currentColor" stroke-width="1.33"/></svg>'), mimeType:"image/svg+xml", sizes:["20x20"] }] } : {}),
         inputSchema,
         ...(uiAllowed(currentIdentity) ? { _meta: metadata(name, currentIdentity) } : {}),
-        ...(outputSchema
-          ? { outputSchema: compatibleOutputSchema(outputSchema) }
+        ...(registeredOutput
+          ? { outputSchema: compatibleOutputSchema(registeredOutput) }
           : {}),
       },
       async (args): Promise<CallToolResult> => {
@@ -196,6 +200,7 @@ export function createRegister(
           if (!catalogAllows(name, authority, profiles) || !isToolAllowed(policy, authority) || (uiGated(name, authority) && !uiAllowed(authority))) {
             throw new BotoZapError("forbidden_scope", "Esta autorização não permite a ferramenta.", 403);
           }
+          const outputSchema = outputFor(name, fullOutputSchema, authority);
           const handlerResult = await handler(
             client,
             (args ?? {}) as Record<string, unknown>,
@@ -237,13 +242,13 @@ export function createRegister(
           const result = errorResult(err, requestAuthContext.getStore()?.credential ?? apiKey);
           return {
             content: [{ type: "text", text: result.text }],
-            ...(outputSchema ? { structuredContent: result.structured } : {}),
+            ...(fullOutputSchema ? { structuredContent: result.structured } : {}),
             isError: true,
           };
         }
       },
     );
-    tools.push({ name, description, tool, policy });
+    tools.push({ name, description, tool, policy, outputSchema: fullOutputSchema });
     if (!catalogAllows(name, currentIdentity, profiles) || !isToolAllowed(policy, currentIdentity) || (uiGated(name, currentIdentity) && !uiAllowed(currentIdentity))) tool.disable();
   };
   Object.defineProperty(register, "uiEnabled", { get: () => uiAllowed(currentIdentity) });
@@ -255,8 +260,10 @@ export function createRegister(
     },
     updateIdentity(next: ApiIdentity) {
       currentIdentity = next;
-      for (const { name, description, tool, policy } of tools) {
+      for (const { name, description, tool, policy, outputSchema } of tools) {
         const copy = descriptor(name, description, policy, next);
+        const output = outputFor(name, outputSchema, next);
+        if (output) tool.outputSchema = compatibleOutputSchema(output);
         tool.description = copy.description;
         tool.title = 'title' in copy ? copy.title : name === 'open_botozap' ? 'Pendências' : undefined;
         tool.annotations = copy.annotations;

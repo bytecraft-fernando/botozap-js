@@ -476,11 +476,18 @@ export class ChannelAccounts {
   getMessageRule(channelAccountId: string, ruleId: string): Promise<MessageRule> {
     return this.client.requestItem<MessageRule>("GET", messageRulesPath(channelAccountId, ruleId));
   }
-  /** Cria uma Regra de mensagem. message-rules:write. */
+  /**
+   * Cria uma Regra de mensagem. message-rules:write. Fora do plano (Free)
+   * responde 403 `plan_restricted`.
+   */
   createMessageRule(channelAccountId: string, params: CreateMessageRuleParams): Promise<MessageRule> {
     return this.client.requestItem<MessageRule>("POST", messageRulesPath(channelAccountId), { body: params });
   }
-  /** PATCH parcial; a API valida o estado final. message-rules:write. */
+  /**
+   * PATCH parcial; a API valida o estado final. message-rules:write. No Free,
+   * só `{ is_active: false }` (pausar) passa; o resto responde 403
+   * `plan_restricted`.
+   */
   updateMessageRule(channelAccountId: string, ruleId: string, params: UpdateMessageRuleParams): Promise<MessageRule> {
     return this.client.requestItem<MessageRule>("PATCH", messageRulesPath(channelAccountId, ruleId), { body: params });
   }
@@ -494,7 +501,11 @@ export class ChannelAccounts {
     return this.client.requestItem<MessengerProfile>("GET", profilePath(channelAccountId));
   }
 
-  /** Salva/aplica apenas as seções enviadas. messenger-profile:write; sem sandbox. */
+  /**
+   * Salva/aplica apenas as seções enviadas. messenger-profile:write; sem
+   * sandbox. No Free, só remover seções passa; salvar conteúdo responde 403
+   * `plan_restricted`.
+   */
   updateMessengerProfile(channelAccountId: string, params: UpdateMessengerProfileParams): Promise<MessengerProfile> {
     return this.client.requestItem<MessengerProfile>("PATCH", profilePath(channelAccountId), { body: params });
   }
@@ -504,7 +515,11 @@ export class ChannelAccounts {
     return this.client.requestItem<MessengerProfile>("DELETE", profilePath(channelAccountId));
   }
 
-  /** Verifica/reaplica explicitamente o desejado salvo. messenger-profile:write. */
+  /**
+   * Verifica/reaplica explicitamente o desejado salvo. messenger-profile:write.
+   * No Free, reaplicar uma configuração com conteúdo responde 403
+   * `plan_restricted`.
+   */
   syncMessengerProfile(channelAccountId: string): Promise<MessengerProfile> {
     return this.client.requestItem<MessengerProfile>("POST", `${profilePath(channelAccountId)}/sync`);
   }

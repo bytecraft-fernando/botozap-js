@@ -344,6 +344,25 @@ export const listCustomersResultSchema = offsetListResultSchemaFor(customerSchem
 
 export const customerResultSchema = itemResultSchemaFor(customerSchema);
 
+/**
+ * Cliente no catálogo completo: acrescenta `plan_suspended`. O perfil
+ * assistant segue com {@link customerSchema} (ver `catalog-profile.ts`).
+ */
+export const fullCustomerSchema = customerSchema
+  .extend({
+    plan_suspended: z
+      .boolean()
+      .optional()
+      .describe(
+        "true = o Cliente passou do teto do plano Free (1 negócio): continua recebendo, mas não conecta canais e o envio responde 402 free_cap. Volta ao assinar ou ao liberar a vaga (apagar o outro Cliente ou desconectar os canais dele).",
+      ),
+  })
+  .strip() satisfies z.ZodType<Customer>;
+
+export const listFullCustomersResultSchema = offsetListResultSchemaFor(fullCustomerSchema);
+
+export const fullCustomerResultSchema = itemResultSchemaFor(fullCustomerSchema);
+
 export const connectionBillingSchema = z
   .object({
     outcome: z
@@ -588,6 +607,25 @@ export const listPhoneNumbersResultSchema =
   offsetListResultSchemaFor(phoneNumberSchema);
 
 export const getPhoneNumberResultSchema = itemResultSchemaFor(phoneNumberSchema);
+
+/**
+ * Número no catálogo completo: acrescenta `plan_suspended`. O perfil assistant
+ * segue com {@link phoneNumberSchema} (ver `catalog-profile.ts`).
+ */
+export const fullPhoneNumberSchema = phoneNumberSchema
+  .extend({
+    plan_suspended: z
+      .boolean()
+      .optional()
+      .describe(
+        "true = o Número (ou o Cliente dele) passou do teto do plano Free (1 número, 1 negócio): continua recebendo, mas o envio responde 402 free_number_cap (ou free_cap, pelo Cliente). Volta ao assinar ou ao desconectar o outro número.",
+      ),
+  })
+  .strip() satisfies z.ZodType<PhoneNumber>;
+
+export const listFullPhoneNumbersResultSchema = offsetListResultSchemaFor(fullPhoneNumberSchema);
+
+export const getFullPhoneNumberResultSchema = itemResultSchemaFor(fullPhoneNumberSchema);
 
 export const phoneNumberHealthSchema = z
   .object({

@@ -1,5 +1,8 @@
+import type {AnyZodObject} from 'zod';
 import type {ApiIdentity} from './server.js';
 import {toolAnnotations,type ToolPolicy} from './permissions.js';
+import {FREE_CUSTOMER_NOTE,FREE_NUMBER_NOTE,FREE_SEND_NOTE} from './free-plan-notes.js';
+import {customerResultSchema,getPhoneNumberResultSchema,listCustomersResultSchema,listPhoneNumbersResultSchema} from './schemas.js';
 
 export type CatalogProfile = 'assistant' | 'full';
 const descriptions: Record<string, [string,string]> = {
@@ -50,6 +53,39 @@ const descriptions: Record<string, [string,string]> = {
   list_users: ['Responsáveis da agenda','Consulta nomes dos responsáveis autorizados para a tela de agendamento.'],
 };
 export const ASSISTANT_TOOLS = new Set(Object.keys(descriptions));
+
+/**
+ * Acréscimos de descrição só do catálogo completo (chave de API e OAuth `full`)
+ * em tools que também estão no perfil assistant: a definição revisada do app
+ * do ChatGPT fica igual. Tools só do catálogo completo levam o texto direto.
+ */
+const fullCatalogNotes: Record<string,string> = {
+  list_customers: FREE_CUSTOMER_NOTE,
+  get_customer: FREE_CUSTOMER_NOTE,
+  list_phone_numbers: FREE_NUMBER_NOTE,
+  get_phone_number: FREE_NUMBER_NOTE,
+  send_message: FREE_SEND_NOTE,
+  reply_to_conversation: FREE_SEND_NOTE,
+};
+export function fullCatalogDescription(name: string, original: string): string {
+  const note=fullCatalogNotes[name];
+  return note?`${original} ${note}`:original;
+}
+
+/**
+ * Saídas congeladas do perfil assistant. O catálogo completo publica campos
+ * novos (`plan_suspended`); no perfil assistant o schema e a projeção validada
+ * seguem os mesmos da revisão.
+ */
+const assistantOutputs: Record<string,AnyZodObject> = {
+  list_customers: listCustomersResultSchema,
+  get_customer: customerResultSchema,
+  list_phone_numbers: listPhoneNumbersResultSchema,
+  get_phone_number: getPhoneNumberResultSchema,
+};
+export function assistantOutputSchema(name: string, original: AnyZodObject): AnyZodObject {
+  return assistantOutputs[name]??original;
+}
 
 export function parseClientProfiles(value: string | undefined): ReadonlyMap<string,CatalogProfile> {
   const profiles=new Map<string,CatalogProfile>();
