@@ -1,9 +1,13 @@
 /** Ferramentas diversas: logs de API e usuários da conta. */
 import { z } from "zod";
-import type { ListApiLogsParams } from "@botozap/sdk";
+import type { ListApiLogsParams, ListTeamEventsParams } from "@botozap/sdk";
 import type { OffsetParams } from "@botozap/sdk";
 import type { Register } from "../register.js";
-import { listApiLogsResultSchema, listUsersResultSchema } from "../schemas.js";
+import {
+  listApiLogsResultSchema,
+  listTeamEventsResultSchema,
+  listUsersResultSchema,
+} from "../schemas.js";
 
 export function registerMiscTools(register: Register): void {
   register(
@@ -31,5 +35,23 @@ export function registerMiscTools(register: Register): void {
     },
     listUsersResultSchema,
     (client, args) => client.users.list(args as OffsetParams),
+  );
+
+  register(
+    "list_team_events",
+    "Lista o Registro de atividades da equipe: quem fez o quê, quando e de que IP (conversa aberta ou excluída, exportação, canal, webhook, chave de API, plano e exclusão da Conta), do mais novo ao mais antigo. Só Administrador consulta (admin_required para os demais). Filtros: since/until (ISO 8601), actor_id (pessoa ou chave de API), action (por exemplo export.requested), target_type e target_id (por exemplo uma conversa). Paginação por cursor: { data, paging }. Exige scope team:read (só chave de API).",
+    {
+      since: z.string().optional().describe("A partir desta data (ISO 8601, inclusive)."),
+      until: z.string().optional().describe("Antes desta data (ISO 8601, exclusive)."),
+      actor_id: z.string().optional().describe("Id da pessoa ou da chave de API que agiu."),
+      action: z.string().optional().describe("Código da ação, por exemplo export.requested."),
+      target_type: z.string().optional().describe("Tipo do alvo, por exemplo conversation ou webhook."),
+      target_id: z.string().optional().describe("Id do alvo, por exemplo o da conversa."),
+      limit: z.number().int().positive().optional(),
+      after: z.string().optional(),
+      before: z.string().optional(),
+    },
+    listTeamEventsResultSchema,
+    (client, args) => client.teamEvents.list(args as ListTeamEventsParams),
   );
 }

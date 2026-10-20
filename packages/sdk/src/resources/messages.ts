@@ -58,6 +58,14 @@ export interface SendTemplateParams {
   template: TemplatePayload;
   /** ID Meta ou UUID interno do Número de origem. */
   from?: string;
+  /**
+   * Só em template de marketing: texto curto (até 500 caracteres) que vira a
+   * evidência do aceite do contato (origem `api`) quando ele não tem registro de
+   * consentimento. Não desfaz uma recusa: contato que recusou marketing recebe
+   * 422 `consent_revoked`, com ou sem `consent_basis`, e só ele volta a aceitar
+   * (botão do pedido de consentimento ou Palavra de volta).
+   */
+  consent_basis?: string;
 }
 
 export interface SendImageParams {
@@ -246,6 +254,7 @@ export class Messages {
         type: "template",
         template: params.template,
         from: params.from,
+        ...(params.consent_basis !== undefined ? { consent_basis: params.consent_basis } : {}),
       },
     });
     return assertSendResult(result);

@@ -93,8 +93,18 @@ registerPolicy("stage_appointment_booking", { requiredScopes: ["conversations:re
 write(["update_conversation"], "conversations:write", true,
   { destructiveHint: true, idempotentHint: true, openWorldHint: false });
 registerPolicy("stage_review_reply", { requiredScopes: ["conversations:read", "numbers:read"], sandbox: false, readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false });
+// Mensagem real a uma pessoa (botões no WhatsApp, respostas rápidas no Instagram); sem idempotência.
+write(["request_consent"], "messages:send", false,
+  { destructiveHint: true, idempotentHint: false, openWorldHint: true });
+// Exclusão sem volta de mensagens, notas e mídia; o contato fica. Só Administrador.
+write(["delete_conversation"], "conversations:write", false,
+  { destructiveHint: true, idempotentHint: true, openWorldHint: false });
 read(["list_contacts"], "contacts:read", true);
 read(["get_contact"], "contacts:read", false);
+read(["list_contact_consents"], "contacts:read", false);
+// Registrar a recusa não se desfaz pela API: só o próprio contato volta a aceitar.
+write(["record_contact_consent"], "contacts:write", false,
+  { destructiveHint: true, idempotentHint: false, openWorldHint: false });
 write(["create_contact"], "contacts:write", false,
   { destructiveHint: false, idempotentHint: false, openWorldHint: false });
 write(["update_contact"], "contacts:write", false,
@@ -146,6 +156,9 @@ write(["phone_number_health"], "numbers:read", false,
 write(["update_phone_number"], "numbers:write", false,
   { destructiveHint: true, idempotentHint: true, openWorldHint: false });
 read(["list_templates", "get_template"], "templates:read", true);
+// Só anota no BotoZap quais botões são de saída; não toca na Meta.
+write(["update_template"], "templates:write", true,
+  { destructiveHint: true, idempotentHint: true, openWorldHint: false });
 // Nunca sobrescreve (nome+idioma repetido = 409 antes da Meta), por isso é
 // aditivo e idempotente; submete à análise da Meta (fora da conta).
 write(["create_template"], "templates:write", true,
@@ -170,6 +183,12 @@ write(["create_business_slot"], "billing:write", false,
 // Cancela a assinatura do slot no Asaas, sem reembolso; repetir não muda nada.
 write(["cancel_business_slot"], "billing:write", false,
   { destructiveHint: true, idempotentHint: true, openWorldHint: false });
+// Exportação e registro de atividades: só chave de API (para OAuth são do painel).
+read(["list_exports", "get_export"], "exports:read", false);
+// Cria um pedido (fila); repetir enquanto a fila não termina devolve o mesmo.
+write(["create_export"], "exports:write", false,
+  { destructiveHint: false, idempotentHint: false, openWorldHint: false });
+read(["list_team_events"], "team:read", false);
 write(["ingest_media"], "media:write", false,
   { destructiveHint: false, idempotentHint: false, openWorldHint: true });
 read(["list_contact_stages", "list_contact_fields"], "contacts:read", false);

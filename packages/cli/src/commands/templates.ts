@@ -1,6 +1,6 @@
 import { Command } from "commander";
 import { readFileSync } from "node:fs";
-import { context, toInt } from "./shared.js";
+import { collect, context, toInt } from "./shared.js";
 import {
   printJson,
   printTable,
@@ -79,6 +79,11 @@ export function registerTemplates(program: Command): void {
     )
     .option("--waba-connection-id <id>", "conexão WABA alvo")
     .option("--phone-number-id <id>", "número alvo")
+    .option(
+      "--opt-out-button <texto>",
+      "texto de um botão de resposta rápida que é de saída (repetível; o toque grava a recusa)",
+      collect,
+    )
     .action(async (opts, cmd: Command) => {
       const { client, format } = context(cmd);
       const components = readJsonFile(opts.components);
@@ -89,9 +94,34 @@ export function registerTemplates(program: Command): void {
         components: components as unknown[],
         waba_connection_id: opts.wabaConnectionId,
         phone_number_id: opts.phoneNumberId,
+        ...(opts.optOutButton ? { opt_out_buttons: opts.optOutButton as string[] } : {}),
       });
       if (format === "json") return printJson(data);
       printLine("Template criado.");
+      printDetail(data as Record<string, unknown>);
+    });
+
+  templates
+    .command("update <id>")
+    .description(
+      "Marca quais botões de resposta rápida são de saída (o toque grava a recusa da finalidade do template). " +
+        "Anotação do BotoZap: não altera o template na Meta",
+    )
+    .option("--opt-out-button <texto>", "texto de um botão de saída (repetível; substitui a marcação inteira)", collect)
+    .option("--clear-opt-out-buttons", "limpa a marcação")
+    .action(async (id: string, opts, cmd: Command) => {
+      const { client, format } = context(cmd);
+      if (opts.optOutButton && opts.clearOptOutButtons) {
+        throw new Error("Use --opt-out-button OU --clear-opt-out-buttons, não os dois.");
+      }
+      if (!opts.optOutButton && !opts.clearOptOutButtons) {
+        throw new Error("Informe --opt-out-button <texto> (repetível) ou --clear-opt-out-buttons.");
+      }
+      const data = await client.templates.update(id, {
+        opt_out_buttons: opts.clearOptOutButtons ? [] : (opts.optOutButton as string[]),
+      });
+      if (format === "json") return printJson(data);
+      printLine("Template atualizado.");
       printDetail(data as Record<string, unknown>);
     });
 }

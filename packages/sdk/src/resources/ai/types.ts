@@ -1,10 +1,26 @@
 /** Public /api/v1/ai contracts. Revisions are opaque strings unless the endpoint explicitly uses a number. */
-export type AiProvider =
-  "anthropic" | "openai" | "google" | "openrouter" | "deepseek" | "xai";
-/** Provedores que aceitam credencial NOVA hoje; os demais respondem 422 `provider_not_enabled`. */
+/**
+ * Provedores do catálogo de IA hoje: só `openai` e `anthropic`. É o que as
+ * entradas aceitam (credencial, vínculo, modelos, tarifa, agente); qualquer outro
+ * responde 422 `provider_not_enabled`.
+ */
 export const AI_CREDENTIAL_PROVIDERS = ["openai", "anthropic"] as const;
+export type AiEnabledProvider = (typeof AI_CREDENTIAL_PROVIDERS)[number];
+/**
+ * Provedor como a leitura devolve. Além dos do catálogo, mantém os seis
+ * históricos porque credenciais, vínculos e agentes antigos podem continuar
+ * guardados com um provedor descontinuado (`google`, `openrouter`, `deepseek`,
+ * `xai`), desativados. Para ENTRADA use {@link AiEnabledProvider}.
+ */
+export type AiProvider =
+  | AiEnabledProvider
+  | "google"
+  | "openrouter"
+  | "deepseek"
+  | "xai";
 /** Item de `ai.providers.get().providers`. */
 export type AiProviderInfo = {
+  /** `GET /ai/providers` lista só os provedores do catálogo (`openai` e `anthropic`). */
   id: AiProvider;
   label: string;
   key_url: string | null;
@@ -52,6 +68,8 @@ export type AiBindingTarget = {
   model: string;
   credential_id: string;
 };
+/** Destino de um vínculo na ENTRADA (`providers.saveBinding`): só provedores do catálogo. */
+export type AiBindingTargetInput = AiBindingTarget & { provider: AiEnabledProvider };
 export type AiBinding = AiBindingTarget & {
   purpose: AiPurpose;
   fallback: AiBindingTarget | null;
@@ -204,10 +222,17 @@ export interface AiAgentConfig {
     instructions?: string;
   };
 }
+/** Configuração do agente na ENTRADA: o provedor só pode ser `openai` ou `anthropic`. */
+export type AiAgentConfigInput = Omit<AiAgentConfig, "provider" | "operator"> & {
+  provider?: AiEnabledProvider;
+  operator?: Omit<NonNullable<AiAgentConfig["operator"]>, "provider"> & {
+    provider?: AiEnabledProvider | null;
+  };
+};
 export type AiAgentInput = AiScope & {
   name: string;
   description?: string;
-  config?: AiAgentConfig;
+  config?: AiAgentConfigInput;
 };
 export type AiAgent = {
   id: string;
@@ -393,6 +418,10 @@ export type AiRouterConfig = {
     examples?: string[];
     position?: number;
   }[];
+};
+/** Configuração do roteador na ENTRADA: o classificador só pode usar `openai` ou `anthropic`. */
+export type AiRouterConfigInput = Omit<AiRouterConfig, "classifier"> & {
+  classifier: AiBindingTargetInput;
 };
 export type AiRouter = AiRouterConfig & {
   id: string;
@@ -591,7 +620,7 @@ export type AiAudioPricing =
     }
   | { unit: "duration"; usd_per_minute: number };
 export type AiRateInput = AiScope & {
-  provider: AiProvider;
+  provider: AiEnabledProvider;
   model: string;
   input_usd_per_million: number;
   output_usd_per_million: number;
@@ -754,8 +783,10 @@ export type AiBudget = Omit<
 > & { revision: number; updated_at: string | null };
 export type AiRate = Omit<
   AiRateInput,
-  "customer_id" | "expected_revision" | "audio_pricing"
+  "customer_id" | "expected_revision" | "audio_pricing" | "provider"
 > & {
+  /** Tarifas antigas podem ser de um provedor descontinuado. */
+  provider: AiProvider;
   audio_pricing: AiAudioPricing | null;
   revision: number;
   updated_at: string;

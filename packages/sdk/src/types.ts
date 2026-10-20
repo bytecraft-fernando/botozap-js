@@ -150,6 +150,17 @@ export interface Customer {
    * (`list`/`get`); ausente em servidores antigos.
    */
   plan_suspended?: boolean;
+  /**
+   * Palavras que fazem o contato recusar mensagens (Palavras de saída). Não há
+   * lista padrão: só valem as que o Cliente cadastra. `[]` quando não há.
+   */
+  opt_out_keywords?: string[];
+  /** Palavras de volta: o contato que as manda volta a aceitar mensagens. `[]` quando não há. */
+  opt_in_keywords?: string[];
+  /** Texto que o contato recebe ao recusar. */
+  opt_out_confirmation?: string;
+  /** Texto que o contato recebe ao voltar a aceitar. */
+  opt_in_confirmation?: string;
   [key: string]: unknown;
 }
 
@@ -231,7 +242,99 @@ export interface Contact {
   display_name?: string | null;
   /** Contact tags (stored in metadata.tags); returned by servers with #498. */
   tags?: string[];
+  /**
+   * Só na resposta de `contacts.create` (201): avisos por canal e finalidade
+   * sobre os Consentimentos iniciais. Ausente quando não há aviso.
+   */
+  warnings?: ContactWarning[];
   [key: string]: unknown;
+}
+
+/** Canal de um Consentimento. */
+export type ConsentChannel = "whatsapp" | "instagram";
+
+/** Finalidade de um Consentimento: `marketing` (promoções) ou `utility` (avisos e serviço). */
+export type ConsentPurpose = "marketing" | "utility";
+
+/** Estado de um Consentimento: `granted` (aceitou) ou `revoked` (recusou). */
+export type ConsentState = "granted" | "revoked";
+
+/**
+ * Como o Consentimento foi registrado. `manual` (painel), `import` (planilha),
+ * `api` (esta API, inclusive `consent_basis` no envio), `keyword` (Palavra de
+ * saída), `conversation_button` (botão do pedido de consentimento na conversa),
+ * `contact_keyword` (o próprio contato mandou uma Palavra de volta cadastrada
+ * pelo Cliente), `template_button` (o contato tocou num botão de saída marcado
+ * no template) e `meta_opt_out` (a Meta informou a recusa, erro 131050). Valores
+ * novos podem surgir.
+ */
+export type ConsentOrigin =
+  | "manual"
+  | "import"
+  | "api"
+  | "keyword"
+  | "conversation_button"
+  | "contact_keyword"
+  | "template_button"
+  | "meta_opt_out"
+  | (string & {});
+
+/** Um registro de Consentimento do Contato (por canal e finalidade). */
+export interface Consent {
+  id: string;
+  channel: ConsentChannel;
+  purpose: ConsentPurpose;
+  state: ConsentState;
+  origin: ConsentOrigin;
+  /** Quem registrou, quando foi uma pessoa; `null` na API e nas origens automáticas. */
+  recorded_by: string | null;
+  /** Texto livre de evidência (até 500 caracteres); `""` quando não há. */
+  evidence: string;
+  /** ISO 8601. */
+  created_at: string;
+}
+
+/** Resposta de `GET /v1/contacts/{id}/consents`. */
+export interface ContactConsents {
+  /** O registro vigente por canal e finalidade. */
+  current: Consent[];
+  /** Todos os registros, do mais novo ao mais antigo. */
+  history: Consent[];
+}
+
+/**
+ * Aviso de `POST /v1/contacts` sobre um Consentimento inicial que não valeu.
+ * `consent_opted_out`: o contato já recusou (o aceite pedido não foi gravado e
+ * ele nasce como Recusou). `consent_unconfirmed`: o contato foi criado, mas não
+ * foi possível confirmar o consentimento vigente; consulte `contacts.listConsents`.
+ */
+export interface ContactWarning {
+  code: "consent_opted_out" | "consent_unconfirmed" | (string & {});
+  message: string;
+  channel: ConsentChannel;
+  purpose: ConsentPurpose;
+}
+
+/** Resposta de `conversations.requestConsent` (201). */
+export interface ConsentRequestResult {
+  /** UUID interno da mensagem; `null` quando a gravação falhou (veja `warnings`). */
+  id: string | null;
+  /** ID da mensagem no WhatsApp; `null` no Instagram. */
+  wamid: string | null;
+  conversation_id: string;
+  contact_id: string;
+  /** Canal do envio. */
+  channel: ConsentChannel;
+  type: "interactive";
+  status: "sent";
+  /** Destinatário efetivamente usado. */
+  sent_to: string;
+  /** Finalidades pedidas. */
+  purposes: ConsentPurpose[];
+  /** Texto enviado. */
+  body: string;
+  /** `send_unrecorded`: a Meta aceitou e o registro falhou; não reenvie. */
+  warnings?: { code: string; message: string }[];
 }
 
 /** Origem da Conversa: anúncio Click-to-WhatsApp, orgânica ou desconhecida (`null`). */

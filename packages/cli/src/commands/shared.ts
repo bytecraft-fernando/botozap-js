@@ -1,4 +1,5 @@
 import { Command } from "commander";
+import { createInterface } from "node:readline/promises";
 import type { BotoZap } from "@botozap/sdk";
 import { createClient, type GlobalOptions } from "../client.js";
 import { resolveFormat, type OutputFormat } from "../output.js";
@@ -46,4 +47,33 @@ export function toBool(value: string | undefined): boolean | undefined {
   if (value === "true") return true;
   if (value === "false") return false;
   return undefined;
+}
+
+/** Acumula uma opção repetível (`--tag a --tag b`). */
+export function collect(value: string, previous: string[] | undefined): string[] {
+  return [...(previous ?? []), value];
+}
+
+/**
+ * Confirma uma ação sem volta. `--yes` confirma direto; sem ele, num terminal
+ * pergunta (padrão: não) e, sem terminal (script, pipe), recusa com a instrução
+ * de usar `--yes`: nunca apaga sem confirmação.
+ */
+export async function confirmDestructive(
+  message: string,
+  yes: boolean | undefined,
+): Promise<void> {
+  if (yes) return;
+  if (!process.stdin.isTTY) {
+    throw new Error(`${message} Confirme com --yes.`);
+  }
+  const rl = createInterface({ input: process.stdin, output: process.stderr });
+  try {
+    const answer = (await rl.question(`${message} Digite "sim" para confirmar: `)).trim().toLowerCase();
+    if (answer !== "sim" && answer !== "s") {
+      throw new Error("Cancelado. Nada foi apagado.");
+    }
+  } finally {
+    rl.close();
+  }
 }

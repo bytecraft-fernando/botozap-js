@@ -1,5 +1,14 @@
 import type { BotoZap } from "../client.js";
-import type { Contact, CursorList, CursorParams } from "../types.js";
+import type {
+  Consent,
+  ConsentChannel,
+  ConsentPurpose,
+  ConsentState,
+  Contact,
+  ContactConsents,
+  CursorList,
+  CursorParams,
+} from "../types.js";
 
 export interface ListContactsParams extends CursorParams {
   /** Só valores conhecidos; null não casa nem com false. */
@@ -21,6 +30,24 @@ export interface ListContactsParams extends CursorParams {
   created_before?: string;
 }
 
+/** Consentimento inicial de `contacts.create` (campo `consents`). */
+export interface InitialConsent {
+  channel: ConsentChannel;
+  purpose: ConsentPurpose;
+  state: ConsentState;
+  /** Texto livre de evidência (até 500 caracteres). */
+  evidence?: string;
+}
+
+/** Corpo de `contacts.recordConsent` (`POST /v1/contacts/{id}/consents`). */
+export interface RecordConsentParams {
+  channel: ConsentChannel;
+  purpose: ConsentPurpose;
+  state: ConsentState;
+  /** Texto livre de evidência (até 500 caracteres). */
+  evidence?: string;
+}
+
 export interface CreateContactParams {
   /** wa_id canônico (BSUID "BR.1A2B…" ou dígitos E.164). */
   wa_id: string;
@@ -32,6 +59,13 @@ export interface CreateContactParams {
   display_name?: string | null;
   /** Até 20 tags de 1–40 caracteres; o servidor apara e remove repetidas sem diferenciar maiúsculas. Não combine com metadata.tags. */
   tags?: string[];
+  /**
+   * Consentimentos iniciais, gravados junto com o contato numa transação só. Se
+   * o contato já recusou (foi excluído depois de recusar e voltou), o aceite não
+   * é gravado, o contato nasce como Recusou e a resposta traz `warnings` com
+   * `consent_opted_out`.
+   */
+  consents?: InitialConsent[];
   [key: string]: unknown;
 }
 
@@ -86,6 +120,12 @@ export class Contacts {
     return this.client.requestItem<Contact>("GET", `/contacts/${enc(id)}`);
   }
 
+  /**
+   * Cria um contato. A resposta (201) pode trazer `warnings` por canal e
+   * finalidade: `consent_opted_out` (o contato já recusou; o aceite pedido em
+   * `consents` não foi gravado) ou `consent_unconfirmed` (não foi possível
+   * confirmar o consentimento vigente).
+   */
   create(params: CreateContactParams): Promise<Contact> {
     return this.client.requestItem<Contact>("POST", "/contacts", {
       body: params,
@@ -101,9 +141,39 @@ export class Contacts {
     });
   }
 
-  /** Remove um contato. Responde 204 (sem corpo). */
+  /**
+   * Remove um contato e o que é dele (conversas, mensagens, CRM, compromissos e
+   * Consentimentos); a mídia dele é apagada. A recusa não se perde: fica guardada
+   * como código cifrado (hash) na lista de recusa da Conta e vale se o contato
+   * voltar, que nasce como Recusou. Responde 204 (sem corpo).
+   */
   delete(id: string): Promise<void> {
     return this.client.request<void>("DELETE", `/contacts/${enc(id)}`);
+  }
+
+  /**
+   * Consentimentos do contato: `current` (o vigente por canal e finalidade) e
+   * `history` (todos, do mais novo ao mais antigo). Scope `contacts:read`.
+   */
+  listConsents(id: string): Promise<ContactConsents> {
+    return this.client.requestItem<ContactConsents>(
+      "GET",
+      `/contacts/${enc(id)}/consents`,
+    );
+  }
+
+  /**
+   * Registra um Consentimento do contato (origem `api`). Scope `contacts:write`.
+   * Sobre uma recusa do próprio contato responde `409 consent_opted_out` e nada é
+   * gravado: só ele volta a aceitar (botão do pedido de consentimento ou Palavra
+   * de volta). Para recusar, registre `state: "revoked"`.
+   */
+  recordConsent(id: string, params: RecordConsentParams): Promise<Consent> {
+    return this.client.requestItem<Consent>(
+      "POST",
+      `/contacts/${enc(id)}/consents`,
+      { body: params },
+    );
   }
 }
 

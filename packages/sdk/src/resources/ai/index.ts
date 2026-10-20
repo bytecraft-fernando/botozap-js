@@ -27,6 +27,8 @@ import type {
   AiAlert,
   AiBinding,
   AiBindingTarget,
+  AiBindingTargetInput,
+  AiEnabledProvider,
   AiBudgetInput,
   AiCase,
   AiCredential,
@@ -51,6 +53,7 @@ import type {
   AiRevision,
   AiRouter,
   AiRouterConfig,
+  AiRouterConfigInput,
   AiScope,
   AiSkill,
   AiSkillInput,
@@ -240,9 +243,9 @@ export class AiCredentialsResource {
   get(input: AiScope & { id: string }): Promise<AiCredential> {
     return request(this.client, AI_OPERATIONS[11]!, input);
   }
-  /** Cria credencial própria no Vault; a resposta nunca contém a chave. Só `AI_CREDENTIAL_PROVIDERS` (openai/anthropic); os demais: 422 `provider_not_enabled`. */
+  /** Cria credencial própria no Vault; a resposta nunca contém a chave. Só `AI_CREDENTIAL_PROVIDERS` (openai/anthropic); os demais: 422 `provider_not_enabled`, o mesmo erro de reativar (`update` com `active: true`), trocar a chave, `revalidate` e vincular um provedor descontinuado. */
   create(
-    input: AiScope & { provider: AiProvider; label: string; key: string },
+    input: AiScope & { provider: AiEnabledProvider; label: string; key: string },
   ): Promise<AiCredential> {
     return request(this.client, AI_OPERATIONS[12]!, input);
   }
@@ -266,7 +269,12 @@ export class AiCredentialsResource {
 }
 export class AiProvidersResource {
   constructor(private readonly client: BotoZap) {}
-  /** GET /ai/providers */
+  /**
+   * GET /ai/providers. A lista `providers` traz só `openai` e `anthropic`;
+   * `credentials` e `bindings` podem trazer, desativados, os de provedores
+   * antigos. Salvar vínculo ou agente com provedor descontinuado: 422
+   * `provider_not_enabled`.
+   */
   get(input: AiScope): Promise<{
     providers: AiProviderInfo[];
     purposes: Record<string, string>;
@@ -283,9 +291,9 @@ export class AiProvidersResource {
   /** PUT /ai/providers */
   saveBinding(
     input: AiScope &
-      AiBindingTarget & {
+      AiBindingTargetInput & {
         purpose: AiConfigurablePurpose;
-        fallback?: AiBindingTarget | null;
+        fallback?: AiBindingTargetInput | null;
       },
   ): Promise<AiBinding> {
     return request(this.client, AI_OPERATIONS[17]!, input);
@@ -298,7 +306,7 @@ export class AiProvidersResource {
   }
   /** GET /ai/providers/:provider/models */
   models(
-    input: AiScope & { provider: AiProvider; credential_id: string },
+    input: AiScope & { provider: AiEnabledProvider; credential_id: string },
   ): Promise<AiProviderModel[]> {
     return request(this.client, AI_OPERATIONS[19]!, input);
   }
@@ -788,12 +796,12 @@ export class AiRoutersResource {
     return request(this.client, AI_OPERATIONS[66]!, input);
   }
   /** POST /ai/routers */
-  create(input: AiScope & { config: AiRouterConfig }): Promise<AiRouter> {
+  create(input: AiScope & { config: AiRouterConfigInput }): Promise<AiRouter> {
     return request(this.client, AI_OPERATIONS[67]!, input);
   }
   /** Edição de roteador ativo aplica imediatamente e invalida classificações da revisão anterior. */
   update(
-    input: AiRevision & { id: string } & { config: AiRouterConfig },
+    input: AiRevision & { id: string } & { config: AiRouterConfigInput },
   ): Promise<AiRouter> {
     return request(this.client, AI_OPERATIONS[68]!, input);
   }
@@ -1030,7 +1038,7 @@ export class AiUsageResource {
   /** Aplica tarifa própria a medições sem preço; não gera cobrança BotoZap. Exige confirmação. */
   reprice(
     input: AiScope & {
-      provider: AiProvider;
+      provider: AiEnabledProvider;
       model: string;
       expected_revision: number;
       confirm: true;

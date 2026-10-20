@@ -1,6 +1,7 @@
 import { z, type ZodTypeAny } from "zod";
 import {
   AI_CONFIGURABLE_PURPOSES,
+  AI_CREDENTIAL_PROVIDERS,
   AI_OPERATIONS,
   AI_PURPOSES,
 } from "@botozap/sdk";
@@ -9,14 +10,9 @@ import { emptyOperationResult } from "../register.js";
 const uuid = z.string().uuid(),
   revision = z.string().regex(/^\d+$/),
   text = z.string(),
-  provider = z.enum([
-    "anthropic",
-    "openai",
-    "google",
-    "openrouter",
-    "deepseek",
-    "xai",
-  ]),
+  // Catálogo de IA: só openai e anthropic. Provedor descontinuado nas entradas
+  // responde 422 provider_not_enabled na API; aqui a entrada já o recusa.
+  provider = z.enum(AI_CREDENTIAL_PROVIDERS),
   purpose = z.enum(AI_PURPOSES),
   binding = z
     .object({ provider, model: text.min(1).max(200), credential_id: uuid })

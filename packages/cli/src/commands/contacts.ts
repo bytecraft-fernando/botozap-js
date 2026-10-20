@@ -1,5 +1,5 @@
 import { Command, Option } from "commander";
-import { context, toInt, toBool } from "./shared.js";
+import { collect, context, toInt, toBool } from "./shared.js";
 import {
   printJson,
   printTable,
@@ -7,10 +7,6 @@ import {
   printCursorFooter,
   printLine,
 } from "../output.js";
-
-function collect(value: string, previous: string[] | undefined): string[] {
-  return [...(previous ?? []), value];
-}
 
 export function registerContacts(program: Command): void {
   const contacts = program
@@ -94,6 +90,9 @@ export function registerContacts(program: Command): void {
       if (format === "json") return printJson(data);
       printLine("Contato criado.");
       printDetail(data as Record<string, unknown>);
+      for (const warning of data.warnings ?? []) {
+        printLine(`Aviso [${warning.code}] (${warning.channel}, ${warning.purpose}): ${warning.message}`);
+      }
     });
 
   contacts
@@ -136,8 +135,56 @@ export function registerContacts(program: Command): void {
     });
 
   contacts
+    .command("consents <id>")
+    .description("Consentimentos do contato: o vigente por canal e finalidade e o histórico")
+    .action(async (id: string, _opts, cmd: Command) => {
+      const { client, format } = context(cmd);
+      const data = await client.contacts.listConsents(id);
+      if (format === "json") return printJson(data);
+      const columns = [
+        { header: "CANAL", key: "channel" },
+        { header: "FINALIDADE", key: "purpose" },
+        { header: "ESTADO", key: "state" },
+        { header: "ORIGEM", key: "origin" },
+        { header: "EVIDÊNCIA", key: "evidence", max: 40 },
+        { header: "QUANDO", key: "created_at" },
+      ];
+      printLine("Vigente:");
+      printTable(data.current as unknown as Record<string, unknown>[], columns);
+      printLine("");
+      printLine("Histórico:");
+      printTable(data.history as unknown as Record<string, unknown>[], columns);
+    });
+
+  contacts
+    .command("record-consent <id>")
+    .description(
+      "Registra um consentimento do contato (origem api). Sobre uma recusa do próprio contato " +
+        "responde consent_opted_out (409) e nada é gravado: só ele volta a aceitar",
+    )
+    .addOption(new Option("--channel <canal>", "whatsapp | instagram").choices(["whatsapp", "instagram"]).makeOptionMandatory())
+    .addOption(new Option("--purpose <finalidade>", "marketing | utility").choices(["marketing", "utility"]).makeOptionMandatory())
+    .addOption(new Option("--state <estado>", "granted (aceitou) | revoked (recusou)").choices(["granted", "revoked"]).makeOptionMandatory())
+    .option("--evidence <texto>", "evidência do consentimento (até 500 caracteres)")
+    .action(async (id: string, opts, cmd: Command) => {
+      const { client, format } = context(cmd);
+      const data = await client.contacts.recordConsent(id, {
+        channel: opts.channel,
+        purpose: opts.purpose,
+        state: opts.state,
+        ...(opts.evidence !== undefined ? { evidence: opts.evidence } : {}),
+      });
+      if (format === "json") return printJson(data);
+      printLine("Consentimento registrado.");
+      printDetail(data as unknown as Record<string, unknown>);
+    });
+
+  contacts
     .command("delete <id>")
-    .description("Remove um contato")
+    .description(
+      "Remove um contato e o que é dele (conversas, mensagens, CRM, consentimentos), e apaga a mídia. " +
+        "A recusa fica guardada como código cifrado (hash) e vale se o contato voltar",
+    )
     .action(async (id: string, _opts, cmd: Command) => {
       const { client, format } = context(cmd);
       await client.contacts.delete(id);

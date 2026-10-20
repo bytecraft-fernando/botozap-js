@@ -24,6 +24,8 @@ import { registerLogs } from "./commands/logs.js";
 import { registerUsers } from "./commands/users.js";
 import { registerUsage } from "./commands/usage.js";
 import { registerBilling } from "./commands/billing.js";
+import { registerExports } from "./commands/exports.js";
+import { registerTeamEvents } from "./commands/team-events.js";
 import { registerConfig } from "./commands/config.js";
 import { registerStatus } from "./commands/status.js";
 import { registerLogin } from "./commands/login.js";
@@ -84,6 +86,8 @@ registerLogs(program);
 registerUsers(program);
 registerUsage(program);
 registerBilling(program);
+registerExports(program);
+registerTeamEvents(program);
 
 // Sessão / utilidades
 registerLogin(program);

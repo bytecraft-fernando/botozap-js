@@ -48,6 +48,11 @@ function printBilling(billing: Billing): void {
       : {}),
     "valor do slot": `${reais(billing.slot_amount_cents)}/mês`,
     "pode comprar slot": billing.can_add_slot ? "sim" : "não",
+    ...(billing.guarantee
+      ? {
+          "garantia de 7 dias": `cancelar até ${billing.guarantee.deadline} devolve ${reais(billing.guarantee.amount_cents)} (${billing.guarantee.term === "annual" ? "anual" : "mensal"})`,
+        }
+      : {}),
   });
   printLine("");
   printSlots(billing.slots);

@@ -63,10 +63,12 @@ antes da decisão. Propostas de memória inserem entrada aprovada na memória.
 
 ## Credenciais e seleção de modelos
 
-Os seis provedores são Anthropic, OpenAI, Google, OpenRouter, DeepSeek e xAI.
+Os provedores do catálogo são Anthropic e OpenAI (os antigos Google, OpenRouter, DeepSeek e xAI foram descontinuados).
 `credentials` permite criar, consultar, renomear, rotacionar mantendo ID,
 revalidar, inativar e excluir quando não estiver em uso. As respostas contêm apenas
 metadados, últimos quatro caracteres e estado de validação; nunca a chave.
+
+O catálogo de provedores tem só `openai` e `anthropic` (`AI_CREDENTIAL_PROVIDERS`). Toda entrada com provedor (credencial, vínculo, modelos, tarifa, agente e roteador) aceita só esses dois; outro provedor responde `422 provider_not_enabled`, o mesmo erro de reativar uma credencial antiga, trocar a chave, `revalidate` e salvar agente com provedor descontinuado. `providers.get` lista só os dois; credenciais, vínculos e agentes antigos podem continuar guardados, desativados, com o provedor descontinuado. As rotas de confirmação de uso de dados por credencial (`/ai/credentials/:id/data-use`) foram removidas e respondem `410 gone`.
 
 `providers.models` lista modelos obtidos para uma credencial e capacidades do
 adapter. `providers.saveBinding` aceita as finalidades de `AI_CONFIGURABLE_PURPOSES`:

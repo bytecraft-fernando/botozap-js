@@ -379,10 +379,14 @@ Regras de mensagem do Direct e Perguntas e menu do Instagram
 `429 free_form_limit_reached` (limite de mensagens 1:1 do Free),
 `402 free_number_cap` (setup além do teto de Números do Free ou envio por um
 Número suspenso) e `402 free_cap` (2º Cliente no Free ou envio por um Cliente
-suspenso). Credencial de IA
-nova só para `openai`/`anthropic` (`AI_CREDENTIAL_PROVIDERS`; os demais respondem
-`422 provider_not_enabled`); `ai.providers.get()` traz `accepts_new_credentials`
-por provedor.
+suspenso). O catálogo de IA tem só `openai` e `anthropic`
+(`AI_CREDENTIAL_PROVIDERS`, tipo `AiEnabledProvider`): as entradas (credencial,
+vínculo, modelos, tarifa, agente) só aceitam esses dois; qualquer outro provedor
+responde `422 provider_not_enabled`, também ao reativar a credencial (`update` com
+`active: true`), trocar a chave, `revalidate`, vincular o provedor e salvar agente
+com provedor descontinuado. `ai.providers.get()` lista só os dois provedores; as
+leituras de credenciais, vínculos e agentes antigos podem trazer, desativados, os
+provedores descontinuados (`AiProvider` mantém os seis).
 
 ```ts
 import { isPlanError } from "@botozap/sdk";
@@ -457,6 +461,79 @@ catch (err) {
 }
 ```
 
+### Consentimento e recusa
+
+Cada contato tem um consentimento por canal (`whatsapp` ou `instagram`) e
+finalidade (`marketing` ou `utility`), com a origem de cada registro: `manual`,
+`import`, `api`, `keyword` (Palavra de saída), `conversation_button` (botão do
+pedido de consentimento), `contact_keyword` (Palavra de volta), `template_button`
+(botão de saída do template) e `meta_opt_out` (recusa informada pela Meta). Só o
+próprio contato volta a aceitar depois de recusar.
+
+```ts
+const { current, history } = await boto.contacts.listConsents(contactId);
+await boto.contacts.recordConsent(contactId, {
+  channel: "whatsapp",
+  purpose: "marketing",
+  state: "granted",
+  evidence: "Aceitou no formulário do site",
+});
+
+// Pedido de consentimento na conversa (botões no WhatsApp, respostas rápidas no
+// Instagram; só com a janela de 24h aberta). A resposta traz `channel`.
+const pedido = await boto.conversations.requestConsent(conversationId, {
+  purposes: ["marketing"],
+});
+```
+
+Recusas: `409 consent_opted_out` ao registrar aceite sobre uma recusa do contato
+(nada é gravado; `isConsentOptedOut`), `422 consent_revoked` ao enviar template de
+marketing a quem recusou, também por outro número da Conta (`isConsentRevoked`;
+`consent_basis` em `sendTemplate` não desfaz a recusa), `outside_window` (WhatsApp)
+ou `window_closed` (Instagram) no pedido de consentimento com a janela fechada,
+`channel_not_supported`, e `409 not_connected` quando o número está desconectado
+(`isNotConnected`; vale também no envio, em mídia, transmissão e criação de
+template). `contacts.create` aceita `consents` iniciais; recriar um contato que
+recusou responde 201 com `warnings` (`consent_opted_out` ou `consent_unconfirmed`)
+e o contato nasce como Recusou. Excluir o contato (`contacts.delete`) apaga a
+mídia dele e guarda a recusa só como código cifrado (hash), que vale se ele voltar.
+
+As Palavras de saída e de volta e os textos de confirmação são do Cliente
+(`customers.update` com `opt_out_keywords`, `opt_in_keywords`,
+`opt_out_confirmation` e `opt_in_confirmation`; não existe lista padrão). Num
+template, `templates.update(id, { opt_out_buttons })` (ou `opt_out_buttons` em
+`templates.create`) marca os botões de resposta rápida que são de saída.
+
+### Excluir conversa
+
+`conversations.delete(id)` exclui a conversa sem volta, com efeito imediato:
+mensagens, notas, atribuições, vínculos com o CRM e o que a IA guardou dela, e a
+mídia. O contato fica. Só Administrador; responde 204.
+
+### Exportação de dados e registro de atividades
+
+Scopes `exports:read`/`exports:write` e `team:read`; no OAuth, só pelo painel.
+
+```ts
+// Conta inteira ou um Cliente; o arquivo fica 7 dias, num zip por tipo de dado.
+const pedidoExport = await boto.exports.create({ customer_id, format: "csv" });
+const pronto = await boto.exports.get(pedidoExport.id); // pronto.download.url vale poucos minutos
+const recentes = await boto.exports.list();
+
+// Quem fez o quê, quando e de que IP. Só Administrador (403 admin_required).
+const { data: eventos } = await boto.teamEvents.list({
+  action: "export.requested",
+  target_type: "conversation",
+  since: "2026-10-01T00:00:00Z",
+});
+```
+
+`billing.get()` traz também `guarantee` (garantia de 7 dias: ciclo, valor e prazo
+final) enquanto o cancelamento ainda devolve a primeira mensalidade integral.
+Chave com lista de IPs autorizados responde `403 ip_not_allowed` a chamadas de
+outro IP, e rotas removidas respondem `410 gone` (por exemplo, as de confirmação
+de uso de dados da IA, que não existem mais).
+
 ### Webhooks
 
 `WEBHOOK_CATEGORIES` lista as categorias de `webhooks.create({ events })`:
@@ -503,18 +580,20 @@ new BotoZap({
 O SDK cobre os recursos da API `/v1`:
 
 - `messages` — enviar texto (com `quick_replies` no Instagram), template e mídia por link, **listar** e buscar por id
-- `customers` — listar, buscar, criar, **atualizar**, **remover**, e **links de setup** (listar/criar/atualizar; `channel` `whatsapp` ou `instagram`, um canal por link)
-- `templates` — listar, buscar, **criar**
+- `customers` — listar, buscar, criar, **atualizar** (nome, id externo e Palavras de saída/volta com os textos de confirmação), **remover**, e **links de setup** (listar/criar/atualizar; `channel` `whatsapp` ou `instagram`, um canal por link)
+- `templates` — listar, buscar, **criar**, **atualizar** (`opt_out_buttons`)
 - `broadcasts` — criar, destinatários, agendar, enviar, cancelar
-- `contacts` — listar, buscar, criar, atualizar, remover; `display_name` é o nome que a empresa dá ao Contato (1–200 caracteres; `null` limpa), separado do `profile_name` que vem do canal
-- `conversations` — listar (filtros `channel` e `channel_account_id`), buscar, atualizar, responder, atribuições; leituras trazem `entry_point` (`ctwa`/`organic`/`null`), `referral` do último clique em anúncio Click-to-WhatsApp, `fep_expires_at` (fim da janela grátis informado pela Meta) e `fep_reply_by` (estimativa do prazo para responder)
+- `contacts` — listar, buscar, criar, atualizar, remover, **`listConsents`/`recordConsent`**; `display_name` é o nome que a empresa dá ao Contato (1–200 caracteres; `null` limpa), separado do `profile_name` que vem do canal
+- `conversations` — **`requestConsent`** e **`delete`**; listar (filtros `channel` e `channel_account_id`), buscar, atualizar, responder, atribuições; leituras trazem `entry_point` (`ctwa`/`organic`/`null`), `referral` do último clique em anúncio Click-to-WhatsApp, `fep_expires_at` (fim da janela grátis informado pela Meta) e `fep_reply_by` (estimativa do prazo para responder)
 - `webhooks` — CRUD e teste; `customer_id` opcional limita as entregas a um Cliente da Conta (`null` no update remove o filtro); `channel_account_ids` limita a alguns canais (`null` = todos) e `channels_health` traz a saúde por canal
 - `channelAccounts` — listar e buscar Contas de canal (WhatsApp e Instagram); **Regras de comentário** do Instagram (listar, buscar, criar, atualizar, excluir) e **Perguntas e menu** (ler, salvar/aplicar, remover, verificar/reaplicar)
 - `phoneNumbers` — listar, buscar, **atualizar o `label`** (nome local, até 100 caracteres; `null` limpa), remover, saúde
 - `media` — subir arquivo (obter um media_id) e **buscar metadados + URL de download** de uma mídia recebida
 - `events` — reler inbound e mudanças de status pelo cursor durável da Conta/ambiente
 - `usage` — `metaCosts`: custo aproximado da Meta por dia, categoria e moeda (Pricing Analytics), com estimativa por tarifa publicada onde a Meta não devolveu custo
-- `billing` — `get`: plano e slots adicionais; `slots.create` (compra, com `idempotencyKey`) e `slots.cancel` (slot vazio, sem reembolso). Só chave de API
+- `billing` — `get`: plano e slots adicionais; `slots.create` (compra, com `idempotencyKey`) e `slots.cancel` (slot vazio, sem reembolso); `guarantee` (garantia de 7 dias). Só chave de API
+- `exports` — `create`, `list`, `get` (exportação de dados da Conta; `exports:read`/`exports:write`)
+- `teamEvents` — `list`: registro de atividades da equipe, com filtros (`team:read`, só Administrador)
 - `me` — `get`: Conta, ambiente (`live` ou `sandbox`) e scopes efetivos da chave autenticada; não retorna a chave nem uma identidade pessoal
 - `users`, `apiLogs`, `webhookDeliveries` — leitura
 
