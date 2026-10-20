@@ -27,7 +27,6 @@ import type {
   AiAlert,
   AiBinding,
   AiBindingTarget,
-  AiBindingTargetInput,
   AiEnabledProvider,
   AiBudgetInput,
   AiCase,
@@ -53,7 +52,6 @@ import type {
   AiRevision,
   AiRouter,
   AiRouterConfig,
-  AiRouterConfigInput,
   AiScope,
   AiSkill,
   AiSkillInput,
@@ -291,9 +289,9 @@ export class AiProvidersResource {
   /** PUT /ai/providers */
   saveBinding(
     input: AiScope &
-      AiBindingTargetInput & {
+      AiBindingTarget & {
         purpose: AiConfigurablePurpose;
-        fallback?: AiBindingTargetInput | null;
+        fallback?: AiBindingTarget | null;
       },
   ): Promise<AiBinding> {
     return request(this.client, AI_OPERATIONS[17]!, input);
@@ -796,12 +794,12 @@ export class AiRoutersResource {
     return request(this.client, AI_OPERATIONS[66]!, input);
   }
   /** POST /ai/routers */
-  create(input: AiScope & { config: AiRouterConfigInput }): Promise<AiRouter> {
+  create(input: AiScope & { config: AiRouterConfig }): Promise<AiRouter> {
     return request(this.client, AI_OPERATIONS[67]!, input);
   }
   /** Edição de roteador ativo aplica imediatamente e invalida classificações da revisão anterior. */
   update(
-    input: AiRevision & { id: string } & { config: AiRouterConfigInput },
+    input: AiRevision & { id: string } & { config: AiRouterConfig },
   ): Promise<AiRouter> {
     return request(this.client, AI_OPERATIONS[68]!, input);
   }

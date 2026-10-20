@@ -27,8 +27,10 @@
   `teamEvents.list` com filtros (CLI `team-events list`; tool `list_team_events`).
   Plano: `guarantee` (garantia de 7 dias) em `billing.get`, no CLI e em `get_billing`.
   IA: o catálogo tem só `openai` e `anthropic`; as entradas do SDK
-  (`AiEnabledProvider`) e as tools `ai_*` do MCP aceitam só esses dois (outro provedor
-  responde 422 `provider_not_enabled`) e a leitura mantém os seis históricos.
+  (`AiEnabledProvider`; `AiAgentConfig`, `AiBindingTarget` e `AiRouterConfig` agora são
+  tipos de entrada) e as tools `ai_*` do MCP aceitam só esses dois (outro provedor
+  responde 422 `provider_not_enabled`); a leitura mantém os seis históricos
+  (`AiProvider`, `AiAgentConfigRead`, `AiBindingTargetRead`).
   Descrições: `delete_contact` diz que a recusa fica guardada como código cifrado e
   que a mídia é apagada; `send_message` (só no catálogo completo) explica
   `consent_revoked` e `not_connected`; sai o rótulo `data_use_ack_required` do

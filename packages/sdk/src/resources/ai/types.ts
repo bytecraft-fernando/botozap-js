@@ -63,16 +63,22 @@ export type AiScope = { customer_id: string };
 export type AiRevision = AiScope & { expected_revision: string };
 export type AiRecord = Record<string, unknown>;
 export type AiPage = AiScope & { page?: number; per_page?: number };
+/**
+ * Destino de um vínculo na ENTRADA (`providers.saveBinding`, classificador do
+ * roteador): só provedores do catálogo (`openai` e `anthropic`).
+ */
 export type AiBindingTarget = {
-  provider: AiProvider;
+  provider: AiEnabledProvider;
   model: string;
   credential_id: string;
 };
-/** Destino de um vínculo na ENTRADA (`providers.saveBinding`): só provedores do catálogo. */
-export type AiBindingTargetInput = AiBindingTarget & { provider: AiEnabledProvider };
-export type AiBinding = AiBindingTarget & {
+/** Destino de um vínculo como a leitura devolve: pode ser de um provedor descontinuado. */
+export type AiBindingTargetRead = Omit<AiBindingTarget, "provider"> & {
+  provider: AiProvider;
+};
+export type AiBinding = AiBindingTargetRead & {
   purpose: AiPurpose;
-  fallback: AiBindingTarget | null;
+  fallback: AiBindingTargetRead | null;
 };
 export type AiCredential = {
   id: string;
@@ -146,16 +152,21 @@ export type AiToolId =
   | "agenda.appointments.confirm"
   | "cases.note"
   | "cases.close";
+/**
+ * Configuração do agente na ENTRADA (`ai.agents.create` e `saveDraft`): o
+ * provedor só pode ser `openai` ou `anthropic`. A leitura devolve
+ * {@link AiAgentConfigRead}.
+ */
 export interface AiAgentConfig {
   system_prompt?: string;
-  provider?: AiProvider;
+  provider?: AiEnabledProvider;
   model?: string;
   credential_id?: string | null;
   channel_account_id?: string | null;
   tool_ids?: AiToolId[];
   operator?: {
     enabled?: boolean;
-    provider?: AiProvider | null;
+    provider?: AiEnabledProvider | null;
     model?: string | null;
     credential_id?: string | null;
     tool_ids?: AiToolId[];
@@ -222,17 +233,17 @@ export interface AiAgentConfig {
     instructions?: string;
   };
 }
-/** Configuração do agente na ENTRADA: o provedor só pode ser `openai` ou `anthropic`. */
-export type AiAgentConfigInput = Omit<AiAgentConfig, "provider" | "operator"> & {
-  provider?: AiEnabledProvider;
+/** Configuração do agente como a leitura devolve: versões antigas podem ter um provedor descontinuado. */
+export type AiAgentConfigRead = Omit<AiAgentConfig, "provider" | "operator"> & {
+  provider?: AiProvider;
   operator?: Omit<NonNullable<AiAgentConfig["operator"]>, "provider"> & {
-    provider?: AiEnabledProvider | null;
+    provider?: AiProvider | null;
   };
 };
 export type AiAgentInput = AiScope & {
   name: string;
   description?: string;
-  config?: AiAgentConfigInput;
+  config?: AiAgentConfig;
 };
 export type AiAgent = {
   id: string;
@@ -260,7 +271,7 @@ export type AiAgentVersion = {
   number: number;
   revision: string;
   status: "draft" | "published";
-  config: AiAgentConfig;
+  config: AiAgentConfigRead;
   created_at: string;
   published_at: string | null;
   created_by: string | null;
@@ -419,11 +430,9 @@ export type AiRouterConfig = {
     position?: number;
   }[];
 };
-/** Configuração do roteador na ENTRADA: o classificador só pode usar `openai` ou `anthropic`. */
-export type AiRouterConfigInput = Omit<AiRouterConfig, "classifier"> & {
-  classifier: AiBindingTargetInput;
-};
-export type AiRouter = AiRouterConfig & {
+export type AiRouter = Omit<AiRouterConfig, "classifier"> & {
+  /** O classificador de um roteador antigo pode ser de um provedor descontinuado. */
+  classifier: AiBindingTargetRead;
   id: string;
   revision: string;
   active: boolean;
