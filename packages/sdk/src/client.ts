@@ -30,6 +30,8 @@ import { Media } from "./resources/media.js";
 import { Events } from "./resources/events.js";
 import { Usage } from "./resources/usage.js";
 import { BillingResource } from "./resources/billing.js";
+import { Exports } from "./resources/exports.js";
+import { TeamEvents } from "./resources/team-events.js";
 import { Users, ApiLogs, WebhookDeliveries } from "./resources/read-only.js";
 import { MeResource } from "./resources/me.js";
 
@@ -90,6 +92,10 @@ export class BotoZap {
   readonly usage: Usage;
   /** Plano da Conta e slots adicionais (só chave de API). */
   readonly billing: BillingResource;
+  /** Exportação de dados da Conta (`/v1/exports`). */
+  readonly exports: Exports;
+  /** Registro de atividades da equipe (`/v1/team_events`, só Administrador). */
+  readonly teamEvents: TeamEvents;
   readonly users: Users;
   readonly apiLogs: ApiLogs;
   readonly webhookDeliveries: WebhookDeliveries;
@@ -138,6 +144,8 @@ export class BotoZap {
     this.events = new Events(this);
     this.usage = new Usage(this);
     this.billing = new BillingResource(this);
+    this.exports = new Exports(this);
+    this.teamEvents = new TeamEvents(this);
     this.users = new Users(this);
     this.apiLogs = new ApiLogs(this);
     this.webhookDeliveries = new WebhookDeliveries(this);

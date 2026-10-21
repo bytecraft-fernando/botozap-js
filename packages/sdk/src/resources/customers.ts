@@ -13,10 +13,28 @@ export interface CreateCustomerParams {
   [key: string]: unknown;
 }
 
-/** Campos editáveis de um cliente (`PATCH /v1/customers/:id`). */
+/**
+ * Campos editáveis de um cliente (`PATCH /v1/customers/:id`). Lista enviada
+ * substitui a anterior (`[]` limpa); campo ausente fica como está.
+ */
 export interface UpdateCustomerParams {
   name?: string;
   external_customer_id?: string;
+  /**
+   * Palavras de saída: o contato que as manda recusa mensagens (origem
+   * `keyword`). Não existe lista padrão. Até 40 palavras de até 40 caracteres,
+   * sem repetir entre saída e volta.
+   */
+  opt_out_keywords?: string[];
+  /**
+   * Palavras de volta: o contato que as manda volta a aceitar (origem
+   * `contact_keyword`). Mesmos limites de `opt_out_keywords`.
+   */
+  opt_in_keywords?: string[];
+  /** Texto enviado ao contato quando ele recusa (até 500 caracteres, não vazio). */
+  opt_out_confirmation?: string;
+  /** Texto enviado ao contato quando ele volta a aceitar (até 500 caracteres, não vazio). */
+  opt_in_confirmation?: string;
 }
 
 /**
@@ -114,7 +132,11 @@ export class Customers {
     });
   }
 
-  /** Atualiza `name` / `external_customer_id` de um cliente. */
+  /**
+   * Atualiza `name` / `external_customer_id` de um cliente e as Palavras de saída
+   * e de volta com os textos de confirmação. Palavra repetida entre saída e volta
+   * responde 422 `invalid_request`.
+   */
   update(id: string, params: UpdateCustomerParams): Promise<Customer> {
     return this.client.requestItem<Customer>("PATCH", `/customers/${enc(id)}`, {
       body: params,

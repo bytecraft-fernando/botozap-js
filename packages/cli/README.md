@@ -98,8 +98,8 @@ botozap messages list -o json | jq '.data[].id'
 
 ```
 botozap messages      send | send-media | send-interactive | send-location | react | list | get
-botozap conversations list | get | update
-botozap contacts      list | get | create | update | delete
+botozap conversations list | get | update | request-consent | delete
+botozap contacts      list | get | create | update | delete | consents | record-consent
 botozap media         ingest
 botozap customers     list | get | create | update | delete
 botozap setup-links   list | create | update      (--customer <id>)
@@ -109,13 +109,15 @@ botozap channel-accounts comment-ai get | set | runs   (Instagram)
 botozap channel-accounts comment-rules list | get | create | update | delete | metrics   (Instagram)
 botozap channel-accounts message-rules list | get | create | update | delete   (Instagram)
 botozap channel-accounts messenger-profile get | update | delete | sync   (Instagram)
-botozap templates     list | get | create
+botozap templates     list | get | create | update
 botozap webhooks      list | get | create | update | delete | test
 botozap deliveries    list                          (webhook_deliveries)
 botozap logs          list                          (api_logs)
 botozap users         list
 botozap usage         meta-costs                    (custo aproximado da Meta)
-botozap billing       (plano e slots) | slots create | slots cancel
+botozap billing       (plano, slots e garantia) | slots create | slots cancel
+botozap exports       create | list | get           (exportação de dados da Conta)
+botozap team-events   list                          (registro de atividades; só Administrador)
 botozap config        set | get | path
 botozap login
 botozap status
@@ -204,6 +206,27 @@ botozap conversations update <id> --status ended
 # Criar contato (display_name = nome dado pela empresa; o profile_name vem do canal)
 botozap contacts create --wa-id 5511999999999 --display-name "Maria (loja centro)"
 botozap contacts update <id> --clear-display-name
+
+# Consentimento. Pedido na conversa (botões no WhatsApp, respostas rápidas no
+# Instagram; só com a janela de 24h aberta: outside_window ou window_closed):
+botozap conversations request-consent <id> --purpose marketing
+# Consentimentos do contato (vigente e histórico) e registro de um novo (origem api).
+# Sobre uma recusa do contato: consent_opted_out (409), nada é gravado.
+botozap contacts consents <id>
+botozap contacts record-consent <id> --channel whatsapp --purpose marketing --state granted --evidence "site"
+# Palavras de saída/volta e textos de confirmação do Cliente (sem lista padrão):
+botozap customers update <id> --opt-out-keyword sair --opt-out-keyword parar \
+  --opt-in-keyword voltar --opt-out-confirmation "Pronto, sem mais mensagens."
+# Botões de resposta rápida do template que são de saída (o toque grava a recusa):
+botozap templates update <id> --opt-out-button "Sair"
+# Excluir conversa: SEM VOLTA (mensagens, notas, vínculos e mídia; o contato fica).
+# Só Administrador; pede confirmação (use --yes fora de um terminal).
+botozap conversations delete <id>
+
+# Exportação de dados (exports:read / exports:write) e registro de atividades (team:read)
+botozap exports create --customer-id <id> --format csv
+botozap exports get <exportId>
+botozap team-events list --action export.requested --since 2026-10-01
 
 # Ingerir mídia por URL (WhatsApp: sobe para a Meta pelo Número; não envia mensagem)
 botozap media ingest --phone-number-id <id> --source https://exemplo.com/foto.jpg

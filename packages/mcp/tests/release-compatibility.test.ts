@@ -56,6 +56,16 @@ function incompatibilities(previous: Schema, next: Schema, previousRoot: Schema,
   return issues;
 }
 
+/**
+ * Estreitamento INTENCIONAL (out/2026, botozap#787): o catálogo de IA tem só
+ * `openai` e `anthropic`. Os outros quatro provedores que o 0.6.0 aceitava na
+ * entrada (`google`, `openrouter`, `deepseek`, `xai`) já eram recusados pela API
+ * com 422 `provider_not_enabled`; a entrada do MCP agora os recusa antes. Só vale
+ * para as tools `ai_*` e só para campos de provedor; qualquer outro estreitamento
+ * continua falhando.
+ */
+const RETIRED_PROVIDER_NARROWING = /^ai_\w+ \$(?:\.\w+)*\.(?:provider: enum narrowed|provider: union branch \d+ no longer accepted|fallback: union branch \d+ no longer accepted)$/;
+
 describe("published @botozap/mcp@0.6.0 input compatibility", () => {
   it("keeps every published tool and accepts its input contract for full live access", async () => {
     expect(published.provenance).toMatchObject({ version: "0.6.0", sha256: "6906fefc8a822619c5131b0eb0938de3f94274886ca74a83480110d0a0ca96b7", apiCalls: 0 });
@@ -71,7 +81,7 @@ describe("published @botozap/mcp@0.6.0 input compatibility", () => {
         if (!next) issues.push(`${tool.name}: published tool missing`);
         else issues.push(...incompatibilities(tool.inputSchema, next.inputSchema, tool.inputSchema, next.inputSchema).map(issue => `${tool.name} ${issue}`));
       }
-      expect(issues).toEqual([]);
+      expect(issues.filter(issue => !RETIRED_PROVIDER_NARROWING.test(issue))).toEqual([]);
     } finally { await client.close(); await server.close(); }
   });
   it("executes all three legacy send tools without an idempotency key", async () => {

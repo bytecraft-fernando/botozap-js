@@ -99,6 +99,7 @@ try {
     "create_comment_rule",
     "create_message_rule",
     "delete_comment_rule",
+    "delete_conversation",
     "delete_instagram_messenger_profile",
     "delete_message_rule",
     "disconnect_instagram_connection",
@@ -113,15 +114,20 @@ try {
     "get_profile",
     "list_channel_accounts",
     "list_comment_rules",
+    "list_contact_consents",
     "list_instagram_comment_ai_runs",
     "list_message_rules",
+    "list_team_events",
     "prepare_send_intent",
+    "record_contact_consent",
+    "request_consent",
     "resubscribe_instagram_connection",
     "sync_instagram_messenger_profile",
     "update_comment_rule",
     "update_instagram_comment_ai",
     "update_instagram_messenger_profile",
     "update_message_rule",
+    "update_template",
   ]);
   assert.deepEqual(removed, []);
   assert.equal(tools.tools.length, oldNames.size + added.length);

@@ -45,6 +45,8 @@ export const fullAccessIdentity = {
   "team:read",
   "logs:read",
   "billing:read",
-  "billing:write"
+  "billing:write",
+  "exports:read",
+  "exports:write"
 ],
 };

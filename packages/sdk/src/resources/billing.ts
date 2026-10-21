@@ -34,6 +34,19 @@ export interface BusinessSlot {
   created_at: string;
 }
 
+/**
+ * Garantia de 7 dias: enquanto ela vale, cancelar devolve a primeira
+ * mensalidade integral.
+ */
+export interface BillingGuarantee {
+  /** Ciclo da assinatura: `monthly` ou `annual`. */
+  term: "monthly" | "annual";
+  /** Valor devolvido no cancelamento, em centavos. */
+  amount_cents: number;
+  /** Prazo final da garantia (ISO 8601). */
+  deadline: string;
+}
+
 /** Resposta de `GET /v1/billing`: plano da Conta e slots adicionais. */
 export interface Billing {
   plan: BillingPlan;
@@ -47,6 +60,12 @@ export interface Billing {
   can_add_slot: boolean;
   /** Slots ativos, dos mais antigos aos mais novos. */
   slots: BusinessSlot[];
+  /**
+   * Garantia de 7 dias: presente enquanto o cancelamento ainda devolve a
+   * primeira mensalidade integral; `null` quando não há direito. Ausente em
+   * servidores antigos.
+   */
+  guarantee?: BillingGuarantee | null | undefined;
 }
 
 /** Opções de {@link BillingSlots.create}. */

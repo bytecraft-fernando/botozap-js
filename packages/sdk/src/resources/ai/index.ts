@@ -27,6 +27,7 @@ import type {
   AiAlert,
   AiBinding,
   AiBindingTarget,
+  AiEnabledProvider,
   AiBudgetInput,
   AiCase,
   AiCredential,
@@ -240,9 +241,9 @@ export class AiCredentialsResource {
   get(input: AiScope & { id: string }): Promise<AiCredential> {
     return request(this.client, AI_OPERATIONS[11]!, input);
   }
-  /** Cria credencial própria no Vault; a resposta nunca contém a chave. Só `AI_CREDENTIAL_PROVIDERS` (openai/anthropic); os demais: 422 `provider_not_enabled`. */
+  /** Cria credencial própria no Vault; a resposta nunca contém a chave. Só `AI_CREDENTIAL_PROVIDERS` (openai/anthropic); os demais: 422 `provider_not_enabled`, o mesmo erro de reativar (`update` com `active: true`), trocar a chave, `revalidate` e vincular um provedor descontinuado. */
   create(
-    input: AiScope & { provider: AiProvider; label: string; key: string },
+    input: AiScope & { provider: AiEnabledProvider; label: string; key: string },
   ): Promise<AiCredential> {
     return request(this.client, AI_OPERATIONS[12]!, input);
   }
@@ -266,7 +267,12 @@ export class AiCredentialsResource {
 }
 export class AiProvidersResource {
   constructor(private readonly client: BotoZap) {}
-  /** GET /ai/providers */
+  /**
+   * GET /ai/providers. A lista `providers` traz só `openai` e `anthropic`;
+   * `credentials` e `bindings` podem trazer, desativados, os de provedores
+   * antigos. Salvar vínculo ou agente com provedor descontinuado: 422
+   * `provider_not_enabled`.
+   */
   get(input: AiScope): Promise<{
     providers: AiProviderInfo[];
     purposes: Record<string, string>;
@@ -298,7 +304,7 @@ export class AiProvidersResource {
   }
   /** GET /ai/providers/:provider/models */
   models(
-    input: AiScope & { provider: AiProvider; credential_id: string },
+    input: AiScope & { provider: AiEnabledProvider; credential_id: string },
   ): Promise<AiProviderModel[]> {
     return request(this.client, AI_OPERATIONS[19]!, input);
   }
@@ -1030,7 +1036,7 @@ export class AiUsageResource {
   /** Aplica tarifa própria a medições sem preço; não gera cobrança BotoZap. Exige confirmação. */
   reprice(
     input: AiScope & {
-      provider: AiProvider;
+      provider: AiEnabledProvider;
       model: string;
       expected_revision: number;
       confirm: true;

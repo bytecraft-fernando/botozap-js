@@ -10,7 +10,7 @@ import {
 export function registerBillingTools(register: Register): void {
   register(
     "get_billing",
-    "Mostra o plano da Conta e os slots adicionais. O plano pago inclui 1 negócio (included_businesses; null = sem limite) e cada negócio a mais ocupa um slot de R$ 47/mês, com assinatura própria. Para cada slot: Cliente que ocupa (customer_id null = slot vazio), se a fatura está paga, vencimento, link da fatura (invoice_url) e se o negócio está pausado (fatura vencida há mais de 7 dias; pagar libera na hora). can_add_slot diz se dá para comprar slot. Retorna { data }.",
+    "Mostra o plano da Conta e os slots adicionais. O plano pago inclui 1 negócio (included_businesses; null = sem limite) e cada negócio a mais ocupa um slot de R$ 47/mês, com assinatura própria. Para cada slot: Cliente que ocupa (customer_id null = slot vazio), se a fatura está paga, vencimento, link da fatura (invoice_url) e se o negócio está pausado (fatura vencida há mais de 7 dias; pagar libera na hora). can_add_slot diz se dá para comprar slot. `guarantee` mostra a garantia de 7 dias: enquanto vale, cancelar devolve a primeira mensalidade integral (ciclo, valor em centavos e prazo final); null quando não há direito. Retorna { data }.",
     {},
     billingResultSchema,
     async (client) => ({ data: await client.billing.get() }),

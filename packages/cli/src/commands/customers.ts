@@ -1,5 +1,6 @@
 import { Command } from "commander";
-import { context, toInt } from "./shared.js";
+import { collect, context, toInt } from "./shared.js";
+import type { UpdateCustomerParams } from "@botozap/sdk";
 import {
   printJson,
   printTable,
@@ -70,15 +71,35 @@ export function registerCustomers(program: Command): void {
     .description("Atualiza um cliente")
     .option("--name <nome>", "novo nome")
     .option("--external-customer-id <id>", "novo id externo")
+    .option("--opt-out-keyword <palavra>", "Palavra de saída (repetível; substitui a lista inteira)", collect)
+    .option("--clear-opt-out-keywords", "remove todas as Palavras de saída")
+    .option("--opt-in-keyword <palavra>", "Palavra de volta (repetível; substitui a lista inteira)", collect)
+    .option("--clear-opt-in-keywords", "remove todas as Palavras de volta")
+    .option("--opt-out-confirmation <texto>", "texto enviado ao contato que recusa (até 500 caracteres)")
+    .option("--opt-in-confirmation <texto>", "texto enviado ao contato que volta a aceitar (até 500 caracteres)")
     .action(async (id: string, opts, cmd: Command) => {
       const { client, format } = context(cmd);
-      const body: { name?: string; external_customer_id?: string } = {};
+      for (const [list, clear, flag] of [
+        [opts.optOutKeyword, opts.clearOptOutKeywords, "opt-out-keyword"],
+        [opts.optInKeyword, opts.clearOptInKeywords, "opt-in-keyword"],
+      ] as const) {
+        if (list && clear) throw new Error(`Use --${flag} OU --clear-${flag}s, não os dois.`);
+      }
+      const body: UpdateCustomerParams = {};
       if (opts.name !== undefined) body.name = opts.name;
       if (opts.externalCustomerId !== undefined) {
         body.external_customer_id = opts.externalCustomerId;
       }
+      if (opts.optOutKeyword) body.opt_out_keywords = opts.optOutKeyword;
+      if (opts.clearOptOutKeywords) body.opt_out_keywords = [];
+      if (opts.optInKeyword) body.opt_in_keywords = opts.optInKeyword;
+      if (opts.clearOptInKeywords) body.opt_in_keywords = [];
+      if (opts.optOutConfirmation !== undefined) body.opt_out_confirmation = opts.optOutConfirmation;
+      if (opts.optInConfirmation !== undefined) body.opt_in_confirmation = opts.optInConfirmation;
       if (Object.keys(body).length === 0) {
-        throw new Error("Informe ao menos --name ou --external-customer-id.");
+        throw new Error(
+          "Informe ao menos --name, --external-customer-id, --opt-out-keyword, --opt-in-keyword, --opt-out-confirmation ou --opt-in-confirmation.",
+        );
       }
       const data = await client.customers.update(id, body);
       if (format === "json") return printJson(data);

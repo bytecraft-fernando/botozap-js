@@ -1,8 +1,13 @@
 /** Schemas de saída compartilhados pelas tools MCP estruturadas. */
 import { z, type AnyZodObject } from "zod";
 import type {
+  AccountExport,
   ApiLog,
   Billing,
+  Consent,
+  ConsentRequestResult,
+  ContactConsents,
+  TeamEvent,
   BusinessSlot,
   ConnectionBilling,
   Contact,
@@ -258,6 +263,78 @@ export const listContactsResultSchema = cursorListResultSchemaFor(contactSchema)
 
 export const contactResultSchema = itemResultSchemaFor(contactSchema);
 
+const consentChannel = z.enum(["whatsapp", "instagram"]);
+const consentPurpose = z.enum(["marketing", "utility"]);
+
+/** Aviso de create_contact sobre um Consentimento inicial que não valeu. */
+export const contactWarningSchema = z
+  .object({
+    code: z
+      .string()
+      .describe("consent_opted_out (o contato já recusou; o aceite pedido não foi gravado) ou consent_unconfirmed (não deu para confirmar o consentimento vigente)."),
+    message: z.string(),
+    channel: consentChannel,
+    purpose: consentPurpose,
+  })
+  .strip();
+
+/** Contato recém-criado: o 201 pode trazer `warnings`. Só no catálogo completo. */
+export const createdContactResultSchema = itemResultSchemaFor(
+  contactSchema.extend({
+    warnings: z
+      .array(contactWarningSchema)
+      .optional()
+      .describe("Avisos por canal e finalidade sobre os consentimentos iniciais; ausente quando não há."),
+  }),
+);
+
+export const consentSchema = z
+  .object({
+    id: internalUuidSchema,
+    channel: consentChannel,
+    purpose: consentPurpose,
+    state: z.enum(["granted", "revoked"]).describe("granted = aceitou; revoked = recusou."),
+    origin: z
+      .string()
+      .describe("manual, import, api, keyword (Palavra de saída), conversation_button, contact_keyword (Palavra de volta), template_button (botão de saída do template) ou meta_opt_out (recusa informada pela Meta)."),
+    recorded_by: z.string().nullable(),
+    evidence: z.string(),
+    created_at: z.string(),
+  })
+  .strip() satisfies z.ZodType<Consent>;
+
+export const contactConsentsResultSchema = itemResultSchemaFor(
+  z
+    .object({
+      current: z.array(consentSchema).describe("O registro vigente por canal e finalidade."),
+      history: z.array(consentSchema).describe("Todos os registros, do mais novo ao mais antigo."),
+    })
+    .strip() satisfies z.ZodType<ContactConsents>,
+);
+
+export const recordConsentResultSchema = itemResultSchemaFor(consentSchema);
+
+export const consentRequestResultSchema = itemResultSchemaFor(
+  z
+    .object({
+      id: internalUuidSchema.nullable().describe("UUID interno da mensagem; null se a gravação falhou (veja warnings)."),
+      wamid: z.string().nullable().describe("ID da mensagem na Meta; null no Instagram."),
+      conversation_id: internalUuidSchema,
+      contact_id: internalUuidSchema,
+      channel: consentChannel.describe("Canal do envio."),
+      type: z.literal("interactive"),
+      status: z.literal("sent"),
+      sent_to: z.string(),
+      purposes: z.array(consentPurpose),
+      body: z.string().describe("Texto enviado."),
+      warnings: z
+        .array(z.object({ code: z.string(), message: z.string() }).strip())
+        .optional()
+        .describe("send_unrecorded = a Meta aceitou e o registro falhou: NÃO reenvie."),
+    })
+    .strip() satisfies z.ZodType<ConsentRequestResult>,
+);
+
 /** Resultado MCP explícito para APIs que concluíram com HTTP 204. */
 export const emptyOperationResultSchema = z
   .object({ success: z.literal(true) })
@@ -350,6 +427,16 @@ export const customerResultSchema = itemResultSchemaFor(customerSchema);
  */
 export const fullCustomerSchema = customerSchema
   .extend({
+    opt_out_keywords: z
+      .array(z.string())
+      .optional()
+      .describe("Palavras de saída: o contato que as manda recusa mensagens. Não há lista padrão; só valem as cadastradas."),
+    opt_in_keywords: z
+      .array(z.string())
+      .optional()
+      .describe("Palavras de volta: o contato que as manda volta a aceitar mensagens."),
+    opt_out_confirmation: z.string().optional().describe("Texto enviado ao contato que recusa."),
+    opt_in_confirmation: z.string().optional().describe("Texto enviado ao contato que volta a aceitar."),
     plan_suspended: z
       .boolean()
       .optional()
@@ -661,6 +748,23 @@ export const listTemplatesResultSchema = offsetListResultSchemaFor(templateSchem
 
 export const templateResultSchema = itemResultSchemaFor(templateSchema);
 
+/**
+ * Template no catálogo completo: acrescenta `opt_out_buttons`. O perfil
+ * assistant segue com {@link templateSchema} (ver `catalog-profile.ts`).
+ */
+export const fullTemplateSchema = templateSchema
+  .extend({
+    opt_out_buttons: z
+      .array(z.string())
+      .optional()
+      .describe("Textos dos botões de resposta rápida marcados como de saída: o toque grava a recusa da finalidade do template. [] quando não há."),
+  })
+  .strip() satisfies z.ZodType<Template>;
+
+export const listFullTemplatesResultSchema = offsetListResultSchemaFor(fullTemplateSchema);
+
+export const fullTemplateResultSchema = itemResultSchemaFor(fullTemplateSchema);
+
 const metaCostGroupShape = {
   currency: z.string().nullable().describe("Moeda da WABA; moedas nunca são somadas nem convertidas."),
   volume: z.number().nonnegative(),
@@ -764,10 +868,94 @@ export const billingSchema = z
       .boolean()
       .describe("Dá para comprar slot (plano pago com cadastro de cobrança)."),
     slots: z.array(businessSlotSchema).describe("Slots ativos, dos mais antigos aos mais novos."),
+    guarantee: z
+      .object({
+        term: z.enum(["monthly", "annual"]).describe("Ciclo da assinatura."),
+        amount_cents: z.number().int().describe("Valor devolvido no cancelamento, em centavos."),
+        deadline: z.string().describe("Prazo final da garantia (ISO 8601)."),
+      })
+      .strip()
+      .nullable()
+      .optional()
+      .describe("Garantia de 7 dias: presente enquanto cancelar ainda devolve a primeira mensalidade integral; null quando não há direito."),
   })
   .strip() satisfies z.ZodType<Billing>;
 
 export const billingResultSchema = itemResultSchemaFor(billingSchema);
+
+export const accountExportSchema = z
+  .object({
+    id: internalUuidSchema,
+    status: z.string().describe("pending (na fila), processing, ready (pronto), failed ou expired (passou os 7 dias)."),
+    format: z.enum(["json", "csv"]),
+    scope: z.discriminatedUnion("type", [
+      z
+        .object({
+          type: z.literal("account"),
+          customer_id: z.null(),
+          customer_name: z.null(),
+        })
+        .strip(),
+      z
+        .object({
+          type: z.literal("customer"),
+          customer_id: z.string(),
+          customer_name: z.string().nullable(),
+        })
+        .strip(),
+    ]),
+    requested_by: z.string(),
+    requested_via: z.string().describe("painel ou api."),
+    created_at: z.string(),
+    finished_at: z.string().nullable(),
+    expires_at: z.string().nullable().describe("Quando o arquivo é apagado (7 dias depois de pronto)."),
+    size_bytes: z.number().nullable(),
+    counts: z.record(z.string(), z.number()).nullable().describe("Registros por tipo; null antes de pronto."),
+    error: z.object({ code: z.string(), message: z.string() }).strip().nullable(),
+    download: z
+      .object({
+        url: z.string().describe("Link assinado do zip."),
+        expires_in: z.number().describe("Validade do link em segundos (poucos minutos)."),
+      })
+      .strip()
+      .nullable()
+      .describe("Só em get_export, com o pedido pronto e dentro do prazo."),
+  })
+  .strip() satisfies z.ZodType<AccountExport>;
+
+export const exportResultSchema = itemResultSchemaFor(accountExportSchema);
+
+export const listExportsResultSchema = itemResultSchemaFor(z.array(accountExportSchema));
+
+export const teamEventSchema = z
+  .object({
+    id: internalUuidSchema,
+    created_at: z.string(),
+    actor: z
+      .object({
+        type: z.string().describe("user, api_key ou system."),
+        user_id: z.string().nullable(),
+        api_key_id: z.string().nullable(),
+        label: z.string().nullable(),
+      })
+      .strip(),
+    action: z.string().describe("Código da ação, por exemplo export.requested."),
+    action_label: z.string(),
+    target: z
+      .object({
+        type: z.string().nullable(),
+        type_label: z.string().nullable(),
+        id: z.string().nullable(),
+        label: z.string().nullable(),
+      })
+      .strip(),
+    before: jsonValueSchema.nullable(),
+    after: jsonValueSchema.nullable(),
+    ip_address: z.string().nullable(),
+  })
+  .strip() satisfies z.ZodType<TeamEvent>;
+
+export const listTeamEventsResultSchema = cursorListResultSchemaFor(teamEventSchema);
 
 /** Conta de canal pública (GET /v1/channel_accounts): Número ou Conta do Instagram. */
 export const channelAccountSchema = z

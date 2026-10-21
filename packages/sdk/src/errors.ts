@@ -44,8 +44,22 @@ export class BotoZapError extends Error {
  * Agenda, Calendário, Jornadas, Regras de mensagem do Direct e Perguntas e menu
  * fora do plano), `free_number_cap` (402, setup além do teto de Números do Free
  * ou envio por um Número suspenso no Free), `free_cap` (402, criar o 2º Cliente
- * no Free ou enviar por um Cliente suspenso no Free). IA: `provider_not_enabled` (422, credencial
- * nova de provedor com `accepts_new_credentials: false`). Cobrança:
+ * no Free ou enviar por um Cliente suspenso no Free). Consentimento:
+ * `consent_opted_out` (409, registrar aceite sobre uma recusa do contato; nada é
+ * gravado), `consent_revoked` (422, envio de template de marketing a quem
+ * recusou, também quando a recusa foi por outro número da Conta; `consent_basis`
+ * não desfaz); só o próprio contato volta a aceitar. Pedido de consentimento
+ * (`conversations.requestConsent`): `outside_window` (WhatsApp) e `window_closed`
+ * (Instagram) com a janela de 24h fechada, `channel_not_supported`. IA:
+ * `provider_not_enabled` (422, provedor descontinuado: o catálogo aceita só
+ * `openai` e `anthropic`; vale na credencial nova, ao ativar ou trocar a chave,
+ * revalidar, nos vínculos de provedor e ao salvar agente com provedor
+ * descontinuado). Conexão: `not_connected` (409, número desconectado ou sem
+ * token no envio, na mídia, no pedido de consentimento, em transmissão e ao criar template). Acesso:
+ * `ip_not_allowed` (403, chave com lista de IPs autorizados e chamada de outro
+ * IP), `admin_required` (403, registro de atividades só para Administrador),
+ * `gone` (410, rota removida; nenhuma ação é necessária, como as de
+ * data-use da IA). Cobrança:
  * `business_payment_required` (402 no envio: o negócio está pausado porque a
  * fatura do slot venceu há mais de 7 dias; pague e envie de novo),
  * `plan_required` (402, comprar slot no Free ou teste), `slot_limit` (402, já há
@@ -67,6 +81,15 @@ export type BotoZapErrorCode =
   | "free_cap"
   | "feature_unavailable"
   | "provider_not_enabled"
+  | "consent_opted_out"
+  | "consent_revoked"
+  | "outside_window"
+  | "window_closed"
+  | "channel_not_supported"
+  | "not_connected"
+  | "ip_not_allowed"
+  | "admin_required"
+  | "gone"
   | "business_payment_required"
   | "plan_required"
   | "slot_limit"
@@ -122,4 +145,33 @@ export function isFreeCap(error: unknown): error is BotoZapError {
  */
 export function isFreeNumberCap(error: unknown): error is BotoZapError {
   return error instanceof BotoZapError && error.code === "free_number_cap";
+}
+
+/**
+ * True quando a API recusou registrar um aceite porque o contato recusou
+ * mensagens (409 `consent_opted_out`, em `contacts.recordConsent`). Nada foi
+ * gravado e repetir não adianta: só o próprio contato volta a aceitar (botão do
+ * pedido de consentimento ou Palavra de volta cadastrada pelo Cliente).
+ */
+export function isConsentOptedOut(error: unknown): error is BotoZapError {
+  return error instanceof BotoZapError && error.code === "consent_opted_out";
+}
+
+/**
+ * True quando o envio de um template de marketing foi recusado porque o
+ * contato recusou marketing (422 `consent_revoked`), sem enviar. Vale também
+ * para quem recusou por outro número da mesma Conta. `consent_basis` não desfaz
+ * a recusa; só o contato volta a aceitar.
+ */
+export function isConsentRevoked(error: unknown): error is BotoZapError {
+  return error instanceof BotoZapError && error.code === "consent_revoked";
+}
+
+/**
+ * True quando a API recusou porque o número está desconectado ou sem token de
+ * acesso (409 `not_connected`): envio, mídia, pedido de consentimento, transmissão ou template.
+ * Reconecte o número em Canais; repetir antes disso não adianta.
+ */
+export function isNotConnected(error: unknown): error is BotoZapError {
+  return error instanceof BotoZapError && error.code === "not_connected";
 }

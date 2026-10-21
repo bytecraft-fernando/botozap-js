@@ -52,11 +52,33 @@ export function registerCustomerTools(register: Register): void {
 
   register(
     "update_customer",
-    "Atualiza um cliente (name, external_customer_id). Retorna { data }.",
+    "Atualiza um cliente: name, external_customer_id e as regras de recusa e volta do contato. `opt_out_keywords` (Palavras de saída) fazem o contato recusar mensagens quando ele as manda; `opt_in_keywords` (Palavras de volta) fazem o contato voltar a aceitar; `opt_out_confirmation` e `opt_in_confirmation` são os textos que ele recebe. Não existe lista padrão: só valem as palavras cadastradas. Lista enviada substitui a anterior ([] limpa) e campo ausente fica como está; a mesma palavra não pode estar nas duas listas (invalid_request). Retorna { data }.",
     {
       id: z.string().describe("ID do cliente (uuid interno)."),
       name: z.string().optional(),
       external_customer_id: z.string().optional(),
+      opt_out_keywords: z
+        .array(z.string())
+        .max(40)
+        .optional()
+        .describe("Palavras de saída (até 40, de até 40 caracteres cada); [] limpa."),
+      opt_in_keywords: z
+        .array(z.string())
+        .max(40)
+        .optional()
+        .describe("Palavras de volta (até 40, de até 40 caracteres cada); [] limpa."),
+      opt_out_confirmation: z
+        .string()
+        .min(1)
+        .max(500)
+        .optional()
+        .describe("Texto enviado ao contato que recusa (até 500 caracteres)."),
+      opt_in_confirmation: z
+        .string()
+        .min(1)
+        .max(500)
+        .optional()
+        .describe("Texto enviado ao contato que volta a aceitar (até 500 caracteres)."),
     },
     fullCustomerResultSchema,
     async (client, args) => {

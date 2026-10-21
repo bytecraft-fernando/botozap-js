@@ -4,6 +4,8 @@ import { BotoZapError } from "../errors.js";
 import type {
   Assignment,
   Conversation,
+  ConsentPurpose,
+  ConsentRequestResult,
   CursorList,
   CursorParams,
   OffsetList,
@@ -48,6 +50,14 @@ export interface ReplyConversationParams {
   text: string;
   /** Opções de resposta (só em Conversas do Instagram; ver `messages.send`). */
   quick_replies?: QuickReply[];
+}
+
+/** Corpo opcional de `conversations.requestConsent`. */
+export interface RequestConsentParams {
+  /** Finalidades pedidas ao contato (lista não vazia). Padrão: `["marketing"]`. */
+  purposes?: ConsentPurpose[];
+  /** Texto do pedido (até 1024 caracteres). Padrão: o texto padrão do BotoZap. */
+  body?: string;
 }
 
 /** Conversas (read + status) e atribuições a membros. */
@@ -150,6 +160,44 @@ export class Conversations {
       },
       options,
     );
+  }
+
+  /**
+   * Envia o pedido de consentimento na conversa (o "Pedir consentimento" do
+   * composer): botões no WhatsApp, respostas rápidas no Instagram. Só com a
+   * janela de 24h aberta, e sai também para quem recusou marketing: é o caminho
+   * de volta. O toque do contato grava o aceite (origem `conversation_button`).
+   * Scope `messages:send`. Responde 201 com o `channel` do envio; `warnings` com
+   * `send_unrecorded` significa que a Meta aceitou e a gravação falhou: não
+   * reenvie, o pedido já saiu.
+   *
+   * Recusas: `outside_window` (WhatsApp) ou `window_closed` (Instagram) com a
+   * janela fechada, `channel_not_supported` (canal sem botões), `no_phone`,
+   * `not_connected` (número desconectado ou sem token), `invalid_recipient`.
+   * Não há chave de idempotência: não repita um pedido de resultado incerto sem
+   * conferir o histórico da conversa.
+   */
+  requestConsent(
+    id: string,
+    params: RequestConsentParams = {},
+  ): Promise<ConsentRequestResult> {
+    return this.client.requestItem<ConsentRequestResult>(
+      "POST",
+      `/conversations/${enc(id)}/consent-request`,
+      { body: params },
+    );
+  }
+
+  /**
+   * Exclui a conversa, com efeito imediato e sem volta: mensagens, notas,
+   * atribuições, vínculos com oportunidades e demandas e o que a IA guardou
+   * dela saem juntos, e os arquivos de mídia são apagados. O contato fica, com a
+   * recusa e o consentimento. Só Administrador (por OAuth, papel de
+   * administrador). Responde 204; id inexistente, de outra Conta ou já excluído
+   * é 404. Scope `conversations:write`.
+   */
+  delete(id: string): Promise<void> {
+    return this.client.request<void>("DELETE", `/conversations/${enc(id)}`);
   }
 
   update(id: string, params: Record<string, unknown>): Promise<Conversation> {

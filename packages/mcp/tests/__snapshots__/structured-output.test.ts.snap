@@ -117,6 +117,13 @@ exports[`MCP — output schemas e structured content > anuncia schemas não vazi
             "name": {
               "type": "string",
             },
+            "opt_out_buttons": {
+              "description": "Textos dos botões de resposta rápida marcados como de saída: o toque grava a recusa da finalidade do template. [] quando não há.",
+              "items": {
+                "type": "string",
+              },
+              "type": "array",
+            },
             "rejection_reason": {
               "type": [
                 "string",
@@ -710,6 +717,13 @@ exports[`MCP — output schemas e structured content > anuncia schemas não vazi
             },
             "name": {
               "type": "string",
+            },
+            "opt_out_buttons": {
+              "description": "Textos dos botões de resposta rápida marcados como de saída: o toque grava a recusa da finalidade do template. [] quando não há.",
+              "items": {
+                "type": "string",
+              },
+              "type": "array",
             },
             "rejection_reason": {
               "type": [
@@ -1450,6 +1464,13 @@ exports[`MCP — output schemas e structured content > anuncia schemas não vazi
               },
               "name": {
                 "type": "string",
+              },
+              "opt_out_buttons": {
+                "description": "Textos dos botões de resposta rápida marcados como de saída: o toque grava a recusa da finalidade do template. [] quando não há.",
+                "items": {
+                  "type": "string",
+                },
+                "type": "array",
               },
               "rejection_reason": {
                 "type": [

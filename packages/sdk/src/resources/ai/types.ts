@@ -1,10 +1,26 @@
 /** Public /api/v1/ai contracts. Revisions are opaque strings unless the endpoint explicitly uses a number. */
-export type AiProvider =
-  "anthropic" | "openai" | "google" | "openrouter" | "deepseek" | "xai";
-/** Provedores que aceitam credencial NOVA hoje; os demais respondem 422 `provider_not_enabled`. */
+/**
+ * Provedores do catálogo de IA hoje: só `openai` e `anthropic`. É o que as
+ * entradas aceitam (credencial, vínculo, modelos, tarifa, agente); qualquer outro
+ * responde 422 `provider_not_enabled`.
+ */
 export const AI_CREDENTIAL_PROVIDERS = ["openai", "anthropic"] as const;
+export type AiEnabledProvider = (typeof AI_CREDENTIAL_PROVIDERS)[number];
+/**
+ * Provedor como a leitura devolve. Além dos do catálogo, mantém os seis
+ * históricos porque credenciais, vínculos e agentes antigos podem continuar
+ * guardados com um provedor descontinuado (`google`, `openrouter`, `deepseek`,
+ * `xai`), desativados. Para ENTRADA use {@link AiEnabledProvider}.
+ */
+export type AiProvider =
+  | AiEnabledProvider
+  | "google"
+  | "openrouter"
+  | "deepseek"
+  | "xai";
 /** Item de `ai.providers.get().providers`. */
 export type AiProviderInfo = {
+  /** `GET /ai/providers` lista só os provedores do catálogo (`openai` e `anthropic`). */
   id: AiProvider;
   label: string;
   key_url: string | null;
@@ -47,14 +63,22 @@ export type AiScope = { customer_id: string };
 export type AiRevision = AiScope & { expected_revision: string };
 export type AiRecord = Record<string, unknown>;
 export type AiPage = AiScope & { page?: number; per_page?: number };
+/**
+ * Destino de um vínculo na ENTRADA (`providers.saveBinding`, classificador do
+ * roteador): só provedores do catálogo (`openai` e `anthropic`).
+ */
 export type AiBindingTarget = {
-  provider: AiProvider;
+  provider: AiEnabledProvider;
   model: string;
   credential_id: string;
 };
-export type AiBinding = AiBindingTarget & {
+/** Destino de um vínculo como a leitura devolve: pode ser de um provedor descontinuado. */
+export type AiBindingTargetRead = Omit<AiBindingTarget, "provider"> & {
+  provider: AiProvider;
+};
+export type AiBinding = AiBindingTargetRead & {
   purpose: AiPurpose;
-  fallback: AiBindingTarget | null;
+  fallback: AiBindingTargetRead | null;
 };
 export type AiCredential = {
   id: string;
@@ -128,16 +152,21 @@ export type AiToolId =
   | "agenda.appointments.confirm"
   | "cases.note"
   | "cases.close";
+/**
+ * Configuração do agente na ENTRADA (`ai.agents.create` e `saveDraft`): o
+ * provedor só pode ser `openai` ou `anthropic`. A leitura devolve
+ * {@link AiAgentConfigRead}.
+ */
 export interface AiAgentConfig {
   system_prompt?: string;
-  provider?: AiProvider;
+  provider?: AiEnabledProvider;
   model?: string;
   credential_id?: string | null;
   channel_account_id?: string | null;
   tool_ids?: AiToolId[];
   operator?: {
     enabled?: boolean;
-    provider?: AiProvider | null;
+    provider?: AiEnabledProvider | null;
     model?: string | null;
     credential_id?: string | null;
     tool_ids?: AiToolId[];
@@ -204,6 +233,13 @@ export interface AiAgentConfig {
     instructions?: string;
   };
 }
+/** Configuração do agente como a leitura devolve: versões antigas podem ter um provedor descontinuado. */
+export type AiAgentConfigRead = Omit<AiAgentConfig, "provider" | "operator"> & {
+  provider?: AiProvider;
+  operator?: Omit<NonNullable<AiAgentConfig["operator"]>, "provider"> & {
+    provider?: AiProvider | null;
+  };
+};
 export type AiAgentInput = AiScope & {
   name: string;
   description?: string;
@@ -235,7 +271,7 @@ export type AiAgentVersion = {
   number: number;
   revision: string;
   status: "draft" | "published";
-  config: AiAgentConfig;
+  config: AiAgentConfigRead;
   created_at: string;
   published_at: string | null;
   created_by: string | null;
@@ -394,7 +430,9 @@ export type AiRouterConfig = {
     position?: number;
   }[];
 };
-export type AiRouter = AiRouterConfig & {
+export type AiRouter = Omit<AiRouterConfig, "classifier"> & {
+  /** O classificador de um roteador antigo pode ser de um provedor descontinuado. */
+  classifier: AiBindingTargetRead;
   id: string;
   revision: string;
   active: boolean;
@@ -591,7 +629,7 @@ export type AiAudioPricing =
     }
   | { unit: "duration"; usd_per_minute: number };
 export type AiRateInput = AiScope & {
-  provider: AiProvider;
+  provider: AiEnabledProvider;
   model: string;
   input_usd_per_million: number;
   output_usd_per_million: number;
@@ -754,8 +792,10 @@ export type AiBudget = Omit<
 > & { revision: number; updated_at: string | null };
 export type AiRate = Omit<
   AiRateInput,
-  "customer_id" | "expected_revision" | "audio_pricing"
+  "customer_id" | "expected_revision" | "audio_pricing" | "provider"
 > & {
+  /** Tarifas antigas podem ser de um provedor descontinuado. */
+  provider: AiProvider;
   audio_pricing: AiAudioPricing | null;
   revision: number;
   updated_at: string;

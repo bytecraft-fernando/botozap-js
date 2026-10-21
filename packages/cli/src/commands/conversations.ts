@@ -1,5 +1,5 @@
 import { Command, Option } from "commander";
-import { context, toInt } from "./shared.js";
+import { collect, confirmDestructive, context, toInt } from "./shared.js";
 import {
   printJson,
   printTable,
@@ -73,5 +73,56 @@ export function registerConversations(program: Command): void {
       if (format === "json") return printJson(data);
       printLine("Conversa atualizada.");
       printDetail(data as Record<string, unknown>);
+    });
+
+  conv
+    .command("request-consent <id>")
+    .description(
+      "Envia o pedido de consentimento na conversa (botões no WhatsApp, respostas rápidas no Instagram). " +
+        "Só com a janela de 24h aberta (outside_window no WhatsApp, window_closed no Instagram). " +
+        "Sai também para quem recusou marketing. Não repita um pedido de resultado incerto sem conferir a conversa",
+    )
+    .option(
+      "--purpose <finalidade>",
+      "marketing | utility (repetível; padrão: marketing)",
+      collect,
+    )
+    .option("--body <texto>", "texto do pedido (até 1024 caracteres; padrão: texto do BotoZap)")
+    .action(async (id: string, opts, cmd: Command) => {
+      const { client, format } = context(cmd);
+      const purposes = opts.purpose as string[] | undefined;
+      for (const purpose of purposes ?? []) {
+        if (purpose !== "marketing" && purpose !== "utility") {
+          throw new Error("--purpose deve ser marketing ou utility.");
+        }
+      }
+      const data = await client.conversations.requestConsent(id, {
+        ...(purposes ? { purposes: purposes as ("marketing" | "utility")[] } : {}),
+        ...(opts.body !== undefined ? { body: opts.body } : {}),
+      });
+      if (format === "json") return printJson(data);
+      printLine(`Pedido de consentimento enviado pelo ${data.channel === "instagram" ? "Instagram" : "WhatsApp"}.`);
+      printDetail(data as unknown as Record<string, unknown>);
+      for (const warning of data.warnings ?? []) {
+        printLine(`Aviso [${warning.code}]: ${warning.message}`);
+      }
+    });
+
+  conv
+    .command("delete <id>")
+    .description(
+      "Exclui a conversa SEM VOLTA: mensagens, notas, atribuições, vínculos com CRM e o que a IA guardou dela, " +
+        "e apaga a mídia. O contato fica, com a recusa e o consentimento. Só Administrador",
+    )
+    .option("--yes", "confirma sem perguntar (obrigatório fora de um terminal)")
+    .action(async (id: string, opts, cmd: Command) => {
+      const { client, format } = context(cmd);
+      await confirmDestructive(
+        `Isto exclui a conversa ${id} e as mensagens dela para sempre.`,
+        opts.yes as boolean | undefined,
+      );
+      await client.conversations.delete(id);
+      if (format === "json") return printJson({ deleted: true });
+      printLine("Conversa excluída.");
     });
 }

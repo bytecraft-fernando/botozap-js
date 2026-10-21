@@ -1,11 +1,14 @@
 /** Ferramentas de contatos (end users do WhatsApp): CRUD. */
 import { z } from "zod";
-import type { ListContactsParams, CreateContactParams } from "@botozap/sdk";
+import type { ListContactsParams, CreateContactParams, RecordConsentParams } from "@botozap/sdk";
 import { emptyOperationResult, type Register } from "../register.js";
 import {
+  contactConsentsResultSchema,
   contactResultSchema,
+  createdContactResultSchema,
   emptyOperationResultSchema,
   listContactsResultSchema,
+  recordConsentResultSchema,
 } from "../schemas.js";
 
 /** Limites finais (20 × 40) são validados pelo servidor após aparar e remover repetidas. */
@@ -52,7 +55,7 @@ export function registerContactTools(register: Register): void {
 
   register(
     "create_contact",
-    "Cria um contato. O contato é sempre atado a um número e único por (número, wa_id). `wa_id` (BSUID ou E.164) é a chave canônica. Informe `phone_number_id` (ID Meta) ou `customer_id` para resolver o número.",
+    "Cria um contato. O contato é sempre atado a um número e único por (número, wa_id). `wa_id` (BSUID ou E.164) é a chave canônica. Informe `phone_number_id` (ID Meta) ou `customer_id` para resolver o número. Recriar um contato que já recusou mensagens devolve 201 com `warnings` (consent_opted_out por canal e finalidade): ele nasce como Recusou e o aceite pedido não vale. Retorna { data } com `warnings` quando houver.",
     {
       wa_id: z.string().describe("Identidade canônica: BSUID (BR.1A2B...) ou dígitos E.164."),
       phone_number_id: z.string().optional().describe("phone_number_id (Meta) ao qual atar."),
@@ -67,7 +70,7 @@ export function registerContactTools(register: Register): void {
         "Até 20 tags de 1–40 caracteres; repetidas (sem diferenciar maiúsculas) são removidas.",
       ),
     },
-    contactResultSchema,
+    createdContactResultSchema,
     async (client, args) => ({
       data: await client.contacts.create(args as CreateContactParams),
     }),
@@ -94,7 +97,7 @@ export function registerContactTools(register: Register): void {
 
   register(
     "delete_contact",
-    "Apaga o contato e os dados relacionados em cascata, incluindo conversas, mensagens/eventos, registros de CRM, compromissos e consentimentos. Selecione pelo UUID interno ou identidade WhatsApp (wa_id/telefone E.164); prefira o UUID para evitar atingir um registro ambíguo.",
+    "Apaga o contato e os dados relacionados em cascata, incluindo conversas, mensagens/eventos, registros de CRM, compromissos e consentimentos, e apaga a mídia dele. A recusa não se perde: se o contato recusou mensagens, ela fica guardada como código cifrado (hash) na lista de recusa da Conta e vale se ele voltar, que nasce como Recusou. Ação destrutiva e irreversível. Selecione pelo UUID interno ou identidade WhatsApp (wa_id/telefone E.164); prefira o UUID para evitar atingir um registro ambíguo.",
     { id: z.string().describe("UUID interno do contato ou wa_id/telefone E.164.") },
     emptyOperationResultSchema,
     async (client, args) => {
@@ -102,6 +105,31 @@ export function registerContactTools(register: Register): void {
       // legado (JSON.stringify(null) === "null").
       await client.contacts.delete(String(args.id));
       return emptyOperationResult();
+    },
+  );
+
+  register(
+    "list_contact_consents",
+    "Consentimentos de um contato: `current` (o vigente por canal e finalidade) e `history` (todos, do mais novo ao mais antigo). Cada registro traz channel, purpose (marketing ou utility), state (granted ou revoked) e origin (manual, import, api, keyword = Palavra de saída, conversation_button = botão do pedido de consentimento, contact_keyword = Palavra de volta, template_button = botão de saída do template, meta_opt_out = recusa informada pela Meta). Retorna { data }.",
+    { id: z.string().describe("UUID interno do contato.") },
+    contactConsentsResultSchema,
+    async (client, args) => ({ data: await client.contacts.listConsents(String(args.id)) }),
+  );
+
+  register(
+    "record_contact_consent",
+    "Registra um consentimento do contato (origem api), por canal e finalidade. Para registrar a recusa use state='revoked'. Só registre o que o contato de fato declarou. Sobre uma recusa do próprio contato responde consent_opted_out (409) e nada é gravado: só ele volta a aceitar (botão do pedido de consentimento, ver request_consent, ou Palavra de volta). Exige scope contacts:write. Retorna { data } com o registro.",
+    {
+      id: z.string().describe("UUID interno do contato."),
+      channel: z.enum(["whatsapp", "instagram"]).describe("Canal do consentimento."),
+      purpose: z.enum(["marketing", "utility"]).describe("Finalidade: marketing (promoções) ou utility (avisos e serviço)."),
+      state: z.enum(["granted", "revoked"]).describe("granted = aceitou; revoked = recusou."),
+      evidence: z.string().max(500).optional().describe("Evidência em texto livre (até 500 caracteres)."),
+    },
+    recordConsentResultSchema,
+    async (client, args) => {
+      const { id, ...body } = args;
+      return { data: await client.contacts.recordConsent(String(id), body as unknown as RecordConsentParams) };
     },
   );
 }

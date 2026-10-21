@@ -29,6 +29,7 @@ import { registerWebhookTools } from "./tools/webhooks.js";
 import { registerMiscTools } from "./tools/misc.js";
 import { registerUsageTools } from "./tools/usage.js";
 import { registerBillingTools } from "./tools/billing.js";
+import { registerExportTools } from "./tools/exports.js";
 import {
   registerEventResources,
   type EventSignalSource,
@@ -165,6 +166,7 @@ export async function buildServer(
   registerMiscTools(register);
   registerUsageTools(register);
   registerBillingTools(register);
+  registerExportTools(register);
   if (options.uiEnabled) registerReviewPanel(server, register);
   // Sem UI, get_channel_account segue disponível no catálogo completo.
   else registerGetChannelAccount(register);

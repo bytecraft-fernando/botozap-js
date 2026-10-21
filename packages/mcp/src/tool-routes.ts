@@ -47,6 +47,15 @@ routes(["get_meta_costs"], "GET /v1/usage/meta-costs");
 routes(["get_billing"], "GET /v1/billing");
 routes(["create_business_slot"], "POST /v1/billing/slots");
 routes(["cancel_business_slot"], "DELETE /v1/billing/slots/:id");
+routes(["create_export"], "POST /v1/exports");
+routes(["list_exports"], "GET /v1/exports");
+routes(["get_export"], "GET /v1/exports/:id");
+routes(["list_team_events"], "GET /v1/team_events");
+routes(["request_consent"], "POST /v1/conversations/:id/consent-request");
+routes(["delete_conversation"], "DELETE /v1/conversations/:id");
+routes(["list_contact_consents"], "GET /v1/contacts/:id/consents");
+routes(["record_contact_consent"], "POST /v1/contacts/:id/consents");
+routes(["update_template"], "PATCH /v1/templates/:id");
 routes(["ingest_media"], "POST /v1/media");
 for (const [plural, singular] of [["contact-stages", "contact_stage"], ["contact-fields", "contact_field"], ["saved-replies", "saved_reply"]] as const) {
   const list = plural === "saved-replies" ? "saved_replies" : plural.replaceAll("-", "_");

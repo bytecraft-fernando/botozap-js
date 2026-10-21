@@ -7,6 +7,9 @@ export {
   isBusinessPaymentRequired,
   isFreeCap,
   isFreeNumberCap,
+  isConsentOptedOut,
+  isConsentRevoked,
+  isNotConnected,
 } from "./errors.js";
 export type { SendFailureDetails, BotoZapErrorCode } from "./errors.js";
 export { WEBHOOK_CATEGORIES } from "./types.js";
@@ -47,6 +50,7 @@ export type {
   Template,
   ListTemplatesParams,
   CreateTemplateParams,
+  UpdateTemplateParams,
 } from "./resources/templates.js";
 export type {
   ListBroadcastsParams,
@@ -62,11 +66,14 @@ export type {
   ListContactsParams,
   CreateContactParams,
   UpdateContactParams,
+  InitialConsent,
+  RecordConsentParams,
 } from "./resources/contacts.js";
 export type {
   ListConversationsParams,
   CreateAssignmentParams,
   ReplyConversationParams,
+  RequestConsentParams,
 } from "./resources/conversations.js";
 export type {
   CreateWebhookParams,
@@ -92,10 +99,25 @@ export type {
 } from "./resources/usage.js";
 export type {
   Billing,
+  BillingGuarantee,
   BillingPlan,
   BusinessSlot,
   CreateBusinessSlotOptions,
 } from "./resources/billing.js";
+export type {
+  AccountExport,
+  CreateExportParams,
+  ExportDownload,
+  ExportFormat,
+  ExportScope,
+  ExportStatus,
+} from "./resources/exports.js";
+export type {
+  ListTeamEventsParams,
+  TeamEvent,
+  TeamEventActor,
+  TeamEventTarget,
+} from "./resources/team-events.js";
 export type {
   ListApiLogsParams,
   ListWebhookDeliveriesParams,
@@ -124,6 +146,14 @@ export type {
   Broadcast,
   BroadcastRecipient,
   Contact,
+  ContactConsents,
+  ContactWarning,
+  Consent,
+  ConsentChannel,
+  ConsentOrigin,
+  ConsentPurpose,
+  ConsentRequestResult,
+  ConsentState,
   Conversation,
   ChannelAccountRef,
   ConversationEntryPoint,

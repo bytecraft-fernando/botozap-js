@@ -3,8 +3,8 @@ import { z } from "zod";
 import type { CreateTemplateParams, ListTemplatesParams } from "@botozap/sdk";
 import type { Register } from "../register.js";
 import {
-  listTemplatesResultSchema,
-  templateResultSchema,
+  fullTemplateResultSchema,
+  listFullTemplatesResultSchema,
 } from "../schemas.js";
 
 export function registerTemplateTools(register: Register): void {
@@ -19,7 +19,7 @@ export function registerTemplateTools(register: Register): void {
       page: z.number().int().positive().optional().describe("Página (1-based)."),
       per_page: z.number().int().positive().optional().describe("Itens por página (máx. 100)."),
     },
-    listTemplatesResultSchema,
+    listFullTemplatesResultSchema,
     (client, args) => client.templates.list(args as ListTemplatesParams),
   );
 
@@ -27,7 +27,7 @@ export function registerTemplateTools(register: Register): void {
     "get_template",
     "Busca um template pelo id (uuid interno). Retorna { data }.",
     { id: z.string().describe("ID do template (uuid interno).") },
-    templateResultSchema,
+    fullTemplateResultSchema,
     async (client, args) => ({ data: await client.templates.get(String(args.id)) }),
   );
 
@@ -44,9 +44,27 @@ export function registerTemplateTools(register: Register): void {
       waba_connection_id: z.string().optional(),
       phone_number_id: z.string().optional().describe("Resolve a conexão do número (Meta)."),
     },
-    templateResultSchema,
+    fullTemplateResultSchema,
     async (client, args) => ({
       data: await client.templates.create(args as unknown as CreateTemplateParams),
+    }),
+  );
+
+  register(
+    "update_template",
+    "Marca quais botões de resposta rápida do template são de saída (`opt_out_buttons`, os textos dos botões; [] limpa a marcação). O toque do contato num botão marcado grava a recusa da finalidade do template (marketing ou avisos); botão não marcado não muda nada, qualquer que seja o texto. Anotação do BotoZap: não altera o template na Meta. Texto que não é botão de resposta rápida do template responde invalid_request. Exige scope templates:write. Retorna { data }.",
+    {
+      id: z.string().describe("ID do template (uuid interno)."),
+      opt_out_buttons: z
+        .array(z.string())
+        .max(10)
+        .describe("Textos dos botões de resposta rápida que são de saída (até 10); [] limpa a marcação."),
+    },
+    fullTemplateResultSchema,
+    async (client, args) => ({
+      data: await client.templates.update(String(args.id), {
+        opt_out_buttons: args.opt_out_buttons as string[],
+      }),
     }),
   );
 }

@@ -4,6 +4,12 @@ import type { OffsetList, OffsetParams } from "../types.js";
 export interface Template {
   id: string;
   name?: string;
+  /**
+   * Textos dos botões de resposta rápida marcados como de saída. O toque num
+   * botão marcado grava a recusa da finalidade do template (marketing ou
+   * avisos). `[]` quando não há marcação.
+   */
+  opt_out_buttons?: string[];
   [key: string]: unknown;
 }
 
@@ -36,6 +42,21 @@ export interface CreateTemplateParams {
   waba_connection_id?: string;
   /** phone_number_id (Meta) → resolve a conexão do número (alternativa). */
   phone_number_id?: string;
+  /**
+   * Textos dos botões de resposta rápida de `components` que são de saída
+   * (até 10). Texto que não é botão de resposta rápida do template responde 422
+   * `invalid_template`.
+   */
+  opt_out_buttons?: string[];
+}
+
+/** Corpo de `PATCH /v1/templates/:id`. */
+export interface UpdateTemplateParams {
+  /**
+   * Textos dos botões de resposta rápida que são de saída; `[]` limpa a marcação.
+   * Anotação do BotoZap: não altera o template na Meta.
+   */
+  opt_out_buttons: string[];
 }
 
 /** Endpoints de template (GET/POST /v1/templates, GET /v1/templates/:id). */
@@ -69,5 +90,19 @@ export class Templates {
     return this.client.requestItem<Template>("POST", "/templates", {
       body: params,
     });
+  }
+
+  /**
+   * Marca quais botões de resposta rápida são de saída (`opt_out_buttons`). O toque
+   * num botão marcado grava a recusa da finalidade do template; botão não marcado
+   * não muda nada, qualquer que seja o texto. Não altera o template na Meta.
+   * Scope `templates:write`.
+   */
+  update(id: string, params: UpdateTemplateParams): Promise<Template> {
+    return this.client.requestItem<Template>(
+      "PATCH",
+      `/templates/${encodeURIComponent(id)}`,
+      { body: params },
+    );
   }
 }

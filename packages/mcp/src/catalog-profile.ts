@@ -2,7 +2,8 @@ import type {AnyZodObject} from 'zod';
 import type {ApiIdentity} from './server.js';
 import {toolAnnotations,type ToolPolicy} from './permissions.js';
 import {FREE_CUSTOMER_NOTE,FREE_NUMBER_NOTE,FREE_SEND_NOTE} from './free-plan-notes.js';
-import {customerResultSchema,getPhoneNumberResultSchema,listCustomersResultSchema,listPhoneNumbersResultSchema} from './schemas.js';
+import {CONSENT_SEND_NOTE} from './consent-notes.js';
+import {customerResultSchema,getPhoneNumberResultSchema,listCustomersResultSchema,listPhoneNumbersResultSchema,listTemplatesResultSchema,templateResultSchema} from './schemas.js';
 
 export type CatalogProfile = 'assistant' | 'full';
 const descriptions: Record<string, [string,string]> = {
@@ -64,7 +65,7 @@ const fullCatalogNotes: Record<string,string> = {
   get_customer: FREE_CUSTOMER_NOTE,
   list_phone_numbers: FREE_NUMBER_NOTE,
   get_phone_number: FREE_NUMBER_NOTE,
-  send_message: FREE_SEND_NOTE,
+  send_message: `${FREE_SEND_NOTE} ${CONSENT_SEND_NOTE}`,
   reply_to_conversation: FREE_SEND_NOTE,
 };
 export function fullCatalogDescription(name: string, original: string): string {
@@ -74,7 +75,7 @@ export function fullCatalogDescription(name: string, original: string): string {
 
 /**
  * Saídas congeladas do perfil assistant. O catálogo completo publica campos
- * novos (`plan_suspended`); no perfil assistant o schema e a projeção validada
+ * novos (`plan_suspended`, `opt_out_buttons`); no perfil assistant o schema e a projeção validada
  * seguem os mesmos da revisão.
  */
 const assistantOutputs: Record<string,AnyZodObject> = {
@@ -82,6 +83,9 @@ const assistantOutputs: Record<string,AnyZodObject> = {
   get_customer: customerResultSchema,
   list_phone_numbers: listPhoneNumbersResultSchema,
   get_phone_number: getPhoneNumberResultSchema,
+  list_templates: listTemplatesResultSchema,
+  get_template: templateResultSchema,
+  create_template: templateResultSchema,
 };
 export function assistantOutputSchema(name: string, original: AnyZodObject): AnyZodObject {
   return assistantOutputs[name]??original;
