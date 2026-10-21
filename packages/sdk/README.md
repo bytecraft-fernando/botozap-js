@@ -781,18 +781,23 @@ Informe uma única credencial. O SDK envia `Authorization: Bearer` e não realiz
 
 ### Repetir um envio sem duplicar a intenção
 
-A opção `idempotencyKey` é opcional. Crie uma chave antes da primeira tentativa
-e preserve-a se perder a resposta; o corpo e a credencial também devem ser os
+A opção `idempotencyKey` é opcional. Derive a chave do evento no seu sistema
+(o pedido, a assinatura, a data do aviso), para que qualquer processo que tente
+o mesmo envio use a mesma chave; o corpo e a credencial também devem ser os
 mesmos. Sem a opção, o SDK mantém o comportamento anterior.
 
 ```ts
-const options = { idempotencyKey: crypto.randomUUID() };
+const options = { idempotencyKey: `pedido-pronto-${pedido.id}` };
 await boto.messages.send({ to: "5511999999999", text: "Seu pedido está pronto." }, options);
 // Retry da mesma intenção: use novamente o mesmo payload e options.
 ```
 
-`sendTemplate`, `sendMedia` e `conversations.reply` aceitam a mesma opção como
-último argumento. O servidor retorna a resposta original; payload diferente ou
+Uma chave aleatória (`crypto.randomUUID()`) só protege se for criada e
+guardada antes da primeira tentativa: dois processos que geram cada um a sua
+não se enxergam, e as duas mensagens saem.
+
+`sendTemplate`, `sendMedia`, `sendInteractive`, `sendLocation`, `sendReaction` e
+`conversations.reply` aceitam a mesma opção como último argumento. O servidor retorna a resposta original; payload diferente ou
 tentativa pendente retornam 409. Resultados terminais ficam disponíveis por 24h.
 Pendências desconhecidas não reabrem automaticamente. Depois de 24h, confira o
 histórico antes de reenviar; nunca troque a chave para contornar uma pendência.

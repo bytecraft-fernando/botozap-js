@@ -66,6 +66,10 @@ function receiptFields(result: SendResult, extra: string[] = []): string[] {
 
 const MEDIA_TYPES = ["image", "video", "audio", "document"] as const;
 
+const IDEMPOTENCY_FLAG = "--idempotency-key <chave>";
+const IDEMPOTENCY_HELP =
+  "8 a 200 caracteres sem espaço, derivada do evento (ex.: entrega-123-2026-10-20); repetir com a mesma chave e o mesmo corpo devolve a resposta original sem enviar de novo";
+
 function parseSort(raw?: string): "created_at" | "event_at" | undefined {
   if (raw === undefined) return undefined;
   if (raw === "created_at" || raw === "event_at") return raw;
@@ -100,8 +104,10 @@ export function registerMessages(program: Command): void {
     )
     .option("--input <arquivo>", "arquivo JSON com o corpo bruto da mensagem")
     .option("--stdin", "lê o corpo bruto da mensagem do stdin")
+    .option(IDEMPOTENCY_FLAG, IDEMPOTENCY_HELP)
     .action(async (opts, cmd: Command) => {
       const { client, format } = context(cmd);
+      const idempotencyKey: string | undefined = opts.idempotencyKey;
       if (opts.quickReply && opts.quickRepliesJson) {
         throw new Error("Use --quick-reply OU --quick-replies-json, não os dois.");
       }
@@ -118,7 +124,7 @@ export function registerMessages(program: Command): void {
         }
         // Payload cru: contrato de baixo nível do SDK (`request`), sem montar o corpo.
         const body = readRawBody(opts.input, opts.stdin);
-        result = await client.request<SendResult>("POST", "/messages", { body });
+        result = await client.request<SendResult>("POST", "/messages", { body, idempotencyKey });
       } else {
         if (!opts.to || !opts.text) {
           throw new Error(
@@ -130,7 +136,7 @@ export function registerMessages(program: Command): void {
           text: opts.text,
           ...(opts.from ? { from: opts.from } : {}),
           ...(quickReplies ? { quick_replies: quickReplies } : {}),
-        });
+        }, { idempotencyKey });
       }
 
       if (format === "json") return printJson(result);
@@ -159,6 +165,7 @@ export function registerMessages(program: Command): void {
       "--from <origem>",
       "origem (opcional): phone_number_id ou UUID do Número; no Instagram, id da conta na Meta ou UUID da Conta de canal",
     )
+    .option(IDEMPOTENCY_FLAG, IDEMPOTENCY_HELP)
     .action(async (opts, cmd: Command) => {
       const { client, format } = context(cmd);
       const type = opts.type as (typeof MEDIA_TYPES)[number];
@@ -179,7 +186,7 @@ export function registerMessages(program: Command): void {
         ...(opts.caption !== undefined ? { caption: opts.caption } : {}),
         ...(opts.filename !== undefined ? { filename: opts.filename } : {}),
       } as SendMediaParams;
-      printSent(await client.messages.sendMedia(params), format);
+      printSent(await client.messages.sendMedia(params, { idempotencyKey: opts.idempotencyKey }), format);
     });
 
   messages
@@ -191,6 +198,7 @@ export function registerMessages(program: Command): void {
     .option("--tag <tag>", "human_agent (Instagram; sujeito à flag e janela da API)")
     .option("--stdin", "lê o objeto interactive do stdin")
     .option("--json <interactive>", "objeto interactive inline")
+    .option(IDEMPOTENCY_FLAG, IDEMPOTENCY_HELP)
     .action(async (opts, cmd: Command) => {
       const { client, format } = context(cmd);
       if (opts.tag !== undefined && opts.tag !== "human_agent") throw new Error("--tag deve ser human_agent.");
@@ -202,7 +210,7 @@ export function registerMessages(program: Command): void {
         interactive,
         ...(opts.tag !== undefined ? { tag: opts.tag as "human_agent" } : {}),
         ...(opts.from ? { from: opts.from } : {}),
-      });
+      }, { idempotencyKey: opts.idempotencyKey });
       printSent(result, format);
     });
 
@@ -215,6 +223,7 @@ export function registerMessages(program: Command): void {
     .option("--name <nome>", "nome do local")
     .option("--address <endereco>", "endereço")
     .option("--from <phone_number_id>", "número de origem (opcional)")
+    .option(IDEMPOTENCY_FLAG, IDEMPOTENCY_HELP)
     .action(async (opts, cmd: Command) => {
       const { client, format } = context(cmd);
       const latitude = Number(opts.latitude);
@@ -229,7 +238,7 @@ export function registerMessages(program: Command): void {
         ...(opts.name ? { name: opts.name } : {}),
         ...(opts.address ? { address: opts.address } : {}),
         ...(opts.from ? { from: opts.from } : {}),
-      });
+      }, { idempotencyKey: opts.idempotencyKey });
       printSent(result, format);
     });
 
@@ -244,6 +253,7 @@ export function registerMessages(program: Command): void {
     .option("--emoji <emoji>", "emoji da reação")
     .option("--remove", "retira a reação (emoji vazio)")
     .option("--from <origem>", "origem (opcional): Número no WhatsApp; id da conta na Meta ou UUID da Conta de canal no Instagram")
+    .option(IDEMPOTENCY_FLAG, IDEMPOTENCY_HELP)
     .action(async (opts, cmd: Command) => {
       const { client, format } = context(cmd);
       if (!opts.remove && !opts.emoji) throw new Error("Informe --emoji ou --remove.");
@@ -252,7 +262,7 @@ export function registerMessages(program: Command): void {
         message_id: opts.messageId,
         emoji: opts.remove ? "" : opts.emoji,
         ...(opts.from ? { from: opts.from } : {}),
-      });
+      }, { idempotencyKey: opts.idempotencyKey });
       if (format === "json") return printJson(result);
       printLine(opts.remove ? "Reação retirada." : "Reação enviada.");
       printDetail(

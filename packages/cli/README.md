@@ -140,6 +140,11 @@ botozap messages send --to 5511999999999 --text "Olá do BotoZap!"
 botozap messages send --input ./mensagem.json
 cat ./mensagem.json | botozap messages send --stdin
 
+# Repetir sem mandar em dobro: a mesma chave com o mesmo corpo devolve a
+# resposta original. Derive a chave do evento, não gere uma nova a cada chamada.
+# Vale em send, send-media, send-interactive, send-location e react.
+botozap messages send --input ./entrega.json --idempotency-key entrega-123-2026-10-20
+
 # Botões/lista/link (objeto interactive da Cloud API), localização e reação
 botozap messages send-interactive --to 5511999999999 --input ./botoes.json
 botozap messages send-location --to 5511999999999 --latitude -3.119 --longitude -60.0217 --name "Loja"
