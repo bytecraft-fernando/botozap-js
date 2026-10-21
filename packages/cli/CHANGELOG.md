@@ -1,5 +1,16 @@
 # @botozap/cli
 
+## 0.16.0
+
+### Minor Changes
+
+- bef36f5: CLI: `--idempotency-key` em `messages send` (inclusive `--input`/`--stdin`), `send-media`, `send-interactive`, `send-location` e `react`, enviado no header `Idempotency-Key`. SDK: o README orienta derivar a chave do evento e lista todos os métodos de envio que aceitam `idempotencyKey`.
+
+### Patch Changes
+
+- Updated dependencies [bef36f5]
+  - @botozap/sdk@0.20.1
+
 ## 0.15.0
 
 ### Minor Changes
