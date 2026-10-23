@@ -42,7 +42,7 @@ aceitação estrutural na API não prova aprovação/elegibilidade no provedor.
 | Quick reply | Botão visual; payload opcional (obrigatório por card no carrossel) | CTA da mensagem não é uma ação do host |
 | URL dinâmica | Botão com o rótulo aprovado; parâmetros de sufixo | URL final HTTPS pública e limitada; não abre domínio externo |
 | Telefone | Botão estático do catálogo | Não inventa parâmetro runtime |
-| Copiar código | Botão visual; `coupon_code` | Código revisado, até 15 caracteres |
+| Copiar código | Botão visual; `coupon_code` | Código revisado, até 20 caracteres |
 | Autenticação copiar / one-tap | Código emitido externamente no corpo e botão URL; footer do catálogo | UI não emite/valida OTP; autofill depende do app/dispositivo; API bloqueia username-only/BSUID para autenticação. Se o catálogo não contém texto canônico, a UI identifica a prévia do código como parcial no idioma do template |
 | Carrossel | Bolhas/card com mídia, texto e botões; `card_index` e valores independentes | 2–10 cards, imagem/vídeo por card, rolagem somente horizontal |
 | Oferta limitada | Texto da oferta, expiração e cupom/URL; `expiration_time_ms` | Só catálogo já aprovado/sincronizado; builder do app não preserva LIMITED_TIME_OFFER; snapshot do app precisa renderizar oferta/expiração para histórico fiel |
