@@ -1,5 +1,20 @@
 # @botozap/cli
 
+## 0.17.0
+
+### Minor Changes
+
+- 03f25cd: Entregas de webhook por canal: `webhookDeliveries.list` aceita
+  `channel_account_id` (o uuid do canal, ou `none` para as entregas sem canal,
+  como o teste), e cada entrega traz `channel_account_id`. CLI:
+  `deliveries list --channel-account-id <id>` e a coluna HTTP volta a mostrar o
+  código da resposta. MCP: `list_webhook_deliveries` aceita `channel_account_id`.
+
+### Patch Changes
+
+- Updated dependencies [03f25cd]
+  - @botozap/sdk@0.21.0
+
 ## 0.16.0
 
 ### Minor Changes
