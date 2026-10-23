@@ -655,6 +655,7 @@ export const webhookDeliverySchema = z
     customer_id: internalUuidSchema.nullable().optional(),
     id: internalUuidSchema,
     endpoint_id: internalUuidSchema,
+    channel_account_id: internalUuidSchema.nullable().optional(),
     event_type: z.string(),
     status: z.enum(["pending", "success", "failed", "exhausted", "limited"]),
     response_code: z.number().int().nullable(),

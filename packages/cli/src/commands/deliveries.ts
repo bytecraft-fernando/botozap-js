@@ -14,6 +14,7 @@ export function registerDeliveries(program: Command): void {
     .option("--webhook-id <id>", "alias de --endpoint-id")
     .option("--status <status>", "filtra por status (pending|success|failed|exhausted|limited)")
     .option("--event-type <tipo>", "filtra por tipo de evento")
+    .option("--channel-account-id <id>", "filtra por canal (none = entregas sem canal)")
     .option("--limit <n>", "quantidade por página")
     .option("--after <cursor>", "cursor da próxima página")
     .option("--before <cursor>", "cursor da página anterior")
@@ -25,6 +26,7 @@ export function registerDeliveries(program: Command): void {
         webhook_id: opts.endpointId ?? opts.webhookId,
         status: opts.status,
         event_type: opts.eventType,
+        channel_account_id: opts.channelAccountId,
         limit: toInt(opts.limit),
         after: opts.after,
         before: opts.before,
@@ -34,7 +36,7 @@ export function registerDeliveries(program: Command): void {
         { header: "ID", key: "id", max: 36 },
         { header: "EVENTO", key: "event_type" },
         { header: "STATUS", key: "status" },
-        { header: "HTTP", key: "response_status" },
+        { header: "HTTP", key: "response_code" },
         { header: "CRIADA", key: "created_at" },
       ]);
       printCursorFooter(res.paging);

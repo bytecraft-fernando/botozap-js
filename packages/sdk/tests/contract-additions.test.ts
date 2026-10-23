@@ -335,6 +335,7 @@ describe("SDK contract — correções E3.2", () => {
       webhook_id: "wh_1",
       status: "success",
       event_type: "messages",
+      channel_account_id: "none",
     });
 
     const req = lastRequest();
@@ -345,6 +346,7 @@ describe("SDK contract — correções E3.2", () => {
       webhook_id: "wh_1",
       status: "success",
       event_type: "messages",
+      channel_account_id: "none",
     });
     expect(list.data).toEqual([{ id: "wd_1", event_type: "messages", status: "success" }]);
   });
