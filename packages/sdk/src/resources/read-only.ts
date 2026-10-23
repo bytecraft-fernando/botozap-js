@@ -56,6 +56,8 @@ export interface ListWebhookDeliveriesParams extends CursorParams {
   status?: WebhookDeliveryStatus | (string & {});
   /** Tipo do evento (ex.: "webhook.test", "messages"). */
   event_type?: string;
+  /** Canal da entrega (`channel_account_id`); `"none"` = sem canal (teste, eventos da WABA). */
+  channel_account_id?: string;
 }
 
 /** Histórico de entregas de webhook (somente leitura, paginação por cursor). */
@@ -76,6 +78,7 @@ export class WebhookDeliveries {
           webhook_id: params.webhook_id,
           status: params.status,
           event_type: params.event_type,
+          channel_account_id: params.channel_account_id,
         },
       },
     );

@@ -302,6 +302,7 @@ botozap webhooks test <id>
 
 # Entregas e logs
 botozap deliveries list --status failed
+botozap deliveries list --status failed --channel-account-id <id-do-canal>
 botozap logs list --status-code 500
 ```
 

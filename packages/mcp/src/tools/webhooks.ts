@@ -159,6 +159,7 @@ export function registerWebhookTools(register: Register): void {
       webhook_id: z.string().optional().describe("Filtra por endpoint (alias de endpoint_id na rota)."),
       status: z.string().optional().describe("Filtra por status da entrega (pending|success|failed|exhausted|limited; limited = cortada pelo limite de repasse do Free, sem retry)."),
       event_type: z.string().optional().describe("Filtra pelo tipo de evento da entrega."),
+      channel_account_id: z.string().optional().describe("Filtra pelo canal da entrega (uuid do canal); \"none\" lista as entregas sem canal (teste, eventos da WABA)."),
       limit: z.number().int().positive().optional(),
       after: z.string().optional(),
       before: z.string().optional(),
