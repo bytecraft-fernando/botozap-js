@@ -1,9 +1,10 @@
-import type {AnyZodObject} from 'zod';
+import type {AnyZodObject,ZodRawShape} from 'zod';
 import type {ApiIdentity} from './server.js';
 import {toolAnnotations,type ToolPolicy} from './permissions.js';
 import {FREE_CUSTOMER_NOTE,FREE_NUMBER_NOTE,FREE_SEND_NOTE} from './free-plan-notes.js';
 import {CONSENT_SEND_NOTE} from './consent-notes.js';
-import {customerResultSchema,getPhoneNumberResultSchema,listCustomersResultSchema,listPhoneNumbersResultSchema,listTemplatesResultSchema,templateResultSchema} from './schemas.js';
+import {LOCATION_REQUEST_NOTE,MESSAGE_FIELDS_NOTE,REPLY_CONVERSATION_NOTE,REPLY_TO_NOTE} from './message-notes.js';
+import {customerResultSchema,getMessageResultSchema,getPhoneNumberResultSchema,listCustomersResultSchema,listMessagesResultSchema,listPhoneNumbersResultSchema,listTemplatesResultSchema,sendMessageResultSchema,templateResultSchema} from './schemas.js';
 
 export type CatalogProfile = 'assistant' | 'full';
 const descriptions: Record<string, [string,string]> = {
@@ -65,8 +66,10 @@ const fullCatalogNotes: Record<string,string> = {
   get_customer: FREE_CUSTOMER_NOTE,
   list_phone_numbers: FREE_NUMBER_NOTE,
   get_phone_number: FREE_NUMBER_NOTE,
-  send_message: `${FREE_SEND_NOTE} ${CONSENT_SEND_NOTE}`,
-  reply_to_conversation: FREE_SEND_NOTE,
+  send_message: `${FREE_SEND_NOTE} ${CONSENT_SEND_NOTE} ${REPLY_TO_NOTE} ${LOCATION_REQUEST_NOTE}`,
+  reply_to_conversation: `${FREE_SEND_NOTE} ${REPLY_CONVERSATION_NOTE}`,
+  list_messages: MESSAGE_FIELDS_NOTE,
+  get_message: MESSAGE_FIELDS_NOTE,
 };
 export function fullCatalogDescription(name: string, original: string): string {
   const note=fullCatalogNotes[name];
@@ -86,9 +89,33 @@ const assistantOutputs: Record<string,AnyZodObject> = {
   list_templates: listTemplatesResultSchema,
   get_template: templateResultSchema,
   create_template: templateResultSchema,
+  send_message: sendMessageResultSchema,
+  reply_to_conversation: sendMessageResultSchema,
+  list_messages: listMessagesResultSchema,
+  get_message: getMessageResultSchema,
 };
 export function assistantOutputSchema(name: string, original: AnyZodObject): AnyZodObject {
   return assistantOutputs[name]??original;
+}
+
+/**
+ * Entradas congeladas do perfil assistant: campos novos do catálogo completo
+ * que o app revisado não anuncia nem repassa (`reply_to` de out/2026).
+ */
+const assistantOmittedInputs: Record<string,readonly string[]> = {
+  send_message: ['reply_to'],
+  reply_to_conversation: ['reply_to_message_id'],
+};
+export function assistantInputShape(name: string, shape: ZodRawShape): ZodRawShape {
+  const omitted=assistantOmittedInputs[name];
+  if(!omitted)return shape;
+  return Object.fromEntries(Object.entries(shape).filter(([key])=>!omitted.includes(key)));
+}
+/** Tira dos argumentos os campos que o perfil assistant não publica. */
+export function assistantArgs(name: string, args: Record<string,unknown>): Record<string,unknown> {
+  const omitted=assistantOmittedInputs[name];
+  if(!omitted)return args;
+  return Object.fromEntries(Object.entries(args).filter(([key])=>!omitted.includes(key)));
 }
 
 export function parseClientProfiles(value: string | undefined): ReadonlyMap<string,CatalogProfile> {

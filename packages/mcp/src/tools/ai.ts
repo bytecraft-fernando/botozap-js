@@ -80,6 +80,7 @@ const tool = z.enum([
   "agenda.appointments.confirm",
   "cases.note",
   "cases.close",
+  "conversations.reply_options",
 ]);
 const toolLimit = tool.options.length;
 const agentConfig = z

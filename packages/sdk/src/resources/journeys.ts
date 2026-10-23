@@ -76,12 +76,115 @@ export interface JourneyEnrollment {
 export interface JourneyQuery extends Pick<CursorParams, "limit" | "after"> {
   customer_id?: string;
 }
+/** Segmento de negócio em que o modelo pronto aparece na galeria. */
+export type JourneyCatalogSegment =
+  | "geral"
+  | "salao"
+  | "clinica"
+  | "loja"
+  | "oficina"
+  | "servicos"
+  | (string & {});
+
+/**
+ * Gatilho do modelo pronto, como a galeria do painel o descreve (as chaves
+ * vêm em camelCase, do jeito que a API devolve).
+ */
+export type JourneyCatalogTrigger =
+  | {
+      kind: "contact_date";
+      dateFieldKey: string;
+      dateFieldLabel: string;
+      offsetDays: number;
+      yearly: boolean;
+    }
+  | { kind: "stage_entered"; stageKey: string; waitDays: number }
+  | { kind: "appointment"; offsetHours: number };
+
+/** Modelo pronto de Régua (`GET /v1/journeys/catalog`), o mesmo da galeria de Automações. */
+export interface JourneyCatalogItem {
+  /** Chave do modelo, usada em `journeys.enableModel`. */
+  key: string;
+  name: string;
+  description: string;
+  segments: JourneyCatalogSegment[];
+  trigger: JourneyCatalogTrigger;
+  category: "UTILITY" | "MARKETING";
+  /** Nome do template que o modelo cria no número. */
+  template_name: string;
+  template_language: string;
+  /** Texto do template, com variáveis `{{1}}`, `{{2}}`… */
+  body: string;
+  /** De onde vem cada variável (`"1"` → `contact.name`, por exemplo). */
+  variable_map: Record<string, string>;
+  /** Exemplo de cada variável enviado à Meta na análise do template. */
+  examples: Record<string, string>;
+}
+
+/** Corpo de `journeys.enableModel`. */
+export interface EnableJourneyModelParams {
+  /** Cliente (negócio) que recebe a Régua. */
+  customer_id: string;
+  /**
+   * Conexão (WABA) do número que envia. Com mais de um número no Cliente,
+   * informe esta ou `phone_number_id`; sem nenhuma das duas a API responde
+   * 422 `validation_error`.
+   */
+  waba_connection_id?: string;
+  /** `phone_number_id` da Meta do número que envia (alternativa a `waba_connection_id`). */
+  phone_number_id?: string;
+}
+
+/** Resposta de `journeys.enableModel`: 201 quando cria a Régua, 200 quando ela já existia. */
+export interface JourneyModelEnableResult {
+  journey_id: string;
+  /** `false` quando o modelo já tinha uma Régua não arquivada no Cliente (nada mudou). */
+  created: boolean;
+  /** O template do modelo foi enviado à Meta nesta chamada. */
+  template_submitted: boolean;
+  /** O template recusado foi reenviado à Meta e a Régua voltou a esperar a aprovação. */
+  resubmitted: boolean;
+  /** `true` com o template já aprovado; senão a Régua fica pausada (`pending_template`) e liga sozinha na aprovação. */
+  active: boolean;
+}
+
 export class Journeys {
   constructor(private readonly client: BotoZap) {}
   list(params: JourneyQuery = {}): Promise<CursorList<Journey>> {
     return this.client.requestCursorList("GET", "/journeys", {
       query: { ...params },
     });
+  }
+  /**
+   * Lista os modelos prontos de Régua, os mesmos da galeria de Automações do
+   * painel, com gatilho, texto do template, `variable_map` e os `examples` que
+   * vão à Meta. Scope `journeys:read`.
+   */
+  catalog(): Promise<JourneyCatalogItem[]> {
+    return this.client.requestItem<JourneyCatalogItem[]>("GET", "/journeys/catalog");
+  }
+
+  /**
+   * Liga um modelo pronto no Cliente, como "Usar modelo" no painel: cria o
+   * template do modelo no número e o envia à aprovação da Meta (reaproveita o
+   * template se já existe), cria o campo de data do modelo e a Régua. Com o
+   * template aprovado a Régua já nasce ativa e pode enviar mensagens
+   * automáticas; senão fica pausada (`pending_template`) e liga sozinha na
+   * aprovação. Se o modelo já tem Régua no Cliente, responde `created: false`
+   * sem mudar nada, exceto quando ela está pausada com `template_rejected`: aí
+   * reenvia o template (`resubmitted: true`).
+   *
+   * Scope `journeys:write`; exige plano com automações (403 `plan_restricted`).
+   * Recusas: `not_found` (modelo, Cliente ou número), `validation_error` (422,
+   * falta `customer_id` ou o número com mais de um no Cliente), `not_connected`
+   * (409), `meta_error` (422 recusa da Meta; 502 Meta indisponível).
+   */
+  enableModel(key: string, params: EnableJourneyModelParams): Promise<JourneyModelEnableResult> {
+    return this.client.requestItem<JourneyModelEnableResult>(
+      "POST",
+      `/journeys/catalog/${encodeURIComponent(key)}/enable`,
+      { body: params },
+    );
   }
   get(id: string, params: { customer_id?: string } = {}): Promise<Journey> {
     return this.client.requestItem(

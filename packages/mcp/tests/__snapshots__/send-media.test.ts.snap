@@ -35,6 +35,22 @@ exports[`MCP — send_media_message > anuncia o contrato de mídia e seus limite
         "pattern": "^https:\\/\\/",
         "type": "string",
       },
+      "reply_to": {
+        "additionalProperties": false,
+        "description": "Responde citando uma mensagem da conversa (não vale para reaction).",
+        "properties": {
+          "message_id": {
+            "description": "UUID interno ou wamid/mid da mensagem citada, da MESMA conversa.",
+            "maxLength": 512,
+            "minLength": 1,
+            "type": "string",
+          },
+        },
+        "required": [
+          "message_id",
+        ],
+        "type": "object",
+      },
       "to": {
         "description": "Destinatário: telefone E.164 (ex.: 5511999999999) ou wa_id no WhatsApp; IGSID do contato no Instagram.",
         "type": "string",
@@ -48,6 +64,10 @@ exports[`MCP — send_media_message > anuncia o contrato de mídia e seus limite
           "document",
         ],
         "type": "string",
+      },
+      "voice": {
+        "description": "Só type='audio' no WhatsApp: mensagem de voz (ícone de microfone; o contato ouvir gera whatsapp.message.played). O arquivo precisa ser .ogg com Opus mono (senão 422 invalid_voice); no Instagram, 422 unsupported_voice.",
+        "type": "boolean",
       },
     },
     "required": [
@@ -153,6 +173,26 @@ exports[`MCP — send_media_message > anuncia o contrato de mídia e seus limite
           "message_id",
           "emoji",
           "action",
+        ],
+        "type": "object",
+      },
+      "reply_to": {
+        "additionalProperties": false,
+        "description": "Só quando o envio citou outra mensagem (reply_to).",
+        "properties": {
+          "external_id": {
+            "description": "wamid (WhatsApp) ou mid (Instagram) da mensagem citada.",
+            "type": "string",
+          },
+          "message_id": {
+            "description": "UUID interno da mensagem citada.",
+            "format": "uuid",
+            "type": "string",
+          },
+        },
+        "required": [
+          "message_id",
+          "external_id",
         ],
         "type": "object",
       },

@@ -5,6 +5,7 @@ import type {
   CursorParams,
   Message,
   QuickReply,
+  ReplyToParam,
   SendResult,
   TemplatePayload,
 } from "../types.js";
@@ -51,6 +52,13 @@ export interface SendTextParams {
    * 24h). No WhatsApp a API recusa com 422 `channel_not_supported`.
    */
   quick_replies?: QuickReply[];
+  /**
+   * Responde citando uma mensagem da mesma conversa: `{ message_id }` com o
+   * UUID interno ou o wamid/mid da citada. Fora da conversa: 422
+   * `reply_target_not_found`; reação, apagada ou envio que não saiu: 422
+   * `reply_target_unavailable`.
+   */
+  reply_to?: ReplyToParam;
 }
 
 export interface SendTemplateParams {
@@ -66,6 +74,13 @@ export interface SendTemplateParams {
    * (botão do pedido de consentimento ou Palavra de volta).
    */
   consent_basis?: string;
+  /**
+   * Responde citando uma mensagem da mesma conversa: `{ message_id }` com o
+   * UUID interno ou o wamid/mid da citada. Fora da conversa: 422
+   * `reply_target_not_found`; reação, apagada ou envio que não saiu: 422
+   * `reply_target_unavailable`.
+   */
+  reply_to?: ReplyToParam;
 }
 
 export interface SendImageParams {
@@ -74,6 +89,13 @@ export interface SendImageParams {
   link: string;
   caption?: string;
   from?: string;
+  /**
+   * Responde citando uma mensagem da mesma conversa: `{ message_id }` com o
+   * UUID interno ou o wamid/mid da citada. Fora da conversa: 422
+   * `reply_target_not_found`; reação, apagada ou envio que não saiu: 422
+   * `reply_target_unavailable`.
+   */
+  reply_to?: ReplyToParam;
 }
 
 export interface SendAudioParams {
@@ -81,6 +103,20 @@ export interface SendAudioParams {
   type: "audio";
   link: string;
   from?: string;
+  /**
+   * Mensagem de voz do WhatsApp (ícone de microfone, "ouvida" volta em
+   * `whatsapp.message.played`). O arquivo precisa ser .ogg com codec Opus
+   * (mono); link com outro tipo responde 422 `invalid_voice`. No Instagram,
+   * 422 `unsupported_voice`.
+   */
+  voice?: boolean;
+  /**
+   * Responde citando uma mensagem da mesma conversa: `{ message_id }` com o
+   * UUID interno ou o wamid/mid da citada. Fora da conversa: 422
+   * `reply_target_not_found`; reação, apagada ou envio que não saiu: 422
+   * `reply_target_unavailable`.
+   */
+  reply_to?: ReplyToParam;
 }
 
 export interface SendVideoParams {
@@ -89,6 +125,13 @@ export interface SendVideoParams {
   link: string;
   caption?: string;
   from?: string;
+  /**
+   * Responde citando uma mensagem da mesma conversa: `{ message_id }` com o
+   * UUID interno ou o wamid/mid da citada. Fora da conversa: 422
+   * `reply_target_not_found`; reação, apagada ou envio que não saiu: 422
+   * `reply_target_unavailable`.
+   */
+  reply_to?: ReplyToParam;
 }
 
 export interface SendDocumentParams {
@@ -98,6 +141,13 @@ export interface SendDocumentParams {
   caption?: string;
   filename?: string;
   from?: string;
+  /**
+   * Responde citando uma mensagem da mesma conversa: `{ message_id }` com o
+   * UUID interno ou o wamid/mid da citada. Fora da conversa: 422
+   * `reply_target_not_found`; reação, apagada ou envio que não saiu: 422
+   * `reply_target_unavailable`.
+   */
+  reply_to?: ReplyToParam;
 }
 
 /**
@@ -154,6 +204,19 @@ export interface InteractiveCtaUrlPayload extends InteractiveBase {
   };
 }
 
+/**
+ * Pedido de localização (WhatsApp): o contato vê um botão para enviar a
+ * localização dele. Só `body.text` (até 1024 caracteres) e
+ * `action.name: "send_location"`; este subtipo não tem `header` nem `footer`.
+ * A resposta chega como uma mensagem `location` comum, com `latitude`,
+ * `longitude` e, quando o contato compartilha, `name` e `address`.
+ */
+export interface InteractiveLocationRequestPayload {
+  type: "location_request_message";
+  body: { text: string };
+  action: { name: "send_location" };
+}
+
 /** Botão do Instagram: abrir link ou enviar postback (até 3 por mensagem/card). */
 export type InstagramInteractiveButton =
   | { type: "web_url"; title: string; url: string }
@@ -190,6 +253,7 @@ export type InteractivePayload =
   | InteractiveButtonPayload
   | InteractiveListPayload
   | InteractiveCtaUrlPayload
+  | InteractiveLocationRequestPayload
   | InstagramInteractivePayload;
 
 export interface SendInteractiveParams {
@@ -198,6 +262,13 @@ export interface SendInteractiveParams {
   from?: string;
   /** Instagram: exceção human_agent, sujeita à flag e janela da API. */
   tag?: "human_agent";
+  /**
+   * Responde citando uma mensagem da mesma conversa: `{ message_id }` com o
+   * UUID interno ou o wamid/mid da citada. Fora da conversa: 422
+   * `reply_target_not_found`; reação, apagada ou envio que não saiu: 422
+   * `reply_target_unavailable`.
+   */
+  reply_to?: ReplyToParam;
 }
 
 export interface SendLocationParams {
@@ -207,6 +278,13 @@ export interface SendLocationParams {
   name?: string;
   address?: string;
   from?: string;
+  /**
+   * Responde citando uma mensagem da mesma conversa: `{ message_id }` com o
+   * UUID interno ou o wamid/mid da citada. Fora da conversa: 422
+   * `reply_target_not_found`; reação, apagada ou envio que não saiu: 422
+   * `reply_target_unavailable`.
+   */
+  reply_to?: ReplyToParam;
 }
 
 export interface SendReactionParams {
@@ -240,6 +318,7 @@ export class Messages {
         text: { body: params.text },
         from: params.from,
         ...(params.quick_replies !== undefined ? { quick_replies: params.quick_replies } : {}),
+        ...replyTo(params.reply_to),
       },
     });
     return assertSendResult(result);
@@ -255,6 +334,7 @@ export class Messages {
         template: params.template,
         from: params.from,
         ...(params.consent_basis !== undefined ? { consent_basis: params.consent_basis } : {}),
+        ...replyTo(params.reply_to),
       },
     });
     return assertSendResult(result);
@@ -269,6 +349,9 @@ export class Messages {
     if ("filename" in params && params.filename !== undefined) {
       media.filename = params.filename;
     }
+    if ("voice" in params && params.voice !== undefined) {
+      media.voice = params.voice;
+    }
     const result = await this.client.requestObject<SendResult>("POST", "/messages", {
       idempotencyKey: options.idempotencyKey,
       body: {
@@ -276,14 +359,21 @@ export class Messages {
         from: params.from,
         type: params.type,
         [params.type]: media,
+        ...replyTo(params.reply_to),
       },
     });
     return assertSendResult(result);
   }
 
   /**
-   * Envia button/list/cta_url no WhatsApp ou button/generic no Instagram.
-   * Mensagem livre sujeita à janela do canal.
+   * Envia button/list/cta_url/location_request_message no WhatsApp ou
+   * button/generic no Instagram. Mensagem livre sujeita à janela do canal.
+   *
+   * `location_request_message` pede a localização do contato: só `body.text`
+   * e `action: { name: "send_location" }`, sem header nem footer; a resposta
+   * chega como mensagem `location`. Outros subtipos da Cloud API (`flow`,
+   * `product`, `address_message`, `carousel`…) respondem 422
+   * `unsupported_type`.
    */
   async sendInteractive(
     params: SendInteractiveParams,
@@ -294,6 +384,7 @@ export class Messages {
       {
         to: params.to, from: params.from, type: "interactive", interactive: params.interactive,
         ...(params.tag !== undefined ? { tag: params.tag } : {}),
+        ...replyTo(params.reply_to),
       },
       options,
     );
@@ -309,7 +400,7 @@ export class Messages {
     if (params.address !== undefined) location.address = params.address;
     return postMessage(
       this.client,
-      { to: params.to, from: params.from, type: "location", location },
+      { to: params.to, from: params.from, type: "location", location, ...replyTo(params.reply_to) },
       options,
     );
   }
@@ -357,6 +448,10 @@ export class Messages {
       `/messages/${encodeURIComponent(id)}`,
     );
   }
+}
+
+function replyTo(value: ReplyToParam | undefined): { reply_to?: ReplyToParam } {
+  return value === undefined ? {} : { reply_to: { message_id: value.message_id } };
 }
 
 async function postMessage(

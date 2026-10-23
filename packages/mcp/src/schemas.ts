@@ -172,6 +172,24 @@ export const sendMessageResultSchema = z
   })
   .strip() satisfies z.ZodType<SendResult>;
 
+/**
+ * Recibo de envio no catálogo completo: acrescenta `reply_to` (resposta
+ * citando). O perfil assistant segue com {@link sendMessageResultSchema}
+ * (ver `catalog-profile.ts`).
+ */
+export const fullSendMessageResultSchema = sendMessageResultSchema
+  .extend({
+    reply_to: z
+      .object({
+        message_id: internalUuidSchema.describe("UUID interno da mensagem citada."),
+        external_id: z.string().describe("wamid (WhatsApp) ou mid (Instagram) da mensagem citada."),
+      })
+      .strip()
+      .optional()
+      .describe("Só quando o envio citou outra mensagem (reply_to)."),
+  })
+  .strip() satisfies z.ZodType<SendResult>;
+
 /** Public multi-channel identity, additive on older API versions. */
 const channelShape = {
   channel: z.string().optional(),
@@ -209,6 +227,39 @@ export const messageSchema = z
 export const listMessagesResultSchema = cursorListResultSchemaFor(messageSchema);
 
 export const getMessageResultSchema = itemResultSchemaFor(messageSchema);
+
+/**
+ * Mensagem no catálogo completo: acrescenta a citada (`reply_to`), a voz
+ * ouvida (`played_at`) e a transcrição do áudio recebido (`transcription`).
+ * O perfil assistant segue com {@link messageSchema}.
+ */
+export const fullMessageSchema = messageSchema
+  .extend({
+    reply_to: z
+      .object({
+        message_id: internalUuidSchema.nullable().describe("UUID interno da citada; null quando ela não está no histórico do BotoZap."),
+        external_id: z.string().describe("wamid (WhatsApp) ou mid (Instagram) da citada."),
+      })
+      .strip()
+      .nullable()
+      .optional()
+      .describe("Mensagem citada por esta (resposta citando); null quando não cita."),
+    played_at: z
+      .string()
+      .nullable()
+      .optional()
+      .describe("Mensagem de voz enviada: quando o contato ouviu pela primeira vez (o status continua read)."),
+    transcription: z
+      .string()
+      .nullable()
+      .optional()
+      .describe("Áudio recebido: transcrição que a IA já fez; null quando não há."),
+  })
+  .strip() satisfies z.ZodType<Omit<Message, "phone_number_id"> & {phone_number_id: string | null}>;
+
+export const listFullMessagesResultSchema = cursorListResultSchemaFor(fullMessageSchema);
+
+export const getFullMessageResultSchema = itemResultSchemaFor(fullMessageSchema);
 
 export const instagramConnectionResultSchema = itemResultSchemaFor(z.object({
   status: z.string(), username: z.string().nullable(), subscribed_at: z.string().nullable(),
@@ -336,6 +387,26 @@ export const consentRequestResultSchema = itemResultSchemaFor(
 );
 
 /** Resultado MCP explícito para APIs que concluíram com HTTP 204. */
+export const conversationTypingResultSchema = itemResultSchemaFor(
+  z
+    .object({
+      conversation_id: internalUuidSchema,
+      channel: z.string().describe("Canal da conversa (whatsapp ou instagram)."),
+      typing: z.literal(true),
+      repeated: z.boolean().describe("true quando repetiu outra chamada de menos de 20 s: a Meta não foi chamada de novo."),
+    })
+    .strip(),
+);
+
+export const conversationReadResultSchema = itemResultSchemaFor(
+  z
+    .object({
+      conversation_id: internalUuidSchema,
+      last_read_at: z.string().describe("Momento da leitura gravado (ISO 8601)."),
+    })
+    .strip(),
+);
+
 export const emptyOperationResultSchema = z
   .object({ success: z.literal(true) })
   .strict();
@@ -727,6 +798,60 @@ export const phoneNumberHealthSchema = z
 
 export const phoneNumberHealthResultSchema = itemResultSchemaFor(
   phoneNumberHealthSchema,
+);
+
+/** Perfil do WhatsApp do número (configurações do número, out/2026). */
+export const whatsappProfileResultSchema = itemResultSchemaFor(
+  z
+    .object({
+      about: z.string().nullable(),
+      address: z.string().nullable(),
+      description: z.string().nullable(),
+      email: z.string().nullable(),
+      websites: z.array(z.string()),
+      vertical: z.string().nullable(),
+      profile_picture_url: z.string().nullable().describe("URL temporária da foto no CDN da Meta."),
+      editable: z.boolean().describe("false em coexistência: a Meta não aceita mudar o perfil pela API."),
+    })
+    .strip(),
+);
+
+const conversationalAutomationSchema = z
+  .object({
+    prompts: z.array(z.string()),
+    commands: z.array(z.object({ command_name: z.string(), command_description: z.string() }).strip()),
+  })
+  .strip();
+export const conversationalAutomationResultSchema = itemResultSchemaFor(conversationalAutomationSchema);
+
+const qrCodeSchema = z
+  .object({
+    code: z.string(),
+    prefilled_message: z.string(),
+    deep_link_url: z.string().describe("Link curto https://wa.me/message/…"),
+    qr_image_url: z.string().optional().describe("URL temporária da imagem no CDN da Meta: baixe na hora."),
+  })
+  .strip();
+export const qrCodeResultSchema = itemResultSchemaFor(qrCodeSchema);
+export const listQrCodesResultSchema = itemResultSchemaFor(z.array(qrCodeSchema));
+
+export const listBlockedUsersResultSchema = cursorListResultSchemaFor(
+  z
+    .object({
+      wa_id: z.string(),
+      contact_id: z.string().nullable().describe("Contato da Conta com esse wa_id, quando há."),
+      name: z.string().nullable(),
+    })
+    .strip(),
+);
+export const blockUserResultSchema = itemResultSchemaFor(
+  z
+    .object({
+      blocked: z.boolean(),
+      wa_id: z.string().nullable(),
+      contact_id: z.string().nullable().optional(),
+    })
+    .strip(),
 );
 
 export const templateSchema = z

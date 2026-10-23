@@ -1,5 +1,24 @@
 /** Status de uma mensagem no envio. A API pode evoluir os valores. */
+/**
+ * Status da mensagem enviada. Mensagem de voz ouvida continua `read` (o
+ * momento fica em `Message.played_at` e no evento `whatsapp.message.played`).
+ */
 export type MessageStatus = "sent" | "delivered" | "read" | "failed" | string;
+
+/**
+ * Mensagem citada (resposta citando). `message_id` é o UUID interno da citada,
+ * `null` quando ela não está no histórico do BotoZap; `external_id` é o id do
+ * canal (wamid no WhatsApp, mid no Instagram).
+ */
+export interface MessageReplyTo {
+  message_id: string | null;
+  external_id: string;
+}
+
+/** Citação pedida no envio: `message_id` aceita o UUID interno ou o wamid/mid da mensagem citada. */
+export interface ReplyToParam {
+  message_id: string;
+}
 
 /** Canal de uma mensagem/Conta de canal. Valores novos podem surgir. */
 export type MessageChannel = "whatsapp" | "instagram" | (string & {});
@@ -38,6 +57,8 @@ export interface SendResult {
   type?: "reaction" | "interactive" | "text" | "image" | "video" | "audio" | "document" | (string & {});
   /** Só em reação: alvo e ação (`react`/`unreact`). */
   reaction?: SendReactionResult;
+  /** Só quando o envio citou outra mensagem (`reply_to`). */
+  reply_to?: { message_id: string; external_id: string };
 }
 
 /** Eco de `POST /v1/messages` com `type: "reaction"`. */
@@ -211,6 +232,15 @@ export interface Message {
   created_at?: string;
   /** Data real da mensagem no canal; `null` quando desconhecida. Chave de `sort=event_at`. */
   event_at?: string | null;
+  /** Mensagem citada por esta (resposta citando); `null` quando não cita. */
+  reply_to?: MessageReplyTo | null;
+  /**
+   * Mensagem de voz enviada (`voice: true`): quando o contato ouviu pela
+   * primeira vez. O status continua `read`.
+   */
+  played_at?: string | null;
+  /** Áudio recebido: transcrição que a IA já fez; `null` quando não há. */
+  transcription?: string | null;
   [key: string]: unknown;
 }
 
@@ -519,7 +549,11 @@ export interface BotoZapEvent {
    * `content.edited`) em `data.message`; `instagram.message.revoked` traz
    * `data.message.revoked_at`, sem o conteúdo apagado.
    * `instagram.message_rule.failed` registra uma falha de automação e pode
-   * ter `message_id: null` (referral sem mensagem). Valores novos podem surgir.
+   * ter `message_id: null` (referral sem mensagem). Status de envio do
+   * WhatsApp: `whatsapp.message.sent`, `.delivered`, `.read`, `.failed` e
+   * `.played` (o contato ouviu uma mensagem de voz enviada com `voice: true`;
+   * a mensagem fica com status `read` e `played_at` preenchido). Valores novos
+   * podem surgir.
    */
   type: string;
   /**

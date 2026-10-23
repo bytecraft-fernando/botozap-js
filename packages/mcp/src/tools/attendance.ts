@@ -471,6 +471,56 @@ export function registerAttendanceTools(register: Register): void {
     (c, a) => c.journeys.list(a),
   );
   register(
+    "list_journey_models",
+    "Lista os modelos prontos de Régua, os mesmos da galeria de Automações do painel (lembrete de horário, pós-atendimento, aniversário, boas-vindas…): key, gatilho, categoria, template_name, texto (body), variable_map e os examples enviados à Meta. Use a key em enable_journey_model. journeys:read. Retorna { data: [...] }.",
+    {},
+    z.object({
+      data: z.array(
+        z
+          .object({
+            key: z.string(),
+            name: z.string(),
+            description: z.string(),
+            segments: z.array(z.string()),
+            trigger: z.object({ kind: z.string() }).passthrough(),
+            category: z.string(),
+            template_name: z.string(),
+            template_language: z.string(),
+            body: z.string(),
+            variable_map: z.record(z.string(), z.string()),
+            examples: z.record(z.string(), z.string()),
+          })
+          .strip(),
+      ),
+    }),
+    async (c) => ({ data: await c.journeys.catalog() }),
+  );
+  register(
+    "enable_journey_model",
+    "Liga um modelo pronto no Cliente, como Usar modelo no painel: cria o template do modelo no número e o envia à aprovação da Meta (reaproveita se já existe), cria o campo de data e a Régua. Com o template já aprovado a Régua nasce ativa e passa a enviar mensagens automáticas aos contatos; senão fica pausada (pending_template) e liga sozinha na aprovação. Configure só a pedido do usuário. Se o modelo já tem Régua no Cliente, responde created=false sem mudar nada, exceto a Régua pausada por template recusado: aí reenvia o template à Meta (resubmitted=true). Com mais de um número no Cliente, informe waba_connection_id ou phone_number_id (senão 422 validation_error). Recusas: not_found, not_connected (409), meta_error (422 recusa da Meta, 502 indisponível), plan_restricted (403). journeys:write. Retorna { data } com journey_id, created, template_submitted, resubmitted e active.",
+    {
+      key: z.string().min(1).max(100).describe("key do modelo (veja list_journey_models)."),
+      customer_id: uuid.describe("Cliente (negócio) que recebe a Régua."),
+      waba_connection_id: uuid.optional().describe("Conexão do número que envia; obrigatório com mais de um número no Cliente (ou use phone_number_id)."),
+      phone_number_id: z.string().min(1).max(64).optional().describe("phone_number_id da Meta do número que envia (alternativa a waba_connection_id)."),
+    },
+    z.object({
+      data: z
+        .object({
+          journey_id: z.string(),
+          created: z.boolean(),
+          template_submitted: z.boolean(),
+          resubmitted: z.boolean(),
+          active: z.boolean(),
+        })
+        .strip(),
+    }),
+    async (c, a) => {
+      const { key, ...body } = a as { key: string; customer_id: string; waba_connection_id?: string; phone_number_id?: string };
+      return { data: await c.journeys.enableModel(key, body) };
+    },
+  );
+  register(
     "get_journey",
     "Lê configuração completa, passos e version; journeys:read.",
     { id: uuid, customer_id: uuid.optional() },

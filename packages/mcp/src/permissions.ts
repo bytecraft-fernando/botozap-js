@@ -99,6 +99,11 @@ write(["request_consent"], "messages:send", false,
 // Exclusão sem volta de mensagens, notas e mídia; o contato fica. Só Administrador.
 write(["delete_conversation"], "conversations:write", false,
   { destructiveHint: true, idempotentHint: true, openWorldHint: false });
+// "Digitando…" e leitura: sinal visível ao contato pela Meta, sem conteúdo novo; repetir não duplica.
+write(["conversation_typing"], "messages:send", false,
+  { destructiveHint: false, idempotentHint: true, openWorldHint: true });
+write(["mark_conversation_read"], "conversations:write", true,
+  { destructiveHint: false, idempotentHint: true, openWorldHint: true });
 read(["list_contacts"], "contacts:read", true);
 read(["get_contact"], "contacts:read", false);
 read(["list_contact_consents"], "contacts:read", false);
@@ -155,6 +160,17 @@ write(["phone_number_health"], "numbers:read", false,
   { destructiveHint: false, idempotentHint: true, openWorldHint: true });
 write(["update_phone_number"], "numbers:write", false,
   { destructiveHint: true, idempotentHint: true, openWorldHint: false });
+// Configurações do número no WhatsApp: tudo direto na Meta (fora da conta) e sem sandbox.
+read(["get_phone_number_profile", "get_conversational_automation", "list_qr_codes", "get_qr_code", "list_blocked_users"], "numbers:read", false);
+// Sobrescrevem o que todos os contatos veem (perfil público, perguntas e comandos, mensagem do QR).
+write(["update_phone_number_profile", "update_conversational_automation", "clear_conversational_automation", "update_qr_code"], "numbers:write", false,
+  { destructiveHint: true, idempotentHint: true, openWorldHint: true });
+// Cada chamada cria um QR novo na Meta.
+write(["create_qr_code"], "numbers:write", false,
+  { destructiveHint: false, idempotentHint: false, openWorldHint: true });
+// Apagar o QR é sem volta (o impresso dá "expirado"); bloquear/desbloquear só se refaz com nova mensagem do contato.
+write(["delete_qr_code", "block_contact", "unblock_contact"], "numbers:write", false,
+  { destructiveHint: true, idempotentHint: true, openWorldHint: true });
 read(["list_templates", "get_template"], "templates:read", true);
 // Só anota no BotoZap quais botões são de saída; não toca na Meta.
 write(["update_template"], "templates:write", true,
@@ -248,6 +264,10 @@ write(["create_journey"], "journeys:write", false,
 write(["update_journey"], "journeys:write", false,
   { destructiveHint: true, idempotentHint: true, openWorldHint: true });
 write(["archive_journey", "control_journey", "control_journey_run"], "journeys:write", false,
+  { destructiveHint: true, idempotentHint: true, openWorldHint: true });
+read(["list_journey_models"], "journeys:read", false);
+// Submete template à Meta e cria Régua que pode já nascer ativa (envios automáticos); repetir não cria outra.
+write(["enable_journey_model"], "journeys:write", false,
   { destructiveHint: true, idempotentHint: true, openWorldHint: true });
 write(["enroll_journey"], "journeys:write", false,
   { destructiveHint: true, idempotentHint: false, openWorldHint: true });

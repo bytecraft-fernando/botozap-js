@@ -4,11 +4,23 @@ import { z } from "zod";
 import type { InteractivePayload, ListMessagesParams } from "@botozap/sdk";
 import type { Register } from "../register.js";
 import {
-  getMessageResultSchema,
-  listMessagesResultSchema,
-  sendMessageResultSchema,
+  getFullMessageResultSchema,
+  listFullMessagesResultSchema,
+  fullSendMessageResultSchema,
   instagramInteractiveSchema,
 } from "../schemas.js";
+
+/** `reply_to` de envio (responder citando), compartilhado com send_media_message. */
+export const replyToSchema = z
+  .object({
+    message_id: z
+      .string()
+      .trim()
+      .min(1)
+      .max(512)
+      .describe("UUID interno ou wamid/mid da mensagem citada, da MESMA conversa."),
+  })
+  .describe("Responde citando uma mensagem da conversa (não vale para reaction).");
 
 /**
  * Shape (raw) de `send_message`. Fica como *raw shape* de propósito: é ele que
@@ -87,6 +99,7 @@ const sendMessageShape = {
     .optional()
     .describe("Reação quando type='reaction'."),
   tag: z.literal("human_agent").optional().describe("Instagram: exceção human_agent, sujeita à flag e janela da API; para interactive."),
+  reply_to: replyToSchema.optional(),
   from: z
     .string()
     .optional()
@@ -111,6 +124,9 @@ const PAYLOAD_HINT: Record<(typeof PAYLOAD_FIELDS)[number], string> = {
 export const sendMessageSchema = z
   .object(sendMessageShape)
   .superRefine((val, ctx) => {
+    if (val.reply_to !== undefined && val.type === "reaction") {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["reply_to"], message: "reply_to não vale para reaction: a Meta não aceita reação como resposta citada." });
+    }
     if (val.tag !== undefined && val.type !== "interactive") {
       ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["tag"], message: "tag nesta tool exige type=interactive." });
     }
@@ -138,7 +154,7 @@ export function registerMessageTools(register: Register): void {
     "send_message",
     "Recomendado: use prepare_send_intent uma vez e reutilize idempotency_key em retries. Recusas confirmadas liberam a chave; após aguardar/corrigir, repita com a mesma chave. Resultado desconhecido exige conferir o histórico. Chamadas sem chave continuam aceitas, com o comportamento anterior sem deduplicação. Envia uma mensagem de WhatsApp ou Instagram ao destinatário via API do BotoZap. No Instagram, use IGSID e from da Conta de canal; interactive aceita button com web_url/postback ou generic com 1–10 cards; tag human_agent depende da flag e janela da API. O recibo Instagram traz wamid null, external_id, channel instagram e type interactive. `to` é o número E.164 ou wa_id. Para texto: type='text' e text={ body }. Para template: type='template' e template={ name, language, components? }. Botões/lista/link: type='interactive' e interactive={ type: 'button'|'list'|'cta_url', body, action, ... } (formato Cloud API). Localização: type='location' e location={ latitude, longitude, name?, address? }. Reação a uma mensagem recebida: type='reaction' e reaction={ message_id (UUID ou wamid), emoji } (emoji '' retira). Recusas de plano: 429 free_form_limit_reached (limite 1:1 do Free). `from` aceita ID Meta ou UUID interno do Número e é obrigatório se a conta tem mais de um. O envio pode entregar uma mensagem real. Retorna `id` (UUID interno do BotoZap) e `wamid` (ID da mensagem na Meta), além de `to` e `status`; em reação, também `reaction` { message_id, wamid, emoji, action }.",
     sendMessageShape,
-    sendMessageResultSchema,
+    fullSendMessageResultSchema,
     (client, args) => {
       // O SDK do MCP já validou `args` contra o shape base; aqui aplicamos a
       // regra cruzada type ↔ payload (que o shape base não expressa) com mensagem
@@ -147,22 +163,23 @@ export function registerMessageTools(register: Register): void {
       if (!parsed.success) {
         throw new Error(parsed.error.issues.map((i) => i.message).join(" "));
       }
-      const { to, type, text, template, interactive, location, reaction, from, tag, idempotency_key } = parsed.data;
+      const { to, type, text, template, interactive, location, reaction, from, tag, idempotency_key, reply_to } = parsed.data;
       const options = { idempotencyKey: idempotency_key };
+      const quote = reply_to !== undefined ? { reply_to } : {};
       // Despacha pelo `type` — o superRefine já garantiu o payload correspondente.
       // Resposta direta (sem envelope), igual ao POST /messages.
       if (type === "text") {
-        return client.messages.send({ to, text: text!.body, from }, options);
+        return client.messages.send({ to, text: text!.body, from, ...quote }, options);
       }
       if (type === "interactive") {
         return client.messages.sendInteractive(
-          { to, interactive: interactive as unknown as InteractivePayload, from, ...(tag !== undefined ? { tag } : {}) },
+          { to, interactive: interactive as unknown as InteractivePayload, from, ...(tag !== undefined ? { tag } : {}), ...quote },
           options,
         );
       }
-      if (type === "location") return client.messages.sendLocation({ to, ...location!, from }, options);
+      if (type === "location") return client.messages.sendLocation({ to, ...location!, from, ...quote }, options);
       if (type === "reaction") return client.messages.sendReaction({ to, ...reaction!, from }, options);
-      return client.messages.sendTemplate({ to, template: template!, from }, { idempotencyKey: idempotency_key });
+      return client.messages.sendTemplate({ to, template: template!, from, ...quote }, { idempotencyKey: idempotency_key });
     },
   );
 
@@ -184,7 +201,7 @@ export function registerMessageTools(register: Register): void {
       after: z.string().optional().describe("Cursor opaco da próxima página (paging.next)."),
       before: z.string().optional().describe("Cursor opaco da página anterior (paging.previous)."),
     },
-    listMessagesResultSchema,
+    listFullMessagesResultSchema,
     (client, args) => client.messages.list(args as ListMessagesParams),
   );
 
@@ -192,7 +209,7 @@ export function registerMessageTools(register: Register): void {
     "get_message",
     "Busca uma mensagem pelo UUID interno do BotoZap ou pelo `wamid` atribuído pela Meta. Retorna { data }.",
     { id: z.string().describe("UUID interno da mensagem ou `wamid` da Meta.") },
-    getMessageResultSchema,
+    getFullMessageResultSchema,
     async (client, args) => ({ data: await client.messages.get(String(args.id)) }),
   );
 }

@@ -65,6 +65,22 @@ export class BotoZapError extends Error {
  * `plan_required` (402, comprar slot no Free ou teste), `slot_limit` (402, já há
  * 2 slots com fatura em aberto), `billing_customer_required` (402, conta sem
  * cadastro de cobrança), `slot_in_use` (409, cancelar slot ocupado).
+ * "Digitando…" (`conversations.typing`): `no_inbound_message` (409, a conversa
+ * não tem mensagem recebida do contato), `meta_error` (422/502, recusa ou falha
+ * da Meta; a resposta pode ser enviada normalmente). Configurações do número
+ * (`phoneNumbers.getProfile` e afins): `sandbox_not_supported`,
+ * `connection_inactive` e `reconnect_required` (409), `coexistence_not_supported`
+ * (409, mudar o perfil de número em coexistência), `meta_rate_limited` (429),
+ * `meta_permission_denied` (403), `meta_invalid_parameter` (422),
+ * `meta_unavailable` (504, leitura), `meta_unconfirmed` (504, escrita sem
+ * confirmação: confira antes de repetir), `saved_unread` (502, gravado na Meta
+ * e não relido), `invalid_picture` (422); bloqueio: `block_window_closed` (422,
+ * só quem escreveu nas últimas 24 h), `cannot_block_self` (422),
+ * `blocklist_full` (409), `contact_other_number` (422). Resposta citando
+ * (`reply_to`): `reply_target_not_found` (422, a citada não está nesta
+ * conversa), `reply_target_unavailable` (422, reação, apagada ou envio que não
+ * saiu). Mensagem de voz (`voice: true`): `invalid_voice` (422, link que não é
+ * .ogg/Opus), `unsupported_voice` (422, Instagram).
  */
 export type BotoZapErrorCode =
   | "invalid_request"
@@ -95,6 +111,27 @@ export type BotoZapErrorCode =
   | "slot_limit"
   | "slot_in_use"
   | "billing_customer_required"
+  | "no_inbound_message"
+  | "meta_error"
+  | "sandbox_not_supported"
+  | "connection_inactive"
+  | "reconnect_required"
+  | "coexistence_not_supported"
+  | "meta_rate_limited"
+  | "meta_permission_denied"
+  | "meta_invalid_parameter"
+  | "meta_unavailable"
+  | "meta_unconfirmed"
+  | "saved_unread"
+  | "invalid_picture"
+  | "block_window_closed"
+  | "cannot_block_self"
+  | "blocklist_full"
+  | "contact_other_number"
+  | "reply_target_not_found"
+  | "reply_target_unavailable"
+  | "invalid_voice"
+  | "unsupported_voice"
   | (string & {});
 
 /** Códigos que indicam limite ou restrição do plano contratado. */

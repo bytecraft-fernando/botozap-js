@@ -76,6 +76,41 @@ export function registerConversations(program: Command): void {
     });
 
   conv
+    .command("typing <id>")
+    .description(
+      "Mostra \"digitando…\" ao contato enquanto a resposta é preparada (como o atendente no painel). " +
+        "Vai na última mensagem recebida, que fica como lida; some quando a resposta sai ou em ~25 s. " +
+        "Repetir em menos de 20 s não chama a Meta de novo. Só com mensagem recebida (409 no_inbound_message) " +
+        "e janela de 24h aberta (outside_window no WhatsApp, window_closed no Instagram). Scope messages:send",
+    )
+    .action(async (id: string, _opts, cmd: Command) => {
+      const { client, format } = context(cmd);
+      const data = await client.conversations.typing(id);
+      if (format === "json") return printJson(data);
+      printLine(
+        data.repeated
+          ? "\"Digitando…\" já estava valendo (chamada repetida em menos de 20 s; a Meta não foi chamada de novo)."
+          : `"Digitando…" enviado pelo ${data.channel === "instagram" ? "Instagram" : "WhatsApp"}.`,
+      );
+      printDetail(data as unknown as Record<string, unknown>);
+    });
+
+  conv
+    .command("read <id>")
+    .description(
+      "Marca a conversa como lida, como abrir no painel: grava last_read_at e a última mensagem recebida fica " +
+        "como lida para o contato (tiques azuis no WhatsApp, \"visto\" no Instagram), uma vez por mensagem e por " +
+        "melhor esforço. Scope conversations:write; aceita chave sandbox",
+    )
+    .action(async (id: string, _opts, cmd: Command) => {
+      const { client, format } = context(cmd);
+      const data = await client.conversations.markRead(id);
+      if (format === "json") return printJson(data);
+      printLine("Conversa marcada como lida.");
+      printDetail(data as unknown as Record<string, unknown>);
+    });
+
+  conv
     .command("request-consent <id>")
     .description(
       "Envia o pedido de consentimento na conversa (botões no WhatsApp, respostas rápidas no Instagram). " +

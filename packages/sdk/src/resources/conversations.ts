@@ -12,6 +12,7 @@ import type {
   OffsetParams,
   MessageChannel,
   QuickReply,
+  ReplyToParam,
   SendResult,
 } from "../types.js";
 
@@ -50,6 +51,11 @@ export interface ReplyConversationParams {
   text: string;
   /** Opções de resposta (só em Conversas do Instagram; ver `messages.send`). */
   quick_replies?: QuickReply[];
+  /**
+   * Responde citando uma mensagem desta conversa: `{ message_id }` com o UUID
+   * interno ou o wamid/mid da citada (ver `messages.send`).
+   */
+  reply_to?: ReplyToParam;
 }
 
 /** Corpo opcional de `conversations.requestConsent`. */
@@ -58,6 +64,26 @@ export interface RequestConsentParams {
   purposes?: ConsentPurpose[];
   /** Texto do pedido (até 1024 caracteres). Padrão: o texto padrão do BotoZap. */
   body?: string;
+}
+
+/** Resposta de `conversations.typing` (200). */
+export interface ConversationTypingResult {
+  conversation_id: string;
+  /** Canal da Conversa. */
+  channel: MessageChannel;
+  typing: true;
+  /**
+   * `true` quando a chamada repetiu outra de menos de 20 s: a Meta não foi
+   * chamada de novo e o indicador que já estava valendo continua.
+   */
+  repeated: boolean;
+}
+
+/** Resposta de `conversations.markRead` (200). */
+export interface ConversationReadResult {
+  conversation_id: string;
+  /** Momento da leitura gravado (ISO 8601). */
+  last_read_at: string;
 }
 
 /** Conversas (read + status) e atribuições a membros. */
@@ -157,6 +183,7 @@ export class Conversations {
         text: params.text,
         from,
         ...(params.quick_replies !== undefined ? { quick_replies: params.quick_replies } : {}),
+        ...(params.reply_to !== undefined ? { reply_to: params.reply_to } : {}),
       },
       options,
     );
@@ -185,6 +212,45 @@ export class Conversations {
       "POST",
       `/conversations/${enc(id)}/consent-request`,
       { body: params },
+    );
+  }
+
+  /**
+   * Mostra "digitando…" ao contato enquanto a integração prepara a resposta,
+   * como o Painel quando o atendente digita. O sinal vai na última mensagem
+   * recebida do contato, que fica como lida (tiques azuis no WhatsApp, "visto"
+   * no Instagram); a Meta tira o indicador quando a resposta sai ou em ~25 s.
+   * Repetir em menos de 20 s não chama a Meta de novo (`repeated: true`); para
+   * uma resposta demorada, chame de novo a cada 20 s. Sem corpo. Scope
+   * `messages:send`; não aceita chave sandbox.
+   *
+   * Recusas: `no_inbound_message` (409, a conversa não tem mensagem recebida:
+   * template e primeira mensagem não têm "digitando…"), `outside_window`
+   * (WhatsApp) ou `window_closed` (Instagram) com a janela de 24h fechada (422),
+   * `not_connected` (409), `meta_error` (422 na recusa da Meta, 502 se ela
+   * falhar; a resposta em si pode ser enviada normalmente) e `not_found` (404).
+   */
+  typing(id: string): Promise<ConversationTypingResult> {
+    return this.client.requestItem<ConversationTypingResult>(
+      "POST",
+      `/conversations/${enc(id)}/typing`,
+    );
+  }
+
+  /**
+   * Marca a conversa como lida, como abrir a conversa no Painel: grava
+   * `last_read_at` (a conversa deixa de aparecer como não lida) e, logo depois
+   * da resposta, a última mensagem recebida fica como lida para o contato
+   * (tiques azuis no WhatsApp, "visto" no Instagram). A mesma mensagem não é
+   * marcada duas vezes na Meta: repetir só atualiza `last_read_at`. O aviso ao
+   * contato é de melhor esforço (canal desconectado ou recusa da Meta não mudam
+   * a resposta). Sem corpo. Scope `conversations:write`; aceita chave sandbox
+   * (grava a leitura sem avisar a Meta).
+   */
+  markRead(id: string): Promise<ConversationReadResult> {
+    return this.client.requestItem<ConversationReadResult>(
+      "POST",
+      `/conversations/${enc(id)}/read`,
     );
   }
 

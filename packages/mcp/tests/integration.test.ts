@@ -157,11 +157,15 @@ describe("servidor MCP — integração ponta a ponta (fetch stub)", () => {
     const discovered = (await client.listTools()).tools.find(
       (tool) => tool.name === "reply_to_conversation",
     );
+    // Catálogo completo (chave de API): reply_to_message_id é opcional; o perfil
+    // assistant (OAuth) continua só com os três campos revisados.
     expect(Object.keys(discovered?.inputSchema.properties ?? {})).toEqual([
       "idempotency_key",
       "conversation_id",
       "text",
+      "reply_to_message_id",
     ]);
+    expect(discovered?.inputSchema.required).toEqual(["conversation_id", "text"]);
     expect(discovered?.inputSchema.additionalProperties).toBe(false);
 
     const result = (await client.callTool({

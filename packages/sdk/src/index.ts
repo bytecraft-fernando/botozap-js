@@ -29,6 +29,7 @@ export type {
   InteractiveButtonPayload,
   InteractiveListPayload,
   InteractiveCtaUrlPayload,
+  InteractiveLocationRequestPayload,
   InteractiveHeader,
   InstagramInteractiveButton,
   InstagramInteractiveButtonPayload,
@@ -74,6 +75,8 @@ export type {
   CreateAssignmentParams,
   ReplyConversationParams,
   RequestConsentParams,
+  ConversationTypingResult,
+  ConversationReadResult,
 } from "./resources/conversations.js";
 export type {
   CreateWebhookParams,
@@ -83,6 +86,22 @@ export type {
 export type {
   ListPhoneNumbersParams,
   UpdatePhoneNumberParams,
+  WhatsAppBusinessVertical,
+  WhatsAppBusinessProfile,
+  UpdateWhatsAppProfileParams,
+  UploadProfilePhotoParams,
+  ConversationalCommand,
+  ConversationalAutomation,
+  UpdateConversationalAutomationParams,
+  QrImageFormat,
+  WhatsAppQrCode,
+  CreateQrCodeParams,
+  BlockedUser,
+  BlockUserParams,
+  BlockUserResult,
+  UnblockUserResult,
+  PhoneNumberQrCodes,
+  PhoneNumberBlockedUsers,
 } from "./resources/phone-numbers.js";
 export type { UploadMediaParams } from "./resources/media.js";
 export type { ListEventsParams } from "./resources/events.js";
@@ -141,6 +160,8 @@ export type {
   ConnectionBillingOutcome,
   ConnectionBillingRefusal,
   Message,
+  MessageReplyTo,
+  ReplyToParam,
   MessageContent,
   MessageEdit,
   Broadcast,
