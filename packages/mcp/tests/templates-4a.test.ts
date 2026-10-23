@@ -108,6 +108,8 @@ it('códigos seguem tamanho aceito, sem inventar mínimo OTP ou restringir cupom
     expect(validateTemplateValues(completeTemplates[4]!, { body_1: '1' })).toEqual({});
     expect(validateTemplateValues(completeTemplates[9]!, { ...values(9), button_0_code: 'ÁGUAS 2026' })).toEqual({});
     expect(validateTemplateValues(completeTemplates[9]!, { ...values(9), button_0_code: 'AGUAS\n2026' }).button_0_code).toBeTruthy();
+    expect(validateTemplateValues(completeTemplates[9]!, { ...values(9), button_0_code: 'A'.repeat(20) }).button_0_code).toBeUndefined();
+    expect(validateTemplateValues(completeTemplates[9]!, { ...values(9), button_0_code: 'A'.repeat(21) }).button_0_code).toBe('Máximo de 20 caracteres.');
 });
 const removedReason = 'Este template usa WhatsApp Flows, que não fazem parte do BotoZap. Use outro template aprovado.';
 const removedTemplate = { ...approvedTemplates[0], id: '00000000-0000-4000-8000-000000000099', name: 'template_removido', components: [{ type: 'BODY', text: 'Não exibir esta mensagem' }, { type: 'BUTTONS', buttons: [{ type: 'FLOW', text: 'Não exibir este botão' }] }] };

@@ -56,7 +56,7 @@ export function templateFields(template: TemplateRow): TemplateField[] {
                         for (const v of variables(b.url ?? ''))
                             add('button', v, 'text', `Sufixo de “${b.text}”`, true, 1024, i);
                     if (bt === 'COPY_CODE')
-                        add('button', 'code', 'coupon', 'Código para copiar', true, 15, i);
+                        add('button', 'code', 'coupon', 'Código para copiar', true, 20, i);
                     if (bt === 'QUICK_REPLY')
                         add('button', 'payload', 'payload', `Resposta de “${b.text}”`, card !== undefined, 256, i, card !== undefined ? b.text : undefined);
                     if (['CATALOG', 'MPM', 'SPM'].includes(bt))
