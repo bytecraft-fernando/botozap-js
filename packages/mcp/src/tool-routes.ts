@@ -73,6 +73,8 @@ routes(["delete_qr_code"], "DELETE /v1/phone_numbers/:id/qr-codes/:code");
 routes(["list_blocked_users"], "GET /v1/phone_numbers/:id/blocked-users");
 routes(["block_contact"], "POST /v1/phone_numbers/:id/blocked-users");
 routes(["unblock_contact"], "DELETE /v1/phone_numbers/:id/blocked-users/:user");
+routes(["get_phone_number_history_import"], "GET /v1/phone_numbers/:id/history-import");
+routes(["set_phone_number_history_import"], "PUT /v1/phone_numbers/:id/history-import");
 routes(["ingest_media"], "POST /v1/media");
 for (const [plural, singular] of [["contact-stages", "contact_stage"], ["contact-fields", "contact_field"], ["saved-replies", "saved_reply"]] as const) {
   const list = plural === "saved-replies" ? "saved_replies" : plural.replaceAll("-", "_");

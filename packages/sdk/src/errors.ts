@@ -80,7 +80,10 @@ export class BotoZapError extends Error {
  * (`reply_to`): `reply_target_not_found` (422, a citada não está nesta
  * conversa), `reply_target_unavailable` (422, reação, apagada ou envio que não
  * saiu). Mensagem de voz (`voice: true`): `invalid_voice` (422, link que não é
- * .ogg/Opus), `unsupported_voice` (422, Instagram).
+ * .ogg/Opus), `unsupported_voice` (422, Instagram). Conversas antigas
+ * (`phoneNumbers.getHistoryImport`/`setHistoryImport`):
+ * `history_import_not_available` (404, número sem importação),
+ * `history_import_locked` (409, a escolha já foi feita ou o prazo acabou).
  */
 export type BotoZapErrorCode =
   | "invalid_request"
@@ -132,6 +135,8 @@ export type BotoZapErrorCode =
   | "reply_target_unavailable"
   | "invalid_voice"
   | "unsupported_voice"
+  | "history_import_not_available"
+  | "history_import_locked"
   | (string & {});
 
 /** Códigos que indicam limite ou restrição do plano contratado. */

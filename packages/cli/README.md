@@ -108,6 +108,7 @@ botozap numbers profile get | update | photo        (perfil do WhatsApp)
 botozap numbers prompts get | update | clear        (perguntas prontas e comandos)
 botozap numbers qr      list | create | get | update | delete
 botozap numbers blocked list | block | unblock
+botozap numbers history-import get | set          (conversas antigas do app, coexistência)
 botozap channel-accounts list | get
 botozap channel-accounts comment-ai get | set | runs   (Instagram)
 botozap channel-accounts comment-rules list | get | create | update | delete | metrics   (Instagram)
@@ -258,6 +259,10 @@ botozap numbers qr create <id> --message "Oi! Vi o cartaz na loja." --format SVG
 botozap numbers qr delete <id> <code>            # sem volta; pede confirmação (--yes)
 botozap numbers blocked block <id> --contact-id <uuid>   # só quem escreveu nas últimas 24 h
 botozap numbers blocked unblock <id> <wa_id>
+
+# Conversas antigas do app WhatsApp Business (número em coexistência, logo depois de conectar)
+botozap numbers history-import get <id>
+botozap numbers history-import set <id> --days 180   # 0, 30 ou 180; uma vez por conexão
 
 # Exportação de dados (exports:read / exports:write) e registro de atividades (team:read)
 botozap exports create --customer-id <id> --format csv

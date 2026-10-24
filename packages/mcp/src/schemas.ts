@@ -835,6 +835,25 @@ const qrCodeSchema = z
 export const qrCodeResultSchema = itemResultSchemaFor(qrCodeSchema);
 export const listQrCodesResultSchema = itemResultSchemaFor(z.array(qrCodeSchema));
 
+export const historyImportResultSchema = itemResultSchemaFor(
+  z
+    .object({
+      phone_id: z.string(),
+      status: z
+        .enum(["awaiting_choice", "queued", "requested", "declined", "failed", "expired", "unconfirmed", "skipped"])
+        .describe("awaiting_choice: esperando a escolha; queued: escolhida, pedido à Meta ainda vai sair; os demais são o desfecho."),
+      window_days: z.union([z.literal(0), z.literal(30), z.literal(180)]).nullable().describe("Dias escolhidos; null sem escolha."),
+      window_source: z.enum(["customer", "default"]).nullable(),
+      window_set_at: z.string().nullable(),
+      can_choose: z.boolean().describe("A escolha ainda é aceita."),
+      default_window_days: z.number().int().describe("Dias aplicados se ninguém escolher."),
+      default_at: z.string().describe("Quando o padrão é aplicado sem escolha."),
+      deadline_at: z.string().describe("Fim do prazo da Meta para pedir o histórico."),
+      onboarded_at: z.string(),
+    })
+    .strip(),
+);
+
 export const listBlockedUsersResultSchema = cursorListResultSchemaFor(
   z
     .object({
