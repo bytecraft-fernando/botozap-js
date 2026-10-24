@@ -115,7 +115,7 @@ export class BotoZap {
     const resolvedFetch = options.fetch ?? globalThis.fetch;
     if (typeof resolvedFetch !== "function") {
       throw new Error(
-        "BotoZap: fetch global não encontrado. Use Node 20.19+ ou passe a opção `fetch`.",
+        "BotoZap: fetch global não encontrado. Use Node 22.12+ ou passe a opção `fetch`.",
       );
     }
     this.fetchImpl = resolvedFetch;

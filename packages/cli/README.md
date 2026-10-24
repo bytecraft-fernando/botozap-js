@@ -7,7 +7,7 @@ clientes, números, templates e webhooks direto do terminal ou de scripts.
 A CLI é uma casca fina sobre o SDK oficial [`@botozap/sdk`](../sdk) — toda chamada de
 rede passa por ele.
 
-> Requer **Node ≥ 20.19**. Projeto usa **pnpm** (nunca npm/npx/yarn/bun).
+> Requer **Node ≥ 22.12**. Projeto usa **pnpm** (nunca npm/npx/yarn/bun).
 
 > **Status: preview `0.x`.** Sem promessa de
 > estabilidade de comandos/flags até a `1.0`. A [API REST](https://botozap.com.br/docs)

@@ -11,7 +11,7 @@
     "@botozap/sdk": "workspace:*"
   },
   "devDependencies": {
-    "@types/node": "^20.19.0",
+    "@types/node": "^22.12.0",
     "typescript": "^5.6.0"
   }
 }
