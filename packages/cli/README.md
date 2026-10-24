@@ -46,6 +46,9 @@ A chave (e a URL base) são resolvidas nesta **ordem de prioridade**:
 | API key  | `--api-key`       | `BOTOZAP_API_KEY`    | `~/.botozap/cli/config.json`| —                               |
 | URL base | `--api-url`       | `BOTOZAP_API_URL`    | `~/.botozap/cli/config.json`| `https://botozap.com.br/api/v1` |
 
+O `config.json` fica em `~/.botozap/cli/`; para usar outro diretório, defina
+`BOTOZAP_CONFIG_DIR` (ex.: `BOTOZAP_CONFIG_DIR=/caminho/do/config botozap login`).
+
 > **Segurança:** prefira `BOTOZAP_API_KEY` (env) ou `botozap login` a passar
 > `--api-key` na linha de comando — argumentos de CLI ficam no histórico do shell
 > e visíveis em `ps`/argv. A flag existe para conveniência e CI, mas trata a chave

@@ -12,5 +12,6 @@ export default defineConfig({
     // Nenhum teste depende de cor LIGADA; quem for testar cor deve ligá-la
     // explicitamente no próprio caso.
     env: { NO_COLOR: "1" },
+    setupFiles: ["tests/setup.ts"],
   },
 });

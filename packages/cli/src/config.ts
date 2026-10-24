@@ -1,5 +1,5 @@
 import { homedir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import {
   mkdirSync,
   readFileSync,
@@ -11,12 +11,13 @@ import {
 /** URL base padrão da API pública do BotoZap. */
 export const DEFAULT_BASE_URL = "https://botozap.com.br/api/v1";
 
-/** Diretório de configuração: `~/.botozap/cli/`. */
+/** Diretório de configuração: `BOTOZAP_CONFIG_DIR`, se definido; senão `~/.botozap/cli/`. */
 export function configDir(): string {
-  return join(homedir(), ".botozap", "cli");
+  const dir = process.env.BOTOZAP_CONFIG_DIR?.trim();
+  return dir ? resolve(dir) : join(homedir(), ".botozap", "cli");
 }
 
-/** Caminho do arquivo de configuração: `~/.botozap/cli/config.json`. */
+/** Caminho do arquivo de configuração: `<configDir>/config.json`. */
 export function configPath(): string {
   return join(configDir(), "config.json");
 }
