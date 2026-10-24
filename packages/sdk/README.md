@@ -44,7 +44,7 @@ Espelha [a documentação de confiabilidade](https://botozap.com.br/docs):
 pnpm add @botozap/sdk
 ```
 
-Requer Node 20.19 ou superior.
+Requer Node 22.12 ou superior.
 
 ## Início rápido
 

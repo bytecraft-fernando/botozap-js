@@ -10,7 +10,7 @@ plataforma é fechado; o que vive aqui é a camada que ajuda quem integra.
 > **sem promessa de estabilidade de API** até a `1.0`; se algo faltar ou
 > quebrar nos pacotes, o fallback é sempre a API REST direto.
 
-**Node suportado:** `>=20.19`, validado em CI nos majors 20.19, 22 e 24
+**Node suportado:** `>=22.12`, validado em CI no 22.12 e no 24
 (typecheck, testes, build, imports ESM/CJS, smokes de CLI/MCP e instalação dos
 tarballs reais num projeto limpo). A matriz contratual completa também está
 verde contra os handlers reais no repositório privado do core.
@@ -39,7 +39,7 @@ PostgreSQL e worker orientado a Eventos que responde sem polling.
 
 ## Desenvolvimento
 
-Requer Node ≥ 20.19 e [pnpm](https://pnpm.io) (exclusivamente — nunca
+Requer Node ≥ 22.12 e [pnpm](https://pnpm.io) (exclusivamente — nunca
 npm/yarn/bun).
 
 ```bash

@@ -29,17 +29,16 @@ jobs:
           --health-retries 5
     strategy:
       matrix:
-        # Todos os pacotes declaram >=20.19. O leg do major 20 pina '20.19'
-        # (setup-node resolve o patch mais novo de 20.19.x) — um Node 20 antigo
-        # (< 20.19, sem fetch/WebStream estáveis) NÃO valida a compatibilidade
-        # declarada. 22 e 24 usam o patch corrente do major.
-        node-version: ["20.19", "22", "24"]
+        # Todos os pacotes declaram >=22.12. O leg do mínimo pina '22.12'
+        # (setup-node resolve o patch mais novo de 22.12.x) para validar a
+        # compatibilidade declarada; 24 usa o patch corrente do major.
+        node-version: ["22.12", "24"]
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
         with:
           # `packageManager` pina pnpm 11, que exige Node >=22.13 (usa
-          # `node:sqlite`) e portanto NÃO roda no leg 20.19. `standalone`
+          # `node:sqlite`) e portanto NÃO roda no leg 22.12. `standalone`
           # instala o @pnpm/exe, que embute o próprio Node: o pnpm roda no
           # runtime dele, enquanto tsc/vitest/node continuam executando no Node
           # da matriz — que é justamente o que queremos exercitar. (O v4 não
@@ -107,9 +106,9 @@ jobs:
           node packages/cli/dist/index.js --help > /dev/null
       - name: Smoke do MCP (lista tools)
         # `node scripts/smoke.ts` depende de type-stripping nativo (Node >=22.18);
-        # no leg 20.19 o fluxo MCP fica coberto pelo teste hermético do `pnpm test`
+        # no leg 22.12 o fluxo MCP fica coberto pelo teste hermético do `pnpm test`
         # e pelo boot do bin no passo de projeto limpo abaixo.
-        if: matrix.node-version != '20.19'
+        if: matrix.node-version != '22.12'
         run: pnpm --filter @botozap/mcp smoke
       - name: pnpm pack --dry-run por pacote
         run: pnpm run pack:check

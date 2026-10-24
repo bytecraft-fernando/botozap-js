@@ -27,7 +27,7 @@ credenciais.
 
 ## Requisitos
 
-- **Node.js ≥ 20.19** (ESM).
+- **Node.js ≥ 22.12** (ESM).
 - Uma chave de API do BotoZap (gere em **/chaves** no painel).
 - **pnpm** (este monorepo usa pnpm exclusivamente).
 

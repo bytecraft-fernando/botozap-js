@@ -25,7 +25,7 @@ outra resposta outbound.
 
 ## Pré-requisitos
 
-- Node.js 20.19+ e pnpm;
+- Node.js 22.12+ e pnpm;
 - PostgreSQL acessível por `DATABASE_URL`;
 - chave live do BotoZap com `messages:send`;
 - Endpoint criado no BotoZap e seu segredo `whsec_…`.
