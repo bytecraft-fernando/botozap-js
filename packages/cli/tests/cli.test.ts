@@ -37,9 +37,10 @@ import { registerMessages } from "../src/commands/messages.js";
 import { registerConfig } from "../src/commands/config.js";
 
 // ---------------------------------------------------------------------------
-// HOME isolado por teste — nenhum teste toca o ~/.botozap real do usuário.
+// Config isolado por teste — nenhum teste toca o ~/.botozap real do usuário.
 // ---------------------------------------------------------------------------
 const ORIGINAL_HOME = process.env.HOME;
+const ORIGINAL_CONFIG_DIR = process.env.BOTOZAP_CONFIG_DIR;
 const ORIGINAL_KEY_ENV = process.env.BOTOZAP_API_KEY;
 const ORIGINAL_URL_ENV = process.env.BOTOZAP_API_URL;
 let home: string;
@@ -47,6 +48,7 @@ let home: string;
 beforeEach(() => {
   home = mkdtempSync(join(tmpdir(), "botozap-cli-"));
   process.env.HOME = home;
+  process.env.BOTOZAP_CONFIG_DIR = join(home, ".botozap", "cli");
   delete process.env.BOTOZAP_API_KEY;
   delete process.env.BOTOZAP_API_URL;
 });
@@ -54,6 +56,7 @@ beforeEach(() => {
 afterEach(() => {
   rmSync(home, { recursive: true, force: true });
   restore(process.env, "HOME", ORIGINAL_HOME);
+  restore(process.env, "BOTOZAP_CONFIG_DIR", ORIGINAL_CONFIG_DIR);
   restore(process.env, "BOTOZAP_API_KEY", ORIGINAL_KEY_ENV);
   restore(process.env, "BOTOZAP_API_URL", ORIGINAL_URL_ENV);
 });

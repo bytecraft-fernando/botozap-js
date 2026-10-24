@@ -6,7 +6,7 @@
  * baseUrl simultâneas, normalização de barras finais, e as permissões do
  * arquivo no disco (0600/0700 e endurecimento de um legado 0644).
  */
-import { chmodSync, mkdirSync, statSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, statSync, writeFileSync } from "node:fs";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -29,6 +29,7 @@ import { registerMessages } from "../src/commands/messages.js";
 import { run } from "./helpers.js";
 
 const ORIGINAL_HOME = process.env.HOME;
+const ORIGINAL_CONFIG_DIR = process.env.BOTOZAP_CONFIG_DIR;
 const ORIGINAL_KEY_ENV = process.env.BOTOZAP_API_KEY;
 const ORIGINAL_URL_ENV = process.env.BOTOZAP_API_URL;
 let home: string;
@@ -36,6 +37,7 @@ let home: string;
 beforeEach(() => {
   home = mkdtempSync(join(tmpdir(), "botozap-cli-cfg-"));
   process.env.HOME = home;
+  process.env.BOTOZAP_CONFIG_DIR = join(home, ".botozap", "cli");
   delete process.env.BOTOZAP_API_KEY;
   delete process.env.BOTOZAP_API_URL;
 });
@@ -43,6 +45,7 @@ beforeEach(() => {
 afterEach(() => {
   rmSync(home, { recursive: true, force: true });
   restore("HOME", ORIGINAL_HOME);
+  restore("BOTOZAP_CONFIG_DIR", ORIGINAL_CONFIG_DIR);
   restore("BOTOZAP_API_KEY", ORIGINAL_KEY_ENV);
   restore("BOTOZAP_API_URL", ORIGINAL_URL_ENV);
 });
@@ -152,6 +155,18 @@ describe("normalização de barras finais no baseUrl", () => {
 
   it("default quando nada informado", () => {
     expect(resolveAuth({}).baseUrl).toBe("https://botozap.com.br/api/v1");
+  });
+});
+
+describe("diretório do config", () => {
+  it("BOTOZAP_CONFIG_DIR manda no lugar do config, sem passar pelo HOME", () => {
+    const dir = join(home, "outro-lugar");
+    process.env.BOTOZAP_CONFIG_DIR = dir;
+    setConfigValue("apiKey", "bz_live_dir_injetado");
+    expect(configPath()).toBe(join(dir, "config.json"));
+    expect(existsSync(join(dir, "config.json"))).toBe(true);
+    expect(existsSync(join(home, ".botozap"))).toBe(false);
+    expect(resolveAuth({}).apiKey).toBe("bz_live_dir_injetado");
   });
 });
 

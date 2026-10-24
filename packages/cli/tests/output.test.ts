@@ -30,12 +30,14 @@ vi.mock("@botozap/sdk", async (importOriginal) => {
 });
 
 const ORIGINAL_HOME = process.env.HOME;
+const ORIGINAL_CONFIG_DIR = process.env.BOTOZAP_CONFIG_DIR;
 const ORIGINAL_KEY_ENV = process.env.BOTOZAP_API_KEY;
 let home: string;
 
 beforeEach(() => {
   home = mkdtempSync(join(tmpdir(), "botozap-cli-out-"));
   process.env.HOME = home;
+  process.env.BOTOZAP_CONFIG_DIR = join(home, ".botozap", "cli");
   process.env.BOTOZAP_API_KEY = "bz_live_test"; // evita ConfigError no createClient
 });
 
@@ -43,6 +45,8 @@ afterEach(() => {
   rmSync(home, { recursive: true, force: true });
   if (ORIGINAL_HOME === undefined) delete process.env.HOME;
   else process.env.HOME = ORIGINAL_HOME;
+  if (ORIGINAL_CONFIG_DIR === undefined) delete process.env.BOTOZAP_CONFIG_DIR;
+  else process.env.BOTOZAP_CONFIG_DIR = ORIGINAL_CONFIG_DIR;
   if (ORIGINAL_KEY_ENV === undefined) delete process.env.BOTOZAP_API_KEY;
   else process.env.BOTOZAP_API_KEY = ORIGINAL_KEY_ENV;
   vi.clearAllMocks();
