@@ -1,5 +1,17 @@
 # @botozap/mcp
 
+## 0.21.0
+
+### Minor Changes
+
+- c56cd71: **Quebra de compatibilidade:** o Node mínimo passa a ser o 22.12. O Node 20 saiu de suporte em abril de 2026 e deixa de ser testado. Quem ainda roda Node 20 deve atualizar o Node antes de instalar esta versão; as versões anteriores dos pacotes continuam funcionando no 20.19.
+
+### Patch Changes
+
+- 5607a3f: Segurança: `@modelcontextprotocol/sdk` 1.29 → 1.32.2, com `proxy-addr`, `body-parser`, `fast-uri`, `ip-address`, `hono` e `qs` corrigidos nas dependências dele. O servidor agora recusa um `tools/call` cujos argumentos somem mais de 10.000 elementos de array e membros de objeto (`maxToolInputElements`), antes da validação: o zod 3 aloca um erro por elemento inválido, e um único corpo de 1 MiB chegava a ~190 MiB de heap.
+- Updated dependencies [c56cd71]
+  - @botozap/sdk@0.24.0
+
 ## 0.20.0
 
 ### Minor Changes
