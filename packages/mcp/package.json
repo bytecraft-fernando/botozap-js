@@ -44,7 +44,7 @@
   "dependencies": {
     "@botozap/sdk": "workspace:*",
     "@modelcontextprotocol/ext-apps": "1.7.5",
-    "@modelcontextprotocol/sdk": "^1.29.0",
+    "@modelcontextprotocol/sdk": "^1.32.2",
     "@openai/mcp-extensions": "0.1.0",
     "pg": "^8.23.0",
     "zod": "^3.25.76"
