@@ -122,6 +122,10 @@ exports[`políticas declaram escopos, sandbox, efeito destrutivo e rotas 1`] = `
               "description": "Mensagem segura e acionável do erro.",
               "type": "string",
             },
+            "meta_code": {
+              "description": "Código numérico da Meta quando ela recusou o envio (ex.: 131026).",
+              "type": "integer",
+            },
             "outcome": {
               "enum": [
                 "rejected",
@@ -276,6 +280,10 @@ exports[`políticas declaram escopos, sandbox, efeito destrutivo e rotas 1`] = `
             "message": {
               "description": "Mensagem segura e acionável do erro.",
               "type": "string",
+            },
+            "meta_code": {
+              "description": "Código numérico da Meta quando ela recusou o envio (ex.: 131026).",
+              "type": "integer",
             },
             "outcome": {
               "enum": [
@@ -432,6 +440,10 @@ exports[`políticas declaram escopos, sandbox, efeito destrutivo e rotas 1`] = `
               "description": "Mensagem segura e acionável do erro.",
               "type": "string",
             },
+            "meta_code": {
+              "description": "Código numérico da Meta quando ela recusou o envio (ex.: 131026).",
+              "type": "integer",
+            },
             "outcome": {
               "enum": [
                 "rejected",
@@ -531,6 +543,10 @@ exports[`políticas declaram escopos, sandbox, efeito destrutivo e rotas 1`] = `
             "message": {
               "description": "Mensagem segura e acionável do erro.",
               "type": "string",
+            },
+            "meta_code": {
+              "description": "Código numérico da Meta quando ela recusou o envio (ex.: 131026).",
+              "type": "integer",
             },
             "outcome": {
               "enum": [

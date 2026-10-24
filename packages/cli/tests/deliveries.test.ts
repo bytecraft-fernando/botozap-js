@@ -45,3 +45,35 @@ describe("deliveries list", () => {
     expect(row).toContain("400");
   });
 });
+
+describe("deliveries replay", () => {
+  const deliveryId = "b47fde27-97e1-4ff4-bf36-859e23f337e4";
+  const replayed = { id: deliveryId, status: "pending", replayed: true };
+
+  it("faz POST sem corpo em /webhook_deliveries/{id}/replay e imprime o item com -o json", async () => {
+    fetch.mockImplementation(async () => Response.json({ data: replayed }));
+    const result = await run(registerDeliveries, ["deliveries", "replay", deliveryId, ...auth, "-o", "json"]);
+    expect(result.error).toBeUndefined();
+    const [url, init] = fetch.mock.calls[0]! as [string, RequestInit];
+    expect(init.method).toBe("POST");
+    expect(init.body).toBeUndefined();
+    expect(new URL(url).pathname).toBe(`/v1/webhook_deliveries/${deliveryId}/replay`);
+    expect(JSON.parse(result.stdout)).toEqual(replayed);
+  });
+
+  it("confirma em linguagem de quem opera na saída humana", async () => {
+    fetch.mockImplementation(async () => Response.json({ data: replayed }));
+    const result = await run(registerDeliveries, ["deliveries", "replay", deliveryId, ...auth]);
+    expect(result.error).toBeUndefined();
+    expect(result.stdout).toContain(`Entrega ${deliveryId} de volta na fila (pending)`);
+  });
+
+  it("recusa 409 delivery_not_replayable vira erro com o código da API", async () => {
+    fetch.mockImplementation(async () =>
+      Response.json({ error: { code: "delivery_not_replayable", message: "A entrega está success." } }, { status: 409 }),
+    );
+    const result = await run(registerDeliveries, ["deliveries", "replay", deliveryId, ...auth]);
+    expect(result.error).toMatchObject({ code: "delivery_not_replayable", status: 409 });
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+});

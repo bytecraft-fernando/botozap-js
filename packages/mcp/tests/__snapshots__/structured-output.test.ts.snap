@@ -165,6 +165,10 @@ exports[`MCP — output schemas e structured content > anuncia schemas não vazi
               "description": "Mensagem segura e acionável do erro.",
               "type": "string",
             },
+            "meta_code": {
+              "description": "Código numérico da Meta quando ela recusou o envio (ex.: 131026).",
+              "type": "integer",
+            },
             "outcome": {
               "enum": [
                 "rejected",
@@ -479,6 +483,10 @@ exports[`MCP — output schemas e structured content > anuncia schemas não vazi
               "description": "Mensagem segura e acionável do erro.",
               "type": "string",
             },
+            "meta_code": {
+              "description": "Código numérico da Meta quando ela recusou o envio (ex.: 131026).",
+              "type": "integer",
+            },
             "outcome": {
               "enum": [
                 "rejected",
@@ -641,6 +649,10 @@ exports[`MCP — output schemas e structured content > anuncia schemas não vazi
             "message": {
               "description": "Mensagem segura e acionável do erro.",
               "type": "string",
+            },
+            "meta_code": {
+              "description": "Código numérico da Meta quando ela recusou o envio (ex.: 131026).",
+              "type": "integer",
             },
             "outcome": {
               "enum": [
@@ -812,6 +824,10 @@ exports[`MCP — output schemas e structured content > anuncia schemas não vazi
             "message": {
               "description": "Mensagem segura e acionável do erro.",
               "type": "string",
+            },
+            "meta_code": {
+              "description": "Código numérico da Meta quando ela recusou o envio (ex.: 131026).",
+              "type": "integer",
             },
             "outcome": {
               "enum": [
@@ -1171,6 +1187,10 @@ exports[`MCP — output schemas e structured content > anuncia schemas não vazi
               "description": "Mensagem segura e acionável do erro.",
               "type": "string",
             },
+            "meta_code": {
+              "description": "Código numérico da Meta quando ela recusou o envio (ex.: 131026).",
+              "type": "integer",
+            },
             "outcome": {
               "enum": [
                 "rejected",
@@ -1388,6 +1408,10 @@ exports[`MCP — output schemas e structured content > anuncia schemas não vazi
             "message": {
               "description": "Mensagem segura e acionável do erro.",
               "type": "string",
+            },
+            "meta_code": {
+              "description": "Código numérico da Meta quando ela recusou o envio (ex.: 131026).",
+              "type": "integer",
             },
             "outcome": {
               "enum": [
@@ -1609,6 +1633,10 @@ exports[`MCP — output schemas e structured content > anuncia schemas não vazi
               "description": "Mensagem segura e acionável do erro.",
               "type": "string",
             },
+            "meta_code": {
+              "description": "Código numérico da Meta quando ela recusou o envio (ex.: 131026).",
+              "type": "integer",
+            },
             "outcome": {
               "enum": [
                 "rejected",
@@ -1726,6 +1754,10 @@ exports[`MCP — output schemas e structured content > anuncia schemas não vazi
             "message": {
               "description": "Mensagem segura e acionável do erro.",
               "type": "string",
+            },
+            "meta_code": {
+              "description": "Código numérico da Meta quando ela recusou o envio (ex.: 131026).",
+              "type": "integer",
             },
             "outcome": {
               "enum": [
@@ -2095,6 +2127,10 @@ exports[`MCP — output schemas e structured content > anuncia schemas não vazi
             "message": {
               "description": "Mensagem segura e acionável do erro.",
               "type": "string",
+            },
+            "meta_code": {
+              "description": "Código numérico da Meta quando ela recusou o envio (ex.: 131026).",
+              "type": "integer",
             },
             "outcome": {
               "enum": [

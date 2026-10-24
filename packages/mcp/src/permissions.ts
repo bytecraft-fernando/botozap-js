@@ -193,6 +193,10 @@ write(["delete_webhook"], "webhooks:write", false,
   { destructiveHint: true, idempotentHint: true, openWorldHint: false });
 write(["test_webhook"], "webhooks:write", false,
   { destructiveHint: true, idempotentHint: false, openWorldHint: true });
+// Reenvio de entrega esgotada: o evento sai de novo ao endpoint externo do cliente,
+// com a mesma X-Idempotency-Key; repetir com a entrega na fila dá 409, sem duplicar.
+write(["replay_webhook_delivery"], "webhooks:write", false,
+  { destructiveHint: false, idempotentHint: true, openWorldHint: true });
 read(["list_api_logs"], "logs:read", false);
 read(["list_users"], "team:read", false);
 read(["get_meta_costs"], "customers:read", false);

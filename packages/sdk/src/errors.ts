@@ -8,6 +8,12 @@
 export type SendFailureDetails = {
   outcome?: "rejected" | "accepted" | "unknown";
   retry?: "backoff" | "after_correction" | "reconcile_first" | "unknown";
+  /**
+   * Código numérico da Meta quando ela recusou o envio (`error.meta_code`, ex.:
+   * 131026), em `messages.send` e afins e em `conversations.requestConsent`.
+   * Só vem quando a Meta informou um código inteiro.
+   */
+  metaCode?: number;
 };
 
 export class BotoZapError extends Error {
@@ -15,6 +21,7 @@ export class BotoZapError extends Error {
   readonly status: number;
   readonly outcome?: SendFailureDetails["outcome"];
   readonly retry?: SendFailureDetails["retry"];
+  readonly metaCode?: SendFailureDetails["metaCode"];
   /** Headers da resposta HTTP. Ausente em erros sem resposta (status 0). */
   readonly headers?: Record<string, string>;
 
@@ -32,6 +39,7 @@ export class BotoZapError extends Error {
     this.headers = headers;
     this.outcome = details?.outcome;
     this.retry = details?.retry;
+    this.metaCode = details?.metaCode;
   }
 }
 
@@ -84,6 +92,12 @@ export class BotoZapError extends Error {
  * (`phoneNumbers.getHistoryImport`/`setHistoryImport`):
  * `history_import_not_available` (404, número sem importação),
  * `history_import_locked` (409, a escolha já foi feita ou o prazo acabou).
+ * Recusa da Meta no envio e no pedido de consentimento: `meta_error`, com o
+ * código da Meta em {@link BotoZapError.metaCode} quando houver. Reenvio de
+ * entrega (`webhookDeliveries.replay`): `delivery_not_replayable` (409, a
+ * entrega não está `exhausted` nem `limited`), `forward_limit_reached` (409,
+ * entrega `limited` e o limite de repasse do mês acabou),
+ * `replay_rate_limited` (429, muitos reenvios seguidos).
  */
 export type BotoZapErrorCode =
   | "invalid_request"
@@ -137,6 +151,9 @@ export type BotoZapErrorCode =
   | "unsupported_voice"
   | "history_import_not_available"
   | "history_import_locked"
+  | "delivery_not_replayable"
+  | "forward_limit_reached"
+  | "replay_rate_limited"
   | (string & {});
 
 /** Códigos que indicam limite ou restrição do plano contratado. */

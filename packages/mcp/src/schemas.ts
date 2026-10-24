@@ -26,6 +26,7 @@ import type {
   Webhook,
   WebhookChannelHealth,
   WebhookDelivery,
+  WebhookDeliveryReplay,
 } from "@botozap/sdk";
 
 /** UUID interno persistido pelo BotoZap (não é um identificador da Meta). */
@@ -59,15 +60,28 @@ export const structuredErrorSchema = z
   .strict()
   .describe("Erro estruturado sem credenciais, tokens ou headers de request.");
 
+/**
+ * Erro do catálogo completo: o revisado mais `meta_code`. O perfil assistant
+ * (app revisado do ChatGPT) segue anunciando `structuredErrorSchema`; lá o
+ * código da Meta vai só no texto.
+ */
+export const fullStructuredErrorSchema = structuredErrorSchema.extend({
+  meta_code: z
+    .number()
+    .int()
+    .optional()
+    .describe("Código numérico da Meta quando ela recusou o envio (ex.: 131026)."),
+});
+
 export type StructuredError = {
-  error: z.infer<typeof structuredErrorSchema>;
+  error: z.infer<typeof fullStructuredErrorSchema>;
 };
 
 export function structuredError(
   code: string,
   message: string,
   status: number,
-  details: Pick<StructuredError["error"], "outcome" | "retry"> = {},
+  details: Pick<StructuredError["error"], "outcome" | "retry" | "meta_code"> = {},
 ): StructuredError {
   return { error: { code, message, status, ...details } };
 }
@@ -78,10 +92,14 @@ export function structuredError(
  * forma anunciada mantém os campos de sucesso opcionais e acrescenta o erro;
  * o schema forte de sucesso continua sendo validado pelo register antes da
  * resposta. Isso evita ZodUnion/ZodEffects na raiz (que virariam schema vazio).
+ * O padrão é o erro revisado; o catálogo completo passa `fullStructuredErrorSchema`.
  */
-export function compatibleOutputSchema(successSchema: AnyZodObject): AnyZodObject {
+export function compatibleOutputSchema(
+  successSchema: AnyZodObject,
+  errorSchema: AnyZodObject = structuredErrorSchema,
+): AnyZodObject {
   return successSchema.partial().extend({
-    error: structuredErrorSchema.optional(),
+    error: errorSchema.optional(),
   });
 }
 
@@ -739,6 +757,16 @@ export const webhookDeliverySchema = z
 
 export const listWebhookDeliveriesResultSchema =
   cursorListResultSchemaFor(webhookDeliverySchema);
+
+export const webhookDeliveryReplayResultSchema = itemResultSchemaFor(
+  z
+    .object({
+      id: internalUuidSchema,
+      status: z.literal("pending").describe("A entrega voltou para a fila."),
+      replayed: z.literal(true),
+    })
+    .strip() satisfies z.ZodType<WebhookDeliveryReplay>,
+);
 
 export const phoneNumberSchema = z
   .object({

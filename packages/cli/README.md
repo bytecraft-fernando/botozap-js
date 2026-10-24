@@ -92,7 +92,7 @@ botozap messages list -o json | jq '.data[].id'
 ```
 
 > **Listas** preservam o envelope da API (`{ data, paging }` por cursor, `{ data, meta }`
-> por offset). **Itens** (`get`, `create`, `update`, `media ingest`, `webhooks test`)
+> por offset). **Itens** (`get`, `create`, `update`, `media ingest`, `webhooks test`, `deliveries replay`)
 > saem **desembrulhados** — o objeto direto, sem a chave `data` em volta — porque os
 > métodos de item do SDK já entregam a entidade. `messages send` sempre respondeu o
 > objeto direto (a rota `POST /messages` não usa envelope).
@@ -119,7 +119,7 @@ botozap channel-accounts message-rules list | get | create | update | delete   (
 botozap channel-accounts messenger-profile get | update | delete | sync   (Instagram)
 botozap templates     list | get | create | update
 botozap webhooks      list | get | create | update | delete | test
-botozap deliveries    list                          (webhook_deliveries)
+botozap deliveries    list | replay                 (webhook_deliveries)
 botozap logs          list                          (api_logs)
 botozap users         list
 botozap usage         meta-costs                    (custo aproximado da Meta)
@@ -342,6 +342,9 @@ botozap webhooks test <id>
 # Entregas e logs
 botozap deliveries list --status failed
 botozap deliveries list --status failed --channel-account-id <id-do-canal>
+# reenvia uma entrega esgotada (exhausted) ou cortada pelo limite (limited), como o Reenviar do painel
+botozap deliveries list --status exhausted
+botozap deliveries replay <id-da-entrega>
 botozap logs list --status-code 500
 ```
 
@@ -357,8 +360,15 @@ Erro [authentication_error]: Chave de API inválida ou expirada.
 Num `429 rate_limited`, a CLI acrescenta o `Retry-After` (e `X-RateLimit-*`,
 quando presentes) à mensagem — espere esse tempo antes de reenviar.
 
+Quando a Meta recusa um envio ou pedido de consentimento, a CLI mostra o código
+da Meta junto da mensagem:
+
+```
+Erro [meta_error]: <mensagem da API> — código da Meta: 131026
+```
+
 Com `-o json`, erros saem **estruturados no stderr** (stdout fica limpo para
-pipes): `{ "error": { "code", "message", "status", "rate_limit"? } }`. O exit
+pipes): `{ "error": { "code", "message", "status", "meta_code"?, "rate_limit"? } }`. O exit
 code é **1** para qualquer erro (`0` só no sucesso) — trate classes de erro pelo
 `code` do JSON, não pelo exit code.
 
