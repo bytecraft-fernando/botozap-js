@@ -2,6 +2,7 @@
 import { z } from "zod";
 import type {
   BlockUserParams,
+  HistoryImportWindowDays,
   ListPhoneNumbersParams,
   UpdateConversationalAutomationParams,
   UpdateWhatsAppProfileParams,
@@ -16,6 +17,7 @@ import {
   qrCodeResultSchema,
   whatsappProfileResultSchema,
   getFullPhoneNumberResultSchema,
+  historyImportResultSchema,
   listFullPhoneNumbersResultSchema,
   phoneNumberHealthResultSchema,
 } from "../schemas.js";
@@ -67,6 +69,31 @@ export function registerPhoneNumberTools(register: Register): void {
     { id: z.string().describe("UUID interno do número ou `phone_number_id` da Meta.") },
     phoneNumberHealthResultSchema,
     async (client, args) => ({ data: await client.phoneNumbers.health(String(args.id)) }),
+  );
+
+  register(
+    "get_phone_number_history_import",
+    "Conversas antigas do app WhatsApp Business que o número traz ao conectar (só número em coexistência, que continua no app do celular). Mostra status (awaiting_choice: esperando a escolha; queued: escolhida e o pedido à Meta ainda vai sair; requested, declined, failed, expired, unconfirmed ou skipped), window_days (0, 30 ou 180), window_source (customer ou default), can_choose (se ainda dá para escolher), default_at (quando o último mês vale sozinho) e deadline_at (fim do prazo). Número sem importação responde 404 history_import_not_available; sandbox e conexão inativa respondem 409 (sandbox_not_supported, connection_inactive). Exige scope numbers:read. Retorna { data }.",
+    { id: numberId },
+    historyImportResultSchema,
+    async (client, args) => ({ data: await client.phoneNumbers.getHistoryImport(String(args.id)) }),
+  );
+
+  register(
+    "set_phone_number_history_import",
+    "Escolhe quanto das conversas antigas do app WhatsApp Business o número traz: window_days 0 (nada), 30 ou 180 dias. Vale uma vez por conexão, enquanto can_choose: depois não dá para mudar (409 history_import_locked; só conectando o número de novo). Repetir a mesma escolha devolve 200 sem mudar nada. 30 e 180 pedem à Meta na hora; 0 encerra sem trazer nada. Sem escolha, o último mês vale sozinho em default_at. Pergunte a quem opera antes de escolher; não decida sozinho. Número sem importação responde 404 history_import_not_available; sandbox e conexão inativa respondem 409 (sandbox_not_supported, connection_inactive). Exige scope numbers:write. Retorna { data }.",
+    {
+      id: numberId,
+      window_days: z
+        .union([z.literal(0), z.literal(30), z.literal(180)])
+        .describe("Dias de conversas antigas: 0 (nada), 30 ou 180."),
+    },
+    historyImportResultSchema,
+    async (client, args) => ({
+      data: await client.phoneNumbers.setHistoryImport(String(args.id), {
+        window_days: args.window_days as HistoryImportWindowDays,
+      }),
+    }),
   );
 }
 

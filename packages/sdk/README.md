@@ -525,6 +525,21 @@ Recusas: `no_inbound_message` (409, "digitando…" sem mensagem do contato),
 `reply_target_not_found` e `reply_target_unavailable` (422), `invalid_voice` e
 `unsupported_voice` (422).
 
+### Conversas antigas do app WhatsApp Business
+
+Número em coexistência (também no app WhatsApp Business do celular) pode trazer
+as conversas antigas logo depois de conectar: 0 (nada), 30 ou 180 dias.
+
+```ts
+const historico = await boto.phoneNumbers.getHistoryImport(id); // status, window_days, can_choose, deadline_at
+await boto.phoneNumbers.setHistoryImport(id, { window_days: 180 });
+```
+
+A escolha vale uma vez por conexão, enquanto `can_choose`; repetir a mesma
+escolha devolve 200 e outra responde 409 `history_import_locked`. Sem escolha,
+o último mês (30 dias) vale 20 h depois da conexão. Número sem importação
+responde 404 `history_import_not_available`.
+
 ### Configurações do número do WhatsApp
 
 Perfil, perguntas prontas e comandos, QR codes e bloqueados, direto na Meta (sem
@@ -626,7 +641,7 @@ O SDK cobre os recursos da API `/v1`:
 - `conversations` — **`typing`** ("digitando…") e **`markRead`** (marcar como lida); **`requestConsent`** e **`delete`**; `reply` aceita `reply_to`; listar (filtros `channel` e `channel_account_id`), buscar, atualizar, responder, atribuições; leituras trazem `entry_point` (`ctwa`/`organic`/`null`), `referral` do último clique em anúncio Click-to-WhatsApp, `fep_expires_at` (fim da janela grátis informado pela Meta) e `fep_reply_by` (estimativa do prazo para responder)
 - `webhooks` — CRUD e teste; `customer_id` opcional limita as entregas a um Cliente da Conta (`null` no update remove o filtro); `channel_account_ids` limita a alguns canais (`null` = todos) e `channels_health` traz a saúde por canal
 - `channelAccounts` — listar e buscar Contas de canal (WhatsApp e Instagram); **Regras de comentário** do Instagram (listar, buscar, criar, atualizar, excluir) e **Perguntas e menu** (ler, salvar/aplicar, remover, verificar/reaplicar)
-- `phoneNumbers` — listar, buscar, **atualizar o `label`** (nome local, até 100 caracteres; `null` limpa), remover, saúde; configurações do número do WhatsApp: `getProfile`/`updateProfile`/`uploadProfilePhoto`, `get`/`update`/`clearConversationalAutomation` (perguntas prontas e comandos), `qrCodes.list`/`create`/`get`/`update`/`delete` e `blockedUsers.list`/`block`/`unblock`
+- `phoneNumbers` — listar, buscar, **atualizar o `label`** (nome local, até 100 caracteres; `null` limpa), remover, saúde; configurações do número do WhatsApp: `getProfile`/`updateProfile`/`uploadProfilePhoto`, `get`/`update`/`clearConversationalAutomation` (perguntas prontas e comandos), `qrCodes.list`/`create`/`get`/`update`/`delete` e `blockedUsers.list`/`block`/`unblock`; conversas antigas do app WhatsApp Business (coexistência): `getHistoryImport`/`setHistoryImport`
 - `media` — subir arquivo (obter um media_id) e **buscar metadados + URL de download** de uma mídia recebida
 - `events` — reler inbound e mudanças de status pelo cursor durável da Conta/ambiente
 - `usage` — `metaCosts`: custo aproximado da Meta por dia, categoria e moeda (Pricing Analytics), com estimativa por tarifa publicada onde a Meta não devolveu custo

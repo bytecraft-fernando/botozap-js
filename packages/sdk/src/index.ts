@@ -101,6 +101,10 @@ export type {
   UnblockUserResult,
   PhoneNumberQrCodes,
   PhoneNumberBlockedUsers,
+  HistoryImport,
+  HistoryImportStatus,
+  HistoryImportWindowDays,
+  SetHistoryImportParams,
 } from "./resources/phone-numbers.js";
 export type { UploadMediaParams } from "./resources/media.js";
 export type { ListEventsParams } from "./resources/events.js";

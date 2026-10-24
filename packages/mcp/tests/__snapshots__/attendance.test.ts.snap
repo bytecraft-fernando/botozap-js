@@ -262,6 +262,8 @@ exports[`MCP Atendimento: schemas, domínio e transporte real em memória > cat�
   "get_phone_number",
   "update_phone_number",
   "phone_number_health",
+  "get_phone_number_history_import",
+  "set_phone_number_history_import",
   "get_phone_number_profile",
   "update_phone_number_profile",
   "get_conversational_automation",

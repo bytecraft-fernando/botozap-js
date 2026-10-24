@@ -163,6 +163,53 @@ export interface UnblockUserResult {
 }
 
 /**
+ * Estado da importação das conversas antigas do app WhatsApp Business
+ * (coexistência). `awaiting_choice`: esperando a escolha; `queued`: janela
+ * fixada, o pedido à Meta ainda não saiu; os demais são o desfecho do pedido
+ * (`skipped` quando a escolha foi 0 dias).
+ */
+export type HistoryImportStatus =
+  | "awaiting_choice"
+  | "queued"
+  | "requested"
+  | "declined"
+  | "failed"
+  | "expired"
+  | "unconfirmed"
+  | "skipped";
+
+/** Janela de conversas antigas a importar, em dias (0 = não importar). */
+export type HistoryImportWindowDays = 0 | 30 | 180;
+
+/** Importação das conversas antigas do número (`GET|PUT …/history-import`). */
+export interface HistoryImport {
+  /** UUID interno do número. */
+  phone_id: string;
+  status: HistoryImportStatus;
+  /** Janela fixada; `null` enquanto ninguém escolheu. */
+  window_days: HistoryImportWindowDays | null;
+  /** `customer` (escolhida por alguém) ou `default` (aplicada sozinha); `null` sem janela. */
+  window_source: "customer" | "default" | null;
+  window_set_at: string | null;
+  /** A escolha ainda é aceita (`status` = `awaiting_choice` e dentro do prazo). */
+  can_choose: boolean;
+  /** Janela aplicada se ninguém escolher (hoje, 30). */
+  default_window_days: HistoryImportWindowDays;
+  /** Quando a janela padrão é aplicada sem escolha (20 h depois da conexão). */
+  default_at: string;
+  /** Fim do prazo da Meta para pedir o histórico (24 h depois da conexão). */
+  deadline_at: string;
+  /** Quando o número foi conectado. */
+  onboarded_at: string;
+}
+
+/** Corpo de `phoneNumbers.setHistoryImport`. */
+export interface SetHistoryImportParams {
+  /** 0 (não importar), 30 ou 180 dias. */
+  window_days: HistoryImportWindowDays;
+}
+
+/**
  * QR codes com mensagem pronta e link curto do número
  * (`/v1/phone_numbers/{id}/qr-codes`). `{id}` aceita o UUID interno ou o
  * `phone_number_id` da Meta. Lido e gravado direto na Meta.
@@ -393,6 +440,28 @@ export class PhoneNumbers {
       "DELETE",
       `/phone_numbers/${enc(id)}/conversational-automation`,
     );
+  }
+
+  /**
+   * Quanto das conversas antigas do app WhatsApp Business o número importa
+   * (coexistência): estado, janela escolhida e até quando dá para escolher.
+   * Número sem importação (não está em coexistência, ou foi conectado antes
+   * deste recurso) responde 404 `history_import_not_available`. Scope `numbers:read`.
+   */
+  getHistoryImport(id: string): Promise<HistoryImport> {
+    return this.client.requestItem<HistoryImport>("GET", `/phone_numbers/${enc(id)}/history-import`);
+  }
+
+  /**
+   * Escolhe quanto importar: `window_days` 0 (nada), 30 ou 180. Vale uma vez
+   * por conexão, enquanto `can_choose`; repetir a mesma escolha devolve 200,
+   * outra escolha depois responde 409 `history_import_locked`. Sem escolha,
+   * o último mês vale 20 h depois da conexão. Scope `numbers:write`.
+   */
+  setHistoryImport(id: string, params: SetHistoryImportParams): Promise<HistoryImport> {
+    return this.client.requestItem<HistoryImport>("PUT", `/phone_numbers/${enc(id)}/history-import`, {
+      body: { window_days: params.window_days },
+    });
   }
 
   /** Saúde do número (qualidade, limite, status na Meta). */

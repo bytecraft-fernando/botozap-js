@@ -3,6 +3,8 @@ import { readFile, stat } from "node:fs/promises";
 import { basename, extname } from "node:path";
 import type {
   ConversationalCommand,
+  HistoryImport,
+  HistoryImportWindowDays,
   QrImageFormat,
   UpdateConversationalAutomationParams,
   UpdateWhatsAppProfileParams,
@@ -86,6 +88,7 @@ export function registerNumbers(program: Command): void {
     });
 
   registerNumberSettings(numbers);
+  registerHistoryImport(numbers);
 
   numbers
     .command("health <id>")
@@ -95,6 +98,78 @@ export function registerNumbers(program: Command): void {
       const data = await client.phoneNumbers.health(id);
       if (format === "json") return printJson(data);
       printDetail(data);
+    });
+}
+
+const HISTORY_WINDOWS = [0, 30, 180] as const;
+
+function historyDays(value: unknown): HistoryImportWindowDays {
+  const text = String(value ?? "").trim();
+  const days = /^\d+$/.test(text) ? Number(text) : NaN;
+  if (!(HISTORY_WINDOWS as readonly number[]).includes(days)) throw new Error("--days deve ser 0, 30 ou 180.");
+  return days as HistoryImportWindowDays;
+}
+
+const HISTORY_STATUS: Record<string, string> = {
+  awaiting_choice: "esperando a escolha",
+  queued: "escolhida; o pedido à Meta ainda vai sair",
+  requested: "pedida à Meta",
+  declined: "recusada no app WhatsApp Business",
+  failed: "falhou",
+  expired: "prazo da Meta acabou",
+  unconfirmed: "sem confirmação da Meta",
+  skipped: "nada importado (0 dias)",
+};
+
+function printHistoryImport(data: HistoryImport, format: string, message?: string) {
+  if (format === "json") return printJson(data);
+  if (message) printLine(message);
+  printDetail(data as unknown as Record<string, unknown>);
+  printLine(`Situação: ${HISTORY_STATUS[data.status] ?? data.status}.`);
+  if (data.can_choose) {
+    printLine(
+      `Dá para escolher até ${data.deadline_at}: botozap numbers history-import set ${data.phone_id} --days 0|30|180. ` +
+        `Sem escolha, vale ${data.default_window_days} dias em ${data.default_at}.`,
+    );
+  }
+}
+
+/**
+ * Conversas antigas do app WhatsApp Business (coexistência): quanto o número
+ * importa logo depois de conectar.
+ */
+function registerHistoryImport(numbers: Command): void {
+  const history = numbers
+    .command("history-import")
+    .description("Conversas antigas do app WhatsApp Business que o número traz ao conectar (coexistência)");
+
+  history
+    .command("get <id>")
+    .description(
+      "Mostra a situação da importação, a janela escolhida e até quando dá para escolher. " +
+        "Número sem importação: 404 history_import_not_available. Scope numbers:read",
+    )
+    .action(async (id: string, _opts, cmd: Command) => {
+      const { client, format } = context(cmd);
+      printHistoryImport(await client.phoneNumbers.getHistoryImport(id), format);
+    });
+
+  history
+    .command("set <id>")
+    .description(
+      "Escolhe quanto importar: 0 (nada), 30 ou 180 dias. Vale uma vez por conexão, enquanto can_choose; " +
+        "repetir a mesma escolha não muda nada, outra responde 409 history_import_locked. Scope numbers:write",
+    )
+    .requiredOption("--days <dias>", "0 (nada), 30 ou 180")
+    .action(async (id: string, opts, cmd: Command) => {
+      const { client, format } = context(cmd);
+      const days = historyDays(opts.days);
+      const data = await client.phoneNumbers.setHistoryImport(id, { window_days: days });
+      printHistoryImport(
+        data,
+        format,
+        days === 0 ? "Escolha salva: o número não vai trazer conversas antigas." : `Escolha salva: últimos ${days} dias.`,
+      );
     });
 }
 
