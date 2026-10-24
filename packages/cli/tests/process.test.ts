@@ -38,6 +38,7 @@ function childEnv(home: string, extra?: Record<string, string>): Record<string, 
   delete env.BOTOZAP_API_KEY;
   delete env.BOTOZAP_API_URL;
   env.HOME = home;
+  env.BOTOZAP_CONFIG_DIR = join(home, ".botozap", "cli");
   env.NO_COLOR = "1"; // saída de erro sem ANSI, substring estável
   Object.assign(env, extra ?? {});
   return env;

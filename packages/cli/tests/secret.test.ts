@@ -44,6 +44,7 @@ function childEnv(home: string): Record<string, string> {
   delete env.BOTOZAP_API_KEY;
   delete env.BOTOZAP_API_URL;
   env.HOME = home;
+  env.BOTOZAP_CONFIG_DIR = join(home, ".botozap", "cli");
   env.NO_COLOR = "1";
   return env;
 }

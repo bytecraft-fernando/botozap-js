@@ -49,11 +49,13 @@ afterAll(async () => {
 });
 
 const ORIGINAL_HOME = process.env.HOME;
+const ORIGINAL_CONFIG_DIR = process.env.BOTOZAP_CONFIG_DIR;
 let home: string;
 
 beforeEach(() => {
   home = mkdtempSync(join(tmpdir(), "botozap-cli-int-"));
   process.env.HOME = home;
+  process.env.BOTOZAP_CONFIG_DIR = join(home, ".botozap", "cli");
   delete process.env.BOTOZAP_API_KEY;
   delete process.env.BOTOZAP_API_URL;
 });
@@ -62,6 +64,8 @@ afterEach(() => {
   rmSync(home, { recursive: true, force: true });
   if (ORIGINAL_HOME === undefined) delete process.env.HOME;
   else process.env.HOME = ORIGINAL_HOME;
+  if (ORIGINAL_CONFIG_DIR === undefined) delete process.env.BOTOZAP_CONFIG_DIR;
+  else process.env.BOTOZAP_CONFIG_DIR = ORIGINAL_CONFIG_DIR;
 });
 
 describe("401 estruturado", () => {
