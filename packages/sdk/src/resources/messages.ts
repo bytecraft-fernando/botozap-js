@@ -204,19 +204,6 @@ export interface InteractiveCtaUrlPayload extends InteractiveBase {
   };
 }
 
-/**
- * Pedido de localização (WhatsApp): o contato vê um botão para enviar a
- * localização dele. Só `body.text` (até 1024 caracteres) e
- * `action.name: "send_location"`; este subtipo não tem `header` nem `footer`.
- * A resposta chega como uma mensagem `location` comum, com `latitude`,
- * `longitude` e, quando o contato compartilha, `name` e `address`.
- */
-export interface InteractiveLocationRequestPayload {
-  type: "location_request_message";
-  body: { text: string };
-  action: { name: "send_location" };
-}
-
 /** Botão do Instagram: abrir link ou enviar postback (até 3 por mensagem/card). */
 export type InstagramInteractiveButton =
   | { type: "web_url"; title: string; url: string }
@@ -253,7 +240,6 @@ export type InteractivePayload =
   | InteractiveButtonPayload
   | InteractiveListPayload
   | InteractiveCtaUrlPayload
-  | InteractiveLocationRequestPayload
   | InstagramInteractivePayload;
 
 export interface SendInteractiveParams {
@@ -366,14 +352,8 @@ export class Messages {
   }
 
   /**
-   * Envia button/list/cta_url/location_request_message no WhatsApp ou
-   * button/generic no Instagram. Mensagem livre sujeita à janela do canal.
-   *
-   * `location_request_message` pede a localização do contato: só `body.text`
-   * e `action: { name: "send_location" }`, sem header nem footer; a resposta
-   * chega como mensagem `location`. Outros subtipos da Cloud API (`flow`,
-   * `product`, `address_message`, `carousel`…) respondem 422
-   * `unsupported_type`.
+   * Envia button/list/cta_url no WhatsApp ou button/generic no Instagram.
+   * Mensagem livre sujeita à janela do canal.
    */
   async sendInteractive(
     params: SendInteractiveParams,

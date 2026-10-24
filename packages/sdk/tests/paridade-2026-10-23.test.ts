@@ -1,6 +1,6 @@
 /**
  * Paridade com a API de 23/10/2026: "digitando…" e marcar como lida, modelos
- * prontos de Régua, diagnóstico do agente, pedido de localização e
+ * prontos de Régua, diagnóstico do agente, responder citando, voz e
  * configurações do número do WhatsApp (perfil, foto, perguntas e comandos,
  * QR codes e bloqueados).
  */
@@ -17,8 +17,6 @@ import {
   type ConversationReadResult,
   type ConversationTypingResult,
   type CursorList,
-  type InteractiveLocationRequestPayload,
-  type InteractivePayload,
   type JourneyCatalogItem,
   type JourneyModelEnableResult,
   type Message,
@@ -152,20 +150,6 @@ describe("ai.agents.diagnostic", () => {
   });
 });
 
-describe("pedido de localização", () => {
-  it("sendInteractive manda location_request_message como está", async () => {
-    const { client, call } = setup(() => Response.json({ id: "m1", wamid: "wamid.1", to: "5511999999999", status: "sent" }, { status: 201 }));
-    const interactive: InteractiveLocationRequestPayload = {
-      type: "location_request_message",
-      body: { text: "Para calcular o frete, envie a sua localização." },
-      action: { name: "send_location" },
-    };
-    expectTypeOf(interactive).toMatchTypeOf<InteractivePayload>();
-    await client.messages.sendInteractive({ to: "5511999999999", interactive });
-    expect(call().body).toMatchObject({ type: "interactive", interactive });
-  });
-});
-
 describe("configurações do número do WhatsApp", () => {
   const PHONE = "p0000000-0000-4000-8000-000000000001";
   const profile: WhatsAppBusinessProfile = {
@@ -273,7 +257,7 @@ describe("responder citando e mensagem de voz", () => {
     await client.messages.sendMedia({ to: "5511999999999", type: "image", link: "https://x.test/a.png", reply_to: reply });
     await client.messages.sendInteractive({
       to: "5511999999999",
-      interactive: { type: "location_request_message", body: { text: "Onde?" }, action: { name: "send_location" } },
+      interactive: { type: "button", body: { text: "Confirma?" }, action: { buttons: [{ type: "reply", reply: { id: "sim", title: "Sim" } }] } },
       reply_to: reply,
     });
     await client.messages.sendLocation({ to: "5511999999999", latitude: -3.1, longitude: -60, reply_to: reply });

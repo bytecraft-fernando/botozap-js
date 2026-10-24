@@ -16,8 +16,7 @@
   send-location; MCP `reply_to` em `send_message` e `send_media_message` e
   `reply_to_message_id` em `reply_to_conversation`). Mensagem de voz: `voice: true` em áudio
   (CLI `send-media --voice`; MCP `voice` em `send_media_message`), com `invalid_voice` e
-  `unsupported_voice`. Pedido de localização: tipo `InteractiveLocationRequestPayload`
-  (`interactive.type: "location_request_message"`). Modelos prontos de Régua:
+  `unsupported_voice`. Modelos prontos de Régua:
   `journeys.catalog` e `journeys.enableModel` (CLI `journeys catalog` e `enable-model`;
   tools `list_journey_models` e `enable_journey_model`). Diagnóstico do agente:
   `ai.agents.diagnostic` (CLI `ai agents diagnostic`; tool `ai_agents_diagnostic`). IA:

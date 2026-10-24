@@ -504,7 +504,7 @@ As Palavras de saída e de volta e os textos de confirmação são do Cliente
 template, `templates.update(id, { opt_out_buttons })` (ou `opt_out_buttons` em
 `templates.create`) marca os botões de resposta rápida que são de saída.
 
-### Responder citando, voz, "digitando…" e pedido de localização
+### Responder citando, voz e "digitando…"
 
 ```ts
 // "Digitando…" enquanto prepara a resposta (só com mensagem recebida e janela aberta;
@@ -519,12 +519,6 @@ await boto.conversations.reply(conversationId, { text: "Sim", reply_to: { messag
 // Mensagem de voz (WhatsApp; .ogg com Opus mono). "Ouvida" chega em
 // whatsapp.message.played e em Message.played_at; o status continua read.
 await boto.messages.sendMedia({ to, type: "audio", link: "https://cdn.exemplo.com/oi.ogg", voice: true });
-
-// Pedir a localização: a resposta chega como mensagem location comum.
-await boto.messages.sendInteractive({
-  to,
-  interactive: { type: "location_request_message", body: { text: "Envie sua localização" }, action: { name: "send_location" } },
-});
 ```
 
 Recusas: `no_inbound_message` (409, "digitando…" sem mensagem do contato),
@@ -624,7 +618,7 @@ new BotoZap({
 
 O SDK cobre os recursos da API `/v1`:
 
-- `messages` — enviar texto (com `quick_replies` no Instagram), template e mídia por link, **listar** e buscar por id; `reply_to` (responder citando) em todos os envios menos reação, `voice: true` em áudio (mensagem de voz), `interactive` com `location_request_message`; leituras trazem `reply_to`, `played_at` e `transcription`
+- `messages` — enviar texto (com `quick_replies` no Instagram), template e mídia por link, **listar** e buscar por id; `reply_to` (responder citando) em todos os envios menos reação, `voice: true` em áudio (mensagem de voz); leituras trazem `reply_to`, `played_at` e `transcription`
 - `customers` — listar, buscar, criar, **atualizar** (nome, id externo e Palavras de saída/volta com os textos de confirmação), **remover**, e **links de setup** (listar/criar/atualizar; `channel` `whatsapp` ou `instagram`, um canal por link)
 - `templates` — listar, buscar, **criar**, **atualizar** (`opt_out_buttons`)
 - `broadcasts` — criar, destinatários, agendar, enviar, cancelar

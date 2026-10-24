@@ -217,10 +217,7 @@ export function registerMessages(program: Command): void {
 
   messages
     .command("send-interactive")
-    .description(
-      "Envia interactive: WhatsApp button/list/cta_url/location_request_message (pede a localização do contato: " +
-        "só body.text e action {name: send_location}, sem header/footer); Instagram button (web_url/postback) ou generic (1–10 cards)",
-    )
+    .description("Envia interactive: WhatsApp button/list/cta_url; Instagram button (web_url/postback) ou generic (1–10 cards)")
     .requiredOption("--to <destinatario>", "telefone/BSUID (WhatsApp) ou IGSID (Instagram)")
     .option("--from <origem>", "ID Meta/UUID do Número ou da Conta de canal")
     .option("--input <arquivo>", "arquivo JSON com o objeto interactive")

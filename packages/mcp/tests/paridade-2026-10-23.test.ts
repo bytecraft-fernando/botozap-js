@@ -1,6 +1,6 @@
 /**
  * Paridade com a API de 23/10/2026 no MCP: "digitando…" e marcar como lida,
- * modelos prontos de Régua, diagnóstico do agente, pedido de localização,
+ * modelos prontos de Régua, diagnóstico do agente,
  * responder citando, mensagem de voz e configurações do número do WhatsApp.
  * Tudo novo fica só no catálogo completo; o perfil assistant (app revisado do
  * ChatGPT) não ganha tools, campos de entrada nem campos de saída.
@@ -116,12 +116,12 @@ describe("catálogo", () => {
     expect(byName.get("enable_journey_model")).toMatch(/mensagens automáticas/);
   });
 
-  it("catálogo completo: send_message explica reply_to e location_request_message; envio e leitura anunciam os campos novos", async () => {
+  it("catálogo completo: send_message explica reply_to (sem pedido de localização); envio e leitura anunciam os campos novos", async () => {
     const { client } = await connect(() => Response.json({ data: {} }));
     const tools = (await client.listTools()).tools;
     const send = tools.find((t) => t.name === "send_message")!;
     expect(send.description).toContain("reply_target_not_found");
-    expect(send.description).toContain("location_request_message");
+    expect(send.description).not.toContain("location_request_message");
     expect(Object.keys(send.inputSchema.properties ?? {})).toContain("reply_to");
     expect(JSON.stringify(send.outputSchema)).toContain("reply_to");
     const media = tools.find((t) => t.name === "send_media_message")!;
@@ -239,10 +239,10 @@ describe("chamadas", () => {
     expect(captured[0]).toMatchObject({ method: "GET", path: `/v1/ai/agents/${AGENT}/diagnostic`, query: { customer_id: CUSTOMER } });
   });
 
-  it("send_message com reply_to e location_request_message", async () => {
+  it("send_message com reply_to em interactive", async () => {
     const captured: Captured[] = [];
     const { client } = await connect(() => Response.json(sent, { status: 201 }), fullAccessIdentity, captured);
-    const interactive = { type: "location_request_message", body: { text: "Onde?" }, action: { name: "send_location" } };
+    const interactive = { type: "button", body: { text: "Confirma?" }, action: { buttons: [{ type: "reply", reply: { id: "sim", title: "Sim" } }] } };
     const result = await client.callTool({
       name: "send_message",
       arguments: { to: "5511999999999", type: "interactive", interactive, reply_to: { message_id: "wamid.1" } },

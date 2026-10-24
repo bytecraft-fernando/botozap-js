@@ -241,9 +241,6 @@ botozap conversations read <id>
 botozap messages send --to 5511999999999 --text "Combinado!" --reply-to <message_id>
 # Mensagem de voz (só audio, WhatsApp; arquivo .ogg com Opus mono)
 botozap messages send-media --to 5511999999999 --type audio --link https://cdn.exemplo.com/oi.ogg --voice
-# Pedir a localização do contato
-botozap messages send-interactive --to 5511999999999 \
-  --json '{"type":"location_request_message","body":{"text":"Envie sua localização"},"action":{"name":"send_location"}}'
 
 # Modelos prontos de Régua (os mesmos da galeria de Automações) e ligar um no Cliente
 botozap journeys catalog

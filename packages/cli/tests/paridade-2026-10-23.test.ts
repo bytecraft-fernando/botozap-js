@@ -1,6 +1,6 @@
 /**
  * Paridade com a API de 23/10/2026 na CLI: "digitando…" e marcar como lida,
- * modelos prontos de Régua, diagnóstico do agente, pedido de localização,
+ * modelos prontos de Régua, diagnóstico do agente,
  * responder citando, mensagem de voz e configurações do número do WhatsApp.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -117,13 +117,13 @@ describe("ai agents diagnostic", () => {
   });
 });
 
-describe("messages: pedido de localização, responder citando e voz", () => {
-  it("send-interactive cita location_request_message na ajuda e manda --reply-to", async () => {
+describe("messages: responder citando e voz", () => {
+  it("send-interactive manda --reply-to e a ajuda não oferece o pedido de localização", async () => {
     const program = buildProgram(registerMessages);
     const help = program.commands.find((c) => c.name() === "messages")?.commands.find((c) => c.name() === "send-interactive")?.description();
-    expect(help).toContain("location_request_message");
+    expect(help).not.toContain("location_request_message");
     fetch.mockImplementation(async () => Response.json(sent, { status: 201 }));
-    const interactive = { type: "location_request_message", body: { text: "Onde?" }, action: { name: "send_location" } };
+    const interactive = { type: "button", body: { text: "Confirma?" }, action: { buttons: [{ type: "reply", reply: { id: "sim", title: "Sim" } }] } };
     const result = await run(registerMessages, [
       "messages", "send-interactive", "--to", "5511999999999", "--json", JSON.stringify(interactive), "--reply-to", "wamid.1", ...base,
     ]);

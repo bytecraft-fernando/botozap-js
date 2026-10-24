@@ -29,7 +29,6 @@ export type {
   InteractiveButtonPayload,
   InteractiveListPayload,
   InteractiveCtaUrlPayload,
-  InteractiveLocationRequestPayload,
   InteractiveHeader,
   InstagramInteractiveButton,
   InstagramInteractiveButtonPayload,

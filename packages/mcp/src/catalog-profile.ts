@@ -3,7 +3,7 @@ import type {ApiIdentity} from './server.js';
 import {toolAnnotations,type ToolPolicy} from './permissions.js';
 import {FREE_CUSTOMER_NOTE,FREE_NUMBER_NOTE,FREE_SEND_NOTE} from './free-plan-notes.js';
 import {CONSENT_SEND_NOTE} from './consent-notes.js';
-import {LOCATION_REQUEST_NOTE,MESSAGE_FIELDS_NOTE,REPLY_CONVERSATION_NOTE,REPLY_TO_NOTE} from './message-notes.js';
+import {MESSAGE_FIELDS_NOTE,REPLY_CONVERSATION_NOTE,REPLY_TO_NOTE} from './message-notes.js';
 import {customerResultSchema,getMessageResultSchema,getPhoneNumberResultSchema,listCustomersResultSchema,listMessagesResultSchema,listPhoneNumbersResultSchema,listTemplatesResultSchema,sendMessageResultSchema,templateResultSchema} from './schemas.js';
 
 export type CatalogProfile = 'assistant' | 'full';
@@ -66,7 +66,7 @@ const fullCatalogNotes: Record<string,string> = {
   get_customer: FREE_CUSTOMER_NOTE,
   list_phone_numbers: FREE_NUMBER_NOTE,
   get_phone_number: FREE_NUMBER_NOTE,
-  send_message: `${FREE_SEND_NOTE} ${CONSENT_SEND_NOTE} ${REPLY_TO_NOTE} ${LOCATION_REQUEST_NOTE}`,
+  send_message: `${FREE_SEND_NOTE} ${CONSENT_SEND_NOTE} ${REPLY_TO_NOTE}`,
   reply_to_conversation: `${FREE_SEND_NOTE} ${REPLY_CONVERSATION_NOTE}`,
   list_messages: MESSAGE_FIELDS_NOTE,
   get_message: MESSAGE_FIELDS_NOTE,
