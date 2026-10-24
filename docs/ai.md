@@ -288,6 +288,18 @@ inferência BYOK adicional) e, em `safety`, `additional_rules`, `disclosure_text
 `commercial_limits`, `guard_sensitivity` e `semantic_evaluator`. A camada do
 Cliente só acrescenta regras à política obrigatória da plataforma.
 
+`conversations.reply_options` (out/2026) anexa opções para o contato tocar à
+resposta final do turno: no WhatsApp, até 3 botões ou uma lista com até 10
+opções; no Instagram, só botões (respostas rápidas). Só o agente (no operador a
+ferramenta é recusada) e só com a janela de 24h aberta.
+
+`agents.diagnostic` (out/2026) devolve o diagnóstico do agente, o mesmo do
+painel, para o rascunho ou, sem rascunho, a versão publicada: `checks` com
+`status` `ok`/`warning`/`blocked`/`unknown` e `action` (onde corrigir no painel),
+`ready` (a mesma regra que recusa a publicação com `diagnostic_blocked`) e
+`generation_proof` (a última prova registrada). Só lê: não faz prova nem chama
+o provedor, e não gera custo.
+
 **Confirmações que continuam com a pessoa.**
 
 - `eligibility.saveChannel` substitui modo e lista inteira de telefones de teste
@@ -377,6 +389,7 @@ linha traz `kind_label`, `guidance` e `links` calculados pelo servidor.
 | `followups.cancelPromise` | POST | `/ai/followups/promises/:id/cancel` | write |
 | `followups.resolvePromise` | POST | `/ai/followups/promises/:id/resolve` | write |
 | `agents.capabilityUsage` | GET | `/ai/agents/:id/capability-usage` | read |
+| `agents.diagnostic` | GET | `/ai/agents/:id/diagnostic` | read |
 | `evolution.get` | GET | `/ai/evolution` | read |
 | `styleAdjustments.list` | GET | `/ai/style-adjustments` | read |
 | `styleAdjustments.save` | PUT | `/ai/style-adjustments` | write |

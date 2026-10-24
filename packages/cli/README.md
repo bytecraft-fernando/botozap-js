@@ -98,12 +98,16 @@ botozap messages list -o json | jq '.data[].id'
 
 ```
 botozap messages      send | send-media | send-interactive | send-location | react | list | get
-botozap conversations list | get | update | request-consent | delete
+botozap conversations list | get | update | typing | read | request-consent | delete
 botozap contacts      list | get | create | update | delete | consents | record-consent
 botozap media         ingest
 botozap customers     list | get | create | update | delete
 botozap setup-links   list | create | update      (--customer <id>)
 botozap numbers       list | get | update | health
+botozap numbers profile get | update | photo        (perfil do WhatsApp)
+botozap numbers prompts get | update | clear        (perguntas prontas e comandos)
+botozap numbers qr      list | create | get | update | delete
+botozap numbers blocked list | block | unblock
 botozap channel-accounts list | get
 botozap channel-accounts comment-ai get | set | runs   (Instagram)
 botozap channel-accounts comment-rules list | get | create | update | delete | metrics   (Instagram)
@@ -227,6 +231,33 @@ botozap templates update <id> --opt-out-button "Sair"
 # Excluir conversa: SEM VOLTA (mensagens, notas, vínculos e mídia; o contato fica).
 # Só Administrador; pede confirmação (use --yes fora de um terminal).
 botozap conversations delete <id>
+
+# "Digitando…" enquanto prepara a resposta (só com mensagem recebida e janela aberta;
+# repetir em menos de 20 s não chama a Meta de novo) e marcar como lida (tiques azuis):
+botozap conversations typing <id>
+botozap conversations read <id>
+
+# Responder citando uma mensagem da conversa (UUID ou wamid/mid; não vale em react)
+botozap messages send --to 5511999999999 --text "Combinado!" --reply-to <message_id>
+# Mensagem de voz (só audio, WhatsApp; arquivo .ogg com Opus mono)
+botozap messages send-media --to 5511999999999 --type audio --link https://cdn.exemplo.com/oi.ogg --voice
+
+# Modelos prontos de Régua (os mesmos da galeria de Automações) e ligar um no Cliente
+botozap journeys catalog
+botozap journeys enable-model boas_vindas --customer-id <id> [--phone-number-id <id>]
+
+# Diagnóstico do agente de IA (o mesmo do painel; só lê, sem custo)
+botozap ai agents diagnostic --input-file diag.json   # {"customer_id":"…","id":"…"}
+
+# Configurações do número do WhatsApp (direto na Meta; sem sandbox)
+botozap numbers profile get <id>
+botozap numbers profile update <id> --about "Atendemos de segunda a sábado" --website https://loja.com.br
+botozap numbers profile photo <id> logo.png      # JPG ou PNG até 4 MB
+botozap numbers prompts update <id> --prompt "Ver horários" --command "cardapio=Receber o cardápio"
+botozap numbers qr create <id> --message "Oi! Vi o cartaz na loja." --format SVG
+botozap numbers qr delete <id> <code>            # sem volta; pede confirmação (--yes)
+botozap numbers blocked block <id> --contact-id <uuid>   # só quem escreveu nas últimas 24 h
+botozap numbers blocked unblock <id> <wa_id>
 
 # Exportação de dados (exports:read / exports:write) e registro de atividades (team:read)
 botozap exports create --customer-id <id> --format csv

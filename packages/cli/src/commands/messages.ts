@@ -61,7 +61,7 @@ function receiptFields(result: SendResult, extra: string[] = []): string[] {
   const identity = result.wamid === null || result.channel
     ? ["channel", "external_id", "type"]
     : ["wamid"];
-  return ["id", ...identity, "to", "status", ...extra];
+  return ["id", ...identity, "to", "status", ...(result.reply_to ? ["reply_to"] : []), ...extra];
 }
 
 const MEDIA_TYPES = ["image", "video", "audio", "document"] as const;
@@ -69,6 +69,17 @@ const MEDIA_TYPES = ["image", "video", "audio", "document"] as const;
 const IDEMPOTENCY_FLAG = "--idempotency-key <chave>";
 const IDEMPOTENCY_HELP =
   "8 a 200 caracteres sem espaço, derivada do evento (ex.: entrega-123-2026-10-20); repetir com a mesma chave e o mesmo corpo devolve a resposta original sem enviar de novo";
+
+const REPLY_TO_FLAG = "--reply-to <message_id>";
+const REPLY_TO_HELP =
+  "responde citando uma mensagem da mesma conversa: UUID interno ou wamid/mid da citada";
+
+function replyTo(value: unknown): { reply_to?: { message_id: string } } {
+  if (value === undefined) return {};
+  const id = String(value).trim();
+  if (!id) throw new Error("--reply-to exige o id da mensagem citada.");
+  return { reply_to: { message_id: id } };
+}
 
 function parseSort(raw?: string): "created_at" | "event_at" | undefined {
   if (raw === undefined) return undefined;
@@ -104,6 +115,7 @@ export function registerMessages(program: Command): void {
     )
     .option("--input <arquivo>", "arquivo JSON com o corpo bruto da mensagem")
     .option("--stdin", "lê o corpo bruto da mensagem do stdin")
+    .option(REPLY_TO_FLAG, REPLY_TO_HELP)
     .option(IDEMPOTENCY_FLAG, IDEMPOTENCY_HELP)
     .action(async (opts, cmd: Command) => {
       const { client, format } = context(cmd);
@@ -122,6 +134,9 @@ export function registerMessages(program: Command): void {
         if (quickReplies) {
           throw new Error("Com --input/--stdin, inclua quick_replies no próprio JSON.");
         }
+        if (opts.replyTo !== undefined) {
+          throw new Error("Com --input/--stdin, inclua reply_to no próprio JSON.");
+        }
         // Payload cru: contrato de baixo nível do SDK (`request`), sem montar o corpo.
         const body = readRawBody(opts.input, opts.stdin);
         result = await client.request<SendResult>("POST", "/messages", { body, idempotencyKey });
@@ -136,6 +151,7 @@ export function registerMessages(program: Command): void {
           text: opts.text,
           ...(opts.from ? { from: opts.from } : {}),
           ...(quickReplies ? { quick_replies: quickReplies } : {}),
+          ...replyTo(opts.replyTo),
         }, { idempotencyKey });
       }
 
@@ -162,6 +178,11 @@ export function registerMessages(program: Command): void {
     .option("--caption <texto>", "legenda (image, video ou document; o Instagram não aceita legenda)")
     .option("--filename <nome>", "nome do arquivo (só document)")
     .option(
+      "--voice",
+      "mensagem de voz do WhatsApp (só --type audio; arquivo .ogg com Opus mono, senão 422 invalid_voice)",
+    )
+    .option(REPLY_TO_FLAG, REPLY_TO_HELP)
+    .option(
       "--from <origem>",
       "origem (opcional): phone_number_id ou UUID do Número; no Instagram, id da conta na Meta ou UUID da Conta de canal",
     )
@@ -178,6 +199,9 @@ export function registerMessages(program: Command): void {
       if (opts.filename !== undefined && type !== "document") {
         throw new Error("--filename só é aceito com --type document.");
       }
+      if (opts.voice && type !== "audio") {
+        throw new Error("--voice só é aceito com --type audio.");
+      }
       const params = {
         to: opts.to,
         type,
@@ -185,6 +209,8 @@ export function registerMessages(program: Command): void {
         ...(opts.from ? { from: opts.from } : {}),
         ...(opts.caption !== undefined ? { caption: opts.caption } : {}),
         ...(opts.filename !== undefined ? { filename: opts.filename } : {}),
+        ...(opts.voice ? { voice: true } : {}),
+        ...replyTo(opts.replyTo),
       } as SendMediaParams;
       printSent(await client.messages.sendMedia(params, { idempotencyKey: opts.idempotencyKey }), format);
     });
@@ -198,6 +224,7 @@ export function registerMessages(program: Command): void {
     .option("--tag <tag>", "human_agent (Instagram; sujeito à flag e janela da API)")
     .option("--stdin", "lê o objeto interactive do stdin")
     .option("--json <interactive>", "objeto interactive inline")
+    .option(REPLY_TO_FLAG, REPLY_TO_HELP)
     .option(IDEMPOTENCY_FLAG, IDEMPOTENCY_HELP)
     .action(async (opts, cmd: Command) => {
       const { client, format } = context(cmd);
@@ -210,6 +237,7 @@ export function registerMessages(program: Command): void {
         interactive,
         ...(opts.tag !== undefined ? { tag: opts.tag as "human_agent" } : {}),
         ...(opts.from ? { from: opts.from } : {}),
+        ...replyTo(opts.replyTo),
       }, { idempotencyKey: opts.idempotencyKey });
       printSent(result, format);
     });
@@ -223,6 +251,7 @@ export function registerMessages(program: Command): void {
     .option("--name <nome>", "nome do local")
     .option("--address <endereco>", "endereço")
     .option("--from <phone_number_id>", "número de origem (opcional)")
+    .option(REPLY_TO_FLAG, REPLY_TO_HELP)
     .option(IDEMPOTENCY_FLAG, IDEMPOTENCY_HELP)
     .action(async (opts, cmd: Command) => {
       const { client, format } = context(cmd);
@@ -238,6 +267,7 @@ export function registerMessages(program: Command): void {
         ...(opts.name ? { name: opts.name } : {}),
         ...(opts.address ? { address: opts.address } : {}),
         ...(opts.from ? { from: opts.from } : {}),
+        ...replyTo(opts.replyTo),
       }, { idempotencyKey: opts.idempotencyKey });
       printSent(result, format);
     });

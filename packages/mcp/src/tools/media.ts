@@ -6,8 +6,9 @@ import type { Register } from "../register.js";
 import { FREE_SEND_NOTE } from "../free-plan-notes.js";
 import {
   mediaUploadResultSchema,
-  sendMessageResultSchema,
+  fullSendMessageResultSchema,
 } from "../schemas.js";
+import { replyToSchema } from "./messages.js";
 
 const MEDIA_LINK_MAX = 2048;
 const MEDIA_CAPTION_MAX = 1024;
@@ -44,6 +45,11 @@ const sendMediaShape = {
     .max(MEDIA_FILENAME_MAX)
     .optional()
     .describe("Nome do arquivo; aceito somente quando type='document'."),
+  voice: z
+    .boolean()
+    .optional()
+    .describe("Só type='audio' no WhatsApp: mensagem de voz (ícone de microfone; o contato ouvir gera whatsapp.message.played). O arquivo precisa ser .ogg com Opus mono (senão 422 invalid_voice); no Instagram, 422 unsupported_voice."),
+  reply_to: replyToSchema.optional(),
 } as const;
 
 const commonMediaShape = {
@@ -51,7 +57,11 @@ const commonMediaShape = {
   to: sendMediaShape.to,
   from: sendMediaShape.from,
   link: sendMediaShape.link,
+  reply_to: sendMediaShape.reply_to,
 } as const;
+const noVoice = z
+  .never({ invalid_type_error: "voice é aceito somente quando type='audio'." })
+  .optional();
 const noCaption = z
   .never({ invalid_type_error: "type='audio' não aceita caption." })
   .optional();
@@ -74,33 +84,37 @@ export const sendMediaSchema = z.discriminatedUnion("type", [
     type: z.literal("image"),
     caption: sendMediaShape.caption,
     filename: noFilename,
+    voice: noVoice,
   }),
   z.object({
     ...commonMediaShape,
     type: z.literal("video"),
     caption: sendMediaShape.caption,
     filename: noFilename,
+    voice: noVoice,
   }),
   z.object({
     ...commonMediaShape,
     type: z.literal("audio"),
     caption: noCaption,
     filename: noFilename,
+    voice: sendMediaShape.voice,
   }),
   z.object({
     ...commonMediaShape,
     type: z.literal("document"),
     caption: sendMediaShape.caption,
     filename: sendMediaShape.filename,
+    voice: noVoice,
   }),
 ]);
 
 export function registerMediaTools(register: Register): void {
   register(
     "send_media_message",
-    "Recomendado: use prepare_send_intent uma vez e reutilize idempotency_key em retries. Recusas confirmadas liberam a chave; após aguardar/corrigir, repita com a mesma chave. Resultado desconhecido exige conferir o histórico. Chamadas sem chave continuam aceitas, com o comportamento anterior sem deduplicação. Envia image, video, audio ou document por URL https pelo endpoint canônico de mensagens, no WhatsApp ou no Instagram (`to` = IGSID); isso pode entregar uma mensagem real ao destinatário. image/video/document aceitam caption no WhatsApp; audio não, e o Instagram não aceita caption (422 unsupported_caption). filename é exclusivo de document. O processo MCP não baixa o arquivo. Retorna `id` (UUID interno do BotoZap), `wamid` (ID da Meta no WhatsApp; null no Instagram) e, fora do WhatsApp, `channel` e `external_id` (o mid), além de `to` e `status`. " + FREE_SEND_NOTE,
+    "Recomendado: use prepare_send_intent uma vez e reutilize idempotency_key em retries. Recusas confirmadas liberam a chave; após aguardar/corrigir, repita com a mesma chave. Resultado desconhecido exige conferir o histórico. Chamadas sem chave continuam aceitas, com o comportamento anterior sem deduplicação. Envia image, video, audio ou document por URL https pelo endpoint canônico de mensagens, no WhatsApp ou no Instagram (`to` = IGSID); isso pode entregar uma mensagem real ao destinatário. image/video/document aceitam caption no WhatsApp; audio não, e o Instagram não aceita caption (422 unsupported_caption). filename é exclusivo de document. voice=true (só audio, WhatsApp) manda mensagem de voz: arquivo .ogg com Opus mono. reply_to={ message_id } responde citando uma mensagem da mesma conversa (UUID ou wamid/mid; 422 reply_target_not_found fora dela). O processo MCP não baixa o arquivo. Retorna `id` (UUID interno do BotoZap), `wamid` (ID da Meta no WhatsApp; null no Instagram) e, fora do WhatsApp, `channel` e `external_id` (o mid), além de `to` e `status`. " + FREE_SEND_NOTE,
     sendMediaShape,
-    sendMessageResultSchema,
+    fullSendMessageResultSchema,
     (client, args) => {
       const parsed = sendMediaSchema.safeParse(args);
       if (!parsed.success) {

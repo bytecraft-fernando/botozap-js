@@ -267,6 +267,52 @@ export function registerAttendance(program: Command) {
   operation(journey, "list", "Filtros customer_id,limit,after", (c, _id, p) =>
     c.journeys.list(p),
   );
+  journey
+    .command("catalog")
+    .description(
+      "Modelos prontos de Régua (os mesmos da galeria de Automações), com gatilho, texto do template e exemplos das variáveis",
+    )
+    .action(async (_opts, cmd: Command) => {
+      const { client, format } = context(cmd);
+      const models = await client.journeys.catalog();
+      if (format === "json") return printJson(models);
+      printTable(models as unknown as Record<string, unknown>[], [
+        { header: "KEY", key: "key" },
+        { header: "NOME", key: "name" },
+        { header: "GATILHO", key: "trigger.kind" },
+        { header: "CATEGORIA", key: "category" },
+        { header: "TEMPLATE", key: "template_name" },
+      ]);
+    });
+  journey
+    .command("enable-model <key>")
+    .description(
+      "Liga um modelo pronto no Cliente, como Usar modelo no painel: cria e envia o template do modelo à Meta e cria a Régua " +
+        "(ativa se o template já está aprovado; senão liga sozinha na aprovação e pode enviar mensagens automáticas). " +
+        "Régua já existente: nada muda, exceto a pausada por template recusado, que reenvia o template",
+    )
+    .requiredOption("--customer-id <uuid>", "Cliente (negócio) que recebe a Régua")
+    .option("--waba-connection-id <uuid>", "conexão do número que envia (obrigatório com mais de um número no Cliente)")
+    .option("--phone-number-id <id>", "phone_number_id da Meta do número que envia (alternativa a --waba-connection-id)")
+    .action(async (key: string, opts, cmd: Command) => {
+      const { client, format } = context(cmd);
+      const result = await client.journeys.enableModel(key, {
+        customer_id: opts.customerId,
+        ...(opts.wabaConnectionId ? { waba_connection_id: opts.wabaConnectionId } : {}),
+        ...(opts.phoneNumberId ? { phone_number_id: opts.phoneNumberId } : {}),
+      });
+      if (format === "json") return printJson(result);
+      printLine(
+        result.created
+          ? result.active
+            ? "Régua criada e ativa (template já aprovado)."
+            : "Régua criada e pausada até a Meta aprovar o template; ela liga sozinha na aprovação."
+          : result.resubmitted
+            ? "Template reenviado à Meta; a Régua liga sozinha na aprovação."
+            : "O modelo já tinha Régua neste Cliente; nada mudou.",
+      );
+      printDetail(result as unknown as Input);
+    });
   operation(journey, "get <id>", "Definição e passos da régua", (c, id, p) =>
     c.journeys.get(id!, p),
   );

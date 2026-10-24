@@ -369,6 +369,46 @@ exports[`MCP — output schemas e structured content > anuncia schemas não vazi
               ],
               "description": "UUID interno do Número no BotoZap; use nas tools get_phone_number e phone_number_health.",
             },
+            "played_at": {
+              "description": "Mensagem de voz enviada: quando o contato ouviu pela primeira vez (o status continua read).",
+              "type": [
+                "string",
+                "null",
+              ],
+            },
+            "reply_to": {
+              "anyOf": [
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "external_id": {
+                      "description": "wamid (WhatsApp) ou mid (Instagram) da citada.",
+                      "type": "string",
+                    },
+                    "message_id": {
+                      "anyOf": [
+                        {
+                          "$ref": "#/properties/data/properties/channel_account/anyOf/0/properties/id",
+                        },
+                        {
+                          "type": "null",
+                        },
+                      ],
+                      "description": "UUID interno da citada; null quando ela não está no histórico do BotoZap.",
+                    },
+                  },
+                  "required": [
+                    "message_id",
+                    "external_id",
+                  ],
+                  "type": "object",
+                },
+                {
+                  "type": "null",
+                },
+              ],
+              "description": "Mensagem citada por esta (resposta citando); null quando não cita.",
+            },
             "revoked_at": {
               "type": [
                 "string",
@@ -380,6 +420,13 @@ exports[`MCP — output schemas e structured content > anuncia schemas não vazi
             },
             "status": {
               "type": "string",
+            },
+            "transcription": {
+              "description": "Áudio recebido: transcrição que a IA já fez; null quando não há.",
+              "type": [
+                "string",
+                "null",
+              ],
             },
             "type": {
               "description": "Tipo da Mensagem: text, image, template etc.",
@@ -1012,6 +1059,46 @@ exports[`MCP — output schemas e structured content > anuncia schemas não vazi
                 ],
                 "description": "UUID interno do Número no BotoZap; use nas tools get_phone_number e phone_number_health.",
               },
+              "played_at": {
+                "description": "Mensagem de voz enviada: quando o contato ouviu pela primeira vez (o status continua read).",
+                "type": [
+                  "string",
+                  "null",
+                ],
+              },
+              "reply_to": {
+                "anyOf": [
+                  {
+                    "additionalProperties": false,
+                    "properties": {
+                      "external_id": {
+                        "description": "wamid (WhatsApp) ou mid (Instagram) da citada.",
+                        "type": "string",
+                      },
+                      "message_id": {
+                        "anyOf": [
+                          {
+                            "$ref": "#/properties/data/items/properties/channel_account/anyOf/0/properties/id",
+                          },
+                          {
+                            "type": "null",
+                          },
+                        ],
+                        "description": "UUID interno da citada; null quando ela não está no histórico do BotoZap.",
+                      },
+                    },
+                    "required": [
+                      "message_id",
+                      "external_id",
+                    ],
+                    "type": "object",
+                  },
+                  {
+                    "type": "null",
+                  },
+                ],
+                "description": "Mensagem citada por esta (resposta citando); null quando não cita.",
+              },
               "revoked_at": {
                 "type": [
                   "string",
@@ -1023,6 +1110,13 @@ exports[`MCP — output schemas e structured content > anuncia schemas não vazi
               },
               "status": {
                 "type": "string",
+              },
+              "transcription": {
+                "description": "Áudio recebido: transcrição que a IA já fez; null quando não há.",
+                "type": [
+                  "string",
+                  "null",
+                ],
               },
               "type": {
                 "description": "Tipo da Mensagem: text, image, template etc.",
@@ -1885,6 +1979,22 @@ exports[`MCP — output schemas e structured content > anuncia schemas não vazi
           ],
           "type": "object",
         },
+        "reply_to": {
+          "additionalProperties": false,
+          "description": "Responde citando uma mensagem da conversa (não vale para reaction).",
+          "properties": {
+            "message_id": {
+              "description": "UUID interno ou wamid/mid da mensagem citada, da MESMA conversa.",
+              "maxLength": 512,
+              "minLength": 1,
+              "type": "string",
+            },
+          },
+          "required": [
+            "message_id",
+          ],
+          "type": "object",
+        },
         "tag": {
           "const": "human_agent",
           "description": "Instagram: exceção human_agent, sujeita à flag e janela da API; para interactive.",
@@ -2062,6 +2172,26 @@ exports[`MCP — output schemas e structured content > anuncia schemas não vazi
             "message_id",
             "emoji",
             "action",
+          ],
+          "type": "object",
+        },
+        "reply_to": {
+          "additionalProperties": false,
+          "description": "Só quando o envio citou outra mensagem (reply_to).",
+          "properties": {
+            "external_id": {
+              "description": "wamid (WhatsApp) ou mid (Instagram) da mensagem citada.",
+              "type": "string",
+            },
+            "message_id": {
+              "description": "UUID interno da mensagem citada.",
+              "format": "uuid",
+              "type": "string",
+            },
+          },
+          "required": [
+            "message_id",
+            "external_id",
           ],
           "type": "object",
         },

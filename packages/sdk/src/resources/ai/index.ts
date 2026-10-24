@@ -97,6 +97,7 @@ import type {
   AiFollowupQueuePage,
   AiFollowupQueueFilters,
   AiCapabilityUsage,
+  AiAgentDiagnostic,
   AiEvolution,
   AiStyleAdjustment,
   AiStyleAdjustmentId,
@@ -229,6 +230,14 @@ export class AiAgentsResource {
     input: AiScope & { id: string; days?: number },
   ): Promise<AiCapabilityUsage> {
     return request(this.client, named("agents", "capabilityUsage"), input);
+  }
+  /**
+   * Diagnóstico do agente, o mesmo do painel (rascunho, ou a versão publicada
+   * sem rascunho). Só lê: não faz prova de geração nem chama o provedor.
+   * `ready: false` é a regra que recusa a publicação com `diagnostic_blocked`.
+   */
+  diagnostic(input: AiScope & { id: string }): Promise<AiAgentDiagnostic> {
+    return request(this.client, named("agents", "diagnostic"), input);
   }
 }
 export class AiCredentialsResource {

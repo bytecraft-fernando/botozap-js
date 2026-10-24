@@ -594,5 +594,9 @@
   {
     "method": "GET",
     "path": "/ai/agents/:id/capability-usage"
+  },
+  {
+    "method": "GET",
+    "path": "/ai/agents/:id/diagnostic"
   }
 ]

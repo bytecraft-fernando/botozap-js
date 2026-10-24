@@ -3706,6 +3706,26 @@ export const AI_OPERATIONS: readonly AiOperation[] = [
       },
     },
   },
+  // Diagnóstico do agente, o mesmo do painel (paridade tela ⇄ API, out/2026).
+  {
+    group: "agents",
+    name: "diagnostic",
+    method: "GET",
+    path: "/ai/agents/:id/diagnostic",
+    shape: "item",
+    description:
+      "Diagnóstico do agente, o mesmo do painel, para o rascunho ou, sem rascunho, a versão publicada: checks com status ok/warning/blocked/unknown, ready e a última prova de geração registrada. Só lê: não faz prova nem chamada ao provedor e não gera custo. ready=false é a mesma regra que recusa a publicação (diagnostic_blocked).",
+    fields: {
+      customer_id: {
+        type: "uuid",
+        optional: false,
+      },
+      id: {
+        type: "uuid",
+        optional: false,
+      },
+    },
+  },
   {
     group: "evolution",
     name: "get",

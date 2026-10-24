@@ -22,7 +22,7 @@ import { registerConversationTools } from "./tools/conversations.js";
 import { registerContactTools } from "./tools/contacts.js";
 import { registerMediaTools } from "./tools/media.js";
 import { registerCustomerTools } from "./tools/customers.js";
-import { registerPhoneNumberTools } from "./tools/phone-numbers.js";
+import { registerNumberSettingsTools, registerPhoneNumberTools } from "./tools/phone-numbers.js";
 import { registerChannelAccountTools, registerGetChannelAccount } from "./tools/channel-accounts.js";
 import { registerTemplateTools } from "./tools/templates.js";
 import { registerWebhookTools } from "./tools/webhooks.js";
@@ -160,6 +160,7 @@ export async function buildServer(
   registerMediaTools(register);
   registerCustomerTools(register);
   registerPhoneNumberTools(register);
+  registerNumberSettingsTools(register);
   registerChannelAccountTools(register);
   registerTemplateTools(register);
   registerWebhookTools(register);

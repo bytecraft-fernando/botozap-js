@@ -151,7 +151,9 @@ export type AiToolId =
   | "agenda.schedule.read"
   | "agenda.appointments.confirm"
   | "cases.note"
-  | "cases.close";
+  | "cases.close"
+  /** Opções para o contato tocar (botões ou lista), anexadas à resposta final do turno. Só o agente; o operador é recusado. */
+  | "conversations.reply_options";
 /**
  * Configuração do agente na ENTRADA (`ai.agents.create` e `saveDraft`): o
  * provedor só pode ser `openai` ou `anthropic`. A leitura devolve
@@ -1502,6 +1504,36 @@ export type AiCapabilityUsage = {
   configured_at: string | null;
   agent: AiCapabilityUsageList;
   operator: AiCapabilityUsageList & { enabled: boolean };
+};
+/** Situação de um item do diagnóstico; `unknown` = não pôde ser lido (nunca vira `ok`). */
+export type AiDiagnosticStatus = "ok" | "warning" | "blocked" | "unknown";
+/** Item do diagnóstico do agente (`GET /ai/agents/:id/diagnostic`). */
+export type AiDiagnosticCheck = {
+  /** Ex.: `configuration`, `eligibility`, `knowledge_tool`, `knowledge_sources`, `audio`, `vision`, `self_tester`, `operation`, `publication`. */
+  id: string;
+  title: string;
+  status: AiDiagnosticStatus;
+  detail: string;
+  /** Item que impede publicar quando não está `ok`. */
+  blocking: boolean;
+  /** Onde a pessoa corrige no painel: caminho (`/ia/provedores`) ou âncora (`#grupo-…`) da configuração do agente. */
+  action: { href: string; label: string } | null;
+};
+/** Diagnóstico do agente, o mesmo do painel. */
+export type AiAgentDiagnostic = {
+  agent_id: string;
+  version_id: string | null;
+  version_number: number | null;
+  version_status: string | null;
+  /** `false` quando algum item com `blocking: true` não está `ok`: a publicação seria recusada com `diagnostic_blocked`. */
+  ready: boolean;
+  checks: AiDiagnosticCheck[];
+  /** Última prova de geração registrada; esta leitura nunca dispara uma prova. */
+  generation_proof: {
+    status: "never" | "ok" | "failed" | "unknown" | "running" | "stale";
+    at: string | null;
+    detail: string;
+  };
 };
 /** Each source reports its own status: an error is never shown as zero. */
 export type AiEvolutionSource<T> =

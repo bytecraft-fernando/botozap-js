@@ -59,7 +59,7 @@ function classify(
 
 // Bounded account-scoped reads.
 classify([
-  "agents.list", "agents.get", "agents.capabilityUsage",
+  "agents.list", "agents.get", "agents.capabilityUsage", "agents.diagnostic",
   "credentials.list", "credentials.get",
   "providers.get",
   "executions.list", "executions.get",

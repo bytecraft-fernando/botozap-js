@@ -504,6 +504,45 @@ As Palavras de saída e de volta e os textos de confirmação são do Cliente
 template, `templates.update(id, { opt_out_buttons })` (ou `opt_out_buttons` em
 `templates.create`) marca os botões de resposta rápida que são de saída.
 
+### Responder citando, voz e "digitando…"
+
+```ts
+// "Digitando…" enquanto prepara a resposta (só com mensagem recebida e janela aberta;
+// repetir em menos de 20 s não chama a Meta de novo) e marcar como lida.
+await boto.conversations.typing(conversationId);
+await boto.conversations.markRead(conversationId);
+
+// Responder citando uma mensagem da mesma conversa (UUID ou wamid/mid).
+await boto.messages.send({ to, text: "Combinado!", reply_to: { message_id: wamid } });
+await boto.conversations.reply(conversationId, { text: "Sim", reply_to: { message_id: wamid } });
+
+// Mensagem de voz (WhatsApp; .ogg com Opus mono). "Ouvida" chega em
+// whatsapp.message.played e em Message.played_at; o status continua read.
+await boto.messages.sendMedia({ to, type: "audio", link: "https://cdn.exemplo.com/oi.ogg", voice: true });
+```
+
+Recusas: `no_inbound_message` (409, "digitando…" sem mensagem do contato),
+`reply_target_not_found` e `reply_target_unavailable` (422), `invalid_voice` e
+`unsupported_voice` (422).
+
+### Configurações do número do WhatsApp
+
+Perfil, perguntas prontas e comandos, QR codes e bloqueados, direto na Meta (sem
+sandbox). `{id}` aceita o UUID interno ou o `phone_number_id` da Meta.
+
+```ts
+const perfil = await boto.phoneNumbers.getProfile(id); // editable=false em coexistência
+await boto.phoneNumbers.updateProfile(id, { about: "Atendemos de segunda a sábado" });
+await boto.phoneNumbers.uploadProfilePhoto(id, { file: blob, mime_type: "image/png" });
+await boto.phoneNumbers.updateConversationalAutomation(id, { prompts: ["Ver horários"] });
+const qr = await boto.phoneNumbers.qrCodes.create(id, { prefilled_message: "Oi!" }); // não é idempotente
+await boto.phoneNumbers.blockedUsers.block(id, { contact_id }); // só quem escreveu nas últimas 24 h
+```
+
+Mudar o perfil por token OAuth responde 403 (só painel e chave de API); em
+coexistência, 409 `coexistence_not_supported`. Gravar perguntas ou comandos
+exige plano com automações (403 `plan_restricted`).
+
 ### Excluir conversa
 
 `conversations.delete(id)` exclui a conversa sem volta, com efeito imediato:
@@ -579,15 +618,15 @@ new BotoZap({
 
 O SDK cobre os recursos da API `/v1`:
 
-- `messages` — enviar texto (com `quick_replies` no Instagram), template e mídia por link, **listar** e buscar por id
+- `messages` — enviar texto (com `quick_replies` no Instagram), template e mídia por link, **listar** e buscar por id; `reply_to` (responder citando) em todos os envios menos reação, `voice: true` em áudio (mensagem de voz); leituras trazem `reply_to`, `played_at` e `transcription`
 - `customers` — listar, buscar, criar, **atualizar** (nome, id externo e Palavras de saída/volta com os textos de confirmação), **remover**, e **links de setup** (listar/criar/atualizar; `channel` `whatsapp` ou `instagram`, um canal por link)
 - `templates` — listar, buscar, **criar**, **atualizar** (`opt_out_buttons`)
 - `broadcasts` — criar, destinatários, agendar, enviar, cancelar
 - `contacts` — listar, buscar, criar, atualizar, remover, **`listConsents`/`recordConsent`**; `display_name` é o nome que a empresa dá ao Contato (1–200 caracteres; `null` limpa), separado do `profile_name` que vem do canal
-- `conversations` — **`requestConsent`** e **`delete`**; listar (filtros `channel` e `channel_account_id`), buscar, atualizar, responder, atribuições; leituras trazem `entry_point` (`ctwa`/`organic`/`null`), `referral` do último clique em anúncio Click-to-WhatsApp, `fep_expires_at` (fim da janela grátis informado pela Meta) e `fep_reply_by` (estimativa do prazo para responder)
+- `conversations` — **`typing`** ("digitando…") e **`markRead`** (marcar como lida); **`requestConsent`** e **`delete`**; `reply` aceita `reply_to`; listar (filtros `channel` e `channel_account_id`), buscar, atualizar, responder, atribuições; leituras trazem `entry_point` (`ctwa`/`organic`/`null`), `referral` do último clique em anúncio Click-to-WhatsApp, `fep_expires_at` (fim da janela grátis informado pela Meta) e `fep_reply_by` (estimativa do prazo para responder)
 - `webhooks` — CRUD e teste; `customer_id` opcional limita as entregas a um Cliente da Conta (`null` no update remove o filtro); `channel_account_ids` limita a alguns canais (`null` = todos) e `channels_health` traz a saúde por canal
 - `channelAccounts` — listar e buscar Contas de canal (WhatsApp e Instagram); **Regras de comentário** do Instagram (listar, buscar, criar, atualizar, excluir) e **Perguntas e menu** (ler, salvar/aplicar, remover, verificar/reaplicar)
-- `phoneNumbers` — listar, buscar, **atualizar o `label`** (nome local, até 100 caracteres; `null` limpa), remover, saúde
+- `phoneNumbers` — listar, buscar, **atualizar o `label`** (nome local, até 100 caracteres; `null` limpa), remover, saúde; configurações do número do WhatsApp: `getProfile`/`updateProfile`/`uploadProfilePhoto`, `get`/`update`/`clearConversationalAutomation` (perguntas prontas e comandos), `qrCodes.list`/`create`/`get`/`update`/`delete` e `blockedUsers.list`/`block`/`unblock`
 - `media` — subir arquivo (obter um media_id) e **buscar metadados + URL de download** de uma mídia recebida
 - `events` — reler inbound e mudanças de status pelo cursor durável da Conta/ambiente
 - `usage` — `metaCosts`: custo aproximado da Meta por dia, categoria e moeda (Pricing Analytics), com estimativa por tarifa publicada onde a Meta não devolveu custo
@@ -732,6 +771,9 @@ respostas pessoais pertencem à sessão do Painel. Autorize Google Calendar no
 Painel antes de gerenciar conexões pelo SDK.
 
 Exemplo: `client.savedReplies.update(id, { body, expected_updated_at: row.updated_at })`.
+Modelos prontos de Régua: `client.journeys.catalog()` lista os modelos da galeria
+e `client.journeys.enableModel(key, { customer_id })` liga um no Cliente (cria e
+submete o template; a Régua liga sozinha quando a Meta aprova).
 Não arredonde `updated_at`: preserve a precisão recebida do servidor.
 Criação de compromisso aceita segundo argumento `{ idempotencyKey: 'chave-estavel' }`.
 [Contratos, exemplos e roteiro de release](https://github.com/bytecraft-fernando/botozap-js/blob/main/docs/attendance-release.md).

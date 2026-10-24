@@ -8,8 +8,10 @@ import {
   consentRequestResultSchema,
   conversationResultSchema,
   emptyOperationResultSchema,
+  conversationReadResultSchema,
+  conversationTypingResultSchema,
   listConversationsResultSchema,
-  sendMessageResultSchema,
+  fullSendMessageResultSchema,
 } from "../schemas.js";
 
 export function registerConversationTools(register: Register): void {
@@ -27,8 +29,15 @@ export function registerConversationTools(register: Register): void {
           body: z.string().describe("Corpo da resposta de texto."),
         })
         .describe("Conteúdo da resposta."),
+      reply_to_message_id: z
+        .string()
+        .trim()
+        .min(1)
+        .max(512)
+        .optional()
+        .describe("Responde citando esta mensagem da conversa: UUID interno ou wamid/mid da citada."),
     },
-    sendMessageResultSchema,
+    fullSendMessageResultSchema,
     async (client, args) => {
       const id = String(args.conversation_id);
       const conversation = await client.conversations.get(id);
@@ -36,7 +45,8 @@ export function registerConversationTools(register: Register): void {
       const from=conversation.channel==='instagram'?channelId:conversation.phone_number_id;
       const to=conversation.contact?.wa_id||conversation.contact?.phone;
       if(!from||!to)throw new BotoZapError('conversation_recipient_unavailable','Conversa sem origem ou destinatário utilizável.',422);
-      return client.messages.send({from,to,text:(args.text as {body:string}).body},{idempotencyKey:args.idempotency_key as string|undefined});
+      const quote=typeof args.reply_to_message_id==='string'?{reply_to:{message_id:args.reply_to_message_id}}:{};
+      return client.messages.send({from,to,text:(args.text as {body:string}).body,...quote},{idempotencyKey:args.idempotency_key as string|undefined});
     },
   );
 
@@ -79,6 +89,22 @@ export function registerConversationTools(register: Register): void {
     async (client, args) => ({
       data: await client.conversations.update(String(args.id), { status: args.status }),
     }),
+  );
+
+  register(
+    "conversation_typing",
+    "Mostra \"digitando…\" ao contato enquanto você prepara a resposta, como o atendente digitando no painel. O sinal vai na última mensagem recebida do contato, que fica como lida (tiques azuis no WhatsApp, \"visto\" no Instagram); a Meta tira o indicador quando a resposta sai ou em cerca de 25 s. Repetir em menos de 20 s não chama a Meta de novo (repeated: true); numa resposta demorada, chame de novo a cada 20 s. Só existe em resposta a uma mensagem do contato com a janela de 24h aberta. Recusas: no_inbound_message (409, a conversa não tem mensagem recebida: template e primeira mensagem não têm), outside_window (WhatsApp) ou window_closed (Instagram) com a janela fechada, not_connected (409), meta_error (a resposta em si pode ser enviada normalmente). Exige scope messages:send. Retorna { data } com conversation_id, channel, typing e repeated.",
+    { conversation_id: z.string().uuid().describe("UUID interno da Conversa.") },
+    conversationTypingResultSchema,
+    async (client, args) => ({ data: await client.conversations.typing(String(args.conversation_id)) }),
+  );
+
+  register(
+    "mark_conversation_read",
+    "Marca a conversa como lida, como abrir a conversa no painel: grava last_read_at (deixa de aparecer como não lida) e a última mensagem recebida fica como lida para o contato (tiques azuis no WhatsApp, \"visto\" no Instagram). A mesma mensagem não é marcada duas vezes na Meta; o aviso ao contato é de melhor esforço (canal desconectado ou recusa da Meta não mudam a resposta). No sandbox grava sem avisar a Meta. Exige scope conversations:write. Retorna { data } com conversation_id e last_read_at.",
+    { conversation_id: z.string().uuid().describe("UUID interno da Conversa.") },
+    conversationReadResultSchema,
+    async (client, args) => ({ data: await client.conversations.markRead(String(args.conversation_id)) }),
   );
 
   register(

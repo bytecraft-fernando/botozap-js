@@ -1,5 +1,47 @@
 # @botozap/mcp
 
+## 0.19.0
+
+### Minor Changes
+
+- 8eba0bc: Paridade com a API de 23/10/2026. "Digitando…" e leitura: `conversations.typing` e
+  `conversations.markRead` (`POST /v1/conversations/{id}/typing` e `/read`; CLI
+  `conversations typing` e `read`; tools `conversation_typing` e `mark_conversation_read`),
+  com o erro `no_inbound_message` (409). Responder citando: `reply_to: { message_id }` em
+  texto, template, mídia, interactive e localização (não em reação) e em
+  `conversations.reply`; o recibo e as mensagens trazem `reply_to`, e as mensagens trazem
+  `played_at` (voz ouvida, evento `whatsapp.message.played`) e `transcription` (áudio
+  recebido já transcrito pela IA); erros `reply_target_not_found` e
+  `reply_target_unavailable` (CLI `--reply-to` em send, send-media, send-interactive e
+  send-location; MCP `reply_to` em `send_message` e `send_media_message` e
+  `reply_to_message_id` em `reply_to_conversation`). Mensagem de voz: `voice: true` em áudio
+  (CLI `send-media --voice`; MCP `voice` em `send_media_message`), com `invalid_voice` e
+  `unsupported_voice`. Modelos prontos de Régua:
+  `journeys.catalog` e `journeys.enableModel` (CLI `journeys catalog` e `enable-model`;
+  tools `list_journey_models` e `enable_journey_model`). Diagnóstico do agente:
+  `ai.agents.diagnostic` (CLI `ai agents diagnostic`; tool `ai_agents_diagnostic`). IA:
+  `AiToolId` e o enum das tools `ai_*` aceitam `conversations.reply_options`.
+  Configurações do número do WhatsApp: `phoneNumbers.getProfile`, `updateProfile`,
+  `uploadProfilePhoto`, `getConversationalAutomation`, `updateConversationalAutomation`,
+  `clearConversationalAutomation`, `phoneNumbers.qrCodes` (`list`, `create`, `get`,
+  `update`, `delete`) e `phoneNumbers.blockedUsers` (`list`, `block`, `unblock`), com os
+  códigos de erro da Meta (`coexistence_not_supported`, `block_window_closed`,
+  `meta_unconfirmed`…); CLI `numbers profile|prompts|qr|blocked`; tools
+  `get_phone_number_profile`, `update_phone_number_profile` (por OAuth a API responde 403),
+  `get_conversational_automation`, `update_conversational_automation`,
+  `clear_conversational_automation`, `list_qr_codes`, `create_qr_code`, `get_qr_code`,
+  `update_qr_code`, `delete_qr_code`, `list_blocked_users`, `block_contact` e
+  `unblock_contact`. Tudo novo do MCP fica só no catálogo completo: o perfil `assistant`
+  (OAuth) não ganha tools, e `send_message`, `reply_to_conversation`, `list_messages` e
+  `get_message` mantêm nele a mesma entrada, saída e descrição revisadas.
+
+### Patch Changes
+
+- 8eba0bc: Prévia de template: o código de cupom do botão COPY_CODE aceita até 20 caracteres, como a
+  Meta (OTP de autenticação segue em 15).
+- Updated dependencies [8eba0bc]
+  - @botozap/sdk@0.22.0
+
 ## 0.18.0
 
 ### Minor Changes
