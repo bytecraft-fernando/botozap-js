@@ -370,6 +370,19 @@ catch (err) {
 
 `err.headers` traz só os headers da resposta — nenhuma credencial de request entra nele.
 
+Quando a Meta recusa um envio (`messages.send` e afins, `conversations.reply` e
+`conversations.requestConsent`), o erro chega como `meta_error` e
+`err.metaCode` traz o código numérico da Meta (por exemplo, `131026`), se ela
+informou um. Use-o para consultar a causa na documentação de erros da Meta.
+
+```ts
+catch (err) {
+  if (err instanceof BotoZapError && err.metaCode !== undefined) {
+    console.error(`Meta recusou com o código ${err.metaCode}: ${err.message}`);
+  }
+}
+```
+
 ### Recusas de plano
 
 `isPlanError(err)` reconhece recusas que só um upgrade resolve (retry não):
@@ -596,6 +609,20 @@ e `app_messages`, opt-in, com `whatsapp.message.echo`, `.edited` e `.revoked` do
 app WhatsApp Business em coexistência. Em `webhookDeliveries.list`, o status
 `limited` marca a entrega cortada pelo limite de repasse do Free (sem retry).
 
+`webhookDeliveries.replay(id)` reenvia uma entrega `exhausted` (esgotada) ou
+`limited`, como o botão Reenviar do painel: ela volta para a fila
+(`{ id, status: "pending", replayed: true }`) e o evento sai de novo com a mesma
+`X-Idempotency-Key`. Repetir não duplica: a entrega que já voltou para a fila
+responde `409 delivery_not_replayable`. Outras recusas: `404 not_found`,
+`409 forward_limit_reached` (entrega `limited` e o limite de repasse do mês
+acabou) e `429 replay_rate_limited` (headers de rate limit em `err.headers`).
+Exige o escopo `webhooks:write`.
+
+```ts
+const { data } = await boto.webhookDeliveries.list({ status: "exhausted", limit: 1 });
+if (data[0]) await boto.webhookDeliveries.replay(data[0].id);
+```
+
 `channel_account_ids` limita um Endpoint a alguns canais (ids de
 `channelAccounts.list`, os mesmos de `channel_account.id` nos payloads; 1 a
 100). No create, omitido ou `null` = todos os canais. No update, omitido não
@@ -649,7 +676,8 @@ O SDK cobre os recursos da API `/v1`:
 - `exports` — `create`, `list`, `get` (exportação de dados da Conta; `exports:read`/`exports:write`)
 - `teamEvents` — `list`: registro de atividades da equipe, com filtros (`team:read`, só Administrador)
 - `me` — `get`: Conta, ambiente (`live` ou `sandbox`) e scopes efetivos da chave autenticada; não retorna a chave nem uma identidade pessoal
-- `users`, `apiLogs`, `webhookDeliveries` — leitura
+- `webhookDeliveries` — histórico de Entregas de webhook e reenvio das esgotadas (`replay`)
+- `users`, `apiLogs` — leitura
 
 `me.get()` é útil para conferir a identidade configurada antes de executar
 operações em uma integração:
@@ -863,7 +891,7 @@ Requer a API com suporte a `Idempotency-Key` em `POST /v1/messages`.
 Recusas confirmadas (`outcome: rejected`) liberam a chave. Aguarde o backoff ou
 corrija a causa e repita com a mesma chave; após liberação, outro payload é uma
 nova intenção. `unknown` ou `accepted` exigem conciliação antes de considerar
-outro envio. SDK e MCP preservam `outcome` e `retry` da API. Resultados concluídos
+outro envio. SDK e MCP preservam `outcome`, `retry` e o código da Meta (`metaCode`) da API. Resultados concluídos
 vencidos são removidos pelo cron a cada minuto; claims incertas não são removidas
 por tempo, conforme o runbook `botozap/docs/ops/message-send-receipts.md`.
 

@@ -1,6 +1,6 @@
 import { Command } from "commander";
 import { context, toInt } from "./shared.js";
-import { printJson, printTable, printCursorFooter } from "../output.js";
+import { printJson, printTable, printCursorFooter, printLine } from "../output.js";
 
 export function registerDeliveries(program: Command): void {
   const deliveries = program
@@ -40,5 +40,17 @@ export function registerDeliveries(program: Command): void {
         { header: "CRIADA", key: "created_at" },
       ]);
       printCursorFooter(res.paging);
+    });
+
+  deliveries
+    .command("replay <id>")
+    .description("Reenvia uma entrega esgotada (exhausted) ou cortada pelo limite (limited)")
+    .action(async (id: string, _opts, cmd: Command) => {
+      const { client, format } = context(cmd);
+      // Mesmo efeito do Reenviar do painel: volta para a fila e sai com a mesma
+      // X-Idempotency-Key. Repetir não duplica (409 delivery_not_replayable).
+      const result = await client.webhookDeliveries.replay(id);
+      if (format === "json") return printJson(result);
+      printLine(`Entrega ${result.id} de volta na fila (${result.status}); o evento será enviado de novo ao endpoint.`);
     });
 }

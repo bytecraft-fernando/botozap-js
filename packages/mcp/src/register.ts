@@ -22,7 +22,9 @@ import { z, type AnyZodObject, type ZodRawShape } from "zod";
 import { BotoZapError, type Client } from "./client.js";
 import {
   compatibleOutputSchema,
+  fullStructuredErrorSchema,
   structuredError,
+  structuredErrorSchema,
   type StructuredError,
 } from "./schemas.js";
 import { getToolPolicy, isToolAllowed, toolAnnotations } from "./permissions.js";
@@ -95,17 +97,23 @@ function safeMessage(value: unknown, apiKey?: string): string {
   return message.replace(API_KEY_PATTERN, "[credencial removida]").replace(JWT_PATTERN, "[credencial removida]");
 }
 
-function errorResult(err: unknown, apiKey?: string): {
+/**
+ * O código da Meta vai sempre no texto; no erro estruturado, só no catálogo
+ * completo (o perfil assistant anuncia o erro revisado, sem `meta_code`).
+ */
+function errorResult(err: unknown, apiKey: string | undefined, assistantProfile: boolean): {
   text: string;
   structured: StructuredError;
 } {
   if (err instanceof BotoZapError) {
     const message = safeMessage(err.message, apiKey);
+    const metaCode = err.metaCode !== undefined ? ` Código da Meta: ${err.metaCode}.` : "";
     return {
-      text: `Erro [${err.code}]: ${message}${err.outcome ? ` Resultado: ${err.outcome}.` : ""}${err.retry ? ` Retentativa: ${err.retry}.` : ""}`,
+      text: `Erro [${err.code}]: ${message}${metaCode}${err.outcome ? ` Resultado: ${err.outcome}.` : ""}${err.retry ? ` Retentativa: ${err.retry}.` : ""}`,
       structured: structuredError(err.code, message, err.status, {
         ...(err.outcome ? { outcome: err.outcome } : {}),
         ...(err.retry ? { retry: err.retry } : {}),
+        ...(err.metaCode !== undefined && !assistantProfile ? { meta_code: err.metaCode } : {}),
       }),
     };
   }
@@ -147,6 +155,9 @@ export function createRegister(
   // Perfil assistant: saída congelada (ver assistantOutputSchema).
   const outputFor = (name: string, schema: AnyZodObject | undefined, value: ApiIdentity) =>
     schema && assistant(value) ? assistantOutputSchema(name, schema) : schema;
+  // Perfil assistant: erro anunciado congelado; o catálogo completo ganha meta_code.
+  const announcedOutput = (schema: AnyZodObject, value: ApiIdentity) =>
+    compatibleOutputSchema(schema, assistant(value) ? structuredErrorSchema : fullStructuredErrorSchema);
   // Perfil assistant: entrada congelada (ver assistantInputShape).
   const inputFor = (name: string, shape: ZodRawShape, value: ApiIdentity) =>
     assistant(value) ? assistantInputShape(name, shape) : shape;
@@ -194,12 +205,12 @@ export function createRegister(
         inputSchema: inputFor(name, inputSchema, currentIdentity),
         ...(uiAllowed(currentIdentity) ? { _meta: metadata(name, currentIdentity) } : {}),
         ...(registeredOutput
-          ? { outputSchema: compatibleOutputSchema(registeredOutput) }
+          ? { outputSchema: announcedOutput(registeredOutput, currentIdentity) }
           : {}),
       },
       async (args): Promise<CallToolResult> => {
+        const authority = requestAuthContext.getStore()?.identity ?? currentIdentity;
         try {
-          const authority = requestAuthContext.getStore()?.identity ?? currentIdentity;
           if (!catalogAllows(name, authority, profiles) || !isToolAllowed(policy, authority) || (uiGated(name, authority) && !uiAllowed(authority))) {
             throw new BotoZapError("forbidden_scope", "Esta autorização não permite a ferramenta.", 403);
           }
@@ -243,7 +254,9 @@ export function createRegister(
             structuredContent: parsed.data,
           };
         } catch (err) {
-          const result = errorResult(err, requestAuthContext.getStore()?.credential ?? apiKey);
+          // O estruturado valida contra o schema anunciado (currentIdentity) e
+          // segue o perfil da requisição: assistant em qualquer um omite meta_code.
+          const result = errorResult(err, requestAuthContext.getStore()?.credential ?? apiKey, assistant(authority) || assistant(currentIdentity));
           return {
             content: [{ type: "text", text: result.text }],
             ...(fullOutputSchema ? { structuredContent: result.structured } : {}),
@@ -267,7 +280,7 @@ export function createRegister(
       for (const { name, description, tool, policy, outputSchema, inputSchema } of tools) {
         const copy = descriptor(name, description, policy, next);
         const output = outputFor(name, outputSchema, next);
-        if (output) tool.outputSchema = compatibleOutputSchema(output);
+        if (output) tool.outputSchema = announcedOutput(output, next);
         const input = inputFor(name, inputSchema, next);
         if (assistantInputShape(name, inputSchema) !== inputSchema) tool.inputSchema = z.object(input) as RegisteredTool["inputSchema"];
         tool.description = copy.description;

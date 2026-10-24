@@ -97,6 +97,10 @@ exports[`MCP — send_media_message > anuncia o contrato de mídia e seus limite
             "description": "Mensagem segura e acionável do erro.",
             "type": "string",
           },
+          "meta_code": {
+            "description": "Código numérico da Meta quando ela recusou o envio (ex.: 131026).",
+            "type": "integer",
+          },
           "outcome": {
             "enum": [
               "rejected",

@@ -135,6 +135,7 @@ try {
     "mark_conversation_read",
     "prepare_send_intent",
     "record_contact_consent",
+    "replay_webhook_delivery",
     "request_consent",
     "resubscribe_instagram_connection",
     "set_phone_number_history_import",

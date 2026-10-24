@@ -11,6 +11,7 @@ import {
   listWebhookDeliveriesResultSchema,
   listWebhooksResultSchema,
   webhookCreationResultSchema,
+  webhookDeliveryReplayResultSchema,
   webhookResultSchema,
   webhookTestResultSchema,
 } from "../schemas.js";
@@ -166,5 +167,13 @@ export function registerWebhookTools(register: Register): void {
     },
     listWebhookDeliveriesResultSchema,
     (client, args) => client.webhookDeliveries.list(args as ListWebhookDeliveriesParams),
+  );
+
+  register(
+    "replay_webhook_delivery",
+    "Reenvia uma entrega de webhook esgotada (exhausted) ou cortada pelo limite de repasse do Free (limited), como o botão Reenviar do painel: a entrega volta para a fila (status pending) e o evento é enviado de novo ao endpoint com a mesma X-Idempotency-Key. Repetir não duplica: a entrega que não está exhausted nem limited responde 409 delivery_not_replayable, com o status atual na mensagem. Outras recusas: 404 not_found (entrega não existe nesta conta), 409 forward_limit_reached (entrega limited e o limite de repasse do mês acabou) e 429 replay_rate_limited (muitos reenvios seguidos). Exige scope webhooks:write. Retorna { data }.",
+    { id: z.string().describe("ID da entrega (uuid interno, de list_webhook_deliveries).") },
+    webhookDeliveryReplayResultSchema,
+    async (client, args) => ({ data: await client.webhookDeliveries.replay(String(args.id)) }),
   );
 }

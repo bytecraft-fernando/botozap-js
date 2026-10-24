@@ -143,6 +143,7 @@ export type {
 export type {
   ListApiLogsParams,
   ListWebhookDeliveriesParams,
+  WebhookDeliveryReplay,
 } from "./resources/read-only.js";
 
 export type {

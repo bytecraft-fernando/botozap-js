@@ -100,6 +100,22 @@ describe("renderErrorText", () => {
     });
     expect(renderErrorText(err)).toBe("Erro [server_error]: erro");
   });
+
+  it("recusa da Meta com código acrescenta o código da Meta à base", () => {
+    const err = new BotoZapError("meta_error", "Meta recusou.", 422, undefined, {
+      outcome: "rejected",
+      retry: "unknown",
+      metaCode: 131026,
+    });
+    expect(renderErrorText(err)).toBe(
+      "Erro [meta_error]: Meta recusou. — código da Meta: 131026",
+    );
+  });
+
+  it("sem metaCode a base não muda", () => {
+    const err = new BotoZapError("meta_error", "Meta recusou.", 502);
+    expect(renderErrorText(err)).toBe("Erro [meta_error]: Meta recusou.");
+  });
 });
 
 describe("renderErrorJson", () => {
@@ -107,6 +123,15 @@ describe("renderErrorJson", () => {
     const err = new BotoZapError("validation_error", "campo inválido", 422);
     expect(renderErrorJson(err)).toEqual({
       error: { code: "validation_error", message: "campo inválido", status: 422 },
+    });
+  });
+
+  it("recusa da Meta inclui meta_code, como no envelope da API", () => {
+    const err = new BotoZapError("meta_error", "Meta recusou.", 422, undefined, {
+      metaCode: 131026,
+    });
+    expect(renderErrorJson(err)).toEqual({
+      error: { code: "meta_error", message: "Meta recusou.", status: 422, meta_code: 131026 },
     });
   });
 

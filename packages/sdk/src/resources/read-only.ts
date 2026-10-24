@@ -60,7 +60,17 @@ export interface ListWebhookDeliveriesParams extends CursorParams {
   channel_account_id?: string;
 }
 
-/** Histórico de entregas de webhook (somente leitura, paginação por cursor). */
+/** Resultado de `webhookDeliveries.replay`: a entrega voltou para a fila. */
+export interface WebhookDeliveryReplay {
+  id: string;
+  status: "pending";
+  replayed: true;
+}
+
+/**
+ * Histórico de Entregas de webhook e reenvio das esgotadas. Única escrita deste
+ * arquivo; `users` e `apiLogs` seguem só leitura.
+ */
 export class WebhookDeliveries {
   constructor(private readonly client: BotoZap) {}
 
@@ -81,6 +91,21 @@ export class WebhookDeliveries {
           channel_account_id: params.channel_account_id,
         },
       },
+    );
+  }
+
+  /**
+   * Reenvia uma entrega esgotada (`exhausted`) ou cortada pelo limite de repasse
+   * (`limited`): ela volta para a fila e o evento sai de novo com a mesma
+   * `X-Idempotency-Key`, como o botão Reenviar do painel. Repetir não duplica: a
+   * entrega já na fila responde 409 `delivery_not_replayable`. Outras recusas:
+   * 404 `not_found`, 409 `forward_limit_reached` (limite de repasse do mês
+   * acabou) e 429 `replay_rate_limited`. Exige o escopo `webhooks:write`.
+   */
+  replay(id: string): Promise<WebhookDeliveryReplay> {
+    return this.client.requestItem<WebhookDeliveryReplay>(
+      "POST",
+      `/webhook_deliveries/${encodeURIComponent(id)}/replay`,
     );
   }
 }

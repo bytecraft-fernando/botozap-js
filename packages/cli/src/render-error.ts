@@ -5,9 +5,10 @@ import { BotoZapError, ConfigError } from "./client.js";
  * de import — ao contrário do `index.ts`, que executa `main()`) para ser
  * testável em processo. O `index.ts` decide human vs. json e escreve em stderr.
  *
- * Regra de segurança: estes renderizadores só tocam `code`/`message`/`status` e
- * os HEADERS DE RESPOSTA do erro (que nunca carregam a apiKey — ver
- * `@botozap/sdk` errors.ts/client.ts). Nada de header de request entra aqui.
+ * Regra de segurança: estes renderizadores só tocam `code`/`message`/`status`,
+ * o código da Meta (`metaCode`, número) e os HEADERS DE RESPOSTA do erro (que
+ * nunca carregam a apiKey — ver `@botozap/sdk` errors.ts/client.ts). Nada de
+ * header de request entra aqui.
  */
 
 /** Campos de rate-limit lidos dos headers de um 429. Todos opcionais. */
@@ -67,13 +68,16 @@ function rateLimitSuffix(info: RateLimitInfo): string {
  * Texto humano de um erro. Base preservada:
  *   - `BotoZapError` → `Erro [code]: message`
  *   - `ConfigError`/genérico → `Erro: message`
- * Num 429, ACRESCENTA (não reformata) o sufixo de rate-limit ao fim.
+ * Quando a Meta recusou com código, ACRESCENTA ` — código da Meta: N`. Num 429,
+ * ACRESCENTA (não reformata) o sufixo de rate-limit ao fim.
  */
 export function renderErrorText(err: unknown): string {
   if (err instanceof BotoZapError) {
+    const meta =
+      err.metaCode !== undefined ? ` — código da Meta: ${err.metaCode}` : "";
     const suffix =
       err.status === 429 ? rateLimitSuffix(rateLimitInfo(err)) : "";
-    return `Erro [${err.code}]: ${err.message}${suffix}`;
+    return `Erro [${err.code}]: ${err.message}${meta}${suffix}`;
   }
   if (err instanceof ConfigError) return `Erro: ${err.message}`;
   const message = err instanceof Error ? err.message : String(err);
@@ -82,7 +86,8 @@ export function renderErrorText(err: unknown): string {
 
 /**
  * Objeto de erro estruturado para `-o json` (envelope `{ error: {...} }`, o
- * mesmo shape da API). Num 429 inclui `rate_limit` com os campos presentes.
+ * mesmo shape da API). Inclui `meta_code` quando a Meta informou o código e,
+ * num 429, `rate_limit` com os campos presentes.
  */
 export function renderErrorJson(err: unknown): {
   error: Record<string, unknown>;
@@ -94,6 +99,7 @@ export function renderErrorJson(err: unknown): {
         code: err.code,
         message: err.message,
         status: err.status,
+        ...(err.metaCode !== undefined ? { meta_code: err.metaCode } : {}),
         ...(hasAny(info)
           ? {
               rate_limit: {
