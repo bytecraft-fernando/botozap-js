@@ -38,6 +38,8 @@ import {
 const { version: VERSION } = createRequire(import.meta.url)("../package.json") as {
   version: string;
 };
+/** Teto de elementos de array + membros de objeto nos argumentos de um tools/call. */
+export const MAX_TOOL_INPUT_ELEMENTS = 10_000;
 
 export interface BuildServerOptions {
   apiKey: string;
@@ -142,7 +144,13 @@ export async function buildServer(
       name: "botozap-mcp",
       version: VERSION,
     },
-    { capabilities: canReadEvents ? { resources: { subscribe: true } } : {} },
+    {
+      capabilities: canReadEvents ? { resources: { subscribe: true } } : {},
+      // O zod 3 acumula um issue por elemento inválido sem teto
+      // (GHSA-mrhx-c7xc-m3w5): um array grande dentro de 1 MiB derruba o
+      // processo. Nenhum input legítimo chega perto disso.
+      maxToolInputElements: MAX_TOOL_INPUT_ELEMENTS,
+    },
   );
 
   if (options.uiEnabled) await loadUiResources();

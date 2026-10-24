@@ -10,3 +10,13 @@ allowBuilds:
 
 minimumReleaseAgeExclude:
   - '@openai/mcp-extensions@0.1.0'
+
+# Segurança (out/2026). Só o que o bump do @modelcontextprotocol/sdk não resolve.
+overrides:
+  # @openai/mcp-extensions 0.1.0 fixa zod 4.4.3 (GHSA-mrhx-c7xc-m3w5, alta,
+  # corrigida em 4.6.6). Mesma major; a 0.2.x exige o SDK MCP v2.
+  '@openai/mcp-extensions>zod': 4.6.7
+  # @openai/apps-sdk-ui 0.2.2 (última) fixa lodash 4.17.21 (GHSA-r5fr-rjxr-66jc,
+  # alta). Dependência de build: só lemos os tokens CSS, o lodash nunca é
+  # carregado nem empacotado.
+  '@openai/apps-sdk-ui>lodash': 4.18.1

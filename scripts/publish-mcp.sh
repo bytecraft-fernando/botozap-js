@@ -48,7 +48,7 @@ Se já aparecer, rode a prova pós-registry manualmente:
   printf '{"name":"botozap-registry-consumer","private":true}\\n' > package.json
   pnpm add "${package}@${version}" --ignore-scripts
   pnpm add "@botozap/sdk@${SDK_VERSION:-<versão do SDK publicada junto>}" --ignore-scripts
-  pnpm add -D @modelcontextprotocol/sdk@1.29.0 --ignore-scripts
+  pnpm add -D @modelcontextprotocol/sdk@1.32.2 --ignore-scripts
   cp "$RELEASE_ROOT/scripts/packed-tools-only.mjs" ./packed-tools-only.mjs
   cp "$RELEASE_ROOT/packages/mcp/tests/fixtures/release-0.6.0-tools.json" ./release-0.6.0-tools.json
   node ./packed-tools-only.mjs
@@ -80,7 +80,7 @@ if [[ $# -eq 0 ]]; then
   pnpm add "@botozap/mcp@$MCP_VERSION" --ignore-scripts
   # packed-tools-only.mjs importa @botozap/sdk direto; o pnpm só expõe dependências diretas.
   pnpm add "@botozap/sdk@$SDK_VERSION" --ignore-scripts
-  pnpm add -D @modelcontextprotocol/sdk@1.29.0 --ignore-scripts
+  pnpm add -D @modelcontextprotocol/sdk@1.32.2 --ignore-scripts
   cp "$RELEASE_ROOT/scripts/packed-tools-only.mjs" ./packed-tools-only.mjs
   cp "$RELEASE_ROOT/packages/mcp/tests/fixtures/release-0.6.0-tools.json" ./release-0.6.0-tools.json
   node ./packed-tools-only.mjs

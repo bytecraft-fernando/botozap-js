@@ -41,7 +41,7 @@ pnpm add \
   "$GATE_TARBALL_DIR/sdk.tgz" \
   "$GATE_TARBALL_DIR/cli.tgz" \
   "$GATE_TARBALL_DIR/mcp.tgz"
-pnpm add -D typescript@5.6 @modelcontextprotocol/sdk@1.29.0
+pnpm add -D typescript@5.6 @modelcontextprotocol/sdk@1.32.2
 
 node -e "import('@botozap/sdk').then(m => { if (typeof m.BotoZap !== 'function') process.exit(1) })"
 node -e "if (typeof require('@botozap/sdk').BotoZap !== 'function') process.exit(1)"
