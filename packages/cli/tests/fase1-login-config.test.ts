@@ -6,7 +6,7 @@
  * para o teste escrever a chave como faria um pipe ou um terminal.
  */
 import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 import { PassThrough } from "node:stream";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
@@ -198,10 +198,12 @@ it("config ilegível conta como vazio, e gravar por cima volta a funcionar", asy
 it("BOTOZAP_CONFIG_DIR é aparado; vazio ou só espaço cai em ~/.botozap/cli", async () => {
   process.env.BOTOZAP_CONFIG_DIR = `  ${join(home, "outro")}  `;
   expect(configPath()).toBe(join(home, "outro", "config.json"));
+  // `os.homedir()` e não o HOME do teste: numa worker thread o env trocado não chega ao libuv.
+  const fallback = join(homedir(), ".botozap", "cli", "config.json");
   for (const value of ["", "   "]) {
     process.env.BOTOZAP_CONFIG_DIR = value;
-    expect(configPath()).toBe(join(home, ".botozap", "cli", "config.json"));
+    expect(configPath()).toBe(fallback);
   }
   delete process.env.BOTOZAP_CONFIG_DIR;
-  expect(configPath()).toBe(join(home, ".botozap", "cli", "config.json"));
+  expect(configPath()).toBe(fallback);
 });
