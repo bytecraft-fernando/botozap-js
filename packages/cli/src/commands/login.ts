@@ -17,7 +17,7 @@ export function registerLogin(program: Command): void {
     .command("login")
     .description("Instruções para autenticar e gravar sua API key (stub)")
     .option("--api-key <chave>", "grava a chave informada sem perguntar")
-    .action(async (opts, _cmd: Command) => {
+    .action(async (_opts, cmd: Command) => {
       printLine(pc.bold("Autenticação do BotoZap CLI"));
       printLine("");
       printLine(
@@ -28,7 +28,9 @@ export function registerLogin(program: Command): void {
       printLine("  3. Cole a chave abaixo (ou rode com --api-key).");
       printLine("");
 
-      let key = opts.apiKey as string | undefined;
+      // O programa também declara `--api-key` global, e o commander entrega o valor
+      // a ela mesmo depois de `login`; por isso a chave vem de `optsWithGlobals`.
+      let key = cmd.optsWithGlobals().apiKey as string | undefined;
 
       if (!key) {
         const interativo = Boolean(stdin.isTTY);

@@ -60,6 +60,9 @@ O `config.json` fica em `~/.botozap/cli/`; para usar outro diretório, defina
 # stub amigável: explica /chaves e oferece colar a chave
 botozap login
 
+# sem perguntar (CI); a chave fica no histórico do shell
+botozap login --api-key bz_live_xxxxxxxxxxxx
+
 # direto
 botozap config set apiKey bz_live_xxxxxxxxxxxx
 botozap config set baseUrl https://botozap.com.br/api/v1

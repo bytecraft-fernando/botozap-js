@@ -103,6 +103,25 @@ describe("login não-interativo (pipe)", () => {
   });
 });
 
+describe("login --api-key", () => {
+  // O `login` diz "Cole a chave abaixo (ou rode com --api-key)" e a flag está no
+  // `--help` dele. O programa também tem `--api-key` global; as duas posições gravam.
+  for (const argv of [["login", "--api-key", SECRET], ["--api-key", SECRET, "login"]]) {
+    it(`grava a chave sem perguntar: botozap ${argv.join(" ").replace(SECRET, "<chave>")}`, async () => {
+      const r = await spawnNode(distEntry, argv, {
+        env: childEnv(home),
+        input: "",
+        timeoutMs: 20000,
+      });
+      expect(r.status).toBe(0);
+      expect(readStoredKey(home)).toBe(SECRET);
+      expect(r.stdout).not.toContain("Cole sua API key");
+      expect(r.stdout).toContain("Chave gravada com sucesso.");
+      expect(r.stdout).not.toContain(SECRET);
+    });
+  }
+});
+
 describe("login interativo (TTY simulado)", () => {
   it("mascara: a chave não aparece no stdout, mas é gravada", async () => {
     // Wrapper que força stdin.isTTY = true antes de carregar a CLI, ativando o
