@@ -187,7 +187,9 @@ export function buildTrustedProxyList(
   for (const cidr of sanitizeAllowlist(cidrs)) {
     const separator = cidr.lastIndexOf("/");
     const address = separator > 0 ? cidr.slice(0, separator) : "";
-    const prefix = separator > 0 ? Number(cidr.slice(separator + 1)) : Number.NaN;
+    // Só dígitos decimais: `Number("")` é 0 e transformaria `10.0.0.0/` em `/0`.
+    const rawPrefix = separator > 0 ? cidr.slice(separator + 1) : "";
+    const prefix = /^\d+$/.test(rawPrefix) ? Number(rawPrefix) : Number.NaN;
     const family = isIP(address);
     const maxPrefix = family === 4 ? 32 : family === 6 ? 128 : -1;
     if (!Number.isInteger(prefix) || prefix < 0 || prefix > maxPrefix) {

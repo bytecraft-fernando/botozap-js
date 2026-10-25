@@ -84,6 +84,25 @@ describe("allowlist de proxy", () => {
     expect(() => buildTrustedProxyList(["não-é-cidr"])).toThrow(/CIDR/);
   });
 
+  it("recusa prefixo vazio, com espaço ou fora de decimal, em vez de virar /0", async () => {
+    for (const cidr of ["10.0.0.0/", "2606:4700::/", "10.0.0.0/ 24", "10.0.0.0/24 /", "10.0.0.0/0x10", "10.0.0.0/+8", "10.0.0.0/1e1"]) {
+      expect(() => buildTrustedProxyList([cidr]), cidr).toThrow(`CIDR de proxy inválido: ${cidr}`);
+    }
+    // Na partida do servidor remoto, antes de aceitar conexão.
+    await expect(
+      startStreamableHttpServer({
+        baseUrl: "http://127.0.0.1:9",
+        eventSignal: new TestEventSignal(),
+        host: "127.0.0.1",
+        port: 0,
+        trustedProxyCidrs: ["173.245.48.0/20", "10.0.0.0/"],
+      }),
+    ).rejects.toThrow("CIDR de proxy inválido: 10.0.0.0/");
+    // Prefixos decimais válidos seguem aceitos, inclusive /0 escrito por extenso.
+    const list = buildTrustedProxyList(["10.0.0.0/8", "0.0.0.0/0", "::/0"]);
+    expect(list?.check("8.8.8.8", "ipv4")).toBe(true);
+  });
+
   it("bloqueia bypass direto e aceita somente Fly-Client-IP do proxy", async () => {
     const remote = await startRemote({ trustedProxyCidrs: ["173.245.48.0/20"] });
     const request = (flyClientIp?: string) =>
