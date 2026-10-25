@@ -189,14 +189,30 @@ it("rate limit: passado o teto de 10 000 clientes, os novos dividem um balde só
   expect(await hit(remote.url, ip(10_003))).not.toBe(429);
 }, 60_000);
 
+it("rate limit: no teto exato, a janela vencida libera baldes próprios antes do transbordo", async () => {
+  vi.useFakeTimers({ toFake: ["Date"], now: Date.UTC(2026, 9, 13, 12) });
+  const { remote } = await startRemote({ rateLimitPerClientPerMinute: 1, rateLimitGlobalPerMinute: 1_000_000 });
+  const ip = (n: number) => `10.${(n >> 16) & 255}.${(n >> 8) & 255}.${n & 255}`;
+  for (let start = 0; start < 10_000; start += 200) {
+    await Promise.all(Array.from({ length: 200 }, (_, i) => hit(remote.url, ip(start + i))));
+  }
+  // Exatamente 10 000 rastreados e nenhum no transbordo: vencida a janela, a
+  // compactação roda já na primeira chamada e o IP novo ganha o próprio balde,
+  // que barra a segunda chamada dele.
+  vi.setSystemTime(Date.now() + 60_000);
+  expect(await hit(remote.url, ip(20_000))).not.toBe(429);
+  expect(await hit(remote.url, ip(20_000))).toBe(429);
+  expect(await hit(remote.url, ip(20_001))).not.toBe(429);
+}, 60_000);
+
 // --- Origin ---------------------------------------------------------------------------
 
 it("sem allowedOrigins, nenhuma Origin passa; sem Origin, segue", async () => {
   const { remote } = await startRemote();
-  for (const origin of ["https://evil.example", "http://127.0.0.1", "null", "Stryker was here!"]) {
+  for (const origin of ["https://evil.example", "http://127.0.0.1", "null", "Stryker was here"]) {
     const res = await raw(remote.url, { headers: { ...mcpHeaders(), origin }, body: "{}" });
     expect(res.status).toBe(403);
-    expect(res.body).toContain("Origin não permitida.");
+    expect(JSON.parse(res.body)).toMatchObject({ jsonrpc: "2.0", error: { code: -32000, message: "Origin não permitida." } });
   }
   expect((await raw(remote.url, { headers: mcpHeaders(), body: "{}" })).status).not.toBe(403);
 });
@@ -225,7 +241,7 @@ it("CIDR: prefixo dentro do limite da família, endereço e barra obrigatórios"
   expect(v6?.check("10.0.0.1", "ipv4")).toBe(false);
   const only = buildTrustedProxyList(["192.0.2.0/24"]);
   expect(only?.check("192.0.3.1", "ipv4")).toBe(false);
-  for (const bad of ["10.0.0.0/33", "10.0.0.0/-1", "10.0.0.0/8.5", "/8", "10.0.0.0", "2001:db8::/129", "host/8", "10.0.0.0/x"]) {
+  for (const bad of ["10.0.0.0/33", "10.0.0.0/-1", "10.0.0.0/8.5", "/8", "10.0.0.0", "2001:db8::/129", "host/8", "host/0", "host/1", "10.0.0.0/x"]) {
     expect(() => buildTrustedProxyList([bad]), bad).toThrow(`CIDR de proxy inválido: ${bad}`);
   }
 });

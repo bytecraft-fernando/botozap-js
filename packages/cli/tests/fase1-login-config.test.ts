@@ -5,14 +5,14 @@
  * O login lê a chave de `stdin` (`node:process`). Aqui o stdin é um PassThrough
  * para o teste escrever a chave como faria um pipe ou um terminal.
  */
-import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { PassThrough } from "node:stream";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { registerConfig } from "../src/commands/config.js";
 import { registerLogin } from "../src/commands/login.js";
-import { configPath } from "../src/config.js";
+import { configDir, configPath } from "../src/config.js";
 import { run } from "./helpers.js";
 
 const input = vi.hoisted(() => ({ stream: null as unknown as NodeJS.ReadStream }));
@@ -164,4 +164,44 @@ it("config get: chave de até 12 caracteres mostra só os 4 primeiros", async ()
 it("config path mostra o arquivo do diretório configurado", async () => {
   const r = await run(registerConfig, ["config", "path"]);
   expect(r.stdout.trim()).toBe(join(home, "cfg", "config.json"));
+});
+
+// --- arquivo de config ----------------------------------------------------------------
+
+const mode = (path: string) => statSync(path).mode & 0o777;
+
+it("config grava o arquivo 0600 numa pasta 0700, e endurece um arquivo legado 0644", async () => {
+  await run(registerConfig, ["config", "set", "apiKey", "bz_live_1234567890abcd"]);
+  expect(mode(configPath())).toBe(0o600);
+  expect(mode(configDir())).toBe(0o700);
+
+  chmodSync(configDir(), 0o755);
+  chmodSync(configPath(), 0o644);
+  await login("bz_live_troca_0002\n");
+  expect(mode(configPath())).toBe(0o600);
+  expect(mode(configDir())).toBe(0o700);
+  expect(readFileSync(configPath(), "utf8")).toBe(`${JSON.stringify({ apiKey: "bz_live_troca_0002" }, null, 2)}\n`);
+});
+
+it("config ilegível conta como vazio, e gravar por cima volta a funcionar", async () => {
+  for (const content of ["{quebrado", "null", "42"]) {
+    mkdirSync(configDir(), { recursive: true });
+    writeFileSync(configPath(), content);
+    const r = await run(registerConfig, ["-o", "json", "config", "get"]);
+    expect(JSON.parse(r.stdout), content).toEqual({ apiKey: null, baseUrl: null });
+    const set = await run(registerConfig, ["config", "set", "baseUrl", "http://127.0.0.1:9/v1"]);
+    expect(set.error, content).toBeUndefined();
+    expect(stored()).toEqual({ baseUrl: "http://127.0.0.1:9/v1" });
+  }
+});
+
+it("BOTOZAP_CONFIG_DIR é aparado; vazio ou só espaço cai em ~/.botozap/cli", async () => {
+  process.env.BOTOZAP_CONFIG_DIR = `  ${join(home, "outro")}  `;
+  expect(configPath()).toBe(join(home, "outro", "config.json"));
+  for (const value of ["", "   "]) {
+    process.env.BOTOZAP_CONFIG_DIR = value;
+    expect(configPath()).toBe(join(home, ".botozap", "cli", "config.json"));
+  }
+  delete process.env.BOTOZAP_CONFIG_DIR;
+  expect(configPath()).toBe(join(home, ".botozap", "cli", "config.json"));
 });
