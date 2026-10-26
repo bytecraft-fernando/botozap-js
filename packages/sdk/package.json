@@ -55,6 +55,8 @@
     "access": "public"
   },
   "devDependencies": {
+    "@stryker-mutator/core": "10.1.1",
+    "@stryker-mutator/vitest-runner": "10.1.1",
     "tsup": "^8.3.0",
     "typescript": "^5.6.0",
     "vitest": "^3.0.0"
