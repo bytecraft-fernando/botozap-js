@@ -9,6 +9,7 @@
  * TTY real exigiria um PTY (indisponível aqui); o `isTTY` é forçado por um
  * wrapper para exercitar o RAMO de mascaramento sem vazar a chave.
  */
+import { execFile } from "node:child_process";
 import { createServer, type Server } from "node:http";
 import {
   existsSync,
@@ -124,13 +125,17 @@ describe("login --api-key", () => {
 
 describe("login interativo (TTY simulado)", () => {
   it("mascara: a chave não aparece no stdout, mas é gravada", async () => {
-    // Wrapper que força stdin.isTTY = true antes de carregar a CLI, ativando o
-    // ramo de mascaramento do `login`. A chave chega pelo pipe (input).
+    // Wrapper que força stdin.isTTY e stdout.isTTY antes de carregar a CLI. Com
+    // só o stdin como TTY, o readline (que decide pelo output) fica em modo
+    // não-terminal e não ecoa nada: o teste passava mesmo sem máscara. Com os
+    // dois, o readline ecoa cada tecla, como num terminal, e a máscara precisa
+    // esconder. A chave chega pelo pipe (input).
     const wrapper = join(home, "tty-login.mjs");
     writeFileSync(
       wrapper,
       [
         "Object.defineProperty(process.stdin, 'isTTY', { value: true, configurable: true });",
+        "Object.defineProperty(process.stdout, 'isTTY', { value: true, configurable: true });",
         "process.argv = [process.argv[0], 'botozap', 'login'];",
         `await import(${JSON.stringify(pathToFileURL(distEntry).href)});`,
         "",
@@ -215,5 +220,66 @@ describe("erro 401 não contém a chave (human e json)", () => {
     expect(r.stdout).not.toContain(SECRET);
     expect(r.stderr).not.toContain(SECRET);
     expect(JSON.parse(r.stderr).error.code).toBe("authentication_error");
+  });
+});
+
+// Terminal de verdade: o `pty` do Python abre um pseudo-terminal, a CLI roda nele
+// e a chave é colada só depois da pergunta aparecer, como faz uma pessoa. O que
+// volta é tudo o que o terminal mostraria na tela.
+const PTY_DRIVER = String.raw`
+import os, pty, select, sys, time
+node, entry, key = sys.argv[1:4]
+pid, fd = pty.fork()
+if pid == 0:
+    os.execv(node, [node, entry, "login"])
+out = b""
+def ler(ate, prazo):
+    global out
+    fim = time.time() + prazo
+    while time.time() < fim:
+        if select.select([fd], [], [], 0.1)[0]:
+            try:
+                pedaco = os.read(fd, 4096)
+            except OSError:
+                return False
+            if not pedaco:
+                return False
+            out += pedaco
+            if ate(out):
+                return True
+    return False
+if not ler(lambda o: b"Cole sua API key: " in o, 15):
+    sys.stdout.buffer.write(out)
+    sys.exit(90)
+os.write(fd, key.encode() + b"\r")
+ler(lambda o: False, 15)
+_, status = os.waitpid(pid, 0)
+sys.stdout.buffer.write(out)
+sys.exit(os.waitstatus_to_exitcode(status))
+`;
+
+/** Roda `botozap login` num pty e devolve o que a tela mostrou. */
+function loginInPty(env: Record<string, string>): Promise<{ status: number | null; screen: string }> {
+  return new Promise((resolve, reject) => {
+    execFile(
+      "python3",
+      ["-c", PTY_DRIVER, process.execPath, distEntry, SECRET],
+      { env, timeout: 40000 },
+      (error, stdout) => {
+        if (error && typeof error.code !== "number") reject(error);
+        else resolve({ status: error ? (error.code as number) : 0, screen: stdout });
+      },
+    );
+  });
+}
+
+describe("login interativo (terminal real)", () => {
+  it("a chave colada não aparece na tela, e é gravada", async () => {
+    const r = await loginInPty(childEnv(home));
+    expect(r.status, r.screen).toBe(0);
+    expect(r.screen).toContain("Cole sua API key: ");
+    expect(r.screen).toContain("Chave gravada com sucesso.");
+    expect(r.screen).not.toContain(SECRET);
+    expect(readStoredKey(home)).toBe(SECRET);
   });
 });

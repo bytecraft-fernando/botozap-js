@@ -1,6 +1,7 @@
 import { Command } from "commander";
 import { createInterface } from "node:readline/promises";
 import { stdin, stdout } from "node:process";
+import { Writable } from "node:stream";
 import { setConfigValue, configPath } from "../config.js";
 import { printLine, dim } from "../output.js";
 import pc from "picocolors";
@@ -34,19 +35,25 @@ export function registerLogin(program: Command): void {
 
       if (!key) {
         const interativo = Boolean(stdin.isTTY);
-        const rl = createInterface({ input: stdin, output: stdout });
+        // Mascara a digitação: num terminal o readline põe o stdin em modo raw
+        // (o terminal para de ecoar) e ecoa cada tecla ele mesmo, pelo output.
+        // O output é um stream que repassa ao stdout e fica mudo depois da
+        // pergunta, então a chave não aparece na tela nem fica no scrollback.
+        // Trocar `rl._writeToOutput` não funciona: o readline do Node escreve por
+        // um método interno. Num pipe/redirect não há eco, então não mascaramos —
+        // o `botozap login < chave.txt` / `echo … | botozap login` funciona.
+        let mudo = false;
+        const output = new Writable({
+          write(chunk, _encoding, done) {
+            if (!mudo) stdout.write(chunk);
+            done();
+          },
+        });
+        const rl = createInterface({ input: stdin, output, terminal: interativo });
         try {
+          // A pergunta é escrita já na chamada; só o que vem depois fica mudo.
           const pergunta = rl.question("Cole sua API key: ");
-          if (interativo) {
-            // Mascara a digitação: o prompt acima já foi impresso, então a
-            // partir daqui suprimimos o eco de cada caractere da chave. Assim
-            // ela não aparece na tela nem fica no scrollback do terminal.
-            // (Num pipe/redirect não há eco de terminal, então não mascaramos —
-            // o `botozap login < chave.txt` / `echo … | botozap login` funciona.)
-            (
-              rl as unknown as { _writeToOutput: (s: string) => void }
-            )._writeToOutput = () => {};
-          }
+          mudo = interativo;
           key = (await pergunta).trim();
           // O Enter final também foi suprimido pela máscara: reponha a quebra.
           if (interativo) stdout.write("\n");
