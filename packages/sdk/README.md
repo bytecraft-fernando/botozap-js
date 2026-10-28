@@ -480,7 +480,8 @@ Cada contato tem um consentimento por canal (`whatsapp` ou `instagram`) e
 finalidade (`marketing` ou `utility`), com a origem de cada registro: `manual`,
 `import`, `api`, `keyword` (Palavra de saída), `conversation_button` (botão do
 pedido de consentimento), `contact_keyword` (Palavra de volta), `template_button`
-(botão de saída do template) e `meta_opt_out` (recusa informada pela Meta). Só o
+(botão de saída do template), `meta_opt_out` (recusa informada pela Meta) e
+`owner_declaration` (declaração do dono num follow-up de Marketing). Só o
 próprio contato volta a aceitar depois de recusar.
 
 ```ts

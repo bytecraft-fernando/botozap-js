@@ -365,7 +365,7 @@ export const consentSchema = z
     state: z.enum(["granted", "revoked"]).describe("granted = aceitou; revoked = recusou."),
     origin: z
       .string()
-      .describe("manual, import, api, keyword (Palavra de saída), conversation_button, contact_keyword (Palavra de volta), template_button (botão de saída do template) ou meta_opt_out (recusa informada pela Meta)."),
+      .describe("manual, import, api, keyword (Palavra de saída), conversation_button, contact_keyword (Palavra de volta), template_button (botão de saída do template), meta_opt_out (recusa informada pela Meta) ou owner_declaration (declaração do dono no follow-up de Marketing)."),
     recorded_by: z.string().nullable(),
     evidence: z.string(),
     created_at: z.string(),

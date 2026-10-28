@@ -110,7 +110,7 @@ export function registerContactTools(register: Register): void {
 
   register(
     "list_contact_consents",
-    "Consentimentos de um contato: `current` (o vigente por canal e finalidade) e `history` (todos, do mais novo ao mais antigo). Cada registro traz channel, purpose (marketing ou utility), state (granted ou revoked) e origin (manual, import, api, keyword = Palavra de saída, conversation_button = botão do pedido de consentimento, contact_keyword = Palavra de volta, template_button = botão de saída do template, meta_opt_out = recusa informada pela Meta). Retorna { data }.",
+    "Consentimentos de um contato: `current` (o vigente por canal e finalidade) e `history` (todos, do mais novo ao mais antigo). Cada registro traz channel, purpose (marketing ou utility), state (granted ou revoked) e origin (manual, import, api, keyword = Palavra de saída, conversation_button = botão do pedido de consentimento, contact_keyword = Palavra de volta, template_button = botão de saída do template, meta_opt_out = recusa informada pela Meta, owner_declaration = declaração do dono no follow-up de Marketing). Retorna { data }.",
     { id: z.string().describe("UUID interno do contato.") },
     contactConsentsResultSchema,
     async (client, args) => ({ data: await client.contacts.listConsents(String(args.id)) }),
