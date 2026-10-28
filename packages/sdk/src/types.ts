@@ -295,8 +295,9 @@ export type ConsentState = "granted" | "revoked";
  * saída), `conversation_button` (botão do pedido de consentimento na conversa),
  * `contact_keyword` (o próprio contato mandou uma Palavra de volta cadastrada
  * pelo Cliente), `template_button` (o contato tocou num botão de saída marcado
- * no template) e `meta_opt_out` (a Meta informou a recusa, erro 131050). Valores
- * novos podem surgir.
+ * no template), `meta_opt_out` (a Meta informou a recusa, erro 131050) e
+ * `owner_declaration` (aceite gravado no envio de um follow-up de Marketing com a
+ * declaração do dono). Valores novos podem surgir.
  */
 export type ConsentOrigin =
   | "manual"
@@ -307,6 +308,7 @@ export type ConsentOrigin =
   | "contact_keyword"
   | "template_button"
   | "meta_opt_out"
+  | "owner_declaration"
   | (string & {});
 
 /** Um registro de Consentimento do Contato (por canal e finalidade). */

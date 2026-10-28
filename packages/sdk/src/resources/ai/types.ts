@@ -477,6 +477,12 @@ export type AiFlowSettings = {
   send_days: number[];
   timezone: string;
   purpose: "utility" | "marketing";
+  /**
+   * Só em `marketing`. `declared`: quem publica (pessoa ou chave) declara que os contatos do
+   * fluxo autorizaram marketing; no envio, contato sem registro ganha `granted` com origem
+   * `owner_declaration`. `revoked` sempre bloqueia. Omitido ou `required`: só quem autorizou.
+   */
+  marketing_consent?: "required" | "declared";
   environment: "live" | "sandbox";
   /** Agent responsible for automatic triggers when several enable the flow; omitted = the only eligible one. */
   trigger_agent_id?: string | null;

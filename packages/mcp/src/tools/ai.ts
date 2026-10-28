@@ -417,6 +417,12 @@ const schemas: Record<string, ZodTypeAny> = {
       send_days: z.array(z.number()),
       timezone: text,
       purpose: z.enum(["utility", "marketing"]),
+      marketing_consent: z
+        .enum(["required", "declared"])
+        .optional()
+        .describe(
+          "Só em marketing. declared: quem publica declara que os contatos do fluxo autorizaram marketing; no envio, quem não tem registro ganha granted com origem owner_declaration. revoked sempre bloqueia.",
+        ),
       environment: z.enum(["live", "sandbox"]),
       trigger_agent_id: uuid.nullable().optional(),
     })
