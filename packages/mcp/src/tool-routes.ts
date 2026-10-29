@@ -31,6 +31,7 @@ routes(["list_phone_numbers"], "GET /v1/phone_numbers");
 routes(["get_phone_number"], "GET /v1/phone_numbers/:id");
 routes(["update_phone_number"], "PATCH /v1/phone_numbers/:id");
 routes(["phone_number_health"], "GET /v1/phone_numbers/:id/health");
+routes(["resubscribe_phone_number_webhooks"], "POST /v1/phone_numbers/:id/webhook-subscription");
 routes(["list_templates"], "GET /v1/templates");
 routes(["get_template"], "GET /v1/templates/:id");
 routes(["create_template"], "POST /v1/templates");

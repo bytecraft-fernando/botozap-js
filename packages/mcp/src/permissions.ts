@@ -171,6 +171,9 @@ write(["create_qr_code"], "numbers:write", false,
 // Apagar o QR é sem volta (o impresso dá "expirado"); bloquear/desbloquear só se refaz com nova mensagem do contato.
 write(["delete_qr_code", "block_contact", "unblock_contact"], "numbers:write", false,
   { destructiveHint: true, idempotentHint: true, openWorldHint: true });
+// Reinscreve o app na WABA (Meta): repetir não muda nada.
+write(["resubscribe_phone_number_webhooks"], "numbers:write", false,
+  { destructiveHint: false, idempotentHint: true, openWorldHint: true });
 // Conversas antigas do app WhatsApp Business (coexistência): estado no BotoZap.
 read(["get_phone_number_history_import"], "numbers:read", false);
 // Escolha única por conexão (0 não traz nada e não volta atrás); repetir a mesma escolha não muda nada; dispara o pedido à Meta.

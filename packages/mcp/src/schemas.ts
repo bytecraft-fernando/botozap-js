@@ -863,6 +863,16 @@ const qrCodeSchema = z
 export const qrCodeResultSchema = itemResultSchemaFor(qrCodeSchema);
 export const listQrCodesResultSchema = itemResultSchemaFor(z.array(qrCodeSchema));
 
+export const webhookSubscriptionResultSchema = itemResultSchemaFor(
+  z
+    .object({
+      webhook_subscription: z
+        .enum(["subscribed", "missing", "unknown"])
+        .describe("subscribed: a Meta manda as mensagens para o BotoZap; missing: não manda; unknown: a Meta não respondeu."),
+    })
+    .strip(),
+);
+
 export const historyImportResultSchema = itemResultSchemaFor(
   z
     .object({
