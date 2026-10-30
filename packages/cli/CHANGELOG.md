@@ -1,5 +1,16 @@
 # @botozap/cli
 
+## 0.24.0
+
+### Minor Changes
+
+- 750d80e: Editar e excluir template fora do painel: `templates.update(id, { components, category })` edita e reenvia à análise da Meta, e `templates.delete(id)` exclui na Meta e aqui (SDK); `update_template` ganha `components`/`category` e entra `delete_template` (MCP); `botozap templates update --components` e `botozap templates delete` (CLI).
+
+### Patch Changes
+
+- Updated dependencies [750d80e]
+  - @botozap/sdk@0.29.0
+
 ## 0.23.0
 
 ### Minor Changes
