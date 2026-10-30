@@ -51,6 +51,8 @@ export type {
   ListTemplatesParams,
   CreateTemplateParams,
   UpdateTemplateParams,
+  SyncTemplatesParams,
+  TemplateSyncResult,
 } from "./resources/templates.js";
 export type {
   ListBroadcastsParams,

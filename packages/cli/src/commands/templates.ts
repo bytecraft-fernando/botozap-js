@@ -124,4 +124,24 @@ export function registerTemplates(program: Command): void {
       printLine("Template atualizado.");
       printDetail(data as Record<string, unknown>);
     });
+
+  templates
+    .command("sync")
+    .description(
+      "Sincroniza com a Meta (o Sincronizar do painel): traz o status real, importa os criados no WhatsApp Manager " +
+        "e tira os excluídos lá",
+    )
+    .option("--customer-id <id>", "só as conexões deste cliente")
+    .action(async (opts, cmd: Command) => {
+      const { client, format } = context(cmd);
+      const data = await client.templates.sync(opts.customerId ? { customer_id: opts.customerId as string } : {});
+      if (format === "json") return printJson(data);
+      printLine(
+        `${data.synced} template(s) sincronizado(s) em ${data.connections} conexão(ões); ${data.removed} removido(s) por exclusão na Meta.`,
+      );
+      if (data.skipped_without_token > 0) {
+        printLine(`${data.skipped_without_token} conexão(ões) sem autorização foram puladas: reconecte o número.`);
+      }
+      if (data.automations_outdated) printLine("Uma régua de modelo não acompanhou a mudança de status: sincronize de novo.");
+    });
 }

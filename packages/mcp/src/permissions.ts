@@ -183,6 +183,9 @@ read(["list_templates", "get_template"], "templates:read", true);
 // Só anota no BotoZap quais botões são de saída; não toca na Meta.
 write(["update_template"], "templates:write", true,
   { destructiveHint: true, idempotentHint: true, openWorldHint: false });
+// Traz o estado da Meta e tira daqui o que foi excluído lá; repetir não muda nada.
+write(["sync_templates"], "templates:write", false,
+  { destructiveHint: true, idempotentHint: true, openWorldHint: true });
 // Nunca sobrescreve (nome+idioma repetido = 409 antes da Meta), por isso é
 // aditivo e idempotente; submete à análise da Meta (fora da conta).
 write(["create_template"], "templates:write", true,

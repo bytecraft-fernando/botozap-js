@@ -58,6 +58,7 @@ routes(["delete_conversation"], "DELETE /v1/conversations/:id");
 routes(["list_contact_consents"], "GET /v1/contacts/:id/consents");
 routes(["record_contact_consent"], "POST /v1/contacts/:id/consents");
 routes(["update_template"], "PATCH /v1/templates/:id");
+routes(["sync_templates"], "POST /v1/templates/sync");
 routes(["conversation_typing"], "POST /v1/conversations/:id/typing");
 routes(["mark_conversation_read"], "POST /v1/conversations/:id/read");
 routes(["list_journey_models"], "GET /v1/journeys/catalog");

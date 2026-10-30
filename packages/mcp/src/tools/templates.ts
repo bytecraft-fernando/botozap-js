@@ -5,6 +5,7 @@ import type { Register } from "../register.js";
 import {
   fullTemplateResultSchema,
   listFullTemplatesResultSchema,
+  templateSyncResultSchema,
 } from "../schemas.js";
 
 export function registerTemplateTools(register: Register): void {
@@ -65,6 +66,16 @@ export function registerTemplateTools(register: Register): void {
       data: await client.templates.update(String(args.id), {
         opt_out_buttons: args.opt_out_buttons as string[],
       }),
+    }),
+  );
+
+  register(
+    "sync_templates",
+    "O Sincronizar da tela de Templates: traz da Meta status, categoria, conteúdo e rejection_reason dos templates das conexões ativas (ou só de um Cliente, com customer_id), importa os criados direto no WhatsApp Manager e tira daqui os excluídos lá. Use quando um status parecer parado (ex.: PENDING muito depois do normal): avisos de status da Meta podem se perder, e a listagem traz o estado real. Devolve connections, synced, removed, skipped_without_token (conexões sem autorização, reconecte o número) e automations_outdated. Autorização recusada pela Meta responde 409 reconnect_required. Exige scope templates:write. Retorna { data }.",
+    { customer_id: z.string().uuid().optional().describe("Só as conexões deste Cliente (uuid).") },
+    templateSyncResultSchema,
+    async (client, args) => ({
+      data: await client.templates.sync(args.customer_id ? { customer_id: String(args.customer_id) } : {}),
     }),
   );
 }

@@ -51,6 +51,25 @@ export interface CreateTemplateParams {
 }
 
 /** Corpo de `PATCH /v1/templates/:id`. */
+export interface SyncTemplatesParams {
+  /** Só as conexões deste Cliente; sem ele, todas as conexões ativas da conta. */
+  customer_id?: string;
+}
+
+/** Resultado de `templates.sync()`. */
+export interface TemplateSyncResult {
+  /** Conexões ativas do WhatsApp conferidas. */
+  connections: number;
+  /** Templates que a Meta tem e foram gravados aqui. */
+  synced: number;
+  /** Templates tirados daqui porque foram excluídos na Meta. */
+  removed: number;
+  /** Conexões sem autorização guardada, puladas (reconecte o número). */
+  skipped_without_token: number;
+  /** Uma régua de modelo não acompanhou a mudança de status: sincronize de novo. */
+  automations_outdated: boolean;
+}
+
 export interface UpdateTemplateParams {
   /**
    * Textos dos botões de resposta rápida que são de saída; `[]` limpa a marcação.
@@ -104,5 +123,16 @@ export class Templates {
       `/templates/${encodeURIComponent(id)}`,
       { body: params },
     );
+  }
+
+  /**
+   * O Sincronizar da tela de Templates: traz da Meta status, categoria,
+   * conteúdo e `rejection_reason` dos templates das conexões ativas (ou de um
+   * Cliente), importa os criados no WhatsApp Manager e tira daqui os excluídos
+   * lá. Use quando um status parecer parado. Autorização recusada pela Meta
+   * responde 409 `reconnect_required`. Scope `templates:write`.
+   */
+  sync(params: SyncTemplatesParams = {}): Promise<TemplateSyncResult> {
+    return this.client.requestItem<TemplateSyncResult>("POST", "/templates/sync", { body: params });
   }
 }
