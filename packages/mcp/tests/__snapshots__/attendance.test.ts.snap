@@ -305,6 +305,7 @@ exports[`MCP Atendimento: schemas, domínio e transporte real em memória > cat�
   "get_template",
   "create_template",
   "update_template",
+  "delete_template",
   "sync_templates",
   "list_webhooks",
   "get_webhook",

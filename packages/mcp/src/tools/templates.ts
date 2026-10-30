@@ -6,6 +6,7 @@ import {
   fullTemplateResultSchema,
   listFullTemplatesResultSchema,
   templateSyncResultSchema,
+  deletedTemplateResultSchema,
 } from "../schemas.js";
 
 export function registerTemplateTools(register: Register): void {
@@ -53,20 +54,36 @@ export function registerTemplateTools(register: Register): void {
 
   register(
     "update_template",
-    "Marca quais botões de resposta rápida do template são de saída (`opt_out_buttons`, os textos dos botões; [] limpa a marcação). O toque do contato num botão marcado grava a recusa da finalidade do template (marketing ou avisos); botão não marcado não muda nada, qualquer que seja o texto. Anotação do BotoZap: não altera o template na Meta. Texto que não é botão de resposta rápida do template responde invalid_request. Exige scope templates:write. Retorna { data }.",
+    "Duas mudanças, como no painel. (1) Com components (e category opcional), edita o template e o devolve à análise da Meta: o status volta a PENDING e ele não serve para envios até a Meta aprovar de novo; nome e idioma não mudam; em análise responde 409 template_in_review; sem id da Meta, 409 template_not_synced (rode sync_templates); sem opt_out_buttons, a marcação de saída atual continua. Pergunte a quem opera antes de editar um template em uso. (2) Só com opt_out_buttons (textos dos botões; [] limpa), marca quais botões de resposta rápida são de saída: o toque grava a recusa da finalidade do template; anotação do BotoZap, não altera o template na Meta. Texto que não é botão de resposta rápida do template responde invalid_request. Exige scope templates:write. Retorna { data }.",
     {
       id: z.string().describe("ID do template (uuid interno)."),
+      components: z
+        .array(z.record(z.string(), z.unknown()))
+        .optional()
+        .describe("Componentes novos (header/body/footer/buttons), formato da criação: edita e reenvia à Meta."),
+      category: z.string().optional().describe("Categoria nova (MARKETING|UTILITY|AUTHENTICATION), junto com components."),
       opt_out_buttons: z
         .array(z.string())
         .max(10)
+        .optional()
         .describe("Textos dos botões de resposta rápida que são de saída (até 10); [] limpa a marcação."),
     },
     fullTemplateResultSchema,
     async (client, args) => ({
       data: await client.templates.update(String(args.id), {
-        opt_out_buttons: args.opt_out_buttons as string[],
+        ...(args.components ? { components: args.components as unknown[] } : {}),
+        ...(args.category ? { category: String(args.category) } : {}),
+        ...(args.opt_out_buttons ? { opt_out_buttons: args.opt_out_buttons as string[] } : {}),
       }),
     }),
+  );
+
+  register(
+    "delete_template",
+    "Exclui o template na Meta e no BotoZap, como o Excluir do painel. Não dá para desfazer: envios e réguas que usam o template param de funcionar. Com o id da Meta apaga só aquela versão de idioma; sem ele, a Meta apaga todas as do mesmo nome. Confirme com quem opera antes. Só chave de produção. Exige scope templates:write. Retorna { data: { id, deleted } }.",
+    { id: z.string().describe("ID do template (uuid interno).") },
+    deletedTemplateResultSchema,
+    async (client, args) => ({ data: await client.templates.delete(String(args.id)) }),
   );
 
   register(

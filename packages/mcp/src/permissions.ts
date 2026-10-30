@@ -180,9 +180,13 @@ read(["get_phone_number_history_import"], "numbers:read", false);
 write(["set_phone_number_history_import"], "numbers:write", false,
   { destructiveHint: true, idempotentHint: true, openWorldHint: true });
 read(["list_templates", "get_template"], "templates:read", true);
-// Só anota no BotoZap quais botões são de saída; não toca na Meta.
+// Marca os botões de saída (anotação do BotoZap) ou, com components, edita o
+// template na Meta e o devolve à análise.
 write(["update_template"], "templates:write", true,
-  { destructiveHint: true, idempotentHint: true, openWorldHint: false });
+  { destructiveHint: true, idempotentHint: true, openWorldHint: true });
+// Apaga na Meta e aqui, sem volta; repetir não muda o resultado.
+write(["delete_template"], "templates:write", false,
+  { destructiveHint: true, idempotentHint: true, openWorldHint: true });
 // Traz o estado da Meta e tira daqui o que foi excluído lá; repetir não muda nada.
 write(["sync_templates"], "templates:write", false,
   { destructiveHint: true, idempotentHint: true, openWorldHint: true });

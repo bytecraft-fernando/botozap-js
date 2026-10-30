@@ -108,6 +108,7 @@ try {
     "delete_instagram_messenger_profile",
     "delete_message_rule",
     "delete_qr_code",
+    "delete_template",
     "disconnect_instagram_connection",
     "enable_journey_model",
     "get_channel_account",
