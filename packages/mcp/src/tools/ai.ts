@@ -161,6 +161,17 @@ const agentConfig = z
         enabled: z.boolean().optional(),
         flow_ids: z.array(uuid).max(100).optional(),
         send_window: window.nullable().optional(),
+        return_template: z
+          .object({
+            template_id: uuid,
+            variable_map: z.record(z.string(), z.string().min(1).max(2000)).optional(),
+          })
+          .strict()
+          .nullable()
+          .optional()
+          .describe(
+            "Template aprovado que o retorno agendado pelo agente envia com a janela de 24h fechada (só WhatsApp); null = alertar a equipe.",
+          ),
       })
       .strict()
       .optional(),
