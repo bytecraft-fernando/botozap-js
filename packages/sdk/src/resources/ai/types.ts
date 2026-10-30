@@ -538,7 +538,7 @@ export type AiCase = {
 };
 export type AiCaseKind =
   "agendamento" | "duvida" | "problema" | "financeiro" | "acesso" | "outro";
-export type AiCaseSource = "agent" | "guardrail" | "human" | "operator";
+export type AiCaseSource = "agent" | "guardrail" | "human" | "operator" | "followup";
 export type AiCaseEvent = {
   id: string;
   case_id: string;
