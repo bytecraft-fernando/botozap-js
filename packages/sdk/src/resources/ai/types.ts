@@ -212,6 +212,8 @@ export interface AiAgentConfig {
     enabled?: boolean;
     flow_ids?: string[];
     send_window?: AiWindow | null;
+    /** Template aprovado que o retorno agendado pelo agente envia com a janela de 24h fechada (só WhatsApp); null = alertar a equipe. */
+    return_template?: { template_id: string; variable_map?: Record<string, string> } | null;
   };
   safety?: {
     disclose_ai?: boolean;
