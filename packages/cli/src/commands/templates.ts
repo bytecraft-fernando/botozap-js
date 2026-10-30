@@ -1,6 +1,6 @@
 import { Command } from "commander";
 import { readFileSync } from "node:fs";
-import { collect, context, toInt } from "./shared.js";
+import { collect, confirmDestructive, context, toInt } from "./shared.js";
 import {
   printJson,
   printTable,
@@ -104,9 +104,11 @@ export function registerTemplates(program: Command): void {
   templates
     .command("update <id>")
     .description(
-      "Marca quais botões de resposta rápida são de saída (o toque grava a recusa da finalidade do template). " +
-        "Anotação do BotoZap: não altera o template na Meta",
+      "Com --components, edita o template e o reenvia à análise da Meta (fica PENDING). " +
+        "Só com os botões de saída, marca quais são de saída (anotação do BotoZap, não altera na Meta)",
     )
+    .option("--components <arquivo>", "arquivo JSON com o array de componentes novos (edita e reenvia à Meta)")
+    .option("--category <categoria>", "categoria nova, junto com --components")
     .option("--opt-out-button <texto>", "texto de um botão de saída (repetível; substitui a marcação inteira)", collect)
     .option("--clear-opt-out-buttons", "limpa a marcação")
     .action(async (id: string, opts, cmd: Command) => {
@@ -114,15 +116,34 @@ export function registerTemplates(program: Command): void {
       if (opts.optOutButton && opts.clearOptOutButtons) {
         throw new Error("Use --opt-out-button OU --clear-opt-out-buttons, não os dois.");
       }
-      if (!opts.optOutButton && !opts.clearOptOutButtons) {
-        throw new Error("Informe --opt-out-button <texto> (repetível) ou --clear-opt-out-buttons.");
+      if (!opts.components && !opts.optOutButton && !opts.clearOptOutButtons) {
+        throw new Error("Informe --components <arquivo> (editar) ou --opt-out-button <texto> / --clear-opt-out-buttons.");
       }
+      if (opts.category && !opts.components) throw new Error("--category só vale junto com --components.");
+      const optOut = opts.clearOptOutButtons ? [] : (opts.optOutButton as string[] | undefined);
       const data = await client.templates.update(id, {
-        opt_out_buttons: opts.clearOptOutButtons ? [] : (opts.optOutButton as string[]),
+        ...(opts.components ? { components: readJsonFile(opts.components) as unknown[] } : {}),
+        ...(opts.category ? { category: opts.category as string } : {}),
+        ...(optOut ? { opt_out_buttons: optOut } : {}),
       });
       if (format === "json") return printJson(data);
-      printLine("Template atualizado.");
+      printLine(opts.components ? "Template editado e reenviado à análise da Meta." : "Template atualizado.");
       printDetail(data as Record<string, unknown>);
+    });
+
+  templates
+    .command("delete <id>")
+    .description("Exclui o template na Meta e no BotoZap SEM VOLTA. Scope templates:write")
+    .option("--yes", "confirma sem perguntar (obrigatório fora de um terminal)")
+    .action(async (id: string, opts, cmd: Command) => {
+      const { client, format } = context(cmd);
+      await confirmDestructive(
+        "Isto exclui o template na Meta e aqui: envios e réguas que o usam param de funcionar.",
+        opts.yes as boolean | undefined,
+      );
+      const data = await client.templates.delete(id);
+      if (format === "json") return printJson(data);
+      printLine("Template excluído.");
     });
 
   templates

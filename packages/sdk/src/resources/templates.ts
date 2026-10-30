@@ -50,7 +50,6 @@ export interface CreateTemplateParams {
   opt_out_buttons?: string[];
 }
 
-/** Corpo de `PATCH /v1/templates/:id`. */
 export interface SyncTemplatesParams {
   /** Só as conexões deste Cliente; sem ele, todas as conexões ativas da conta. */
   customer_id?: string;
@@ -70,12 +69,27 @@ export interface TemplateSyncResult {
   automations_outdated: boolean;
 }
 
+/** Corpo de `PATCH /v1/templates/:id`. */
 export interface UpdateTemplateParams {
   /**
-   * Textos dos botões de resposta rápida que são de saída; `[]` limpa a marcação.
-   * Anotação do BotoZap: não altera o template na Meta.
+   * Componentes novos, no formato da criação: edita o template e o devolve à
+   * análise da Meta (`status` volta a `PENDING`). Nome e idioma não mudam.
    */
-  opt_out_buttons: string[];
+  components?: unknown[];
+  /** Categoria nova, junto com `components`; ausente mantém a atual. */
+  category?: string;
+  /**
+   * Textos dos botões de resposta rápida que são de saída; `[]` limpa. Sozinho,
+   * é anotação do BotoZap e não altera o template na Meta; com `components`,
+   * ausente mantém a marcação atual.
+   */
+  opt_out_buttons?: string[];
+}
+
+/** Resultado de `templates.delete()`. */
+export interface DeletedTemplate {
+  id: string;
+  deleted: true;
 }
 
 /** Endpoints de template (GET/POST /v1/templates, GET /v1/templates/:id). */
@@ -112,10 +126,11 @@ export class Templates {
   }
 
   /**
-   * Marca quais botões de resposta rápida são de saída (`opt_out_buttons`). O toque
-   * num botão marcado grava a recusa da finalidade do template; botão não marcado
-   * não muda nada, qualquer que seja o texto. Não altera o template na Meta.
-   * Scope `templates:write`.
+   * Com `components` (e `category`), edita o template e o devolve à análise da
+   * Meta, como o Editar do painel: em análise responde 409 `template_in_review`;
+   * sem id da Meta, 409 `template_not_synced`. Só com `opt_out_buttons`, marca
+   * quais botões de resposta rápida são de saída, sem alterar o template na
+   * Meta. Scope `templates:write`.
    */
   update(id: string, params: UpdateTemplateParams): Promise<Template> {
     return this.client.requestItem<Template>(
@@ -134,5 +149,14 @@ export class Templates {
    */
   sync(params: SyncTemplatesParams = {}): Promise<TemplateSyncResult> {
     return this.client.requestItem<TemplateSyncResult>("POST", "/templates/sync", { body: params });
+  }
+
+  /**
+   * Exclui o template na Meta e aqui, como o Excluir do painel. Com o id da Meta
+   * apaga só aquela versão de idioma; sem ele, a Meta apaga todas as do mesmo
+   * nome. Não dá para desfazer. Só chave de produção. Scope `templates:write`.
+   */
+  delete(id: string): Promise<DeletedTemplate> {
+    return this.client.requestItem<DeletedTemplate>("DELETE", `/templates/${encodeURIComponent(id)}`);
   }
 }

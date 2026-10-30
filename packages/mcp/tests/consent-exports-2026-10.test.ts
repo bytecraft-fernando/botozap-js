@@ -110,7 +110,7 @@ describe("catálogo", () => {
       delete_conversation: [false, true, true, false],
       list_contact_consents: [true, false, true, false],
       record_contact_consent: [false, true, false, false],
-      update_template: [false, true, true, false],
+      update_template: [false, true, true, true],
       create_export: [false, false, false, false],
       list_exports: [true, false, true, false],
       get_export: [true, false, true, false],

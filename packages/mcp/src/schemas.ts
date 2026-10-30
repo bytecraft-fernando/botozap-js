@@ -948,6 +948,10 @@ export const listFullTemplatesResultSchema = offsetListResultSchemaFor(fullTempl
 
 export const fullTemplateResultSchema = itemResultSchemaFor(fullTemplateSchema);
 
+export const deletedTemplateResultSchema = itemResultSchemaFor(
+  z.object({ id: z.string(), deleted: z.literal(true) }).strip(),
+);
+
 export const templateSyncResultSchema = itemResultSchemaFor(
   z
     .object({

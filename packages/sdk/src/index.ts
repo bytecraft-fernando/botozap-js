@@ -53,6 +53,7 @@ export type {
   UpdateTemplateParams,
   SyncTemplatesParams,
   TemplateSyncResult,
+  DeletedTemplate,
 } from "./resources/templates.js";
 export type {
   ListBroadcastsParams,
