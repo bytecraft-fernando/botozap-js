@@ -120,7 +120,7 @@ botozap channel-accounts comment-ai get | set | runs   (Instagram)
 botozap channel-accounts comment-rules list | get | create | update | delete | metrics   (Instagram)
 botozap channel-accounts message-rules list | get | create | update | delete   (Instagram)
 botozap channel-accounts messenger-profile get | update | delete | sync   (Instagram)
-botozap templates     list | get | create | update
+botozap templates     list | get | create | update | sync
 botozap webhooks      list | get | create | update | delete | test
 botozap deliveries    list | replay                 (webhook_deliveries)
 botozap logs          list                          (api_logs)
@@ -235,6 +235,8 @@ botozap customers update <id> --opt-out-keyword sair --opt-out-keyword parar \
   --opt-in-keyword voltar --opt-out-confirmation "Pronto, sem mais mensagens."
 # Botões de resposta rápida do template que são de saída (o toque grava a recusa):
 botozap templates update <id> --opt-out-button "Sair"
+# Status parado (ex.: PENDING muito depois do normal)? Traz o estado real da Meta:
+botozap templates sync                      # --customer-id <id> limita a um cliente
 # Excluir conversa: SEM VOLTA (mensagens, notas, vínculos e mídia; o contato fica).
 # Só Administrador; pede confirmação (use --yes fora de um terminal).
 botozap conversations delete <id>

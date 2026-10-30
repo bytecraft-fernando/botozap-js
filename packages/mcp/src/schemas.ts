@@ -948,6 +948,18 @@ export const listFullTemplatesResultSchema = offsetListResultSchemaFor(fullTempl
 
 export const fullTemplateResultSchema = itemResultSchemaFor(fullTemplateSchema);
 
+export const templateSyncResultSchema = itemResultSchemaFor(
+  z
+    .object({
+      connections: z.number().int(),
+      synced: z.number().int().describe("Templates que a Meta tem e foram gravados."),
+      removed: z.number().int().describe("Templates tirados daqui porque foram excluídos na Meta."),
+      skipped_without_token: z.number().int().describe("Conexões sem autorização guardada, puladas."),
+      automations_outdated: z.boolean().describe("true: uma régua de modelo não acompanhou a mudança; sincronize de novo."),
+    })
+    .strip(),
+);
+
 const metaCostGroupShape = {
   currency: z.string().nullable().describe("Moeda da WABA; moedas nunca são somadas nem convertidas."),
   volume: z.number().nonnegative(),

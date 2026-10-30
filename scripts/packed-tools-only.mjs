@@ -141,6 +141,7 @@ try {
     "resubscribe_phone_number_webhooks",
     "set_phone_number_history_import",
     "sync_instagram_messenger_profile",
+    "sync_templates",
     "unblock_contact",
     "update_comment_rule",
     "update_conversational_automation",
