@@ -3,14 +3,13 @@
  * get_phone_number_history_import e set_phone_number_history_import. Só no
  * catálogo completo; o perfil assistant (app revisado do ChatGPT) não ganha.
  */
-import { afterEach, describe, expect, it, vi } from "vitest";
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
-import { buildServer, type ApiIdentity } from "../src/server.js";
+import { describe, expect, it } from "vitest";
+import type { ApiIdentity } from "../src/server.js";
 import { ASSISTANT_TOOLS } from "../src/catalog-profile.js";
 import { MCP_TOOL_POLICIES } from "../src/permissions.js";
 import { TOOL_ROUTES } from "../src/tool-routes.js";
 import { fullAccessIdentity } from "./helpers/identity.js";
+import { connectWithFakeApi } from "./helpers/fake-api.js";
 
 const PHONE = "a1000000-0000-4000-8000-0000000000f1";
 const item = {
@@ -26,11 +25,6 @@ const item = {
   onboarded_at: "2026-10-24T12:00:00.000Z",
 };
 
-type Captured = { method: string; path: string; body: unknown };
-const clients: Client[] = [];
-afterEach(async () => {
-  await Promise.allSettled(clients.splice(0).map((client) => client.close()));
-});
 
 const routes = [...new Set(Object.values(MCP_TOOL_POLICIES).flatMap((p) => p.requiredRoutes ?? []))];
 const oauth: ApiIdentity = {
@@ -42,21 +36,8 @@ const oauth: ApiIdentity = {
   allowed_routes: routes,
 };
 
-async function connect(responder: (method: string) => Response, identity: ApiIdentity = fullAccessIdentity) {
-  const captured: Captured[] = [];
-  const fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
-    const url = new URL(String(input));
-    const method = init?.method ?? "GET";
-    captured.push({ method, path: url.pathname, body: init?.body ? JSON.parse(String(init.body)) : undefined });
-    return responder(method);
-  });
-  const server = await buildServer({ apiKey: "bz_live_history_test", baseUrl: "https://api.test/v1", fetch }, identity);
-  const client = new Client({ name: "history-import-test", version: "1" });
-  const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
-  await Promise.all([server.connect(serverTransport), client.connect(clientTransport)]);
-  clients.push(client);
-  return { client, captured };
-}
+const connect = (responder: (method: string) => Response, identity: ApiIdentity = fullAccessIdentity) =>
+  connectWithFakeApi(responder, identity);
 
 const TOOLS: Record<string, [boolean, boolean, boolean, boolean, string, string]> = {
   // [readOnly, destructive, idempotent, openWorld, scope, rota]

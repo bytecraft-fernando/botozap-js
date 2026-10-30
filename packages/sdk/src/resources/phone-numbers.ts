@@ -178,6 +178,18 @@ export type HistoryImportStatus =
   | "unconfirmed"
   | "skipped";
 
+/**
+ * Inscrição do BotoZap para receber as mensagens do número na Meta:
+ * `subscribed` (recebe), `missing` (a Meta parou de mandar) ou `unknown`
+ * (a Meta não respondeu).
+ */
+export type WebhookSubscriptionState = "subscribed" | "missing" | "unknown";
+
+/** Resultado de `resubscribeWebhooks`. */
+export interface WebhookSubscription {
+  webhook_subscription: WebhookSubscriptionState;
+}
+
 /** Janela de conversas antigas a importar, em dias (0 = não importar). */
 export type HistoryImportWindowDays = 0 | 30 | 180;
 
@@ -464,12 +476,26 @@ export class PhoneNumbers {
     });
   }
 
-  /** Saúde do número (qualidade, limite, status na Meta). */
+  /**
+   * Prontidão do número. Com a conexão ativa, confere ao vivo o token
+   * (`checks.token_validity`) e se a Meta manda as mensagens para o BotoZap
+   * (`checks.webhook_subscription`).
+   */
   health(id: string): Promise<Record<string, unknown>> {
     return this.client.requestItem<Record<string, unknown>>(
       "GET",
       `/phone_numbers/${enc(id)}/health`,
     );
+  }
+
+  /**
+   * Inscreve o BotoZap de novo para receber as mensagens do número, com a
+   * autorização já guardada, sem refazer a conexão. Resolve a prontidão
+   * `webhooks_lost`; autorização recusada pela Meta responde 409
+   * `reconnect_required` (aí só o link de setup resolve). Scope `numbers:write`.
+   */
+  resubscribeWebhooks(id: string): Promise<WebhookSubscription> {
+    return this.client.requestItem<WebhookSubscription>("POST", `/phone_numbers/${enc(id)}/webhook-subscription`);
   }
 }
 

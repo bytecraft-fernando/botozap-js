@@ -306,6 +306,9 @@ botozap setup-links create --customer <customerId> --channel instagram \
 botozap numbers list
 botozap numbers update <id> --label "Recepção"   # --clear-label remove
 botozap numbers health <phoneNumberId>
+# Mensagens pararam de chegar com a autorização valendo (checks.webhook_subscription
+# "missing"): inscreve o BotoZap de novo na Meta, sem refazer a conexão.
+botozap numbers resubscribe-webhooks <phoneNumberId>
 
 # Custo aproximado da Meta (custo ausente aparece como "indisponível", nunca 0)
 botozap usage meta-costs --customer-id <customerId> --from 2026-09-01 --to 2026-09-25

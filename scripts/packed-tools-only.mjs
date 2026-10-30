@@ -138,6 +138,7 @@ try {
     "replay_webhook_delivery",
     "request_consent",
     "resubscribe_instagram_connection",
+    "resubscribe_phone_number_webhooks",
     "set_phone_number_history_import",
     "sync_instagram_messenger_profile",
     "unblock_contact",

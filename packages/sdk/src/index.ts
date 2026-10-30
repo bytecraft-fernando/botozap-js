@@ -104,6 +104,8 @@ export type {
   HistoryImport,
   HistoryImportStatus,
   HistoryImportWindowDays,
+  WebhookSubscription,
+  WebhookSubscriptionState,
   SetHistoryImportParams,
 } from "./resources/phone-numbers.js";
 export type { UploadMediaParams } from "./resources/media.js";

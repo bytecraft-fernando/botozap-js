@@ -99,6 +99,22 @@ export function registerNumbers(program: Command): void {
       if (format === "json") return printJson(data);
       printDetail(data);
     });
+
+  numbers
+    .command("resubscribe-webhooks <id>")
+    .description("Volta a receber as mensagens do número sem refazer a conexão (inscreve o BotoZap de novo na Meta)")
+    .action(async (id: string, _opts, cmd: Command) => {
+      const { client, format } = context(cmd);
+      const data = await client.phoneNumbers.resubscribeWebhooks(id);
+      if (format === "json") return printJson(data);
+      printLine(
+        data.webhook_subscription === "subscribed"
+          ? "Pronto: a Meta voltou a mandar as mensagens deste número para o BotoZap."
+          : data.webhook_subscription === "missing"
+            ? "A Meta ainda não manda as mensagens deste número. Reconecte o número pelo link de setup."
+            : "A Meta não confirmou agora. Confira com `botozap numbers health` em instantes.",
+      );
+    });
 }
 
 const HISTORY_WINDOWS = [0, 30, 180] as const;

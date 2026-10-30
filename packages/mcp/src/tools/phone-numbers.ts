@@ -18,6 +18,7 @@ import {
   whatsappProfileResultSchema,
   getFullPhoneNumberResultSchema,
   historyImportResultSchema,
+  webhookSubscriptionResultSchema,
   listFullPhoneNumbersResultSchema,
   phoneNumberHealthResultSchema,
 } from "../schemas.js";
@@ -65,10 +66,18 @@ export function registerPhoneNumberTools(register: Register): void {
 
   register(
     "phone_number_health",
-    "Retorna a prontidão da conexão do número, motivo, próxima ação e verificações do token, usando UUID interno ou `phone_number_id` da Meta. A verificação pode consultar a conexão ativa na Meta e atualizar o estado da última checagem. Retorna { data }.",
+    "Retorna a prontidão da conexão do número, motivo, próxima ação e verificações ao vivo, usando UUID interno ou `phone_number_id` da Meta: checks.token_validity (o token vale) e checks.webhook_subscription (subscribed: a Meta manda as mensagens para o BotoZap; missing: parou de mandar, prontidão webhooks_lost; unknown: a Meta não respondeu). A verificação pode consultar a conexão ativa na Meta e atualizar o estado da última checagem. Retorna { data }.",
     { id: z.string().describe("UUID interno do número ou `phone_number_id` da Meta.") },
     phoneNumberHealthResultSchema,
     async (client, args) => ({ data: await client.phoneNumbers.health(String(args.id)) }),
+  );
+
+  register(
+    "resubscribe_phone_number_webhooks",
+    "Inscreve o BotoZap de novo para receber as mensagens do número na Meta, com a autorização já guardada, sem refazer a conexão. Use quando phone_number_health mostrar checks.webhook_subscription missing ou a prontidão webhooks_lost (mensagens pararam de chegar com o token valendo). Devolve webhook_subscription (subscribed, missing ou unknown). Autorização recusada pela Meta responde 409 reconnect_required: aí só o link de setup resolve. Sandbox e conexão inativa respondem 409 (sandbox_not_supported, connection_inactive). Exige scope numbers:write. Retorna { data }.",
+    { id: numberId },
+    webhookSubscriptionResultSchema,
+    async (client, args) => ({ data: await client.phoneNumbers.resubscribeWebhooks(String(args.id)) }),
   );
 
   register(
