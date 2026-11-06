@@ -223,6 +223,8 @@ const routerConfig = z
             intent_description: text.min(1).max(2000),
             examples: z.array(text).max(20).optional(),
             position: z.number().int().nonnegative().optional(),
+            /** Agente fixo: escolhido, fica com a conversa até ela ser fechada. */
+            keep_until_closed: z.boolean().optional(),
           })
           .strict(),
       )

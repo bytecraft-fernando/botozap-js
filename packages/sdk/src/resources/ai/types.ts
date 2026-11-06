@@ -432,6 +432,8 @@ export type AiRouterConfig = {
     intent_description: string;
     examples?: string[];
     position?: number;
+    /** Agente fixo: escolhido, fica com a conversa até ela ser fechada (padrão false). */
+    keep_until_closed?: boolean;
   }[];
 };
 export type AiRouter = Omit<AiRouterConfig, "classifier"> & {

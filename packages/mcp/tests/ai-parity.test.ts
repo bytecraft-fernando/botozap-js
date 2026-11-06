@@ -306,3 +306,19 @@ it("announces final-round tools and validates their closed inputs before HTTP", 
   expect(ok.isError).not.toBe(true);
   expect(body(fetch)).toEqual({ customer_id: id, adjustment: "sem_travessao_longo", enabled: false, expected_revision: "3" });
 });
+
+it("roteador: o membro aceita keep_until_closed (agente fixo) e recusa campo desconhecido antes do HTTP", async () => {
+  const { client, fetch } = await connect({ data: { id } });
+  const config = (member: Record<string, unknown>) => ({
+    name: "Menu de entrada",
+    channel_account_id: id,
+    classifier: { provider: "openai", model: "gpt-mini", credential_id: id },
+    members: [{ agent_id: id, intent_name: "comercial", intent_description: "Quer contratar", ...member }],
+  });
+  const unknown = await client.callTool({ name: "ai_routers_create", arguments: { customer_id: id, config: config({ fixo: true }) } });
+  expect(unknown.isError).toBe(true);
+  expect(fetch).not.toHaveBeenCalled();
+  const ok = await client.callTool({ name: "ai_routers_create", arguments: { customer_id: id, config: config({ keep_until_closed: true }) } });
+  expect(ok.isError).not.toBe(true);
+  expect(body(fetch).config.members[0]).toMatchObject({ intent_name: "comercial", keep_until_closed: true });
+});
