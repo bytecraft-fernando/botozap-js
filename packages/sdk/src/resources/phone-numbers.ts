@@ -494,7 +494,8 @@ export class PhoneNumbers {
    * `webhooks_lost` quando o app saiu da conta do WhatsApp. Se a conta mudou de
    * portfólio na Meta, devolve `missing`, e autorização recusada pela Meta
    * responde 409 `reconnect_required`: nos dois casos, só o link de setup
-   * resolve. Scope `numbers:write`.
+   * resolve. `unknown` = a Meta não confirmou agora; confira com `health` em
+   * instantes. Scope `numbers:write`.
    */
   resubscribeWebhooks(id: string): Promise<WebhookSubscription> {
     return this.client.requestItem<WebhookSubscription>("POST", `/phone_numbers/${enc(id)}/webhook-subscription`);
