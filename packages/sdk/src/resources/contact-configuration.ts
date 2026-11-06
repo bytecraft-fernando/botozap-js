@@ -2,7 +2,8 @@ import type { BotoZap } from "../client.js";
 export type StageColor = "zinc" | "green" | "amber" | "pink";
 export interface ContactStage {
   id: string;
-  key: string;
+  /** Só as quatro etapas padrão têm chave fixa; a criada pelo cliente vem `null`. */
+  key: string | null;
   label: string;
   color: StageColor;
   position: number;
