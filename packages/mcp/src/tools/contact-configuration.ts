@@ -8,7 +8,8 @@ const uuid = z.string().uuid(),
   row = z
     .object({
       id: uuid,
-      key: z.string(),
+      // Etapa criada pelo cliente não tem chave fixa (só as quatro padrão têm).
+      key: z.string().nullable(),
       label: z.string(),
       position: z.number(),
     })
