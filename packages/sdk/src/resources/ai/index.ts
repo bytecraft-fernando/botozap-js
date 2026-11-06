@@ -833,6 +833,8 @@ export class AiRoutersResource {
       request_key: string;
       sticky_agent_id?: string | null;
       sticky_intent?: string | null;
+      /** Última mensagem enviada ao contato, que o classificador lê como contexto. */
+      last_sent_message?: string | null;
     },
   ): Promise<AiRouterTest> {
     return request(this.client, AI_OPERATIONS[71]!, input);
