@@ -1763,6 +1763,10 @@ export const AI_OPERATIONS: readonly AiOperation[] = [
         type: "nullableString",
         optional: true,
       },
+      last_sent_message: {
+        type: "nullableString",
+        optional: true,
+      },
     },
   },
   {

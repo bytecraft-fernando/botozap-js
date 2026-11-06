@@ -322,3 +322,13 @@ it("roteador: o membro aceita keep_until_closed (agente fixo) e recusa campo des
   expect(ok.isError).not.toBe(true);
   expect(body(fetch).config.members[0]).toMatchObject({ intent_name: "comercial", keep_until_closed: true });
 });
+
+it("teste de roteamento: last_sent_message vai junto para o classificador", async () => {
+  const { client, fetch } = await connect({ data: { id } });
+  const r = await client.callTool({
+    name: "ai_routers_test",
+    arguments: { customer_id: id, id, text: "Sim", request_key: id, last_sent_message: "Quer ver os planos?" },
+  });
+  expect(r.isError).not.toBe(true);
+  expect(body(fetch)).toMatchObject({ text: "Sim", last_sent_message: "Quer ver os planos?" });
+});
