@@ -47,7 +47,7 @@ describe("envios sem confirmação no MCP", () => {
   it("lista e marca pela API", async () => {
     const { client, calls, bodies } = await connect((_path, method) =>
       method === "GET"
-        ? Response.json({ data: [{ id: SEND, status: "unconfirmed", locks_conversation: false, kind: "template", preview: "aviso", created_at: "2026-11-08T12:00:00.000Z" }] })
+        ? Response.json({ data: [{ id: SEND, status: "unconfirmed", kind: "template", preview: "aviso", created_at: "2026-11-08T12:00:00.000Z" }] })
         : Response.json({ data: { id: SEND, status: "sent" } }),
     );
     const listed = await client.callTool({ name: "list_pending_sends", arguments: { conversation_id: CONV } });

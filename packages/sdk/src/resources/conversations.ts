@@ -87,14 +87,13 @@ export interface ConversationReadResult {
 }
 
 /**
- * Envio manual (API ou painel) que a Meta não confirmou (timeout ou erro de rede), em
- * `conversations.listPendingSends`. `locks_conversation`: ainda segura a conversa (até uns 5
- * minutos); depois o envio só espera alguém dizer se saiu.
+ * Envio manual do WhatsApp (API ou painel) que a Meta não confirmou (timeout ou erro de rede) em
+ * cerca de 5 minutos, em `conversations.listPendingSends`. Antes desse prazo a confirmação ainda
+ * pode chegar, e o envio não aparece.
  */
 export interface PendingSend {
   id: string;
-  status: "unknown" | "unconfirmed";
-  locks_conversation: boolean;
+  status: "unconfirmed";
   /** Tipo da mensagem guardada no envio (`text`, `template`, `image`...), quando há. */
   kind: string | null;
   /** O texto que identifica o envio (corpo, legenda ou nome do template), quando há. */
@@ -277,10 +276,10 @@ export class Conversations {
   }
 
   /**
-   * Envios manuais da conversa que a Meta não confirmou, como o aviso na conversa no painel.
-   * Quando a Meta confirma depois, o envio sai da lista sozinho. Envios da IA, respostas
-   * automáticas, transmissões e réguas têm conciliação própria e não aparecem. Scope
-   * `conversations:read`.
+   * Envios manuais do WhatsApp da conversa que a Meta não confirmou em cerca de 5 minutos, como o
+   * aviso na conversa no painel. Quando a Meta confirma, a mensagem entra no histórico sozinha.
+   * Envios da IA, respostas automáticas, transmissões, réguas e Instagram têm conciliação própria
+   * e não aparecem. Conversa de outra Conta: 404. Scope `conversations:read`.
    */
   listPendingSends(id: string): Promise<PendingSend[]> {
     return this.client.requestItem<PendingSend[]>("GET", `/conversations/${enc(id)}/pending-sends`);
