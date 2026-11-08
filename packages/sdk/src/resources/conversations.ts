@@ -86,6 +86,28 @@ export interface ConversationReadResult {
   last_read_at: string;
 }
 
+/**
+ * Envio manual (API ou painel) que a Meta não confirmou (timeout ou erro de rede), em
+ * `conversations.listPendingSends`. `locks_conversation`: ainda segura a conversa (até uns 5
+ * minutos); depois o envio só espera alguém dizer se saiu.
+ */
+export interface PendingSend {
+  id: string;
+  status: "unknown" | "unconfirmed";
+  locks_conversation: boolean;
+  /** Tipo da mensagem guardada no envio (`text`, `template`, `image`...), quando há. */
+  kind: string | null;
+  /** O texto que identifica o envio (corpo, legenda ou nome do template), quando há. */
+  preview: string | null;
+  created_at: string;
+}
+
+/** Resposta de `conversations.markPendingSend` (200). */
+export interface PendingSendMarkResult {
+  id: string;
+  status: "sent" | "not_sent";
+}
+
 /** Conversas (read + status) e atribuições a membros. */
 export class Conversations {
   constructor(private readonly client: BotoZap) {}
@@ -251,6 +273,29 @@ export class Conversations {
     return this.client.requestItem<ConversationReadResult>(
       "POST",
       `/conversations/${enc(id)}/read`,
+    );
+  }
+
+  /**
+   * Envios manuais da conversa que a Meta não confirmou, como o aviso na conversa no painel.
+   * Quando a Meta confirma depois, o envio sai da lista sozinho. Envios da IA, respostas
+   * automáticas, transmissões e réguas têm conciliação própria e não aparecem. Scope
+   * `conversations:read`.
+   */
+  listPendingSends(id: string): Promise<PendingSend[]> {
+    return this.client.requestItem<PendingSend[]>("GET", `/conversations/${enc(id)}/pending-sends`);
+  }
+
+  /**
+   * Diz se o envio sem confirmação chegou ao contato, como "Saiu" e "Não saiu" no painel:
+   * `sent` põe a mensagem no histórico (sem o id da Meta); `not_sent` libera para enviar de novo.
+   * Nada é reenviado. Envio já resolvido: 409 `send_not_pending`. Scope `messages:send`.
+   */
+  markPendingSend(id: string, sendId: string, outcome: "sent" | "not_sent"): Promise<PendingSendMarkResult> {
+    return this.client.requestItem<PendingSendMarkResult>(
+      "POST",
+      `/conversations/${enc(id)}/pending-sends/${enc(sendId)}`,
+      { body: { outcome } },
     );
   }
 

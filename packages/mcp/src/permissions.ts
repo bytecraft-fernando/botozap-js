@@ -104,6 +104,10 @@ write(["conversation_typing"], "messages:send", false,
   { destructiveHint: false, idempotentHint: true, openWorldHint: true });
 write(["mark_conversation_read"], "conversations:write", true,
   { destructiveHint: false, idempotentHint: true, openWorldHint: true });
+read(["list_pending_sends"], "conversations:read", false);
+// Marcar o envio sem confirmação muda o histórico e libera a conversa; repetir dá 409.
+write(["mark_pending_send"], "messages:send", false,
+  { destructiveHint: false, idempotentHint: false, openWorldHint: false });
 read(["list_contacts"], "contacts:read", true);
 read(["get_contact"], "contacts:read", false);
 read(["list_contact_consents"], "contacts:read", false);
