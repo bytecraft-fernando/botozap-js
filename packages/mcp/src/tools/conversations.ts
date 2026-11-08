@@ -9,6 +9,8 @@ import {
   conversationResultSchema,
   emptyOperationResultSchema,
   conversationReadResultSchema,
+  pendingSendsResultSchema,
+  pendingSendMarkResultSchema,
   conversationTypingResultSchema,
   listConversationsResultSchema,
   fullSendMessageResultSchema,
@@ -105,6 +107,28 @@ export function registerConversationTools(register: Register): void {
     { conversation_id: z.string().uuid().describe("UUID interno da Conversa.") },
     conversationReadResultSchema,
     async (client, args) => ({ data: await client.conversations.markRead(String(args.conversation_id)) }),
+  );
+
+  register(
+    "list_pending_sends",
+    "Lista os envios manuais da conversa (API ou painel) que a Meta não confirmou, por timeout ou erro de rede, como o aviso na conversa no painel. Cada um traz id, status (unknown: ainda segura a conversa por até uns 5 minutos; unconfirmed: já não segura), locks_conversation, kind, preview (o texto enviado) e created_at. Quando a Meta confirma depois, o envio sai da lista sozinho. Envios da IA, respostas automáticas, transmissões e réguas têm conciliação própria e não aparecem. Exige scope conversations:read. Retorna { data } com a lista.",
+    { conversation_id: z.string().uuid().describe("UUID interno da Conversa.") },
+    pendingSendsResultSchema,
+    async (client, args) => ({ data: await client.conversations.listPendingSends(String(args.conversation_id)) }),
+  );
+
+  register(
+    "mark_pending_send",
+    "Diz se um envio sem confirmação da Meta chegou ao contato, como \"Saiu\" e \"Não saiu\" no painel. outcome sent: a mensagem entra no histórico (sem o id da Meta); not_sent: a conversa fica livre para enviar de novo. Nada é reenviado. Só marque o que o usuário confirmou com o contato: não adivinhe. Recusas: send_not_pending (409, já resolvido ou confirmado pela Meta), not_found (404). Exige scope messages:send. Retorna { data } com id e status.",
+    {
+      conversation_id: z.string().uuid().describe("UUID interno da Conversa."),
+      send_id: z.string().uuid().describe("id do envio, de list_pending_sends."),
+      outcome: z.enum(["sent", "not_sent"]).describe("sent = chegou ao contato; not_sent = não chegou."),
+    },
+    pendingSendMarkResultSchema,
+    async (client, args) => ({
+      data: await client.conversations.markPendingSend(String(args.conversation_id), String(args.send_id), args.outcome as "sent" | "not_sent"),
+    }),
   );
 
   register(

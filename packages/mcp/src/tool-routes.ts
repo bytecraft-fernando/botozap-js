@@ -62,6 +62,8 @@ routes(["delete_template"], "DELETE /v1/templates/:id");
 routes(["sync_templates"], "POST /v1/templates/sync");
 routes(["conversation_typing"], "POST /v1/conversations/:id/typing");
 routes(["mark_conversation_read"], "POST /v1/conversations/:id/read");
+routes(["list_pending_sends"], "GET /v1/conversations/:id/pending-sends");
+routes(["mark_pending_send"], "POST /v1/conversations/:id/pending-sends/:sendId");
 routes(["list_journey_models"], "GET /v1/journeys/catalog");
 routes(["enable_journey_model"], "POST /v1/journeys/catalog/:key/enable");
 routes(["get_phone_number_profile"], "GET /v1/phone_numbers/:id/profile");

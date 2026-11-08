@@ -416,6 +416,25 @@ export const conversationTypingResultSchema = itemResultSchemaFor(
     .strip(),
 );
 
+export const pendingSendsResultSchema = itemResultSchemaFor(
+  z.array(
+    z
+      .object({
+        id: internalUuidSchema,
+        status: z.enum(["unknown", "unconfirmed"]),
+        locks_conversation: z.boolean().describe("O envio ainda segura a conversa (até uns 5 minutos)."),
+        kind: z.string().nullable(),
+        preview: z.string().nullable().describe("Corpo, legenda ou nome do template enviado, quando há."),
+        created_at: z.string().describe("Quando o envio saiu (ISO 8601)."),
+      })
+      .strip(),
+  ),
+);
+
+export const pendingSendMarkResultSchema = itemResultSchemaFor(
+  z.object({ id: internalUuidSchema, status: z.enum(["sent", "not_sent"]) }).strip(),
+);
+
 export const conversationReadResultSchema = itemResultSchemaFor(
   z
     .object({

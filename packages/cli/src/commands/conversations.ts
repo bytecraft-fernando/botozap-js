@@ -111,6 +111,35 @@ export function registerConversations(program: Command): void {
     });
 
   conv
+    .command("pending-sends <id>")
+    .description(
+      "Envios manuais da conversa que a Meta não confirmou (timeout ou erro de rede), como o aviso na conversa " +
+        "no painel. Scope conversations:read",
+    )
+    .action(async (id: string, _opts, cmd: Command) => {
+      const { client, format } = context(cmd);
+      const data = await client.conversations.listPendingSends(id);
+      if (format === "json") return printJson(data);
+      if (data.length === 0) return printLine("Nenhum envio sem confirmação nesta conversa.");
+      for (const send of data) printDetail(send as unknown as Record<string, unknown>);
+    });
+
+  conv
+    .command("mark-send <id> <sendId>")
+    .description(
+      "Diz se o envio sem confirmação chegou ao contato, como Saiu e Não saiu no painel: --outcome sent põe a " +
+        "mensagem no histórico; not_sent libera para enviar de novo. Nada é reenviado. Scope messages:send",
+    )
+    .requiredOption("--outcome <outcome>", "sent (saiu) ou not_sent (não saiu)")
+    .action(async (id: string, sendId: string, opts: { outcome: string }, cmd: Command) => {
+      if (opts.outcome !== "sent" && opts.outcome !== "not_sent") throw new Error("--outcome deve ser sent ou not_sent.");
+      const { client, format } = context(cmd);
+      const data = await client.conversations.markPendingSend(id, sendId, opts.outcome);
+      if (format === "json") return printJson(data);
+      printLine(data.status === "sent" ? "Envio marcado como saiu." : "Envio marcado como não saiu.");
+    });
+
+  conv
     .command("request-consent <id>")
     .description(
       "Envia o pedido de consentimento na conversa (botões no WhatsApp, respostas rápidas no Instagram). " +

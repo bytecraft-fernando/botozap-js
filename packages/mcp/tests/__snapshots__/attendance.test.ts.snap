@@ -239,6 +239,8 @@ exports[`MCP Atendimento: schemas, domínio e transporte real em memória > cat�
   "update_conversation",
   "conversation_typing",
   "mark_conversation_read",
+  "list_pending_sends",
+  "mark_pending_send",
   "request_consent",
   "delete_conversation",
   "list_contacts",
