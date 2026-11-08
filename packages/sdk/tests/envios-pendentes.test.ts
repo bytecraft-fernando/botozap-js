@@ -20,7 +20,7 @@ function setup(response: () => Response) {
 
 describe("conversations.listPendingSends e markPendingSend", () => {
   it("lista com GET em /conversations/{id}/pending-sends", async () => {
-    const send: PendingSend = { id: SEND, status: "unknown", locks_conversation: true, kind: "text", preview: "oi", created_at: "2026-11-08T12:00:00.000Z" };
+    const send: PendingSend = { id: SEND, status: "unconfirmed", kind: "text", preview: "oi", created_at: "2026-11-08T12:00:00.000Z" };
     const { client, call } = setup(() => Response.json({ data: [send] }));
     const result = await client.conversations.listPendingSends(CONV);
     expect(result).toEqual([send]);

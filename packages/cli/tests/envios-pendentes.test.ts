@@ -10,7 +10,7 @@ const fetch = vi.fn();
 const base = ["--api-key", "bz_live_fake", "--api-url", "https://example.test/v1"];
 const ID = "c0000000-0000-4000-8000-000000000001";
 const SEND = "c0000000-0000-4000-8000-0000000000f1";
-const pending = { id: SEND, status: "unknown", locks_conversation: true, kind: "text", preview: "oi", created_at: "2026-11-08T12:00:00.000Z" };
+const pending = { id: SEND, status: "unconfirmed", kind: "text", preview: "oi", created_at: "2026-11-08T12:00:00.000Z" };
 
 beforeEach(() => {
   fetch.mockReset();

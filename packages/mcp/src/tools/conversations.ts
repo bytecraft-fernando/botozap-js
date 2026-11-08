@@ -111,7 +111,7 @@ export function registerConversationTools(register: Register): void {
 
   register(
     "list_pending_sends",
-    "Lista os envios manuais da conversa (API ou painel) que a Meta não confirmou, por timeout ou erro de rede, como o aviso na conversa no painel. Cada um traz id, status (unknown: ainda segura a conversa por até uns 5 minutos; unconfirmed: já não segura), locks_conversation, kind, preview (o texto enviado) e created_at. Quando a Meta confirma depois, o envio sai da lista sozinho. Envios da IA, respostas automáticas, transmissões e réguas têm conciliação própria e não aparecem. Exige scope conversations:read. Retorna { data } com a lista.",
+    "Lista os envios manuais do WhatsApp da conversa (API ou painel) que a Meta não confirmou, por timeout ou erro de rede, em cerca de 5 minutos, como o aviso na conversa no painel. Cada um traz id, status (unconfirmed), kind, preview (o texto enviado) e created_at. Antes desse prazo a confirmação ainda pode chegar e o envio não aparece; quando a Meta confirma, a mensagem entra no histórico sozinha. Envios da IA, respostas automáticas, transmissões, réguas e Instagram têm conciliação própria e não aparecem. Exige scope conversations:read. Retorna { data } com a lista.",
     { conversation_id: z.string().uuid().describe("UUID interno da Conversa.") },
     pendingSendsResultSchema,
     async (client, args) => ({ data: await client.conversations.listPendingSends(String(args.conversation_id)) }),

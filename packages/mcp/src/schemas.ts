@@ -421,8 +421,7 @@ export const pendingSendsResultSchema = itemResultSchemaFor(
     z
       .object({
         id: internalUuidSchema,
-        status: z.enum(["unknown", "unconfirmed"]),
-        locks_conversation: z.boolean().describe("O envio ainda segura a conversa (até uns 5 minutos)."),
+        status: z.enum(["unconfirmed"]).describe("Sem confirmação da Meta há mais de uns 5 minutos."),
         kind: z.string().nullable(),
         preview: z.string().nullable().describe("Corpo, legenda ou nome do template enviado, quando há."),
         created_at: z.string().describe("Quando o envio saiu (ISO 8601)."),
