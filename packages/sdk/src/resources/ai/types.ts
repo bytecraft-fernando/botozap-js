@@ -589,7 +589,13 @@ export type AiAlertBulkFilters = {
   status?: "open" | "acknowledged";
 };
 export type AiNoticeField =
-  "case_title" | "case_summary" | "case_url" | "contact_name" | "agent_name";
+  | "case_title"
+  | "case_summary"
+  | "case_url"
+  | "contact_name"
+  | "contact_phone"
+  | "contact_name_and_phone"
+  | "agent_name";
 export type AiNoticeSettings = {
   enabled: boolean;
   contact_id: string | null;

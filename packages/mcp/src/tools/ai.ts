@@ -379,6 +379,8 @@ const schemas: Record<string, ZodTypeAny> = {
       "case_summary",
       "case_url",
       "contact_name",
+      "contact_phone",
+      "contact_name_and_phone",
       "agent_name",
     ]),
   ),
