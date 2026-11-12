@@ -132,7 +132,7 @@ export function registerMediaTools(register: Register): void {
     (client, args) => {
       const parsed = sendMediaSchema.safeParse(args);
       if (!parsed.success) {
-        throw new Error(parsed.error.issues.map((issue) => issue.message).join(" "));
+        throw new Error(parsed.error.issues.map((issue) => (issue.path.length ? `${issue.path.join(".")}: ${issue.message}` : issue.message)).join(" "));
       }
       if ((parsed.data.link === undefined) === (parsed.data.file_id === undefined)) {
         throw new Error("Informe link ou file_id (um dos dois).");

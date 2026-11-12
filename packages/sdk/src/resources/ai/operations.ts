@@ -3845,7 +3845,7 @@ export const AI_OPERATIONS: readonly AiOperation[] = [
     path: "/ai/files/:id",
     shape: "item",
     description:
-      "Edita nome, description (quando o agente deve mandar), caption e active (false arquiva) com expected_revision. Vale na hora para os agentes publicados que usam o arquivo.",
+      "Edita nome, description (quando o agente deve mandar), caption e active (false arquiva) com expected_revision. Vale na hora para os agentes publicados que usam o arquivo. Arquivar o que está numa versão publicada é recusado (409 in_use).",
     fields: {
       customer_id: {
         type: "uuid",

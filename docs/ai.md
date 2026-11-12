@@ -104,19 +104,23 @@ arquivo tem um nome, o "quando mandar" (`description`, que o agente lê) e uma l
 const file = await bz.ai.files.upload({customer_id: customerId, name: 'Anel solitário',
   description: 'Quando perguntarem pelo anel solitário ou pelo preço dele.', caption: 'Ouro 18k',
   file: new Blob([bytes], {type:'image/jpeg'}), file_name:'anel.jpg'});
-await bz.ai.agents.saveDraft({customer_id: customerId, id: agentId, expected_revision,
-  config: {...config, file_ids: [file.id], tool_ids: [...config.tool_ids, 'conversations.attach_files']}});
+await bz.ai.agents.saveDraft({customer_id: customerId, id: agentId, name: 'Mari', expected_revision,
+  config: {...config, file_ids: [file.id], tool_ids: [...(config.tool_ids ?? []), 'conversations.attach_files']}});
 await bz.messages.sendMedia({to: '5511999999999', type: 'image', file_id: file.id});
 ```
 
 O upload é o direto (`kind: "file"`). Vídeo do iPhone e foto grande voltam `processing` e ficam
 `ready` depois da conversão; se não der, `failed` com o motivo em `last_error`. `ai.files.update`
 muda nome, "quando mandar", legenda e `active` com `expected_revision`, e vale na hora para os
-agentes publicados; `ai.files.remove` apaga de vez (409 `in_use` se está numa versão publicada).
+agentes publicados; arquivar (`active: false`) e `ai.files.remove` (apagar de vez) voltam 409
+`in_use` se o arquivo está numa versão publicada. Para retomar o upload entre processos, use
+`onUploadPrepared`, como no Conhecimento.
 O agente só manda os arquivos de `file_ids` com `conversations.attach_files` em `tool_ids`. Fora
 do agente, `sendMedia` aceita `file_id` no lugar do `link` (foto, vídeo e PDF; a chave sandbox
 recebe 403). No MCP: `ai_files_list`, `ai_files_get`, `ai_files_update`, `ai_files_remove`, o
-`ai_uploads_prepare` com `kind: "file"` e o `send_media_message` com `file_id`.
+`ai_files_upload` (o conteúdo em `file_base64`), o `ai_uploads_prepare` com `kind: "file"` e o
+`send_media_message` com `file_id`. Na CLI: `botozap ai files list|get|update|remove|upload`
+(`file_path` no JSON do upload) e `botozap messages send-media --file-id`.
 
 ## Documentos e pacotes de skill
 

@@ -20,6 +20,10 @@ it("lista, abre, edita com a revisão e apaga pelas rotas /ai/files", async () =
   const calls = fetch.mock.calls.map(([u, i]) => `${i?.method} ${new URL(String(u)).pathname}`);
   expect(calls).toEqual(["GET /v1/ai/files", `GET /v1/ai/files/${file}`, `PATCH /v1/ai/files/${file}`, `DELETE /v1/ai/files/${file}`]);
   expect(json(fetch.mock.calls[2]![1])).toEqual({ customer_id: customer, expected_revision: "3", caption: null, active: false });
+  // O Cliente vai na query das leituras e no corpo do DELETE, com a revisão.
+  expect(new URL(String(fetch.mock.calls[0]![0])).searchParams.get("customer_id")).toBe(customer);
+  expect(new URL(String(fetch.mock.calls[1]![0])).searchParams.get("customer_id")).toBe(customer);
+  expect(json(fetch.mock.calls[3]![1])).toEqual({ customer_id: customer, expected_revision: "4" });
 });
 
 it("sobe pelo upload direto com kind=file, o tipo pela extensão, o nome, o quando mandar e a legenda", async () => {
@@ -32,6 +36,9 @@ it("sobe pelo upload direto com kind=file, o tipo pela extensão, o nome, o quan
   await expect(c.ai.files.upload({ customer_id: customer, file: bytes, file_name: "Bastidores.MOV", name: "Bastidores", description: "Quando perguntarem como é feito.", caption: "Feito à mão" })).resolves.toMatchObject({ status: "processing" });
   expect(json(fetch.mock.calls[0]![1])).toMatchObject({ kind: "file", file_name: "Bastidores.MOV", mime_type: "video/quicktime", byte_size: 8, name: "Bastidores", description: "Quando perguntarem como é feito.", caption: "Feito à mão" });
   expect(fetch.mock.calls[1]![1]?.headers).not.toHaveProperty("Authorization");
+  const preparados: string[] = [];
+  await c.ai.files.upload({ customer_id: customer, file: new Blob([new Uint8Array([1, 2])]), file_name: "foto.png", name: "Foto", description: "Quando pedirem", onUploadPrepared: ({ upload_id }) => { preparados.push(upload_id); } });
+  expect(preparados).toEqual([file]);
   expect(() => c.ai.files.upload({ customer_id: customer, file: new Blob([]), file_name: "a.jpg", name: "A", description: "Quando" })).toThrow("Arquivo vazio");
 });
 

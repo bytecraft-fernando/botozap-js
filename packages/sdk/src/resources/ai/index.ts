@@ -1066,7 +1066,7 @@ export class AiUploadsResource {
   }
   complete(
     input: AiScope & { id: string },
-  ): Promise<AiKnowledgeSource | AiSkill> {
+  ): Promise<AiKnowledgeSource | AiSkill | AiAgentFile> {
     return request(this.client, AI_OPERATIONS[107]!, input);
   }
 }
@@ -1248,7 +1248,7 @@ export class AiFilesResource {
    * assinada, complete). Repetir com os mesmos bytes e dados reaproveita o envio. Vídeo do iPhone e foto
    * grande voltam `processing` e ficam `ready` depois da conversão.
    */
-  upload(input: AiScope & { file: Blob; file_name: string; name: string; description: string; caption?: string | null }): Promise<AiAgentFile> {
+  upload(input: AiScope & { file: Blob; file_name: string; name: string; description: string; caption?: string | null; onUploadPrepared?: AiUploadReceiptCallback }): Promise<AiAgentFile> {
     if (!input.file.size || input.file.size > 25 * 1024 * 1024) throw new Error("Arquivo vazio ou maior que 25 MiB.");
     return uploadArtifact<AiAgentFile>(this.client, { ...input, kind: "file" });
   }

@@ -153,7 +153,9 @@ export type AiToolId =
   | "cases.note"
   | "cases.close"
   /** Opções para o contato tocar (botões ou lista), anexadas à resposta final do turno. Só o agente; o operador é recusado. */
-  | "conversations.reply_options";
+  | "conversations.reply_options"
+  /** Anexa à resposta final fotos, vídeos e PDFs da biblioteca escolhidos em `file_ids` (#1447). Só o agente. */
+  | "conversations.attach_files";
 /**
  * Configuração do agente na ENTRADA (`ai.agents.create` e `saveDraft`): o
  * provedor só pode ser `openai` ou `anthropic`. A leitura devolve
@@ -196,6 +198,8 @@ export interface AiAgentConfig {
   allowed_stage_ids?: string[];
   knowledge_source_ids?: string[];
   skill_ids?: string[];
+  /** Arquivos da biblioteca (`ai.files`) que o agente pode mandar, até 40; com `conversations.attach_files` em `tool_ids` (#1447). */
+  file_ids?: string[];
   /** Opt-in platform skills composed at runtime; Customer copies override them. */
   platform_skills?: "none" | "all";
   memory_enabled?: boolean;

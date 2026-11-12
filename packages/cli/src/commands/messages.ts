@@ -168,13 +168,14 @@ export function registerMessages(program: Command): void {
 
   messages
     .command("send-media")
-    .description("Envia image, video, audio ou document por URL https pública (WhatsApp ou Instagram)")
+    .description("Envia image, video, audio ou document por URL https pública, ou image/video/document da biblioteca do agente por --file-id (WhatsApp ou Instagram)")
     .requiredOption(
       "--to <destinatario>",
       "destinatário: telefone E.164 ou BSUID no WhatsApp; IGSID no Instagram",
     )
     .requiredOption("--type <tipo>", "image | video | audio | document")
-    .requiredOption("--link <url>", "URL https pública do arquivo")
+    .option("--link <url>", "URL https pública do arquivo (ou --file-id)")
+    .option("--file-id <id>", "arquivo pronto da biblioteca do agente (botozap ai files list), no lugar de --link; não vale para audio")
     .option("--caption <texto>", "legenda (image, video ou document; o Instagram não aceita legenda)")
     .option("--filename <nome>", "nome do arquivo (só document)")
     .option(
@@ -202,10 +203,16 @@ export function registerMessages(program: Command): void {
       if (opts.voice && type !== "audio") {
         throw new Error("--voice só é aceito com --type audio.");
       }
+      if ((opts.link === undefined) === (opts.fileId === undefined)) {
+        throw new Error("Informe --link ou --file-id (um dos dois).");
+      }
+      if (opts.fileId !== undefined && type === "audio") {
+        throw new Error("--file-id não vale para audio: a biblioteca tem foto, vídeo e PDF.");
+      }
       const params = {
         to: opts.to,
         type,
-        link: opts.link,
+        ...(opts.fileId !== undefined ? { file_id: opts.fileId } : { link: opts.link }),
         ...(opts.from ? { from: opts.from } : {}),
         ...(opts.caption !== undefined ? { caption: opts.caption } : {}),
         ...(opts.filename !== undefined ? { filename: opts.filename } : {}),

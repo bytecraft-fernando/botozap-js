@@ -14,6 +14,7 @@ routes(["get_conversation"], "GET /v1/conversations/:id");
 routes(["reply_to_conversation"], "GET /v1/conversations/:id", "POST /v1/messages");
 routes(["update_conversation"], "PATCH /v1/conversations/:id");
 routes(["control_conversation_agent"], "POST /v1/conversations/:id/agent-control");
+routes(["ai_files_upload"], "POST /v1/ai/uploads", "POST /v1/ai/uploads/:id/complete");
 routes(["list_contacts"], "GET /v1/contacts");
 routes(["get_contact"], "GET /v1/contacts/:id");
 routes(["create_contact"], "POST /v1/contacts");

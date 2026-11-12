@@ -282,6 +282,13 @@ await boto.messages.sendMedia({
 });
 ```
 
+Um arquivo pronto da biblioteca do agente (`ai.files.list`) sai por `file_id` no lugar do `link`
+(foto, vídeo e PDF; um dos dois). A legenda da biblioteca não entra sozinha:
+
+```ts
+await boto.messages.sendMedia({ to: "5511999999999", type: "image", file_id: arquivo.id, caption: "Ouro 18k" });
+```
+
 `caption` é aceito em `image`, `video` e `document`; `audio` aceita apenas o
 link; `filename` é exclusivo de `document`.
 

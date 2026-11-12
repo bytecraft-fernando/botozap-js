@@ -43,8 +43,10 @@ afterEach(async () => {
 it("discovers every explicit AI operation and no discarded managed tools", async () => {
   const { client } = await connect();
   const tools = (await client.listTools()).tools;
-  const ai = tools.filter((t) => t.name.startsWith("ai_"));
+  // `ai_files_upload` é o único fora da tabela: sobe pelo mesmo POST /ai/uploads (#1447).
+  const ai = tools.filter((t) => t.name.startsWith("ai_") && t.name !== "ai_files_upload");
   expect(ai).toHaveLength(AI_OPERATIONS.length);
+  expect(tools.some((t) => t.name === "ai_files_upload")).toBe(true);
   expect(ai.every((t) => t.outputSchema)).toBe(true);
   expect(
     tools.some(
