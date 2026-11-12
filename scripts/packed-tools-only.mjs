@@ -97,6 +97,11 @@ try {
   process.stdout.write(`packed tools vs 0.6.0: ${JSON.stringify({ added, removed })}\n`);
   assert.deepEqual(added, [
     "ai_agents_diagnostic",
+    "ai_files_get",
+    "ai_files_list",
+    "ai_files_remove",
+    "ai_files_update",
+    "ai_files_upload",
     "block_contact",
     "clear_conversational_automation",
     "conversation_typing",
@@ -131,9 +136,11 @@ try {
     "list_instagram_comment_ai_runs",
     "list_journey_models",
     "list_message_rules",
+    "list_pending_sends",
     "list_qr_codes",
     "list_team_events",
     "mark_conversation_read",
+    "mark_pending_send",
     "prepare_send_intent",
     "record_contact_consent",
     "replay_webhook_delivery",
