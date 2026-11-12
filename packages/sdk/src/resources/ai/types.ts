@@ -928,15 +928,46 @@ export type AiPlatformSkill = {
 };
 
 export type AiArtifactUploadInput = AiScope & {
-  kind: "knowledge" | "skill";
+  kind: "knowledge" | "skill" | "file";
   file_name: string;
   mime_type: string;
   byte_size: number;
   sha256: string;
   name?: string;
+  /** kind=file: quando o agente deve mandar o arquivo (obrigatório, até 500). */
+  description?: string;
+  /** kind=file: legenda opcional (até 1.024 caracteres e 1.000 bytes). */
+  caption?: string | null;
   skill_id?: string;
   expected_revision?: string;
 };
+/** Arquivo da biblioteca do agente (#1447): foto, vídeo ou PDF que o agente pode mandar na conversa. */
+export interface AiAgentFile {
+  id: string;
+  customer_id: string;
+  name: string;
+  /** Quando o agente deve mandar (o agente lê). */
+  description: string;
+  caption: string | null;
+  media_type: "image" | "video" | "document";
+  mime_type: string;
+  file_name: string;
+  byte_size: number;
+  /** processing enquanto converte; failed com o motivo em last_error. */
+  status: "processing" | "ready" | "failed";
+  last_error: string | null;
+  active: boolean;
+  revision: string;
+  created_at: string;
+  updated_at: string;
+}
+export interface AiAgentFileDetail extends AiAgentFile {
+  usages: { agent_id: string; name: string; version_number: number; published: boolean }[];
+  /** Link curto para ver o arquivo; null sem armazenamento. Não guarde nem registre. */
+  preview_url: string | null;
+  preview_expires_at: string | null;
+}
+export type AiAgentFilePatch = { name?: string; description?: string; caption?: string | null; active?: boolean };
 export interface AiPreparedUpload {
   upload_id: string;
   upload_url: string;

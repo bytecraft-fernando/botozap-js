@@ -83,6 +83,7 @@ classify([
   "providers.catalog",
   "operator.metrics", "operator.promises", "evolution.get",
   "styleAdjustments.list",
+  "files.list", "files.get",
 ], READ);
 
 // Reads that contact a configured provider or execute a remote inference/query.
@@ -136,6 +137,8 @@ classify([
   "commercialProposals.decide", "commercialProposals.saveSettings",
   "eligibility.saveSettings", "eligibility.saveChannel", "eligibility.revokeAuthorization",
   "knowledge.conversationPermission", "knowledge.syncCatalog", "styleAdjustments.save",
+  // Arquivos do agente (#1447): a edição vale na hora para os agentes publicados; apagar é de vez.
+  "files.update", "files.remove",
 ], DESTRUCTIVE);
 
 // Irreversible effects crossing the account boundary: sending messages/notices,
@@ -173,6 +176,7 @@ const IDEMPOTENT_WRITES = new Set<string>([
   "usage.saveBudget", "usage.saveRate", "commercialProposals.saveSettings",
   "eligibility.saveSettings", "eligibility.saveChannel", "eligibility.revokeAuthorization",
   "styleAdjustments.save",
+  "files.update", "files.remove",
 ]);
 
 /**

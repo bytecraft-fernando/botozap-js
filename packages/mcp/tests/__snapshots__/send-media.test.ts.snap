@@ -12,6 +12,11 @@ exports[`MCP — send_media_message > anuncia o contrato de mídia e seus limite
         "minLength": 1,
         "type": "string",
       },
+      "file_id": {
+        "description": "No lugar do link: id de um arquivo pronto da biblioteca do agente (ai_files_list), para image, video ou document. Sai por um link curto assinado; a legenda da biblioteca não entra sozinha. Chave sandbox: 403.",
+        "format": "uuid",
+        "type": "string",
+      },
       "filename": {
         "description": "Nome do arquivo; aceito somente quando type='document'.",
         "maxLength": 240,
@@ -29,7 +34,7 @@ exports[`MCP — send_media_message > anuncia o contrato de mídia e seus limite
         "type": "string",
       },
       "link": {
-        "description": "URL https pública do arquivo; o BotoZap delega o download à Meta.",
+        "description": "URL https pública do arquivo; o BotoZap delega o download à Meta. Informe link ou file_id.",
         "format": "uri",
         "maxLength": 2048,
         "pattern": "^https:\\/\\/",
@@ -73,7 +78,6 @@ exports[`MCP — send_media_message > anuncia o contrato de mídia e seus limite
     "required": [
       "to",
       "type",
-      "link",
     ],
     "type": "object",
   },

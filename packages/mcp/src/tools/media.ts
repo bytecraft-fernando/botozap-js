@@ -14,6 +14,13 @@ const MEDIA_LINK_MAX = 2048;
 const MEDIA_CAPTION_MAX = 1024;
 const MEDIA_FILENAME_MAX = 240;
 
+/** URL https pública do arquivo (obrigatória no audio, que não sai da biblioteca). */
+const mediaLink = z
+  .string()
+  .trim()
+  .max(MEDIA_LINK_MAX)
+  .url()
+  .regex(/^https:\/\//);
 const sendMediaShape = {
   idempotency_key: sendIntentKey.optional(),
   to: z
@@ -26,13 +33,14 @@ const sendMediaShape = {
   type: z
     .enum(["image", "video", "audio", "document"])
     .describe("Tipo da mídia a enviar."),
-  link: z
+  link: mediaLink
+    .optional()
+    .describe("URL https pública do arquivo; o BotoZap delega o download à Meta. Informe link ou file_id."),
+  file_id: z
     .string()
-    .trim()
-    .max(MEDIA_LINK_MAX)
-    .url()
-    .regex(/^https:\/\//)
-    .describe("URL https pública do arquivo; o BotoZap delega o download à Meta."),
+    .uuid()
+    .optional()
+    .describe("No lugar do link: id de um arquivo pronto da biblioteca do agente (ai_files_list), para image, video ou document. Sai por um link curto assinado; a legenda da biblioteca não entra sozinha. Chave sandbox: 403."),
   caption: z
     .string()
     .trim()
@@ -57,8 +65,12 @@ const commonMediaShape = {
   to: sendMediaShape.to,
   from: sendMediaShape.from,
   link: sendMediaShape.link,
+  file_id: sendMediaShape.file_id,
   reply_to: sendMediaShape.reply_to,
 } as const;
+const noFileId = z
+  .never({ invalid_type_error: "file_id não vale para audio: a biblioteca tem foto, vídeo e PDF." })
+  .optional();
 const noVoice = z
   .never({ invalid_type_error: "voice é aceito somente quando type='audio'." })
   .optional();
@@ -96,6 +108,8 @@ export const sendMediaSchema = z.discriminatedUnion("type", [
   z.object({
     ...commonMediaShape,
     type: z.literal("audio"),
+    link: mediaLink,
+    file_id: noFileId,
     caption: noCaption,
     filename: noFilename,
     voice: sendMediaShape.voice,
@@ -112,13 +126,16 @@ export const sendMediaSchema = z.discriminatedUnion("type", [
 export function registerMediaTools(register: Register): void {
   register(
     "send_media_message",
-    "Recomendado: use prepare_send_intent uma vez e reutilize idempotency_key em retries. Recusas confirmadas liberam a chave; após aguardar/corrigir, repita com a mesma chave. Resultado desconhecido exige conferir o histórico. Chamadas sem chave continuam aceitas, com o comportamento anterior sem deduplicação. Envia image, video, audio ou document por URL https pelo endpoint canônico de mensagens, no WhatsApp ou no Instagram (`to` = IGSID); isso pode entregar uma mensagem real ao destinatário. image/video/document aceitam caption no WhatsApp; audio não, e o Instagram não aceita caption (422 unsupported_caption). filename é exclusivo de document. voice=true (só audio, WhatsApp) manda mensagem de voz: arquivo .ogg com Opus mono. reply_to={ message_id } responde citando uma mensagem da mesma conversa (UUID ou wamid/mid; 422 reply_target_not_found fora dela). O processo MCP não baixa o arquivo. Retorna `id` (UUID interno do BotoZap), `wamid` (ID da Meta no WhatsApp; null no Instagram) e, fora do WhatsApp, `channel` e `external_id` (o mid), além de `to` e `status`. " + FREE_SEND_NOTE,
+    "Recomendado: use prepare_send_intent uma vez e reutilize idempotency_key em retries. Recusas confirmadas liberam a chave; após aguardar/corrigir, repita com a mesma chave. Resultado desconhecido exige conferir o histórico. Chamadas sem chave continuam aceitas, com o comportamento anterior sem deduplicação. Envia image, video, audio ou document por URL https (ou image/video/document por file_id, um arquivo pronto da biblioteca do agente) pelo endpoint canônico de mensagens, no WhatsApp ou no Instagram (`to` = IGSID); isso pode entregar uma mensagem real ao destinatário. image/video/document aceitam caption no WhatsApp; audio não, e o Instagram não aceita caption (422 unsupported_caption). filename é exclusivo de document. voice=true (só audio, WhatsApp) manda mensagem de voz: arquivo .ogg com Opus mono. reply_to={ message_id } responde citando uma mensagem da mesma conversa (UUID ou wamid/mid; 422 reply_target_not_found fora dela). O processo MCP não baixa o arquivo. Retorna `id` (UUID interno do BotoZap), `wamid` (ID da Meta no WhatsApp; null no Instagram) e, fora do WhatsApp, `channel` e `external_id` (o mid), além de `to` e `status`. " + FREE_SEND_NOTE,
     sendMediaShape,
     fullSendMessageResultSchema,
     (client, args) => {
       const parsed = sendMediaSchema.safeParse(args);
       if (!parsed.success) {
         throw new Error(parsed.error.issues.map((issue) => issue.message).join(" "));
+      }
+      if ((parsed.data.link === undefined) === (parsed.data.file_id === undefined)) {
+        throw new Error("Informe link ou file_id (um dos dois).");
       }
       const { idempotency_key, ...payload } = parsed.data;
       return client.messages.sendMedia(payload, { idempotencyKey: idempotency_key });

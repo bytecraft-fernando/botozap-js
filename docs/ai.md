@@ -95,6 +95,29 @@ explícita. Não há fallback para uma chave de plataforma.
   retornam arrays. Inscrições de follow-up usam `limit` até 200, sem offset fictício.
 - Medição de tokens pode ser parcial ou indisponível. Ausência não equivale a zero.
 
+## Arquivos do agente
+
+Fotos (JPG, PNG), vídeos (MP4, MOV) e PDFs de até 25 MiB que o agente manda na conversa. Cada
+arquivo tem um nome, o "quando mandar" (`description`, que o agente lê) e uma legenda opcional.
+
+```ts
+const file = await bz.ai.files.upload({customer_id: customerId, name: 'Anel solitário',
+  description: 'Quando perguntarem pelo anel solitário ou pelo preço dele.', caption: 'Ouro 18k',
+  file: new Blob([bytes], {type:'image/jpeg'}), file_name:'anel.jpg'});
+await bz.ai.agents.saveDraft({customer_id: customerId, id: agentId, expected_revision,
+  config: {...config, file_ids: [file.id], tool_ids: [...config.tool_ids, 'conversations.attach_files']}});
+await bz.messages.sendMedia({to: '5511999999999', type: 'image', file_id: file.id});
+```
+
+O upload é o direto (`kind: "file"`). Vídeo do iPhone e foto grande voltam `processing` e ficam
+`ready` depois da conversão; se não der, `failed` com o motivo em `last_error`. `ai.files.update`
+muda nome, "quando mandar", legenda e `active` com `expected_revision`, e vale na hora para os
+agentes publicados; `ai.files.remove` apaga de vez (409 `in_use` se está numa versão publicada).
+O agente só manda os arquivos de `file_ids` com `conversations.attach_files` em `tool_ids`. Fora
+do agente, `sendMedia` aceita `file_id` no lugar do `link` (foto, vídeo e PDF; a chave sandbox
+recebe 403). No MCP: `ai_files_list`, `ai_files_get`, `ai_files_update`, `ai_files_remove`, o
+`ai_uploads_prepare` com `kind: "file"` e o `send_media_message` com `file_id`.
+
 ## Documentos e pacotes de skill
 
 ```ts
@@ -158,6 +181,10 @@ publicadas após os gates de release; nenhum comando abaixo publica pacotes.
 | `executions.list` | GET | `/ai/executions` |
 | `executions.get` | GET | `/ai/executions/:id` |
 | `executions.decide` | POST | `/ai/executions/:id/decision` |
+| `files.list` | GET | `/ai/files` |
+| `files.get` | GET | `/ai/files/:id` |
+| `files.update` | PATCH | `/ai/files/:id` |
+| `files.remove` | DELETE | `/ai/files/:id` |
 | `knowledge.list` | GET | `/ai/knowledge` |
 | `knowledge.get` | GET | `/ai/knowledge/:id` |
 | `knowledge.create` | POST | `/ai/knowledge` |
@@ -393,6 +420,10 @@ linha traz `kind_label`, `guidance` e `links` calculados pelo servidor.
 | `evolution.get` | GET | `/ai/evolution` | read |
 | `styleAdjustments.list` | GET | `/ai/style-adjustments` | read |
 | `styleAdjustments.save` | PUT | `/ai/style-adjustments` | write |
+| `files.list` | GET | `/ai/files` | read |
+| `files.get` | GET | `/ai/files/:id` | read |
+| `files.update` | PATCH | `/ai/files/:id` | write |
+| `files.remove` | DELETE | `/ai/files/:id` | write |
 
 CLI: `botozap ai <módulo> <método>` em kebab-case (ex.: `botozap ai eligibility
 save-channel --input-file gate.json`). MCP: `ai_<módulo>_<método>` em snake_case

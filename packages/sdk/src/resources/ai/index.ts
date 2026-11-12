@@ -1,6 +1,9 @@
 import type { BotoZap } from "../../client.js";
 import type { OffsetList } from "../../types.js";
 import type {
+  AiAgentFile,
+  AiAgentFileDetail,
+  AiAgentFilePatch,
   AiUploadReceiptCallback,
   AiArtifactUploadInput,
   AiPreparedUpload,
@@ -1221,8 +1224,38 @@ export class AiStyleAdjustmentsResource {
     return request(this.client, named("styleAdjustments", "save"), input);
   }
 }
+/** Biblioteca de fotos, vídeos e PDFs que o agente manda na conversa (#1447). */
+export class AiFilesResource {
+  constructor(private readonly client: BotoZap) {}
+  /** GET /ai/files */
+  list(input: AiScope): Promise<AiAgentFile[]> {
+    return request(this.client, named("files", "list"), input);
+  }
+  /** GET /ai/files/:id — com quem usa e o link curto de prévia. */
+  get(input: AiScope & { id: string }): Promise<AiAgentFileDetail> {
+    return request(this.client, named("files", "get"), input);
+  }
+  /** PATCH /ai/files/:id — vale na hora para os agentes publicados que usam o arquivo. */
+  update(input: AiRevision & { id: string } & AiAgentFilePatch): Promise<AiAgentFile> {
+    return request(this.client, named("files", "update"), input);
+  }
+  /** DELETE /ai/files/:id — 409 in_use se o arquivo está numa versão publicada. */
+  remove(input: AiRevision & { id: string }): Promise<void> {
+    return request(this.client, named("files", "remove"), input);
+  }
+  /**
+   * Sobe foto (JPG/PNG), vídeo (MP4/MOV) ou PDF de até 25 MiB pelo upload direto (prepare, PUT na URL
+   * assinada, complete). Repetir com os mesmos bytes e dados reaproveita o envio. Vídeo do iPhone e foto
+   * grande voltam `processing` e ficam `ready` depois da conversão.
+   */
+  upload(input: AiScope & { file: Blob; file_name: string; name: string; description: string; caption?: string | null }): Promise<AiAgentFile> {
+    if (!input.file.size || input.file.size > 25 * 1024 * 1024) throw new Error("Arquivo vazio ou maior que 25 MiB.");
+    return uploadArtifact<AiAgentFile>(this.client, { ...input, kind: "file" });
+  }
+}
 export class Ai {
   readonly uploads: AiUploadsResource;
+  readonly files: AiFilesResource;
   readonly agents: AiAgentsResource;
   readonly credentials: AiCredentialsResource;
   readonly providers: AiProvidersResource;
@@ -1246,6 +1279,7 @@ export class Ai {
   readonly styleAdjustments: AiStyleAdjustmentsResource;
   constructor(private readonly client: BotoZap) {
     this.uploads = new AiUploadsResource(client);
+    this.files = new AiFilesResource(client);
     this.agents = new AiAgentsResource(client);
     this.credentials = new AiCredentialsResource(client);
     this.providers = new AiProvidersResource(client);
