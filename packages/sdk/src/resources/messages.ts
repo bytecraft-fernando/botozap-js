@@ -86,7 +86,13 @@ export interface SendTemplateParams {
 export interface SendImageParams {
   to: string;
   type: "image";
-  link: string;
+  /** URL https pública do arquivo; ou `file_id` no lugar dele (um dos dois). */
+  link?: string;
+  /**
+   * Arquivo pronto da biblioteca do agente (`GET /ai/files`) no lugar do `link` (#1447): sai por um link
+   * curto assinado do armazenamento; a legenda da biblioteca não entra sozinha. Chave sandbox: 403.
+   */
+  file_id?: string;
   caption?: string;
   from?: string;
   /**
@@ -122,7 +128,13 @@ export interface SendAudioParams {
 export interface SendVideoParams {
   to: string;
   type: "video";
-  link: string;
+  /** URL https pública do arquivo; ou `file_id` no lugar dele (um dos dois). */
+  link?: string;
+  /**
+   * Arquivo pronto da biblioteca do agente (`GET /ai/files`) no lugar do `link` (#1447): sai por um link
+   * curto assinado do armazenamento; a legenda da biblioteca não entra sozinha. Chave sandbox: 403.
+   */
+  file_id?: string;
   caption?: string;
   from?: string;
   /**
@@ -137,7 +149,13 @@ export interface SendVideoParams {
 export interface SendDocumentParams {
   to: string;
   type: "document";
-  link: string;
+  /** URL https pública do arquivo; ou `file_id` no lugar dele (um dos dois). */
+  link?: string;
+  /**
+   * Arquivo pronto da biblioteca do agente (`GET /ai/files`) no lugar do `link` (#1447): sai por um link
+   * curto assinado do armazenamento; a legenda da biblioteca não entra sozinha. Chave sandbox: 403.
+   */
+  file_id?: string;
   caption?: string;
   filename?: string;
   from?: string;
@@ -328,7 +346,11 @@ export class Messages {
 
   /** Envia mídia por URL pública. */
   async sendMedia(params: SendMediaParams, options: SendOptions = {}): Promise<SendResult> {
-    const media: Record<string, unknown> = { link: params.link };
+    const fileId = "file_id" in params ? params.file_id : undefined;
+    if ((fileId === undefined) === (params.link === undefined)) {
+      throw new Error("Informe link ou file_id (um dos dois).");
+    }
+    const media: Record<string, unknown> = fileId !== undefined ? { file_id: fileId } : { link: params.link };
     if ("caption" in params && params.caption !== undefined) {
       media.caption = params.caption;
     }

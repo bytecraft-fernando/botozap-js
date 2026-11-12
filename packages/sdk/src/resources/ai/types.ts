@@ -153,7 +153,9 @@ export type AiToolId =
   | "cases.note"
   | "cases.close"
   /** Opções para o contato tocar (botões ou lista), anexadas à resposta final do turno. Só o agente; o operador é recusado. */
-  | "conversations.reply_options";
+  | "conversations.reply_options"
+  /** Anexa à resposta final fotos, vídeos e PDFs da biblioteca escolhidos em `file_ids` (#1447). Só o agente. */
+  | "conversations.attach_files";
 /**
  * Configuração do agente na ENTRADA (`ai.agents.create` e `saveDraft`): o
  * provedor só pode ser `openai` ou `anthropic`. A leitura devolve
@@ -196,6 +198,8 @@ export interface AiAgentConfig {
   allowed_stage_ids?: string[];
   knowledge_source_ids?: string[];
   skill_ids?: string[];
+  /** Arquivos da biblioteca (`ai.files`) que o agente pode mandar, até 40; com `conversations.attach_files` em `tool_ids` (#1447). */
+  file_ids?: string[];
   /** Opt-in platform skills composed at runtime; Customer copies override them. */
   platform_skills?: "none" | "all";
   memory_enabled?: boolean;
@@ -928,15 +932,46 @@ export type AiPlatformSkill = {
 };
 
 export type AiArtifactUploadInput = AiScope & {
-  kind: "knowledge" | "skill";
+  kind: "knowledge" | "skill" | "file";
   file_name: string;
   mime_type: string;
   byte_size: number;
   sha256: string;
   name?: string;
+  /** kind=file: quando o agente deve mandar o arquivo (obrigatório, até 500). */
+  description?: string;
+  /** kind=file: legenda opcional (até 1.024 caracteres e 1.000 bytes). */
+  caption?: string | null;
   skill_id?: string;
   expected_revision?: string;
 };
+/** Arquivo da biblioteca do agente (#1447): foto, vídeo ou PDF que o agente pode mandar na conversa. */
+export interface AiAgentFile {
+  id: string;
+  customer_id: string;
+  name: string;
+  /** Quando o agente deve mandar (o agente lê). */
+  description: string;
+  caption: string | null;
+  media_type: "image" | "video" | "document";
+  mime_type: string;
+  file_name: string;
+  byte_size: number;
+  /** processing enquanto converte; failed com o motivo em last_error. */
+  status: "processing" | "ready" | "failed";
+  last_error: string | null;
+  active: boolean;
+  revision: string;
+  created_at: string;
+  updated_at: string;
+}
+export interface AiAgentFileDetail extends AiAgentFile {
+  usages: { agent_id: string; name: string; version_number: number; published: boolean }[];
+  /** Link curto para ver o arquivo; null sem armazenamento. Não guarde nem registre. */
+  preview_url: string | null;
+  preview_expires_at: string | null;
+}
+export type AiAgentFilePatch = { name?: string; description?: string; caption?: string | null; active?: boolean };
 export interface AiPreparedUpload {
   upload_id: string;
   upload_url: string;

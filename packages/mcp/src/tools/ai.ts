@@ -81,6 +81,7 @@ const tool = z.enum([
   "cases.note",
   "cases.close",
   "conversations.reply_options",
+  "conversations.attach_files",
 ]);
 const toolLimit = tool.options.length;
 const agentConfig = z
@@ -135,6 +136,8 @@ const agentConfig = z
     allowed_stage_ids: z.array(uuid).max(100).optional(),
     knowledge_source_ids: z.array(uuid).max(100).optional(),
     skill_ids: z.array(uuid).max(100).optional(),
+    // Arquivos da biblioteca que o agente pode mandar (#1447), com conversations.attach_files em tool_ids.
+    file_ids: z.array(uuid).max(40).optional(),
     platform_skills: z.enum(["none", "all"]).optional(),
     memory_enabled: z.boolean().optional(),
     data_access: z
@@ -539,4 +542,31 @@ export function registerAiTools(register: Register) {
       },
     );
   }
+  // Upload de arquivo do agente (#1447): fora de AI_OPERATIONS porque sobe pelo mesmo POST /ai/uploads
+  // (prepare, PUT na URL assinada, complete), que o SDK faz em ai.files.upload.
+  register(
+    "ai_files_upload",
+    "POST /ai/uploads (kind=file) + PUT + complete. agents:write; chave live. Sobe foto (JPG/PNG), vídeo (MP4/MOV) ou PDF de até 25 MiB para a biblioteca do agente, com name (até 80), description (quando o agente deve mandar, até 500) e caption opcional. Vídeo do iPhone e foto grande voltam processing e ficam ready depois da conversão. Repetir com os mesmos bytes e dados reaproveita o envio. Use customer_id do cliente autorizado; não confunda com account_id.",
+    {
+      customer_id: schemas.uuid!,
+      file_name: z.string().min(1).max(200).describe("Nome do arquivo com a extensão (.jpg, .jpeg, .png, .mp4, .mov ou .pdf), que define o tipo."),
+      file_base64: z.string().min(1).max(35 * 1024 * 1024).describe("Conteúdo base64 do arquivo autorizado; nunca um caminho do servidor MCP."),
+      name: z.string().min(1).max(80),
+      description: z.string().min(1).max(500),
+      caption: z.string().max(1024).optional(),
+    },
+    z.object({ data: z.unknown() }),
+    async (client, args) => {
+      const base64 = String(args.file_base64);
+      if (!/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(base64)) throw new Error("Base64 inválido.");
+      const bytes = Buffer.from(base64, "base64");
+      return {
+        data: await client.ai.files.upload({
+          customer_id: String(args.customer_id), file: new Blob([bytes]), file_name: String(args.file_name),
+          name: String(args.name), description: String(args.description), caption: args.caption === undefined ? undefined : String(args.caption),
+        }),
+      };
+    },
+  );
+
 }

@@ -598,5 +598,21 @@
   {
     "method": "GET",
     "path": "/ai/agents/:id/diagnostic"
+  },
+  {
+    "method": "GET",
+    "path": "/ai/files"
+  },
+  {
+    "method": "GET",
+    "path": "/ai/files/:id"
+  },
+  {
+    "method": "PATCH",
+    "path": "/ai/files/:id"
+  },
+  {
+    "method": "DELETE",
+    "path": "/ai/files/:id"
   }
 ]

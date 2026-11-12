@@ -2656,14 +2656,14 @@ export const AI_OPERATIONS: readonly AiOperation[] = [
     path: "/ai/uploads",
     shape: "item",
     description:
-      "Prepara upload direto. Envie bytes por PUT na URL assinada com os headers retornados, sem Authorization BotoZap. Guarde upload_id para finalizar a mesma importação.",
+      "Prepara upload direto. Envie bytes por PUT na URL assinada com os headers retornados, sem Authorization BotoZap. Guarde upload_id para finalizar a mesma importação. kind=file (foto JPG/PNG, vídeo MP4/MOV ou PDF até 25 MiB, para o agente mandar na conversa) exige name (até 80) e description (quando o agente deve mandar, até 500); caption é opcional (até 1.024 caracteres e 1.000 bytes).",
     fields: {
       customer_id: {
         type: "uuid",
         optional: false,
       },
       kind: {
-        type: "knowledge|skill",
+        type: "knowledge|skill|file",
         optional: false,
       },
       file_name: {
@@ -2683,6 +2683,14 @@ export const AI_OPERATIONS: readonly AiOperation[] = [
         optional: false,
       },
       name: {
+        type: "string",
+        optional: true,
+      },
+      description: {
+        type: "string",
+        optional: true,
+      },
+      caption: {
         type: "string",
         optional: true,
       },
@@ -3791,6 +3799,103 @@ export const AI_OPERATIONS: readonly AiOperation[] = [
       },
       expected_revision: {
         type: "revisionZero",
+        optional: false,
+      },
+    },
+  },
+  // #1447 arquivos do agente: appended so existing indexes stay stable.
+  {
+    group: "files",
+    name: "list",
+    method: "GET",
+    path: "/ai/files",
+    shape: "item",
+    description:
+      "Biblioteca de fotos, vídeos e PDFs que o agente pode mandar na conversa, do mais novo ao mais antigo, com status (processing enquanto converte, ready, failed com last_error).",
+    fields: {
+      customer_id: {
+        type: "uuid",
+        optional: false,
+      },
+    },
+  },
+  {
+    group: "files",
+    name: "get",
+    method: "GET",
+    path: "/ai/files/:id",
+    shape: "item",
+    description:
+      "Um arquivo da biblioteca, as versões de agente que o usam (usages) e um link curto para ver (preview_url, vence em preview_expires_at; não guarde nem registre).",
+    fields: {
+      customer_id: {
+        type: "uuid",
+        optional: false,
+      },
+      id: {
+        type: "uuid",
+        optional: false,
+      },
+    },
+  },
+  {
+    group: "files",
+    name: "update",
+    method: "PATCH",
+    path: "/ai/files/:id",
+    shape: "item",
+    description:
+      "Edita nome, description (quando o agente deve mandar), caption e active (false arquiva) com expected_revision. Vale na hora para os agentes publicados que usam o arquivo. Arquivar o que está numa versão publicada é recusado (409 in_use).",
+    fields: {
+      customer_id: {
+        type: "uuid",
+        optional: false,
+      },
+      id: {
+        type: "uuid",
+        optional: false,
+      },
+      expected_revision: {
+        type: "revision",
+        optional: false,
+      },
+      name: {
+        type: "string",
+        optional: true,
+      },
+      description: {
+        type: "string",
+        optional: true,
+      },
+      caption: {
+        type: "string",
+        optional: true,
+      },
+      active: {
+        type: "boolean",
+        optional: true,
+      },
+    },
+  },
+  {
+    group: "files",
+    name: "remove",
+    method: "DELETE",
+    path: "/ai/files/:id",
+    shape: "empty",
+    description:
+      "Apaga de vez (pelo OAuth, só Administrador). Arquivo numa versão publicada de agente é recusado (409 in_use); as mensagens que já o mandaram continuam com a mídia.",
+    fields: {
+      customer_id: {
+        type: "uuid",
+        optional: false,
+      },
+      id: {
+        type: "uuid",
+        optional: false,
+      },
+      expected_revision: {
+        type: "revision",
         optional: false,
       },
     },

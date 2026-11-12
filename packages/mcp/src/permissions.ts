@@ -299,6 +299,9 @@ write(["create_conversation_assignment"], "conversations:write", true,
   { destructiveHint: false, idempotentHint: false, openWorldHint: false });
 write(["update_conversation_assignment"], "conversations:write", true,
   { destructiveHint: true, idempotentHint: true, openWorldHint: false });
+// Upload para a biblioteca do agente (#1447): grava arquivo novo e conversa com o armazenamento.
+write(["ai_files_upload"], "agents:write", false,
+  { destructiveHint: false, idempotentHint: false, openWorldHint: true });
 write(["control_conversation_agent"], "agents:write", false,
   { destructiveHint: true, idempotentHint: true, openWorldHint: true });
 

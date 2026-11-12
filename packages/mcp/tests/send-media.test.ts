@@ -33,8 +33,9 @@ describe("MCP — send_media_message", () => {
     expect(tool).toBeDefined();
     expect(tool?.inputSchema).toMatchObject({
       type: "object",
-      required: ["to", "type", "link"],
+      required: ["to", "type"],
       properties: {
+        file_id: { type: "string", format: "uuid" },
         to: { type: "string" },
         from: { type: "string" },
         type: { type: "string", enum: ["image", "video", "audio", "document"] },
@@ -149,6 +150,27 @@ describe("MCP — send_media_message", () => {
         },
       },
     ]);
+  });
+
+  it("manda arquivo da biblioteca por file_id; exige link ou file_id, um dos dois; audio só por link", async () => {
+    const bodies: unknown[] = [];
+    const client = await connect((async (_input, init) => {
+      bodies.push(init?.body ? JSON.parse(String(init.body)) : undefined);
+      return jsonResponse(201, { id: "10000000-0000-4000-8000-000000000002", wamid: "wamid.file", to: "5511999999999", status: "sent" });
+    }) as typeof fetch);
+    const fileId = "20000000-0000-4000-8000-000000000002";
+    const sent = await client.callTool({ name: "send_media_message", arguments: { to: "5511999999999", type: "image", file_id: fileId, caption: "Ouro 18k" } });
+    expect(sent.isError).toBeFalsy();
+    expect(bodies[0]).toEqual({ to: "5511999999999", type: "image", image: { file_id: fileId, caption: "Ouro 18k" } });
+    for (const args of [
+      { to: "5511999999999", type: "image", file_id: fileId, link: "https://cdn.example.test/foto.jpg" },
+      { to: "5511999999999", type: "image" },
+      { to: "5511999999999", type: "audio", file_id: fileId },
+    ]) {
+      const result = await client.callTool({ name: "send_media_message", arguments: args });
+      expect(result.isError, JSON.stringify(args)).toBe(true);
+    }
+    expect(bodies).toHaveLength(1);
   });
 
   it("rejeita caption em audio e filename fora de document antes do request", async () => {

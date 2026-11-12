@@ -108,5 +108,27 @@ export function registerAi(program: Command) {
         },
       );
     }
+    if (group === "files") registerFilesUpload(command);
   }
+}
+
+/** Arquivos do agente (#1447): o upload sobe pelo mesmo POST /ai/uploads (prepare, PUT, complete), fora
+ * da tabela de operações; o arquivo é o indicado em `file_path`, nunca outro. */
+function registerFilesUpload(command: Command) {
+  operation(
+    command,
+    "upload",
+    "POST /ai/uploads (kind=file) + PUT + complete. Sobe foto (JPG/PNG), vídeo (MP4/MOV) ou PDF de até 25 MiB para a biblioteca do agente. Campos: customer_id, file_path (arquivo local), name (até 80), description (quando o agente deve mandar, até 500), caption (opcional), file_name (opcional; padrão o nome do arquivo).",
+    async (client, _id, raw) => {
+      const path = String(raw.file_path);
+      const limit = 25 * 1024 * 1024, size = (await stat(path)).size;
+      if (!size || size > limit) throw new Error("Arquivo vazio ou acima de 25 MiB.");
+      const bytes = await readFile(path);
+      return client.ai.files.upload({
+        customer_id: String(raw.customer_id), file: new Blob([bytes]), file_name: String(raw.file_name ?? basename(path)),
+        name: String(raw.name), description: String(raw.description), caption: raw.caption === undefined ? undefined : String(raw.caption),
+      });
+    },
+    ["customer_id", "file_path", "name", "description"],
+  );
 }

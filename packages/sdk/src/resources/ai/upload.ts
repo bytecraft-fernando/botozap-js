@@ -11,7 +11,7 @@ export async function uploadArtifact<T>(
   input: Record<string, unknown> & {
     file: Blob;
     file_name: string;
-    kind: "skill" | "knowledge";
+    kind: "skill" | "knowledge" | "file";
   },
 ): Promise<T> {
   const { file, file_name, kind } = input;
@@ -32,6 +32,11 @@ export async function uploadArtifact<T>(
             txt: "text/plain",
             md: "text/markdown",
             csv: "text/csv",
+            jpg: "image/jpeg",
+            jpeg: "image/jpeg",
+            png: "image/png",
+            mp4: "video/mp4",
+            mov: "video/quicktime",
           } as Record<string, string>
         )[ext] ||
         file.type ||
@@ -43,9 +48,18 @@ export async function uploadArtifact<T>(
     mime_type: mime,
     byte_size: file.size,
     sha256,
+    ...(kind === "file"
+      ? {
+          name: String(input.name ?? ""),
+          description: String(input.description ?? ""),
+          ...(input.caption ? { caption: String(input.caption) } : {}),
+        }
+      : {}),
     ...(kind === "knowledge"
       ? { name: String(input.name ?? "") }
-      : {
+      : kind === "file"
+        ? {}
+        : {
           ...(input.id
             ? {
                 skill_id: String(input.id),
