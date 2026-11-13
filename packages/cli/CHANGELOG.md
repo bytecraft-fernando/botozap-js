@@ -1,5 +1,26 @@
 # @botozap/cli
 
+## 0.25.0
+
+### Minor Changes
+
+- c72e511: Arquivos do agente (#1447): fotos, vídeos e PDFs que o agente de IA manda na conversa. SDK: `ai.files` (`list`, `get` com `usages` e `preview_url`, `update`, `remove` e `upload` pelo upload direto com `kind: "file"`), `AiAgentFile` e `file_id` no `messages.sendMedia` no lugar do `link`. MCP: `ai_files_list`, `ai_files_get`, `ai_files_update`, `ai_files_remove`, `kind: "file"` (com `description` e `caption`) no `ai_uploads_prepare` e `file_id` no `send_media_message`. CLI: os comandos `ai files`.
+
+  Tipos: `link` passa a ser opcional em `SendImageParams`, `SendVideoParams` e `SendDocumentParams` (um dos dois, `link` ou `file_id`; o SDK recusa os dois ou nenhum); código que lia `params.link` como `string` precisa tratar o `undefined`. `AiToolId` ganha `conversations.attach_files`, e `AiAgentConfig`, `file_ids`. MCP: `ai_files_upload` (conteúdo em `file_base64`) e os arquivos na configuração de `ai_agents_create`/`ai_agents_save_draft`. CLI: `ai files upload` (`file_path`) e `messages send-media --file-id`.
+
+- 05fa855: Envios sem confirmação da Meta, como o aviso na conversa no painel: `conversations.listPendingSends(id)` lista os envios manuais do WhatsApp (API ou painel) que a Meta não confirmou em cerca de 5 minutos, e `conversations.markPendingSend(id, sendId, "sent" | "not_sent")` diz se o envio chegou ao contato (`sent` põe a mensagem no histórico sem o id da Meta; `not_sent` libera para enviar de novo; nada é reenviado) (SDK). Entram `list_pending_sends` e `mark_pending_send`, só no catálogo completo (MCP). `botozap conversations pending-sends <id>` e `botozap conversations mark-send <id> <sendId> --outcome sent|not_sent` (CLI).
+
+### Patch Changes
+
+- Updated dependencies [c72e511]
+- Updated dependencies [e4d6580]
+- Updated dependencies [05fa855]
+- Updated dependencies [1270acc]
+- Updated dependencies [42e3e8b]
+- Updated dependencies [1bfb57a]
+- Updated dependencies [fc41276]
+  - @botozap/sdk@0.30.0
+
 ## 0.24.1
 
 ### Patch Changes

@@ -1,5 +1,23 @@
 # @botozap/sdk
 
+## 0.30.0
+
+### Minor Changes
+
+- c72e511: Arquivos do agente (#1447): fotos, vídeos e PDFs que o agente de IA manda na conversa. SDK: `ai.files` (`list`, `get` com `usages` e `preview_url`, `update`, `remove` e `upload` pelo upload direto com `kind: "file"`), `AiAgentFile` e `file_id` no `messages.sendMedia` no lugar do `link`. MCP: `ai_files_list`, `ai_files_get`, `ai_files_update`, `ai_files_remove`, `kind: "file"` (com `description` e `caption`) no `ai_uploads_prepare` e `file_id` no `send_media_message`. CLI: os comandos `ai files`.
+
+  Tipos: `link` passa a ser opcional em `SendImageParams`, `SendVideoParams` e `SendDocumentParams` (um dos dois, `link` ou `file_id`; o SDK recusa os dois ou nenhum); código que lia `params.link` como `string` precisa tratar o `undefined`. `AiToolId` ganha `conversations.attach_files`, e `AiAgentConfig`, `file_ids`. MCP: `ai_files_upload` (conteúdo em `file_base64`) e os arquivos na configuração de `ai_agents_create`/`ai_agents_save_draft`. CLI: `ai files upload` (`file_path`) e `messages send-media --file-id`.
+
+- e4d6580: Avisos de casos no WhatsApp: o mapa de variáveis aceita `contact_phone` (telefone do contato atendido, como `+5579999997101`, ou "não informado" no Instagram) e `contact_name_and_phone` (`Nome (+telefone)`, ou só o nome quando não há telefone) (SDK, em `AiNoticeField`; MCP, no `variable_map` de `ai_notices_update`).
+- 05fa855: Envios sem confirmação da Meta, como o aviso na conversa no painel: `conversations.listPendingSends(id)` lista os envios manuais do WhatsApp (API ou painel) que a Meta não confirmou em cerca de 5 minutos, e `conversations.markPendingSend(id, sendId, "sent" | "not_sent")` diz se o envio chegou ao contato (`sent` põe a mensagem no histórico sem o id da Meta; `not_sent` libera para enviar de novo; nada é reenviado) (SDK). Entram `list_pending_sends` e `mark_pending_send`, só no catálogo completo (MCP). `botozap conversations pending-sends <id>` e `botozap conversations mark-send <id> <sendId> --outcome sent|not_sent` (CLI).
+- 1bfb57a: Roteador: membro com `keep_until_closed` (agente fixo). Escolhido, ele fica com a conversa até a equipe fechar e o contato voltar a escrever, sem trocar de agente mesmo com outra intenção. Aceito em `ai_routers_create`/`ai_routers_update` no MCP e no tipo `AiRouterConfig` do SDK.
+- fc41276: Teste de roteamento com `last_sent_message`: a última mensagem enviada ao contato, que o classificador do roteador lê como contexto para entender respostas curtas como "Sim". Aceito em `ai.routers.test` no SDK e em `ai_routers_test` no MCP.
+
+### Patch Changes
+
+- 1270acc: Etapa do funil criada pelo cliente vem com `key: null`. O MCP deixa de recusar a resposta de `list_contact_stages` e `create_contact_stage` nesse caso, e o tipo `ContactStage.key` do SDK passa a `string | null`.
+- 42e3e8b: A descrição da reinscrição (`resubscribe_phone_number_webhooks` no MCP, `phoneNumbers.resubscribeWebhooks` no SDK) diz que `missing` depois de reinscrever pede o link de setup: é o que a API responde quando a conta do WhatsApp mudou de portfólio na Meta.
+
 ## 0.29.1
 
 ### Patch Changes
