@@ -614,7 +614,10 @@ export type AiNoticeJob = {
   case_id: string | null;
   kind: "case" | "test";
   status: "pending" | "claimed" | "sent" | "failed" | "unknown" | "cancelled";
+  /** `pending` com motivo: adiado por recusa passageira (`account_locked`, `capacity_unavailable`). `meta_failed`: a Meta aceitou e recusou depois, pelo status da mensagem. */
   last_error: string | null;
+  /** O código da Meta quando ela recusou o aviso: na hora (`meta_rejected`) ou depois (`meta_failed`); nos outros casos, `null`. */
+  meta_error_code: number | null;
   created_at: string;
   finished_at: string | null;
   external_id: string | null;
