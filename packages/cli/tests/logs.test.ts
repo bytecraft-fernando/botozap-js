@@ -15,7 +15,7 @@ beforeEach(() => {
           method: "POST",
           path: "/v1/messages",
           status_code: 422,
-          request_id: "gru1::abc-123",
+          request_id: "abcd1-1763420000000-0123456789ab",
           created_at: "2026-11-18T12:00:00Z",
         },
       ],
@@ -32,7 +32,7 @@ describe("logs list", () => {
     expect(result.error).toBeUndefined();
     expect(result.stdout).toContain("ID DA CHAMADA");
     const row = result.stdout.split("\n").find((line) => line.includes("/v1/messages"));
-    expect(row).toContain("gru1::abc-123");
+    expect(row).toContain("abcd1-1763420000000-0123456789ab");
   });
 
   it("repassa os filtros para /v1/api_logs", async () => {
@@ -42,6 +42,6 @@ describe("logs list", () => {
     expect(url.pathname).toBe("/v1/api_logs");
     expect(url.searchParams.get("method")).toBe("post");
     expect(url.searchParams.get("status_code")).toBe("422");
-    expect(JSON.parse(result.stdout).data[0].request_id).toBe("gru1::abc-123");
+    expect(JSON.parse(result.stdout).data[0].request_id).toBe("abcd1-1763420000000-0123456789ab");
   });
 });
