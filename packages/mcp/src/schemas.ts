@@ -662,6 +662,7 @@ export const apiLogSchema = z
     error_code: z.string().nullable(),
     api_key_id: internalUuidSchema.nullable(),
     duration_ms: z.number().int().nonnegative().nullable(),
+    request_id: z.string().nullable().optional(),
     created_at: z.string(),
   })
   .strip() satisfies z.ZodType<ApiLog>;

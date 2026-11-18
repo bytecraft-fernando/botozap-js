@@ -504,6 +504,8 @@ export interface User {
 
 export interface ApiLog {
   id: string;
+  /** Id da chamada: o mesmo `x-request-id` da resposta. Nulo nos registros antigos e nos avisos da Meta. */
+  request_id?: string | null;
   [key: string]: unknown;
 }
 
