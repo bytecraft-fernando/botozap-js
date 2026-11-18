@@ -121,6 +121,13 @@ const cases: Case[] = [
     { customer_id: customer, label: "Nova" },
   ],
   [
+    "stages update reply rule",
+    (c) => c.contactStages.update(id, { on_reply_stage_id: null }),
+    "PATCH",
+    "/contact-stages/a%2Fb",
+    { on_reply_stage_id: null },
+  ],
+  [
     "stages reorder",
     (c) => c.contactStages.reorder({ customer_id: customer, stage_ids: [id] }),
     "PATCH",
