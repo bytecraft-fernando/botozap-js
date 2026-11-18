@@ -91,6 +91,11 @@ const agentConfig = z
     model: text.max(200).optional(),
     credential_id: uuid.nullable().optional(),
     channel_account_id: uuid.nullable().optional(),
+    channel_account_ids: z
+      .array(uuid)
+      .max(10)
+      .optional()
+      .describe("Canais em que o mesmo agente atende (WhatsApp e Instagram do Cliente); o primeiro vai em channel_account_id."),
     tool_ids: z.array(tool).max(toolLimit).optional(),
     operator: z
       .object({
