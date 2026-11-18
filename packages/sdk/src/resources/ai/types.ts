@@ -166,7 +166,16 @@ export interface AiAgentConfig {
   provider?: AiEnabledProvider;
   model?: string;
   credential_id?: string | null;
+  /**
+   * Primeiro canal da versão. Valor fora da lista manda nela (a lista vira esse canal); valor que está
+   * na lista fora do primeiro lugar é recusado com 422 `invalid`.
+   */
   channel_account_id?: string | null;
+  /**
+   * Canais em que o mesmo agente atende (Número do WhatsApp e conta do Instagram do Cliente), até 10,
+   * sem repetir. Com dois ou mais, `channel_account_id` é o primeiro; com um, a lista não é gravada.
+   */
+  channel_account_ids?: string[];
   tool_ids?: AiToolId[];
   operator?: {
     enabled?: boolean;
@@ -266,13 +275,37 @@ export type AiAgent = {
   updated_at: string;
   /** Estado do ciclo de vida. Presente em `ai.agents.list` e `ai.agents.get`. */
   lifecycle?: "draft" | "published" | "active" | "paused" | "archived";
-  /** `true` só quando o agente está de fato respondendo no canal. Presente em list/get. */
+  /** `true` quando o agente está de fato respondendo em pelo menos um canal da versão publicada. Presente em list/get. */
   serving?: boolean;
-  /** Como o agente atende: vínculo direto ou membro de roteador ativo; `null` quando não atende. */
+  /** Como o agente atende no primeiro canal em que responde: vínculo direto ou membro de roteador ativo; `null` quando não atende. */
   serving_via?: "direct" | "router" | null;
-  /** Conta de canal da versão publicada; `null` sem versão publicada. */
+  /** Primeira conta de canal da versão publicada; `null` sem versão publicada. */
   channel_account_id?: string | null;
+  /**
+   * Um item por canal da versão publicada; mostra o canal que ficou de fora ao ativar. Canal fora da
+   * versão que ainda tem vínculo não entra aqui (o diagnóstico avisa com `channel_outside`). Presente em list/get.
+   */
+  channels?: AiAgentChannelServing[];
 };
+/** Situação do agente num canal da versão publicada. */
+export type AiAgentChannelServing = {
+  channel_account_id: string;
+  serving: boolean;
+  serving_via: "direct" | "router" | null;
+};
+/** Canal que ficou de fora ao ativar (`ai.agents.operation`): com outro agente, com roteador ativo ou que não é mais do Cliente. */
+export type AiAgentSkippedChannel = {
+  channel_account_id: string;
+  reason: "agent" | "router" | "missing";
+};
+/**
+ * O que a publicação fez com os canais do agente em operação: nada a mudar, religou (com os canais
+ * que ficaram de fora) ou não ligou nenhum (a versão continua publicada e `code` explica).
+ */
+export type AiAgentChannelSync =
+  | { status: "unchanged" }
+  | { status: "synced"; skipped: AiAgentSkippedChannel[] }
+  | { status: "failed"; code: string };
 export type AiAgentVersion = {
   id: string;
   agent_id: string;

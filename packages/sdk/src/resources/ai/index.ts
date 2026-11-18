@@ -25,6 +25,8 @@ import type {
   AiBudget,
   AiRate,
   AiAgent,
+  AiAgentChannelSync,
+  AiAgentSkippedChannel,
   AiAgentInput,
   AiAgentVersion,
   AiAlert,
@@ -181,7 +183,7 @@ export class AiAgentsResource {
   /** Publica versão e altera próximos atendimentos; confira a versão antes de executar. */
   publish(
     input: AiRevision & { id: string } & { version_id: string },
-  ): Promise<{ version_id: string; number: number }> {
+  ): Promise<{ version_id: string; number: number; channel_sync?: AiAgentChannelSync }> {
     return request(this.client, AI_OPERATIONS[4]!, input);
   }
   /** Restaura versão para edição; não ativa atendimento. */
@@ -209,6 +211,8 @@ export class AiAgentsResource {
     revision: string;
     paused: boolean;
     mode: "automatic" | "assisted";
+    /** Canais que ficaram de fora ao ativar; os outros foram ligados. */
+    skipped?: AiAgentSkippedChannel[];
   }> {
     return request(this.client, AI_OPERATIONS[7]!, input);
   }
