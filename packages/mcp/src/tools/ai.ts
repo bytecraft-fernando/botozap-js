@@ -94,8 +94,9 @@ const agentConfig = z
     channel_account_ids: z
       .array(uuid)
       .max(10)
+      .refine((ids) => new Set(ids).size === ids.length, "Remova canais repetidos.")
       .optional()
-      .describe("Canais em que o mesmo agente atende (WhatsApp e Instagram do Cliente); o primeiro vai em channel_account_id."),
+      .describe("Canais em que o mesmo agente atende (WhatsApp e Instagram do Cliente), sem repetir. O servidor grava o primeiro em channel_account_id; se você mandar channel_account_id junto, ele tem de ser o primeiro da lista."),
     tool_ids: z.array(tool).max(toolLimit).optional(),
     operator: z
       .object({
