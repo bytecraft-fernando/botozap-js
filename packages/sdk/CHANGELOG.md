@@ -1,5 +1,12 @@
 # @botozap/sdk
 
+## 0.31.0
+
+### Minor Changes
+
+- eb954c8: Avisos de casos no WhatsApp: `AiNoticeJob` ganha `meta_error_code`, o código da Meta quando ela recusou o aviso, na hora (`last_error: "meta_rejected"`) ou depois, pelo status da mensagem (`last_error: "meta_failed"`: a API agora fecha como `failed` o aviso que a Meta aceitou e não entregou). Um `pending` com `last_error` é um aviso adiado por recusa passageira, esperando a hora de tentar de novo.
+- a909bdf: Regra da etapa: `ContactStage` ganha `on_reply_stage_id`, a etapa para onde o contato vai quando manda mensagem estando nela (`null` não move). `contactStages.update`, a ferramenta `update_contact_stage` e `botozap contact-stages update` aceitam o campo: outra etapa do mesmo Cliente, ou `null` para desligar. Reação, figurinha, só emoji ou só cortesia não movem o contato.
+
 ## 0.30.0
 
 ### Minor Changes
