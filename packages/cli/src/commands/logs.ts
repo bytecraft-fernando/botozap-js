@@ -33,6 +33,7 @@ export function registerLogs(program: Command): void {
         { header: "ROTA", key: "path", max: 40 },
         { header: "STATUS", key: "status_code" },
         { header: "FONTE", key: "source" },
+        { header: "ID DA CHAMADA", key: "request_id", max: 40 },
         { header: "CRIADO", key: "created_at" },
       ]);
       printCursorFooter(res.paging);

@@ -208,7 +208,7 @@ it("conserva campos públicos aditivos de identidade, diagnóstico e consentimen
 
 it("preserva diagnóstico de logs e o Cliente das entregas de webhook", async () => {
   const created_at = "2026-09-29T12:00:00.000Z";
-  const log = { id: MESSAGE_ID, source: "api", method: "POST", path: "/v1/messages", status_code: 422, error_code: "meta_error", api_key_id: null, duration_ms: 10, created_at, meta_error_code: 131047, send_outcome: "rejected", phone_number_id: PHONE_ID, environment: "live" };
+  const log = { id: MESSAGE_ID, source: "api", method: "POST", path: "/v1/messages", status_code: 422, error_code: "meta_error", api_key_id: null, duration_ms: 10, created_at, meta_error_code: 131047, send_outcome: "rejected", phone_number_id: PHONE_ID, environment: "live", request_id: "abcd1-1763420000000-0123456789ab" };
   const delivery = { id: MESSAGE_ID, endpoint_id: CONTACT_ID, customer_id: CUSTOMER_ID, event_type: "whatsapp.message.received", status: "success", response_code: 200, attempts: 1, last_attempt_at: created_at, next_retry_at: null, created_at };
   for (const [name, data] of [["list_api_logs", log], ["list_webhook_deliveries", delivery]] as const) {
     const client = await connect(async () => json({ data: [{ ...data, internal_debug: "strip" }], paging: cursorPagingFixture }));
