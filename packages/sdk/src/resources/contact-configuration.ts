@@ -7,6 +7,11 @@ export interface ContactStage {
   label: string;
   color: StageColor;
   position: number;
+  /**
+   * Regra da etapa: para onde o contato vai quando manda mensagem estando nela.
+   * `null` não move. Só outra etapa do mesmo Cliente.
+   */
+  on_reply_stage_id: string | null;
 }
 export interface ContactField {
   id: string;
@@ -37,6 +42,8 @@ export class ContactStages {
       label?: string;
       color?: StageColor;
       position?: number;
+      /** Etapa para onde o contato vai quando manda mensagem; `null` desliga. */
+      on_reply_stage_id?: string | null;
     },
   ): Promise<ContactStage> {
     return this.client.requestItem(

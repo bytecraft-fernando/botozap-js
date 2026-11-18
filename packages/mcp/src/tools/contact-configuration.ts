@@ -38,13 +38,14 @@ export function registerContactConfigurationTools(register: Register) {
   );
   register(
     "update_contact_stage",
-    "Edita etapa do Cliente; contacts:write.",
+    "Edita etapa do Cliente: nome, cor, posição e on_reply_stage_id (para onde o contato vai quando manda mensagem estando nela; outra etapa do mesmo Cliente, ou null para não mover); contacts:write.",
     {
       id: uuid,
       customer_id,
       label: label.optional(),
       color: color.optional(),
       position: z.number().int().positive().optional(),
+      on_reply_stage_id: uuid.nullable().optional(),
     },
     item,
     async (c, a) => {

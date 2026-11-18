@@ -22,7 +22,7 @@ export function registerContactConfiguration(program: Command) {
   operation(
     stages,
     "update <id>",
-    "Altera label,color,position; customer_id recomendado",
+    "Altera label,color,position,on_reply_stage_id (etapa para onde o contato vai quando manda mensagem; null não move); customer_id recomendado",
     (c, id, p) => c.contactStages.update(id!, p),
   );
   operation(

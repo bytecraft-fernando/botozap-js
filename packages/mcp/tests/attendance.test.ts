@@ -274,6 +274,22 @@ describe("MCP Atendimento: schemas, domínio e transporte real em memória", () 
       { choice: "remote", expected_revision: 2 },
     ],
     [
+      "update_contact_stage",
+      { id, on_reply_stage_id: other },
+      { data: { id, key: null, label: "Retomar depois", position: 5, on_reply_stage_id: other } },
+      "PATCH",
+      `/contact-stages/${id}`,
+      { on_reply_stage_id: other },
+    ],
+    [
+      "update_contact_stage",
+      { id, on_reply_stage_id: null },
+      { data: { id, key: null, label: "Retomar depois", position: 5, on_reply_stage_id: null } },
+      "PATCH",
+      `/contact-stages/${id}`,
+      { on_reply_stage_id: null },
+    ],
+    [
       "reorder_contact_stages",
       { customer_id: other, stage_ids: [id] },
       { data: [{ id, key: "new", label: "Nova", position: 1 }] },
