@@ -123,7 +123,7 @@ botozap channel-accounts messenger-profile get | update | delete | sync   (Insta
 botozap templates     list | get | create | update | delete | sync
 botozap webhooks      list | get | create | update | delete | test
 botozap deliveries    list | replay                 (webhook_deliveries)
-botozap logs          list                          (api_logs)
+botozap logs          list, meta                    (api_logs; meta = avisos da Meta por hora)
 botozap users         list
 botozap usage         meta-costs                    (custo aproximado da Meta)
 botozap billing       (plano, slots e garantia) | slots create | slots cancel
@@ -357,6 +357,7 @@ botozap deliveries list --status failed --channel-account-id <id-do-canal>
 botozap deliveries list --status exhausted
 botozap deliveries replay <id-da-entrega>
 botozap logs list --status-code 500
+botozap logs meta --since 2026-11-19T00:00:00Z
 ```
 
 ## Tratamento de erros

@@ -45,6 +45,7 @@ routes(["test_webhook"], "POST /v1/webhooks/:id/test");
 routes(["list_webhook_deliveries"], "GET /v1/webhook_deliveries");
 routes(["replay_webhook_delivery"], "POST /v1/webhook_deliveries/:id/replay");
 routes(["list_api_logs"], "GET /v1/api_logs");
+routes(["list_meta_webhook_hourly"], "GET /v1/api_logs/meta_hourly");
 routes(["list_users"], "GET /v1/users");
 routes(["get_meta_costs"], "GET /v1/usage/meta-costs");
 routes(["get_billing"], "GET /v1/billing");

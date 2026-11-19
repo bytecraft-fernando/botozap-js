@@ -45,3 +45,23 @@ describe("logs list", () => {
     expect(JSON.parse(result.stdout).data[0].request_id).toBe("abcd1-1763420000000-0123456789ab");
   });
 });
+
+describe("logs meta", () => {
+  it("lê /v1/api_logs/meta_hourly com o canal e o período, e mostra a hora, os recebidos e as falhas", async () => {
+    fetch.mockImplementation(async () =>
+      Response.json({
+        data: [{ hour: "2026-11-19T21:00:00+00:00", received: 8, failed: 1, partial: true, channels: [{ channel_account_id: "ca_1", received: 8, failed: 1 }] }],
+        paging: { cursors: { before: null, after: null }, next: null, previous: null },
+      }),
+    );
+    const result = await run(registerLogs, ["logs", "meta", "--channel-account-id", "ca_1", "--since", "2026-11-19T00:00:00Z", "--limit", "24", ...auth]);
+    expect(result.error).toBeUndefined();
+    const url = new URL(String(fetch.mock.calls[0]![0]));
+    expect([url.pathname, url.searchParams.get("channel_account_id"), url.searchParams.get("since"), url.searchParams.get("limit")]).toEqual([
+      "/v1/api_logs/meta_hourly", "ca_1", "2026-11-19T00:00:00Z", "24",
+    ]);
+    expect(result.stdout).toContain("COM FALHA");
+    const row = result.stdout.split("\n").find((line) => line.includes("2026-11-19T21:00:00+00:00"));
+    expect(row).toMatch(/sim\s+8\s+1\s+1/);
+  });
+});

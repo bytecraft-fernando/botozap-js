@@ -685,7 +685,7 @@ O SDK cobre os recursos da API `/v1`:
 - `teamEvents` — `list`: registro de atividades da equipe, com filtros (`team:read`, só Administrador)
 - `me` — `get`: Conta, ambiente (`live` ou `sandbox`) e scopes efetivos da chave autenticada; não retorna a chave nem uma identidade pessoal
 - `webhookDeliveries` — histórico de Entregas de webhook e reenvio das esgotadas (`replay`)
-- `users`, `apiLogs` — leitura
+- `users`, `apiLogs` — leitura; `apiLogs.metaHourly` traz os avisos da Meta contados por hora, com a conta de cada número ou conta do Instagram
 
 `me.get()` é útil para conferir a identidade configurada antes de executar
 operações em uma integração:

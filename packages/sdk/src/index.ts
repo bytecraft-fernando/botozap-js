@@ -147,6 +147,7 @@ export type {
 } from "./resources/team-events.js";
 export type {
   ListApiLogsParams,
+  ListMetaHourlyParams,
   ListWebhookDeliveriesParams,
   WebhookDeliveryReplay,
 } from "./resources/read-only.js";
@@ -195,6 +196,7 @@ export type {
   PhoneNumber,
   User,
   ApiLog,
+  MetaWebhookHour,
   WebhookDelivery,
   WebhookDeliveryStatus,
   WebhookCategory,
