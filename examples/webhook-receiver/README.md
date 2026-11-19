@@ -10,9 +10,13 @@ contra assinaturas reais.
 1. **Bytes crus** — o HMAC é calculado sobre o corpo exatamente como chegou.
    Reserializar o JSON (parse → stringify) muda espaçamento/ordem de chaves e
    invalida a assinatura.
-2. **`X-Webhook-Signature`** — HMAC-SHA256 hex do corpo cru com o segredo
-   `whsec_…` (tela Webhooks), comparação **constant-time**
-   (`timingSafeEqual`). Sem prefixo `sha256=`.
+2. **`X-Webhook-Signature-V2`** — HMAC-SHA256 hex de
+   `<X-Webhook-Timestamp>.<corpo cru>` com o segredo `whsec_…` (tela
+   Webhooks), comparação **constant-time** (`timingSafeEqual`), sem prefixo
+   `sha256=`. Recuse o `X-Webhook-Timestamp` a mais de 5 minutos do seu
+   relógio: uma entrega capturada não pode ser reenviada depois. A
+   `X-Webhook-Signature`, só do corpo, segue em toda entrega para quem já
+   valida por ela.
 3. **`X-Idempotency-Key`** — a entrega é *at-least-once*: duplicatas raras
    acontecem. Grave a chave **e** o efeito na **mesma transação**
    (`INSERT … ON CONFLICT DO NOTHING` + escritas do evento antes do COMMIT).
