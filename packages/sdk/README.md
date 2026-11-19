@@ -697,7 +697,9 @@ const identity = await boto.me.get();
 
 Inbound e mudanças de status compartilham um stream crescente. Guarde
 `paging.cursor` e use-o como `after` na leitura seguinte; após uma desconexão,
-isso recupera o intervalo persistido sem depender de memória do processo:
+isso recupera o intervalo persistido sem depender de memória do processo. Cada
+Evento fica 90 dias no stream: um `after` anterior ao mais antigo guardado
+continua dele, sem erro.
 
 ```ts
 const page = await boto.events.list({ after: ultimoCursor, limit: 100 });

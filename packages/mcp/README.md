@@ -262,7 +262,8 @@ com o cursor final em `after`; o probe inicial da assinatura fecha a corrida com
 um Evento persistido entre a última leitura e o subscribe. Notifications são
 hints at-least-once e podem se repetir; deduplique por `event.id` antes de
 produzir qualquer resposta. O mesmo Evento conserva `id`, `cursor` e identidade
-de mensagem em retries e replay.
+de mensagem em retries e replay. Cada Evento fica 90 dias no stream; um cursor
+anterior ao mais antigo guardado continua dele.
 
 No stdio, o tail usa intervalo padrão de 1,5 segundo e para no `unsubscribe` ou
 no fim da sessão. No remoto, o PostgreSQL acorda o processo MCP mesmo quando o

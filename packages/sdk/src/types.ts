@@ -544,7 +544,7 @@ export type WebhookCategory = (typeof WEBHOOK_CATEGORIES)[number];
 /** Evento autoritativo do stream durável da Conta e ambiente autenticados. */
 export interface BotoZapEvent {
   id: string;
-  /** Cursor monotônico e contíguo, serializado como string. */
+  /** Cursor crescente por Conta e ambiente, serializado como string. Cada Evento fica 90 dias no stream. */
   cursor: string;
   /**
    * Tipo do Evento (ex.: `whatsapp.message.received`,

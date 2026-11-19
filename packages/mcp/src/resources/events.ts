@@ -169,7 +169,7 @@ export function registerEventResources(
     {
       title: "Eventos do WhatsApp",
       description:
-        "Stream durável de Eventos da Conta e ambiente autenticados, lido em ordem crescente pelo cursor `after`.",
+        "Stream durável de Eventos da Conta e ambiente autenticados, lido em ordem crescente pelo cursor `after`. Cada Evento fica 90 dias; um cursor anterior ao mais antigo guardado continua dele.",
       mimeType: "application/json",
     },
     async (uri) => {
