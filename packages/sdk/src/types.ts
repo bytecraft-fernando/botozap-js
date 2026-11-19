@@ -673,6 +673,14 @@ export interface MediaAsset {
 }
 
 /**
+ * Cor de marca da página do link de setup, como a API devolve: só
+ * `primary_color`, em `#rrggbb` minúsculo.
+ */
+export interface SetupLinkTheme {
+  primary_color: string;
+}
+
+/**
  * Link de setup de um cliente (Embedded Signup no WhatsApp, login do Instagram
  * no Instagram). Shape do contrato
  * (ver `/v1/customers/:id/setup_links`): a `url` embute o token opaco; o token
@@ -708,8 +716,13 @@ export interface SetupLink {
    * `setup_link_id`.
    */
   failure_redirect_url: string | null;
-  /** Reservado: hoje sempre `null` (a página de conexão não aplica tema). */
-  theme_config: unknown;
+  /**
+   * Cor de marca da página do link (WhatsApp e Instagram), ou `null` para as
+   * cores padrão. A página usa a cor nos botões, links e destaques, nos temas
+   * claro e escuro, e ajusta a luminosidade só o necessário para o texto ficar
+   * legível (contraste AA do WCAG).
+   */
+  theme_config: SetupLinkTheme | null;
   expires_at: string | null;
   created_at: string;
   updated_at: string;

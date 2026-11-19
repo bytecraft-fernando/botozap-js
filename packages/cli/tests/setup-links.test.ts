@@ -70,6 +70,14 @@ describe("setup-links create", () => {
     });
   });
 
+  it("sends --primary-color as theme_config", async () => {
+    const result = await run(registerSetupLinks, [
+      "setup-links", "create", "--customer", customerId, "--primary-color", "#0A66C2", ...json,
+    ]);
+    expect(result.error).toBeUndefined();
+    expect(request().body).toEqual({ theme_config: { primary_color: "#0A66C2" } });
+  });
+
   it("rejects an unknown --channel before calling the API", async () => {
     const result = await run(registerSetupLinks, [
       "setup-links", "create", "--customer", customerId, "--channel", "telegram", ...json,
@@ -93,6 +101,28 @@ describe("setup-links create", () => {
     expect(help).toContain("status=failed");
     expect(help).toContain("status=cancelled");
     expect(help).toContain("2048");
+  });
+});
+
+describe("setup-links update", () => {
+  const update = (...args: string[]) =>
+    run(registerSetupLinks, ["setup-links", "update", linkId, "--customer", customerId, ...args, ...json]);
+
+  it("--primary-color troca a cor e --clear-color volta às cores padrão", async () => {
+    expect((await update("--primary-color", "#E91E63")).error).toBeUndefined();
+    expect(request(0)).toEqual({
+      method: "PATCH",
+      path: `/customers/${customerId}/setup_links/${linkId}`,
+      body: { theme_config: { primary_color: "#E91E63" } },
+    });
+    expect((await update("--clear-color", "--status", "active")).error).toBeUndefined();
+    expect(request(1).body).toEqual({ status: "active", theme_config: null });
+  });
+
+  it("sem nenhum campo, ou com as duas opções de cor, recusa antes da API", async () => {
+    expect((await update()).error).toBeDefined();
+    expect((await update("--primary-color", "#E91E63", "--clear-color")).error).toBeDefined();
+    expect(fetch).not.toHaveBeenCalled();
   });
 });
 

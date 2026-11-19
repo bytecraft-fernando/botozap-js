@@ -339,6 +339,11 @@ const fetchStub = (async (input: unknown, init?: RequestInit) => {
   }
   if (method === "POST" && path === `/customers/${CUSTOMER_ID}/setup_links`) {
     const body = typeof init?.body === "string" ? JSON.parse(init.body) : {};
+    if (body.theme_config?.primary_color) {
+      return jsonResponse(201, {
+        data: { ...setupLink, theme_config: { primary_color: String(body.theme_config.primary_color).toLowerCase() } },
+      });
+    }
     if (body.channel === "instagram") {
       return jsonResponse(201, {
         data: {
@@ -846,6 +851,38 @@ describe("MCP — output schemas e structured content", () => {
       },
     });
   });
+  it("create_setup_link e update_setup_link repassam theme_config e devolvem a cor tipada", async () => {
+    const client = await connect();
+    const discovery = await client.listTools();
+    const create = discovery.tools.find((t) => t.name === "create_setup_link");
+    const update = discovery.tools.find((t) => t.name === "update_setup_link");
+    expect(Object.keys(create?.inputSchema.properties ?? {})).toContain("theme_config");
+    expect(Object.keys(update?.inputSchema.properties ?? {})).toContain("theme_config");
+    expect(create?.description).toContain("invalid_theme_config");
+    expect(JSON.stringify(create?.outputSchema ?? {})).not.toContain("Reservado");
+
+    const criado = await client.callTool({
+      name: "create_setup_link",
+      arguments: { customer_id: CUSTOMER_ID, theme_config: { primary_color: "#0A66C2", background_color: "#ffffff" } },
+    });
+    expect(criado.isError).toBeFalsy();
+    expect(calls.at(-1)?.body).toEqual({ theme_config: { primary_color: "#0A66C2", background_color: "#ffffff" } });
+    expect((criado.structuredContent as { data: { theme_config: unknown } }).data.theme_config).toEqual({
+      primary_color: "#0a66c2",
+    });
+
+    const limpo = await client.callTool({
+      name: "update_setup_link",
+      arguments: { customer_id: CUSTOMER_ID, link_id: SETUP_LINK_ID, theme_config: null },
+    });
+    expect(limpo.isError).toBeFalsy();
+    expect(calls.at(-1)).toEqual({
+      method: "PATCH",
+      path: `/customers/${CUSTOMER_ID}/setup_links/${SETUP_LINK_ID}`,
+      body: { theme_config: null },
+    });
+  });
+
   it("create_setup_link aceita channel instagram, explica o canal e devolve channel", async () => {
     const client = await connect();
     const discovery = await client.listTools();

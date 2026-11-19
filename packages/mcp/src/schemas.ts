@@ -608,9 +608,12 @@ export const setupLinkSchema = z
       .describe(
         "Destino com status=failed (link esgotado) ou status=cancelled (cliente voltou; link segue válido), mais setup_link_id.",
       ),
-    theme_config: jsonValueSchema
+    theme_config: z
+      .object({ primary_color: z.string() })
       .nullable()
-      .describe("Reservado: hoje sempre null (a página de conexão não aplica tema)."),
+      .describe(
+        "Cor de marca da página do link ({ primary_color: '#rrggbb' }) ou null para as cores padrão.",
+      ),
     expires_at: z.string().nullable(),
     created_at: z.string(),
     updated_at: z.string(),

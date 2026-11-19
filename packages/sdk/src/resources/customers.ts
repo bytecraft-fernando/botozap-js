@@ -38,6 +38,17 @@ export interface UpdateCustomerParams {
 }
 
 /**
+ * `theme_config` no formato da Kapso. Só `primary_color` (`#RRGGBB`) é
+ * aplicada; as outras chaves do formato (`background_color` e afins) são
+ * aceitas e ignoradas, e não voltam na resposta. Cor fora de `#RRGGBB` responde
+ * `422 invalid_theme_config`.
+ */
+export interface SetupLinkThemeConfig {
+  primary_color?: string | null;
+  [key: string]: unknown;
+}
+
+/**
  * Corpo de `POST /v1/customers/:id/setup_links`.
  *
  * Redirecionamentos: acontecem na página de conexão, só em estado final do
@@ -89,6 +100,11 @@ export interface CreateSetupLinkParams {
    * segue válido). Mesmas regras de `success_redirect_url`.
    */
   failure_redirect_url?: string;
+  /**
+   * Cor de marca da página do link, por exemplo `{ primary_color: "#0A66C2" }`.
+   * Omitido ou `null`: cores padrão. Veja {@link SetupLinkThemeConfig}.
+   */
+  theme_config?: SetupLinkThemeConfig | null;
 }
 
 /** Corpo de `PATCH /v1/customers/:id/setup_links/:linkId`. */
@@ -97,6 +113,8 @@ export interface UpdateSetupLinkParams {
   status?: string;
   /** Nova expiração (ISO 8601). */
   expires_at?: string;
+  /** Troca a cor de marca da página do link; `null` volta às cores padrão. */
+  theme_config?: SetupLinkThemeConfig | null;
 }
 
 function enc(id: string): string {
