@@ -323,6 +323,7 @@ exports[`MCP Atendimento: schemas, domínio e transporte real em memória > cat�
   "list_webhook_deliveries",
   "replay_webhook_delivery",
   "list_api_logs",
+  "list_meta_webhook_hourly",
   "list_users",
   "list_team_events",
   "get_meta_costs",

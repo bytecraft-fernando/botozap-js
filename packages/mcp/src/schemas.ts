@@ -3,6 +3,7 @@ import { z, type AnyZodObject } from "zod";
 import type {
   AccountExport,
   ApiLog,
+  MetaWebhookHour,
   Billing,
   Consent,
   ConsentRequestResult,
@@ -668,6 +669,20 @@ export const apiLogSchema = z
   .strip() satisfies z.ZodType<ApiLog>;
 
 export const listApiLogsResultSchema = cursorListResultSchemaFor(apiLogSchema);
+
+const metaHourCountSchema = z.object({
+  received: z.number().int().nonnegative(),
+  failed: z.number().int().nonnegative(),
+});
+
+export const metaWebhookHourSchema = metaHourCountSchema
+  .extend({
+    hour: z.string(),
+    channels: z.array(metaHourCountSchema.extend({ channel_account_id: internalUuidSchema }).strip()),
+  })
+  .strip() satisfies z.ZodType<MetaWebhookHour>;
+
+export const listMetaWebhookHourlyResultSchema = cursorListResultSchemaFor(metaWebhookHourSchema);
 
 export const userSchema = z
   .object({

@@ -1,6 +1,7 @@
 import type { BotoZap } from "../client.js";
 import type {
   ApiLog,
+  MetaWebhookHour,
   WebhookDeliveryStatus,
   CursorList,
   CursorParams,
@@ -31,9 +32,32 @@ export interface ListApiLogsParams extends CursorParams {
   status_code?: number;
 }
 
+export interface ListMetaHourlyParams extends CursorParams {
+  /** Uma Conta de canal (o número ou a conta do Instagram). */
+  channel_account_id?: string;
+  /** Início do período (ISO 8601, inclusivo). */
+  since?: string;
+  /** Fim do período (ISO 8601, exclusivo). */
+  until?: string;
+}
+
 /** Logs de requisições à API (somente leitura, paginação por cursor). */
 export class ApiLogs {
   constructor(private readonly client: BotoZap) {}
+
+  /** Os avisos da Meta contados por hora, da hora mais nova para a mais antiga (cursor pela hora). */
+  metaHourly(params: ListMetaHourlyParams = {}): Promise<CursorList<MetaWebhookHour>> {
+    return this.client.requestCursorList<CursorList<MetaWebhookHour>>("GET", "/api_logs/meta_hourly", {
+      query: {
+        limit: params.limit,
+        after: params.after,
+        before: params.before,
+        channel_account_id: params.channel_account_id,
+        since: params.since,
+        until: params.until,
+      },
+    });
+  }
 
   list(params: ListApiLogsParams = {}): Promise<CursorList<ApiLog>> {
     return this.client.requestCursorList<CursorList<ApiLog>>("GET", "/api_logs", {

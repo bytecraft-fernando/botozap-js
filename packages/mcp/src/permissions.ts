@@ -212,6 +212,7 @@ write(["test_webhook"], "webhooks:write", false,
 write(["replay_webhook_delivery"], "webhooks:write", false,
   { destructiveHint: false, idempotentHint: true, openWorldHint: true });
 read(["list_api_logs"], "logs:read", false);
+read(["list_meta_webhook_hourly"], "logs:read", false);
 read(["list_users"], "team:read", false);
 read(["get_meta_costs"], "customers:read", false);
 // Plano e slots: só chave de API (para OAuth estas rotas são exclusivas do painel).

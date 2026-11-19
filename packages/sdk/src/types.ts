@@ -502,6 +502,18 @@ export interface User {
   [key: string]: unknown;
 }
 
+/**
+ * Os avisos que a Meta mandou à Conta numa hora (`GET /v1/api_logs/meta_hourly`): o total, os que o
+ * BotoZap não conseguiu processar e a conta de cada número ou conta do Instagram.
+ */
+export interface MetaWebhookHour {
+  /** O começo da hora (ISO 8601). */
+  hour: string;
+  received: number;
+  failed: number;
+  channels: { channel_account_id: string; received: number; failed: number }[];
+}
+
 export interface ApiLog {
   id: string;
   /** Id da chamada: o mesmo `x-request-id` da resposta. Nulo nos registros antigos e nos avisos da Meta. */

@@ -1,10 +1,11 @@
 /** Ferramentas diversas: logs de API e usuários da conta. */
 import { z } from "zod";
-import type { ListApiLogsParams, ListTeamEventsParams } from "@botozap/sdk";
+import type { ListApiLogsParams, ListMetaHourlyParams, ListTeamEventsParams } from "@botozap/sdk";
 import type { OffsetParams } from "@botozap/sdk";
 import type { Register } from "../register.js";
 import {
   listApiLogsResultSchema,
+  listMetaWebhookHourlyResultSchema,
   listTeamEventsResultSchema,
   listUsersResultSchema,
 } from "../schemas.js";
@@ -24,6 +25,21 @@ export function registerMiscTools(register: Register): void {
     },
     listApiLogsResultSchema,
     (client, args) => client.apiLogs.list(args as ListApiLogsParams),
+  );
+
+  register(
+    "list_meta_webhook_hourly",
+    "Lista os avisos que a Meta mandou à conta, contados por hora: o total recebido, os que o BotoZap não conseguiu processar (failed) e a conta de cada número ou conta do Instagram. Da hora mais nova para a mais antiga; paginação por cursor: { data, paging }.",
+    {
+      channel_account_id: z.string().optional().describe("Uma Conta de canal (o número ou a conta do Instagram)."),
+      since: z.string().optional().describe("Início do período (ISO 8601, inclusivo)."),
+      until: z.string().optional().describe("Fim do período (ISO 8601, exclusivo)."),
+      limit: z.number().int().positive().optional().describe("Horas por página."),
+      after: z.string().optional(),
+      before: z.string().optional(),
+    },
+    listMetaWebhookHourlyResultSchema,
+    (client, args) => client.apiLogs.metaHourly(args as ListMetaHourlyParams),
   );
 
   register(
