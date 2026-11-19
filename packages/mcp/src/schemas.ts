@@ -678,6 +678,7 @@ const metaHourCountSchema = z.object({
 export const metaWebhookHourSchema = metaHourCountSchema
   .extend({
     hour: z.string(),
+    partial: z.boolean(),
     channels: z.array(metaHourCountSchema.extend({ channel_account_id: internalUuidSchema }).strip()),
   })
   .strip() satisfies z.ZodType<MetaWebhookHour>;

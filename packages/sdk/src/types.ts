@@ -510,7 +510,10 @@ export interface MetaWebhookHour {
   /** O começo da hora (ISO 8601). */
   hour: string;
   received: number;
+  /** Os que o BotoZap desistiu de processar; só entram horas depois. */
   failed: number;
+  /** A hora ainda não fechou: a contagem é refeita aos 5 minutos de cada hora. */
+  partial: boolean;
   channels: { channel_account_id: string; received: number; failed: number }[];
 }
 

@@ -50,7 +50,7 @@ describe("logs meta", () => {
   it("lê /v1/api_logs/meta_hourly com o canal e o período, e mostra a hora, os recebidos e as falhas", async () => {
     fetch.mockImplementation(async () =>
       Response.json({
-        data: [{ hour: "2026-11-19T21:00:00+00:00", received: 8, failed: 1, channels: [{ channel_account_id: "ca_1", received: 8, failed: 1 }] }],
+        data: [{ hour: "2026-11-19T21:00:00+00:00", received: 8, failed: 1, partial: true, channels: [{ channel_account_id: "ca_1", received: 8, failed: 1 }] }],
         paging: { cursors: { before: null, after: null }, next: null, previous: null },
       }),
     );
@@ -62,6 +62,6 @@ describe("logs meta", () => {
     ]);
     expect(result.stdout).toContain("COM FALHA");
     const row = result.stdout.split("\n").find((line) => line.includes("2026-11-19T21:00:00+00:00"));
-    expect(row).toMatch(/8\s+1\s+1/);
+    expect(row).toMatch(/sim\s+8\s+1\s+1/);
   });
 });

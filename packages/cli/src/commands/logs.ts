@@ -60,9 +60,10 @@ export function registerLogs(program: Command): void {
       });
       if (format === "json") return printJson(res);
       printTable(
-        res.data.map((h) => ({ ...h, canais: h.channels.length })),
+        res.data.map((h) => ({ ...h, canais: h.channels.length, parcial: h.partial ? "sim" : "" })),
         [
           { header: "HORA", key: "hour" },
+          { header: "PARCIAL", key: "parcial" },
           { header: "RECEBIDOS", key: "received" },
           { header: "COM FALHA", key: "failed" },
           { header: "CANAIS", key: "canais" },

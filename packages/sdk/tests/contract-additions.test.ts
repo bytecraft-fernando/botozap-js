@@ -255,7 +255,7 @@ describe("SDK contract — correções E3.2", () => {
   });
 
   it("apiLogs.metaHourly: a rota dos avisos da Meta por hora, com o canal e o período", async () => {
-    const hora = { hour: "2026-11-19T21:00:00+00:00", received: 8, failed: 1, channels: [{ channel_account_id: "ca_1", received: 8, failed: 1 }] };
+    const hora = { hour: "2026-11-19T21:00:00+00:00", received: 8, failed: 1, partial: true, channels: [{ channel_account_id: "ca_1", received: 8, failed: 1 }] };
     responder = () => ({
       status: 200,
       json: { data: [hora], paging: { cursors: { before: null, after: null }, next: null, previous: null } },
