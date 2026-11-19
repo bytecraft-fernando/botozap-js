@@ -11,12 +11,13 @@ contra assinaturas reais.
    Reserializar o JSON (parse → stringify) muda espaçamento/ordem de chaves e
    invalida a assinatura.
 2. **`X-Webhook-Signature-V2`** — HMAC-SHA256 hex de
-   `<X-Webhook-Timestamp>.<corpo cru>` com o segredo `whsec_…` (tela
-   Webhooks), comparação **constant-time** (`timingSafeEqual`), sem prefixo
-   `sha256=`. Recuse o `X-Webhook-Timestamp` a mais de 5 minutos do seu
-   relógio: uma entrega capturada não pode ser reenviada depois. A
-   `X-Webhook-Signature`, só do corpo, segue em toda entrega para quem já
-   valida por ela.
+   `<X-Webhook-Timestamp>.<X-Idempotency-Key>.<corpo cru>` com o segredo
+   `whsec_…` (tela Webhooks), comparação **constant-time** (`timingSafeEqual`),
+   sem prefixo `sha256=`. Recuse o `X-Webhook-Timestamp` (segundos Unix, um
+   novo a cada tentativa) a mais de 5 minutos do seu relógio, que deve estar
+   sincronizado por NTP: uma entrega capturada não serve depois, nem reenviada
+   com outra chave. A `X-Webhook-Signature`, só do corpo, segue em toda entrega
+   para quem já valida por ela.
 3. **`X-Idempotency-Key`** — a entrega é *at-least-once*: duplicatas raras
    acontecem. Grave a chave **e** o efeito na **mesma transação**
    (`INSERT … ON CONFLICT DO NOTHING` + escritas do evento antes do COMMIT).

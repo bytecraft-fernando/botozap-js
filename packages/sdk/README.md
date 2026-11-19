@@ -805,7 +805,7 @@ Exemplos mínimos e rodáveis na raiz do monorepo, em [`examples/`](../../exampl
 
 - [`node-javascript`](../../examples/node-javascript) — envio sandbox e tratamento de `BotoZapError`
 - [`node-typescript`](../../examples/node-typescript) — envio tipado, leitura paginada e erro estruturado
-- [`webhook-receiver`](../../examples/webhook-receiver) — receber os eventos encaminhados (valida `X-Webhook-Signature`)
+- [`webhook-receiver`](../../examples/webhook-receiver) — receber os eventos encaminhados (valida `X-Webhook-Signature-V2`, a assinatura com data)
 - [`mcp-sandbox`](../../examples/mcp-sandbox) — servidor MCP com chave sandbox
 
 ## Licença

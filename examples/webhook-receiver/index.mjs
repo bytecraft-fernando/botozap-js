@@ -6,7 +6,7 @@
  *   1. bytes CRUS do corpo (nunca reserializar o JSON — mudaria
  *      espaçamento/ordem de chaves e invalidaria o HMAC);
  *   2. a assinatura com data: `X-Webhook-Signature-V2` = HMAC-SHA256 hex de
- *      `<X-Webhook-Timestamp>.<corpo cru>`, comparação constant-time (sem
+ *      `<X-Webhook-Timestamp>.<X-Idempotency-Key>.<corpo cru>`, comparação constant-time (sem
  *      prefixo `sha256=`), e o timestamp a no máximo 5 minutos do relógio do
  *      receptor (uma entrega capturada não serve depois). A
  *      `X-Webhook-Signature`, só do corpo, segue indo para quem já valida;
@@ -22,21 +22,23 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 const WEBHOOK_SECRET = process.env.BOTOZAP_WEBHOOK_SECRET; // whsec_... (tela Webhooks)
 
 // Entrega com o timestamp a mais de 5 minutos do seu relógio é recusada: uma
-// entrega capturada não pode ser reenviada depois.
+// entrega capturada não serve depois. Mantenha o relógio sincronizado (NTP).
 const TOLERANCE_SECONDS = 300;
 
 /**
- * Verifica a assinatura com data do BotoZap (headers X-Webhook-Timestamp e
- * X-Webhook-Signature-V2): HMAC-SHA256 hex de "<timestamp>.<corpo cru>".
+ * Verifica a assinatura com data do BotoZap (headers X-Webhook-Timestamp,
+ * X-Idempotency-Key e X-Webhook-Signature-V2): HMAC-SHA256 hex de
+ * "<timestamp>.<idempotency key>.<corpo cru>". Assinar a chave impede reenviar
+ * a entrega capturada com outra chave para escapar do dedupe.
  * IMPORTANTE: calcule o HMAC sobre os BYTES CRUS do corpo — nunca sobre
  * JSON.stringify(JSON.parse(rawBody)), que pode reordenar chaves ou mudar
  * espaçamento e invalidar a assinatura.
  */
 export function verifyBotozapSignature(rawBody, headers, secret, nowSeconds = Math.floor(Date.now() / 1000)) {
-  const { timestamp, signature } = headers;
-  if (!timestamp || !signature || !/^\d+$/.test(timestamp)) return false;
+  const { timestamp, idempotencyKey, signature } = headers;
+  if (!timestamp || !idempotencyKey || !signature || !/^\d+$/.test(timestamp)) return false;
   if (Math.abs(nowSeconds - Number(timestamp)) > TOLERANCE_SECONDS) return false;
-  const expected = createHmac("sha256", secret).update(timestamp + ".").update(rawBody).digest("hex");
+  const expected = createHmac("sha256", secret).update(timestamp + "." + idempotencyKey + ".").update(rawBody).digest("hex");
   const a = Buffer.from(signature, "utf8");
   const b = Buffer.from(expected, "utf8");
   if (a.length !== b.length) return false;
@@ -74,7 +76,11 @@ const server = createServer((req, res) => {
       const value = req.headers[name];
       return Array.isArray(value) ? value[0] : value;
     };
-    const signed = { timestamp: header("x-webhook-timestamp"), signature: header("x-webhook-signature-v2") };
+    const signed = {
+      timestamp: header("x-webhook-timestamp"),
+      idempotencyKey: header("x-idempotency-key"),
+      signature: header("x-webhook-signature-v2"),
+    };
     if (!verifyBotozapSignature(rawBody, signed, WEBHOOK_SECRET)) {
       res.writeHead(401).end();
       return;
