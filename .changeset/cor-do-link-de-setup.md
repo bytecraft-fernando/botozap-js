@@ -8,4 +8,4 @@ Cor de marca da página do link de setup: `theme_config` deixa de ser reservado.
 
 Tipos: `SetupLink.theme_config` deixa de ser `unknown` e passa a `SetupLinkTheme | null`. Quem monta um `SetupLink` à mão (num mock, por exemplo) com outro valor precisa ajustar.
 
-Publicação: numa API sem `theme_config`, a cor é ignorada em silêncio e o link volta com `theme_config: null`; o schema de saída do MCP aceita os dois, então não há ordem de publicação obrigatória.
+Publicação: numa API sem `theme_config`, a cor é ignorada em silêncio no create e no update que também leve `status` ou `expires_at`, e o link volta com `theme_config: null`; um update só com `theme_config` (`--primary-color` ou `--clear-color` sozinhos na CLI) recebe `422 no_fields`. O schema de saída do MCP aceita os dois, então não há ordem de publicação obrigatória.
