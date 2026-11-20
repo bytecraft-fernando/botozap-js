@@ -21,6 +21,8 @@ import {
   type CreateAssignmentParams,
   type CreateSetupLinkParams,
   type SetupLink,
+  type SetupLinkTheme,
+  type SetupLinkThemeConfig,
 } from "../src/index.js";
 
 type CapturedRequest = {
@@ -525,6 +527,25 @@ describe("SDK contract — correções E3.2", () => {
     expect(req.path).toBe("/customers/cus_1/setup_links/lnk_2");
     expect(req.body).toEqual({ status: "revoked" });
     expect(link.status).toBe("revoked");
+  });
+
+  it("customers.createSetupLink e updateSetupLink: theme_config vai no body e volta tipado", async () => {
+    expectTypeOf<SetupLink["theme_config"]>().toEqualTypeOf<SetupLinkTheme | null>();
+    expectTypeOf<CreateSetupLinkParams["theme_config"]>().toEqualTypeOf<SetupLinkThemeConfig | null | undefined>();
+    responder = () => ({
+      status: 201,
+      json: { data: { id: "lnk_3", status: "active", theme_config: { primary_color: "#0a66c2" } } },
+    });
+    const link = await boto.customers.createSetupLink("cus_1", {
+      theme_config: { primary_color: "#0A66C2", background_color: "#ffffff" },
+    });
+    expect(lastRequest().body).toEqual({ theme_config: { primary_color: "#0A66C2", background_color: "#ffffff" } });
+    expect(link.theme_config).toEqual({ primary_color: "#0a66c2" });
+
+    responder = () => ({ status: 200, json: { data: { id: "lnk_3", status: "active", theme_config: null } } });
+    const limpo = await boto.customers.updateSetupLink("cus_1", "lnk_3", { theme_config: null });
+    expect([lastRequest().method, lastRequest().body]).toEqual(["PATCH", { theme_config: null }]);
+    expect(limpo.theme_config).toBeNull();
   });
 
   it("BotoZapError: 429 preserva headers da resposta (Retry-After / X-RateLimit-*)", async () => {

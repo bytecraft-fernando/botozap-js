@@ -339,11 +339,9 @@ const fetchStub = (async (input: unknown, init?: RequestInit) => {
   }
   if (method === "POST" && path === `/customers/${CUSTOMER_ID}/setup_links`) {
     const body = typeof init?.body === "string" ? JSON.parse(init.body) : {};
-    if (body.theme_config?.primary_color) {
-      return jsonResponse(201, {
-        data: { ...setupLink, theme_config: { primary_color: String(body.theme_config.primary_color).toLowerCase() } },
-      });
-    }
+    const theme = body.theme_config?.primary_color
+      ? { theme_config: { primary_color: String(body.theme_config.primary_color).toLowerCase() } }
+      : {};
     if (body.channel === "instagram") {
       return jsonResponse(201, {
         data: {
@@ -352,10 +350,11 @@ const fetchStub = (async (input: unknown, init?: RequestInit) => {
           url: "https://botozap.com.br/instagram/setup/token-opaco",
           allowed_connection_types: [],
           language: null,
+          ...theme,
         },
       });
     }
-    return jsonResponse(201, { data: setupLink });
+    return jsonResponse(201, { data: { ...setupLink, ...theme } });
   }
   if (
     method === "PATCH" &&

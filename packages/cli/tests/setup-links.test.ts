@@ -119,9 +119,13 @@ describe("setup-links update", () => {
     expect(request(1).body).toEqual({ status: "active", theme_config: null });
   });
 
-  it("sem nenhum campo, ou com as duas opções de cor, recusa antes da API", async () => {
-    expect((await update()).error).toBeDefined();
-    expect((await update("--primary-color", "#E91E63", "--clear-color")).error).toBeDefined();
+  it("sem nenhum campo, ou com as duas opções de cor, recusa antes da API com a mensagem certa", async () => {
+    expect(String((await update()).error)).toContain(
+      "Informe ao menos --status, --expires-at, --primary-color ou --clear-color.",
+    );
+    expect(String((await update("--primary-color", "#E91E63", "--clear-color")).error)).toContain(
+      "Use --primary-color OU --clear-color, não os dois.",
+    );
     expect(fetch).not.toHaveBeenCalled();
   });
 });

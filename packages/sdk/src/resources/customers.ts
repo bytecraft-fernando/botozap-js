@@ -40,7 +40,9 @@ export interface UpdateCustomerParams {
 /**
  * `theme_config` no formato da Kapso. Só `primary_color` (`#RRGGBB`) é
  * aplicada; as outras chaves do formato (`background_color` e afins) são
- * aceitas e ignoradas, e não voltam na resposta. Cor fora de `#RRGGBB` responde
+ * aceitas e ignoradas, e não voltam na resposta. O objeto substitui o tema
+ * inteiro: sem `primary_color` (ou com `null`), o link fica com as cores
+ * padrão, inclusive no update. Cor fora de `#RRGGBB` responde
  * `422 invalid_theme_config`.
  */
 export interface SetupLinkThemeConfig {
@@ -113,7 +115,11 @@ export interface UpdateSetupLinkParams {
   status?: string;
   /** Nova expiração (ISO 8601). */
   expires_at?: string;
-  /** Troca a cor de marca da página do link; `null` volta às cores padrão. */
+  /**
+   * Troca a cor de marca da página do link. O objeto substitui o tema inteiro:
+   * `null`, `{}` ou um objeto sem `primary_color` voltam às cores padrão. Para
+   * só mudar o status ou a validade, não envie `theme_config`.
+   */
   theme_config?: SetupLinkThemeConfig | null;
 }
 
@@ -183,7 +189,8 @@ export class Customers {
    * devolvida ao Cliente; veja em {@link CreateSetupLinkParams} como funcionam
    * os redirecionamentos. URL de redirecionamento inválida lança
    * `BotoZapError` com `code: "invalid_redirect_url"` (422); canal inválido,
-   * `code: "invalid_channel"` (422).
+   * `code: "invalid_channel"` (422); cor inválida em `theme_config`,
+   * `code: "invalid_theme_config"` (422).
    */
   createSetupLink(
     customerId: string,
@@ -196,7 +203,11 @@ export class Customers {
     );
   }
 
-  /** Atualiza status/expiração de um link de setup. */
+  /**
+   * Atualiza o status, a expiração ou a cor da página de um link de setup (veja
+   * {@link UpdateSetupLinkParams}). Cor inválida lança `BotoZapError` com
+   * `code: "invalid_theme_config"` (422).
+   */
   updateSetupLink(
     customerId: string,
     linkId: string,

@@ -179,7 +179,7 @@ export function registerCustomerTools(register: Register): void {
 
   register(
     "update_setup_link",
-    "Atualiza um link de setup (status, expires_at ou theme_config; theme_config null volta às cores padrão). Retorna { data }.",
+    "Atualiza um link de setup: status, expires_at ou theme_config. theme_config substitui o tema inteiro: null, {} ou um objeto sem primary_color voltam às cores padrão; para mudar só o status ou a validade, não envie theme_config. Cor fora de #RRGGBB responde 422 invalid_theme_config. Retorna { data }.",
     {
       customer_id: z.string().describe("ID do cliente (uuid interno)."),
       link_id: z.string().describe("ID do link de setup."),
@@ -196,7 +196,9 @@ export function registerCustomerTools(register: Register): void {
         .passthrough()
         .nullable()
         .optional()
-        .describe("Nova cor de marca da página do link ({ primary_color: '#RRGGBB' }); null volta às cores padrão."),
+        .describe(
+          "Nova cor de marca da página do link ({ primary_color: '#RRGGBB' }). Substitui o tema inteiro: null, {} ou sem primary_color voltam às cores padrão.",
+        ),
     },
     setupLinkResultSchema,
     async (client, args) => {

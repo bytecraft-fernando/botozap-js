@@ -65,7 +65,7 @@ export function registerSetupLinks(program: Command): void {
     )
     .option(
       "--primary-color <hex>",
-      "cor da marca na página do link, em #RRGGBB (por exemplo #0A66C2)",
+      "cor da marca na página do link, em #RRGGBB entre aspas (por exemplo '#0A66C2')",
     )
     .addHelpText(
       "after",
@@ -86,9 +86,10 @@ token do link nunca é enviado. Link expirado ou revogado não redireciona. As U
 precisam ser https, sem usuário/senha e com até 2048 caracteres (senão a API
 responde 422 invalid_redirect_url).
 
---primary-color pinta a página do link com a cor da sua marca, nos temas claro
-e escuro; a página ajusta a luminosidade só o necessário para o texto ficar
-legível. Cor fora de #RRGGBB: a API responde 422 invalid_theme_config.`,
+--primary-color '#0A66C2' pinta a página do link com a cor da sua marca, nos
+temas claro e escuro; a página ajusta a luminosidade só o necessário para o
+texto ficar legível. Use aspas: sem elas, o shell lê o # como comentário. Cor
+fora de #RRGGBB: a API responde 422 invalid_theme_config.`,
     )
     .action(async (opts, cmd: Command) => {
       const { client, format } = context(cmd);
@@ -122,14 +123,13 @@ legível. Cor fora de #RRGGBB: a API responde 422 invalid_theme_config.`,
     .requiredOption("--customer <id>", "id do cliente (obrigatório)")
     .option("--status <status>", "novo status")
     .option("--expires-at <data>", "nova expiração (ISO 8601)")
-    .addOption(
-      new Option("--primary-color <hex>", "nova cor da marca na página do link, em #RRGGBB").conflicts(
-        "clearColor",
-      ),
-    )
+    .option("--primary-color <hex>", "nova cor da marca na página do link, em #RRGGBB entre aspas")
     .option("--clear-color", "volta a página do link às cores padrão")
     .action(async (linkId: string, opts, cmd: Command) => {
       const { client, format } = context(cmd);
+      if (opts.primaryColor !== undefined && opts.clearColor) {
+        throw new Error("Use --primary-color OU --clear-color, não os dois.");
+      }
       const body: UpdateSetupLinkParams = {};
       if (opts.status !== undefined) body.status = opts.status;
       if (opts.expiresAt !== undefined) body.expires_at = opts.expiresAt;
