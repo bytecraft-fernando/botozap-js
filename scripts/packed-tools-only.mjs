@@ -136,6 +136,7 @@ try {
     "list_instagram_comment_ai_runs",
     "list_journey_models",
     "list_message_rules",
+    "list_meta_webhook_hourly",
     "list_pending_sends",
     "list_qr_codes",
     "list_team_events",

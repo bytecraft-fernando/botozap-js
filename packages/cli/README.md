@@ -305,6 +305,14 @@ botozap setup-links create --customer <customerId> \
 botozap setup-links create --customer <customerId> --channel instagram \
   --success-redirect-url "https://seu-app.com/instagram/ok"
 
+# Cor da sua marca na página do link (os dois canais, temas claro e escuro; a
+# página ajusta a luminosidade só o necessário para o texto ficar legível). Use
+# aspas: sem elas, o shell lê o # como comentário. --clear-color volta às cores
+# padrão; as duas opções juntas são recusadas.
+botozap setup-links create --customer <customerId> --primary-color '#0A66C2'
+botozap setup-links update <linkId> --customer <customerId> --primary-color '#E91E63'
+botozap setup-links update <linkId> --customer <customerId> --clear-color
+
 # Números, rótulo local e saúde. A coluna SUSPENSO marca o número acima do teto
 # do Free (1 número), ou de um Cliente suspenso: recebe, mas não envia
 # (402 free_number_cap ou free_cap). Assine ou desconecte o outro número.

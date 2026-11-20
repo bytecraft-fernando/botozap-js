@@ -1,5 +1,5 @@
 import { Command, Option } from "commander";
-import type { CreateSetupLinkParams } from "@botozap/sdk";
+import type { CreateSetupLinkParams, UpdateSetupLinkParams } from "@botozap/sdk";
 import { context, toInt } from "./shared.js";
 import {
   printJson,
@@ -63,6 +63,10 @@ export function registerSetupLinks(program: Command): void {
       "--failure-redirect-url <url>",
       "destino com status=failed (link esgotado) ou status=cancelled (cliente voltou; link segue válido)",
     )
+    .option(
+      "--primary-color <hex>",
+      "cor da marca na página do link, em #RRGGBB entre aspas (por exemplo '#0A66C2')",
+    )
     .addHelpText(
       "after",
       `
@@ -80,7 +84,12 @@ Redirecionamentos (só em estado final do link):
 Todo destino recebe também setup_link_id; a query da sua URL é preservada e o
 token do link nunca é enviado. Link expirado ou revogado não redireciona. As URLs
 precisam ser https, sem usuário/senha e com até 2048 caracteres (senão a API
-responde 422 invalid_redirect_url).`,
+responde 422 invalid_redirect_url).
+
+--primary-color '#0A66C2' pinta a página do link com a cor da sua marca, nos
+temas claro e escuro; a página ajusta a luminosidade só o necessário para o
+texto ficar legível. Use aspas: sem elas, o shell lê o # como comentário. Cor
+fora de #RRGGBB: a API responde 422 invalid_theme_config.`,
     )
     .action(async (opts, cmd: Command) => {
       const { client, format } = context(cmd);
@@ -99,6 +108,9 @@ responde 422 invalid_redirect_url).`,
       if (opts.failureRedirectUrl !== undefined) {
         params.failure_redirect_url = opts.failureRedirectUrl;
       }
+      if (opts.primaryColor !== undefined) {
+        params.theme_config = { primary_color: opts.primaryColor };
+      }
       const data = await client.customers.createSetupLink(opts.customer, params);
       if (format === "json") return printJson(data);
       printLine("Setup link criado.");
@@ -107,17 +119,24 @@ responde 422 invalid_redirect_url).`,
 
   links
     .command("update <linkId>")
-    .description("Atualiza um setup link (status / expiração)")
+    .description("Atualiza um setup link (status, expiração ou cor da página)")
     .requiredOption("--customer <id>", "id do cliente (obrigatório)")
     .option("--status <status>", "novo status")
     .option("--expires-at <data>", "nova expiração (ISO 8601)")
+    .option("--primary-color <hex>", "nova cor da marca na página do link, em #RRGGBB entre aspas")
+    .option("--clear-color", "volta a página do link às cores padrão")
     .action(async (linkId: string, opts, cmd: Command) => {
       const { client, format } = context(cmd);
-      const body: { status?: string; expires_at?: string } = {};
+      if (opts.primaryColor !== undefined && opts.clearColor) {
+        throw new Error("Use --primary-color OU --clear-color, não os dois.");
+      }
+      const body: UpdateSetupLinkParams = {};
       if (opts.status !== undefined) body.status = opts.status;
       if (opts.expiresAt !== undefined) body.expires_at = opts.expiresAt;
+      if (opts.primaryColor !== undefined) body.theme_config = { primary_color: opts.primaryColor };
+      if (opts.clearColor) body.theme_config = null;
       if (Object.keys(body).length === 0) {
-        throw new Error("Informe ao menos --status ou --expires-at.");
+        throw new Error("Informe ao menos --status, --expires-at, --primary-color ou --clear-color.");
       }
       const data = await client.customers.updateSetupLink(
         opts.customer,

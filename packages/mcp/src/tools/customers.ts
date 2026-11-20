@@ -117,7 +117,7 @@ export function registerCustomerTools(register: Register): void {
 
   register(
     "create_setup_link",
-    "Cria um link de setup para um cliente; envie a `url` devolvida ao cliente. Cada link conecta um canal só: channel 'whatsapp' (padrão; Embedded Signup) ou 'instagram' (o cliente confirma que a conta é profissional e que as mensagens estão liberadas e entra com o Instagram; numa falha, a página oferece voltar para failure_redirect_url com status=cancelled). No Instagram, allowed_connection_types não vale: enviar responde 422 invalid_connection_types, e o link volta com allowed_connection_types [] e url em /instagram/setup/<token>. whatsapp_setup_status vale para os dois canais. Opções: allowed_connection_types ('dedicated'|'coexistence', só WhatsApp) e redirects; language é aceito por compatibilidade e ignorado (a página é sempre em português). Redirects só em estado final: sucesso → success_redirect_url com setup_link_id e status=completed; link esgotado → failure_redirect_url com status=failed; cliente volta num erro recuperável → failure_redirect_url com status=cancelled (o link segue válido). A query da URL é preservada e o token nunca é enviado. URLs precisam ser https, sem usuário/senha, até 2048 caracteres (senão 422 invalid_redirect_url). Retorna { data }.",
+    "Cria um link de setup para um cliente; envie a `url` devolvida ao cliente. Cada link conecta um canal só: channel 'whatsapp' (padrão; Embedded Signup) ou 'instagram' (o cliente confirma que a conta é profissional e que as mensagens estão liberadas e entra com o Instagram; numa falha, a página oferece voltar para failure_redirect_url com status=cancelled). No Instagram, allowed_connection_types não vale: enviar responde 422 invalid_connection_types, e o link volta com allowed_connection_types [] e url em /instagram/setup/<token>. whatsapp_setup_status vale para os dois canais. Opções: allowed_connection_types ('dedicated'|'coexistence', só WhatsApp), redirects e theme_config ({ primary_color: '#RRGGBB' }: a cor da marca na página do link, nos temas claro e escuro; as outras chaves do formato da Kapso são aceitas e ignoradas; cor inválida responde 422 invalid_theme_config); language é aceito por compatibilidade e ignorado (a página é sempre em português). Redirects só em estado final: sucesso → success_redirect_url com setup_link_id e status=completed; link esgotado → failure_redirect_url com status=failed; cliente volta num erro recuperável → failure_redirect_url com status=cancelled (o link segue válido). A query da URL é preservada e o token nunca é enviado. URLs precisam ser https, sem usuário/senha, até 2048 caracteres (senão 422 invalid_redirect_url). Retorna { data }.",
     {
       customer_id: z.string().describe("ID do cliente (uuid interno)."),
       channel: z
@@ -150,6 +150,20 @@ export function registerCustomerTools(register: Register): void {
         .describe(
           "URL https (sem usuário/senha, até 2048 caracteres) para link esgotado (status=failed) ou quando o cliente volta num erro recuperável (status=cancelled; o link segue válido); recebe setup_link_id.",
         ),
+      theme_config: z
+        .object({
+          primary_color: z
+            .string()
+            .nullable()
+            .optional()
+            .describe("Cor da marca em #RRGGBB, por exemplo #0A66C2."),
+        })
+        .passthrough()
+        .nullable()
+        .optional()
+        .describe(
+          "Cor de marca da página do link: { primary_color: '#RRGGBB' }. A página ajusta a luminosidade só o necessário para o texto ficar legível. Omitido ou null: cores padrão.",
+        ),
     },
     setupLinkResultSchema,
     async (client, args) => {
@@ -165,12 +179,26 @@ export function registerCustomerTools(register: Register): void {
 
   register(
     "update_setup_link",
-    "Atualiza um link de setup (status, expires_at). Retorna { data }.",
+    "Atualiza um link de setup: status, expires_at ou theme_config. theme_config substitui o tema inteiro: null, {} ou um objeto sem primary_color voltam às cores padrão; para mudar só o status ou a validade, não envie theme_config. Cor fora de #RRGGBB responde 422 invalid_theme_config. Retorna { data }.",
     {
       customer_id: z.string().describe("ID do cliente (uuid interno)."),
       link_id: z.string().describe("ID do link de setup."),
       status: z.string().optional().describe("Novo status do link."),
       expires_at: z.string().optional().describe("Nova expiração (ISO 8601)."),
+      theme_config: z
+        .object({
+          primary_color: z
+            .string()
+            .nullable()
+            .optional()
+            .describe("Cor da marca em #RRGGBB, por exemplo #0A66C2."),
+        })
+        .passthrough()
+        .nullable()
+        .optional()
+        .describe(
+          "Nova cor de marca da página do link ({ primary_color: '#RRGGBB' }). Substitui o tema inteiro: null, {} ou sem primary_color voltam às cores padrão.",
+        ),
     },
     setupLinkResultSchema,
     async (client, args) => {

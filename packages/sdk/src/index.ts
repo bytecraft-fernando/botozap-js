@@ -45,6 +45,7 @@ export type {
   UpdateCustomerParams,
   CreateSetupLinkParams,
   UpdateSetupLinkParams,
+  SetupLinkThemeConfig,
 } from "./resources/customers.js";
 export type {
   Template,
@@ -205,6 +206,7 @@ export type {
   MediaUploadResult,
   MediaAsset,
   SetupLink,
+  SetupLinkTheme,
   BotoZapEvent,
   InstagramCommentAiAutomation,
   InstagramCommentAiRepliedEvent,

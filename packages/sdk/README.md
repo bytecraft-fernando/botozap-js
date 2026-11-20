@@ -788,6 +788,17 @@ const linkIg = await boto.customers.createSetupLink(customerId, {
 });
 // linkIg.channel === "instagram"
 
+// Cor da sua marca na página do link (os dois canais, temas claro e escuro). Só
+// primary_color (#RRGGBB) é aplicada; as outras chaves do formato da Kapso são
+// aceitas e ignoradas. Cor inválida → 422 invalid_theme_config.
+const linkCor = await boto.customers.createSetupLink(customerId, {
+  theme_config: { primary_color: "#0A66C2" },
+});
+// linkCor.theme_config → { primary_color: "#0a66c2" } (minúsculas)
+// No update, o objeto substitui o tema inteiro: null, {} ou sem primary_color
+// voltam às cores padrão.
+await boto.customers.updateSetupLink(customerId, linkCor.id, { theme_config: null });
+
 await boto.webhooks.create({
   url: "https://seu-app.com/hooks",
   events: ["messages", "statuses"], // categorias aceitas pela API (a rota rejeita nomes finos)
