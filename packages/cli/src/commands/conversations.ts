@@ -80,7 +80,8 @@ export function registerConversations(program: Command): void {
     .description(
       "Mostra \"digitando…\" ao contato enquanto a resposta é preparada (como o atendente no painel). " +
         "Vai na última mensagem recebida, que fica como lida; some quando a resposta sai ou em ~25 s. " +
-        "Repetir em menos de 20 s não chama a Meta de novo. Só com mensagem recebida (409 no_inbound_message) " +
+        "Repetir em menos de 20 s não chama a Meta de novo. Enquanto você chama, o agente de IA da conversa espera " +
+        "(até ~45 s depois da última chamada, no máximo 5 min). Só com mensagem recebida (409 no_inbound_message) " +
         "e janela de 24h aberta (outside_window no WhatsApp, window_closed no Instagram). Scope messages:send",
     )
     .action(async (id: string, _opts, cmd: Command) => {

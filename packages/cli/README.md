@@ -245,7 +245,7 @@ botozap templates sync                      # --customer-id <id> limita a um cli
 botozap conversations delete <id>
 
 # "Digitando…" enquanto prepara a resposta (só com mensagem recebida e janela aberta;
-# repetir em menos de 20 s não chama a Meta de novo) e marcar como lida (tiques azuis):
+# repetir em menos de 20 s não chama a Meta de novo; a IA da conversa espera) e marcar como lida (tiques azuis):
 botozap conversations typing <id>
 botozap conversations read <id>
 

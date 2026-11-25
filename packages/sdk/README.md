@@ -529,7 +529,7 @@ template, `templates.update(id, { opt_out_buttons })` (ou `opt_out_buttons` em
 
 ```ts
 // "Digitando…" enquanto prepara a resposta (só com mensagem recebida e janela aberta;
-// repetir em menos de 20 s não chama a Meta de novo) e marcar como lida.
+// repetir em menos de 20 s não chama a Meta de novo; a IA da conversa espera) e marcar como lida.
 await boto.conversations.typing(conversationId);
 await boto.conversations.markRead(conversationId);
 
