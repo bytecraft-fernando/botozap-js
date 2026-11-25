@@ -242,8 +242,11 @@ export class Conversations {
    * recebida do contato, que fica como lida (tiques azuis no WhatsApp, "visto"
    * no Instagram); a Meta tira o indicador quando a resposta sai ou em ~25 s.
    * Repetir em menos de 20 s não chama a Meta de novo (`repeated: true`); para
-   * uma resposta demorada, chame de novo a cada 20 s. Sem corpo. Scope
-   * `messages:send`; não aceita chave sandbox.
+   * uma resposta demorada, chame de novo a cada 20 s. Enquanto a integração
+   * chama, o agente de IA da conversa espera em vez de responder por cima: a
+   * resposta automática só sai até uns 45 s depois da última chamada, e a
+   * espera dura no máximo 5 minutos. Sem corpo. Scope `messages:send`; não
+   * aceita chave sandbox.
    *
    * Recusas: `no_inbound_message` (409, a conversa não tem mensagem recebida:
    * template e primeira mensagem não têm "digitando…"), `outside_window`
